@@ -4,8 +4,15 @@
   "package": "net.typho.vibrancy.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "client.ShaderImportProcessorMixin",
+    "client.SodiumGameOptionPagesMixin",
+    "client.VanillaShaderCompilerMixin",
+    "client.VeilMultiBindMixin",
+    "client.VeilShaderSourceMixin"
   ],
   "client": [
+    "client.LightmapTextureManagerMixin",
+    "client.VideoOptionsScreenMixin"
   ],
   "injectors": {
     "defaultRequire": 1

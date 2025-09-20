@@ -1,4 +1,10 @@
 {
-  "pack.name.vibrancy": "Vibrant Textures",
-  "pack.description.vibrancy": "Improved textures for use with Vibrancy (optional)"
+  "pack.name.vibrancy.textures": "Vibrant Textures",
+  "pack.description.vibrancy.textures": "Improved textures for use with Vibrancy (optional)",
+  "pack.name.vibrancy.ripple": "Enchantment Ripple",
+  "pack.description.vibrancy.ripple": "An improved \"rippling\" effect for the enchantment glint",
+  "key.vibrancy.debug.save_lightmap": "Save Lightmap [Debug]",
+  "options.vibrancy.dynamic_lightmap": "Dynamic Lightmap [Vibrancy]",
+  "options.vibrancy.dynamic_lightmap.tooltip": "Tweaks the lighting colors based on player position. Ex: Light blue in a cold biome, yellow-tan in a desert biome, orange in the nether",
+  "debug.vibrancy.save_lightmap": "Saved lightmap to %s"
 }
