@@ -77,30 +77,27 @@ public class VibrancyClient implements ClientModInitializer {
         float[] tempTint = getTempTint(dimLight, temp);
 
         for (int sky = 0; sky < image.getHeight(); sky++) {
-            float fSky = (float) sky / (image.getHeight() - 1) * day;
+            float fSky = (float) sky / (image.getHeight() - 1);
 
             if (player.hasStatusEffect(StatusEffects.NIGHT_VISION)) {
                 fSky = 1;
+                day = 1;
             } else {
                 fSky = (float) Math.pow(fSky, brightness);
             }
 
             float[] skyTint = dimLight.hasDay() && dimLight.nightSky() != null ? new float[]{
-                    MathHelper.lerp(fSky, fSky * fSky * tempTint[0], dimLight.nightSky()[0]),
-                    MathHelper.lerp(fSky, fSky * fSky * tempTint[1], dimLight.nightSky()[1]),
-                    MathHelper.lerp(fSky, fSky * fSky * tempTint[2], dimLight.nightSky()[2]),
+                    fSky * fSky * MathHelper.lerp(day, dimLight.nightSky()[0], tempTint[0]),
+                    fSky * fSky * MathHelper.lerp(day, dimLight.nightSky()[1], tempTint[1]),
+                    fSky * fSky * MathHelper.lerp(day, dimLight.nightSky()[2], tempTint[2])
             } : tempTint;
 
             for (int block = 0; block < image.getWidth(); block++) {
                 float fBlock = (float) Math.pow((float) block / (image.getWidth() - 1), brightness);
 
-                float red = fBlock * dimLight.block()[0];
-                float green = fBlock * dimLight.block()[1];
-                float blue = fBlock * dimLight.block()[2];
-
-                red = (red + skyTint[0]);
-                green = (green + skyTint[1]);
-                blue = (blue + skyTint[2]);
+                float red = fBlock * dimLight.block()[0] + skyTint[0];
+                float green = fBlock * dimLight.block()[1] + skyTint[1];
+                float blue = fBlock * dimLight.block()[2] + skyTint[2];
 
                 image.setColor(block, sky, 0xFF000000 | ((int) MathHelper.clamp(blue * 255, 0, 255) << 16) | ((int) MathHelper.clamp(green * 255, 0, 255) << 8) | (int) MathHelper.clamp(red * 255, 0, 255));
             }

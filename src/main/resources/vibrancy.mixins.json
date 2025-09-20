@@ -6,9 +6,7 @@
   "mixins": [
     "client.ShaderImportProcessorMixin",
     "client.SodiumGameOptionPagesMixin",
-    "client.VanillaShaderCompilerMixin",
-    "client.VeilMultiBindMixin",
-    "client.VeilShaderSourceMixin"
+    "client.VanillaShaderCompilerMixin"
   ],
   "client": [
     "client.LightmapTextureManagerMixin",
