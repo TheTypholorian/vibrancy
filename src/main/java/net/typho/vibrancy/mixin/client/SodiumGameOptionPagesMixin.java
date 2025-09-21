@@ -4,6 +4,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.caffeinemc.mods.sodium.client.gui.options.Option;
 import net.caffeinemc.mods.sodium.client.gui.options.OptionGroup;
+import net.caffeinemc.mods.sodium.client.gui.options.OptionImpact;
 import net.caffeinemc.mods.sodium.client.gui.options.OptionImpl;
 import net.caffeinemc.mods.sodium.client.gui.options.control.TickBoxControl;
 import net.caffeinemc.mods.sodium.client.gui.options.storage.MinecraftOptionsStorage;
@@ -37,6 +38,13 @@ public class SodiumGameOptionPagesMixin {
                         .setTooltip(Text.translatable("options.vibrancy.dynamic_lightmap.tooltip"))
                         .setControl(TickBoxControl::new)
                         .setBinding((opts, value) -> VibrancyClient.DYNAMIC_LIGHTMAP.setValue(value), opts -> VibrancyClient.DYNAMIC_LIGHTMAP.getValue())
+                        .build())
+                .add(OptionImpl.createBuilder(boolean.class, vanillaOpts)
+                        .setName(Text.translatable("options.vibrancy.raytrace_lights"))
+                        .setTooltip(Text.translatable("options.vibrancy.raytrace_lights.tooltip"))
+                        .setControl(TickBoxControl::new)
+                        .setBinding((opts, value) -> VibrancyClient.RAYTRACE_LIGHTS.setValue(value), opts -> VibrancyClient.RAYTRACE_LIGHTS.getValue())
+                        .setImpact(OptionImpact.HIGH)
                         .build());
     }
 }

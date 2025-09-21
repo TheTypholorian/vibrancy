@@ -14,9 +14,10 @@ public class VideoOptionsScreenMixin {
             at = @At("RETURN")
     )
     private static SimpleOption<?>[] getOptions(SimpleOption<?>[] original) {
-        SimpleOption<?>[] arr = new SimpleOption[original.length + 1];
+        SimpleOption<?>[] arr = new SimpleOption[original.length + 2];
         System.arraycopy(original, 0, arr, 0, original.length);
-        arr[original.length] = VibrancyClient.DYNAMIC_LIGHTMAP;
+        arr[original.length - 1] = VibrancyClient.DYNAMIC_LIGHTMAP;
+        arr[original.length] = VibrancyClient.RAYTRACE_LIGHTS;
         return arr;
     }
 }

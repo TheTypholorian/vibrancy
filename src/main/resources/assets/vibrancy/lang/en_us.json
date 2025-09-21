@@ -8,5 +8,7 @@
   "key.vibrancy.debug.save_lightmap": "Save Lightmap [Debug]",
   "options.vibrancy.dynamic_lightmap": "Dynamic Lightmap [Vibrancy]",
   "options.vibrancy.dynamic_lightmap.tooltip": "Tweaks the lighting colors based on player position. Ex: Light blue in a cold biome, yellow-tan in a desert biome, orange in the nether",
-  "debug.vibrancy.save_lightmap": "Saved lightmap to %s"
+  "debug.vibrancy.save_lightmap": "Saved lightmap to %s",
+  "options.vibrancy.raytrace_lights": "Raytrace Lights [Vibrancy]",
+  "options.vibrancy.raytrace_lights.tooltip": "Prevents dynamic lights from shining through blocks"
 }

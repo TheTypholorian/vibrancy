@@ -1,6 +1,8 @@
 package net.typho.vibrancy.client;
 
+import foundry.veil.api.client.render.VeilRenderSystem;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.ResourcePackActivationType;
@@ -20,6 +22,7 @@ import org.lwjgl.glfw.GLFW;
 
 public class VibrancyClient implements ClientModInitializer {
     public static final SimpleOption<Boolean> DYNAMIC_LIGHTMAP = SimpleOption.ofBoolean("options.vibrancy.dynamic_lightmap", true);
+    public static final SimpleOption<Boolean> RAYTRACE_LIGHTS = SimpleOption.ofBoolean("options.vibrancy.raytrace_lights", true);
     public static final KeyBinding SAVE_LIGHTMAP = !FabricLoader.getInstance().isDevelopmentEnvironment() ? null : KeyBindingHelper.registerKeyBinding(new KeyBinding(
             "key.vibrancy.debug.save_lightmap",
             GLFW.GLFW_KEY_F9,
@@ -28,6 +31,11 @@ public class VibrancyClient implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        ClientTickEvents.START_CLIENT_TICK.register(client -> {
+            if (VeilRenderSystem.renderer().getLightRenderer() instanceof RaytracedLightRenderer ray) {
+                ray.upload();
+            }
+        });
         ResourceManagerHelper.registerBuiltinResourcePack(Identifier.of(Vibrancy.MOD_ID, "emissive_ores"), FabricLoader.getInstance().getModContainer(Vibrancy.MOD_ID).orElseThrow(), Text.translatable("pack.name.vibrancy.emissive_ores"), ResourcePackActivationType.DEFAULT_ENABLED);
         ResourceManagerHelper.registerBuiltinResourcePack(Identifier.of(Vibrancy.MOD_ID, "vibrant_textures"), FabricLoader.getInstance().getModContainer(Vibrancy.MOD_ID).orElseThrow(), Text.translatable("pack.name.vibrancy.textures"), ResourcePackActivationType.DEFAULT_ENABLED);
         ResourceManagerHelper.registerBuiltinResourcePack(Identifier.of(Vibrancy.MOD_ID, "ripple"), FabricLoader.getInstance().getModContainer(Vibrancy.MOD_ID).orElseThrow(), Text.translatable("pack.name.vibrancy.ripple"), ResourcePackActivationType.DEFAULT_ENABLED);

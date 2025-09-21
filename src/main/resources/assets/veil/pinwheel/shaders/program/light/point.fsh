@@ -32,6 +32,10 @@ layout(std430, binding = 1) buffer QuadRanges {
 
 out vec4 fragColor;
 
+float lengthSquared(vec3 vec) {
+    return vec.x * vec.x + vec.y * vec.y + vec.z * vec.z;
+}
+
 bool raycastTriangle(vec3 ro, vec3 rd, vec3 v0, vec3 v1, vec3 v2, float m) {
     vec3 v1v0 = v1 - v0;
     vec3 v2v0 = v2 - v0;
@@ -47,15 +51,17 @@ bool raycastTriangle(vec3 ro, vec3 rd, vec3 v0, vec3 v1, vec3 v2, float m) {
 }
 
 bool raycastQuad(vec3 origin, vec3 dir, float len, Quad q) {
-    if (raycastTriangle(origin, dir, q.v1, q.v2, q.v3, len)) {
-        return true;
-    }
+    vec3 center = (q.v1 + q.v2 + q.v3 + q.v4) * 0.25;
+    float radius = length(q.v1 - center); // approximate bounding sphere
 
-    if (raycastTriangle(origin, dir, q.v1, q.v3, q.v4, len)) {
-        return true;
-    }
+    // project center onto ray
+    float t = dot(center - origin, dir);
+    float distSq = lengthSquared((origin + dir * t) - center);
+    if (distSq > radius * radius) return false;
 
-    return false;
+    // only now do precise triangle checks
+    return raycastTriangle(origin, dir, q.v1, q.v2, q.v3, len) ||
+    raycastTriangle(origin, dir, q.v1, q.v3, q.v4, len);
 }
 
 bool raycastQuads(vec3 origin, vec3 target) {
@@ -90,6 +96,10 @@ void main() {
     float depth = texture(DiffuseDepthSampler, screenUv).r;
     vec3 pos = viewToWorldSpace(viewPosFromDepth(depth, screenUv));
 
+    if (raycastQuads(pos, lightPos)) {
+        discard;
+    }
+
     // lighting calculation
     vec3 offset = lightPos - pos;
 
@@ -102,8 +112,4 @@ void main() {
     float reflectivity = 0.05;
     vec3 diffuseColor = diffuse * lightColor;
     fragColor = vec4(albedoColor.rgb * diffuseColor * (1.0 - reflectivity) + diffuseColor * reflectivity, 1.0);
-
-    if (raycastQuads(pos, lightPos)) {
-        discard;
-    }
 }
