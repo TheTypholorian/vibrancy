@@ -1,6 +1,8 @@
 {
   "pack.name.vibrancy.textures": "Vibrant Textures",
-  "pack.description.vibrancy.textures": "Improved textures for use with Vibrancy (optional)",
+  "pack.description.vibrancy.textures": "Improved textures for use with Vibrancy",
+  "pack.name.vibrancy.emissive_ores": "Emissive Ores",
+  "pack.description.vibrancy.emissive_ores": "Makes ores emissive (by osfanbuff63)",
   "pack.name.vibrancy.ripple": "Enchantment Ripple",
   "pack.description.vibrancy.ripple": "An improved \"rippling\" effect for the enchantment glint",
   "key.vibrancy.debug.save_lightmap": "Save Lightmap [Debug]",
