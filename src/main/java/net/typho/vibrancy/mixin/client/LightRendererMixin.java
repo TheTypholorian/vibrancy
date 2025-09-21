@@ -15,6 +15,7 @@ import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.random.Random;
 import net.typho.vibrancy.client.RaytracedLight;
+import net.typho.vibrancy.client.VibrancyClient;
 import org.joml.Vector3f;
 import org.lwjgl.system.MemoryUtil;
 import org.spongepowered.asm.mixin.Mixin;
@@ -72,13 +73,6 @@ public abstract class LightRendererMixin {
                     BlockBox box = new BlockBox(new BlockPos((int) Math.floor(light.getPosition().x), (int) Math.floor(light.getPosition().y), (int) Math.floor(light.getPosition().z))).expand(5);//(int) Math.ceil(light.getRadius()) + 1);
                     MatrixStack stack = new MatrixStack();
                     Random random = Random.create();
-
-                    quads.add(new RaytracedLight.Quad(
-                            new Vector3f((float) light.getPosition().x + 2, (float) light.getPosition().y + 3f, (float) light.getPosition().z - 0.5f),
-                            new Vector3f((float) light.getPosition().x + 2, (float) light.getPosition().y + 3f, (float) light.getPosition().z + 0.5f),
-                            new Vector3f((float) light.getPosition().x + 2, (float) light.getPosition().y - 3f, (float) light.getPosition().z + 0.5f),
-                            new Vector3f((float) light.getPosition().x + 2, (float) light.getPosition().y - 3f, (float) light.getPosition().z - 0.5f)
-                    ));
 
                     for (int x = box.getMinX(); x <= box.getMaxX(); x++) {
                         for (int y = box.getMinY(); y <= box.getMaxY(); y++) {
@@ -144,6 +138,8 @@ public abstract class LightRendererMixin {
                                         ));
                                     }
                                 }
+
+                                stack.pop();
                             }
                         }
                     }
@@ -152,8 +148,12 @@ public abstract class LightRendererMixin {
                 }
             }
 
-            if (quads.size() > 2000) {
+            if (VibrancyClient.SAVE_LIGHTMAP.isPressed()) {
                 System.out.println("uploading " + quads.size() + " quads");
+
+                for (int j = 0; j < 50; j++) {
+                    System.err.println(quads.get(j));
+                }
             }
 
             ByteBuffer buf = MemoryUtil.memAlloc(quads.size() * 16 * Float.BYTES);

@@ -43,7 +43,7 @@ bool raycastTriangle(vec3 ro, vec3 rd, vec3 v0, vec3 v1, vec3 v2, float m) {
     float v = d*dot(  q, v1v0 );
     float t = d*dot( -n, rov0 );
     if( u<0.0 || v<0.0 || (u+v)>1.0 ) t = -1.0;
-    return t > 0 && t < m;
+    return t > 1e-3 && t < m;
 }
 
 bool raycastQuad(vec3 origin, vec3 dir, float len, Quad q) {
@@ -90,21 +90,20 @@ void main() {
     float depth = texture(DiffuseDepthSampler, screenUv).r;
     vec3 pos = viewToWorldSpace(viewPosFromDepth(depth, screenUv));
 
+    // lighting calculation
+    vec3 offset = lightPos - pos;
+
+    vec3 normalVS = texture(VeilDynamicNormalSampler, screenUv).xyz;
+    vec3 lightDirection = normalize((VeilCamera.ViewMat * vec4(offset, 0.0)).xyz);
+    float diffuse = clamp(0.0, 1.0, dot(normalVS, lightDirection));
+    diffuse = (diffuse + MINECRAFT_AMBIENT_LIGHT) / (1.0 + MINECRAFT_AMBIENT_LIGHT);
+    diffuse *= attenuate_no_cusp(length(offset), radius);
+
+    float reflectivity = 0.05;
+    vec3 diffuseColor = diffuse * lightColor;
+    fragColor = vec4(albedoColor.rgb * diffuseColor * (1.0 - reflectivity) + diffuseColor * reflectivity, 1.0);
+
     if (raycastQuads(pos, lightPos)) {
-        //fragColor = vec4(normalize(lightPos - pos), 1);
         discard;
-    } else {
-        // lighting calculation
-        vec3 offset = lightPos - pos;
-
-        vec3 normalVS = texture(VeilDynamicNormalSampler, screenUv).xyz;
-        vec3 lightDirection = normalize((VeilCamera.ViewMat * vec4(offset, 0.0)).xyz);
-        float diffuse = clamp(0.0, 1.0, dot(normalVS, lightDirection));
-        diffuse = (diffuse + MINECRAFT_AMBIENT_LIGHT) / (1.0 + MINECRAFT_AMBIENT_LIGHT);
-        diffuse *= attenuate_no_cusp(length(offset), radius);
-
-        float reflectivity = 0.05;
-        vec3 diffuseColor = diffuse * lightColor;
-        fragColor = vec4(albedoColor.rgb * diffuseColor * (1.0 - reflectivity) + diffuseColor * reflectivity, 1.0);
     }
 }
