@@ -19,6 +19,7 @@ import net.typho.vibrancy.client.RaytracedLight;
 import net.typho.vibrancy.client.RaytracedLightRenderer;
 import net.typho.vibrancy.client.VibrancyClient;
 import org.joml.Vector3f;
+import org.joml.Vector3i;
 import org.lwjgl.system.MemoryUtil;
 import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.At;
@@ -27,8 +28,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.nio.ByteBuffer;
-import java.util.LinkedList;
-import java.util.List;
+import java.util.*;
 
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL30.glBindBufferBase;
@@ -73,19 +73,22 @@ public abstract class LightRendererMixin {
             if (!lights.isEmpty()) {
                 glBindBuffer(GL_SHADER_STORAGE_BUFFER, quadSSBO);
 
-                List<RaytracedLight.Quad> quads = new LinkedList<>();
-                int[] ranges = new int[lights.size() * 2];
+                Map<PointLight, Map<Vector3i, RaytracedLight.QuadGroup>> allGroups = new LinkedHashMap<>();
+                int[] ranges = new int[lights.size() * 2], numGroups = {0};
                 int i = 0;
 
                 ClientWorld world = MinecraftClient.getInstance().world;
 
                 if (world != null) {
                     for (PointLight light : lights) {
-                        ranges[i++] = quads.size();
+                        ranges[i++] = numGroups[0];
                         Vector3f lightPos = new Vector3f((float) light.getPosition().x, (float) light.getPosition().y, (float) light.getPosition().z);
-                        BlockBox box = new BlockBox(new BlockPos((int) Math.floor(light.getPosition().x), (int) Math.floor(light.getPosition().y), (int) Math.floor(light.getPosition().z))).expand(5);//(int) Math.ceil(light.getRadius()) + 1);
+                        Map<Vector3i, RaytracedLight.QuadGroup> groups = new LinkedHashMap<>();
+                        BlockBox box = new BlockBox(new BlockPos((int) Math.floor(light.getPosition().x), (int) Math.floor(light.getPosition().y), (int) Math.floor(light.getPosition().z))).expand(1);//(int) Math.ceil(light.getRadius()) + 1);
                         MatrixStack stack = new MatrixStack();
                         Random random = Random.create();
+
+                        allGroups.put(light, groups);
 
                         for (int x = box.getMinX(); x <= box.getMaxX(); x++) {
                             for (int y = box.getMinY(); y <= box.getMaxY(); y++) {
@@ -93,87 +96,93 @@ public abstract class LightRendererMixin {
                                     BlockPos pos = new BlockPos(x, y, z);
                                     BlockState state = world.getBlockState(pos);
 
-                                    if (/*MinecraftClient.getInstance().worldRenderer.frustum.isVisible(new Box(pos)) && */MinecraftClient.getInstance().gameRenderer.getCamera().getBlockPos().isWithinDistance(pos, 64)) {
-                                        stack.push();
-                                        stack.translate(pos.getX(), pos.getY(), pos.getZ());
+                                    RaytracedLight.QuadGroup group = groups.computeIfAbsent(new Vector3i(x / RaytracedLight.QuadGroup.SIZE, y / RaytracedLight.QuadGroup.SIZE, z / RaytracedLight.QuadGroup.SIZE), k -> {
+                                        numGroups[0]++;
+                                        return new RaytracedLight.QuadGroup(k, new LinkedList<>());
+                                    });
 
-                                        List<Vector3f> vertices = new LinkedList<>(), normals = new LinkedList<>();
+                                    stack.push();
+                                    stack.translate(pos.getX(), pos.getY(), pos.getZ());
 
-                                        MinecraftClient.getInstance().getBlockRenderManager().renderBlock(
-                                                state,
-                                                pos,
-                                                world,
-                                                stack,
-                                                new VertexConsumer() {
-                                                    @Override
-                                                    public VertexConsumer vertex(float x, float y, float z) {
-                                                        vertices.add(new Vector3f(x, y, z));
-                                                        return this;
-                                                    }
+                                    List<Vector3f> vertices = new LinkedList<>(), normals = new LinkedList<>();
 
-                                                    @Override
-                                                    public VertexConsumer color(int red, int green, int blue, int alpha) {
-                                                        return this;
-                                                    }
+                                    MinecraftClient.getInstance().getBlockRenderManager().renderBlock(
+                                            state,
+                                            pos,
+                                            world,
+                                            stack,
+                                            new VertexConsumer() {
+                                                @Override
+                                                public VertexConsumer vertex(float x, float y, float z) {
+                                                    vertices.add(new Vector3f(x, y, z));
+                                                    return this;
+                                                }
 
-                                                    @Override
-                                                    public VertexConsumer texture(float u, float v) {
-                                                        return this;
-                                                    }
+                                                @Override
+                                                public VertexConsumer color(int red, int green, int blue, int alpha) {
+                                                    return this;
+                                                }
 
-                                                    @Override
-                                                    public VertexConsumer overlay(int u, int v) {
-                                                        return this;
-                                                    }
+                                                @Override
+                                                public VertexConsumer texture(float u, float v) {
+                                                    return this;
+                                                }
 
-                                                    @Override
-                                                    public VertexConsumer light(int u, int v) {
-                                                        return this;
-                                                    }
+                                                @Override
+                                                public VertexConsumer overlay(int u, int v) {
+                                                    return this;
+                                                }
 
-                                                    @Override
-                                                    public VertexConsumer normal(float x, float y, float z) {
-                                                        normals.add(new Vector3f(x, y, z));
-                                                        return this;
-                                                    }
-                                                },
-                                                false,
-                                                random
-                                        );
+                                                @Override
+                                                public VertexConsumer light(int u, int v) {
+                                                    return this;
+                                                }
 
-                                        if (vertices.size() % 4 != 0) {
-                                            System.err.println("[Vibrancy] Block " + state + " doesn't use quads for rendering, skipping it for raytracing");
-                                        } else {
-                                            for (int j = 0; j < vertices.size(); j += 4) {
-                                                for (int k = j; k < j + 4; k++) {
-                                                    if (normals.get(k).dot(lightPos.sub(vertices.get(k), new Vector3f())) > 0) {
-                                                        quads.add(new RaytracedLight.Quad(
-                                                                vertices.get(j),
-                                                                vertices.get(j + 1),
-                                                                vertices.get(j + 2),
-                                                                vertices.get(j + 3)
-                                                        ));
-                                                        break;
-                                                    }
+                                                @Override
+                                                public VertexConsumer normal(float x, float y, float z) {
+                                                    normals.add(new Vector3f(x, y, z));
+                                                    return this;
+                                                }
+                                            },
+                                            false,
+                                            random
+                                    );
+
+                                    if (vertices.size() % 4 != 0) {
+                                        System.err.println("[Vibrancy] Block " + state + " doesn't use quads for rendering, skipping it for raytracing");
+                                    } else {
+                                        for (int j = 0; j < vertices.size(); j += 4) {
+                                            for (int k = j; k < j + 4; k++) {
+                                                if (normals.get(k).dot(lightPos.sub(vertices.get(k), new Vector3f())) > 0) {
+                                                    group.quads().add(new RaytracedLight.Quad(
+                                                            vertices.get(j),
+                                                            vertices.get(j + 1),
+                                                            vertices.get(j + 2),
+                                                            vertices.get(j + 3)
+                                                    ));
+                                                    break;
                                                 }
                                             }
                                         }
-
-                                        stack.pop();
                                     }
+
+                                    stack.pop();
                                 }
                             }
                         }
 
-                        ranges[i++] = quads.size();
+                        ranges[i++] = numGroups[0];
                     }
                 }
 
-                ByteBuffer buf = MemoryUtil.memAlloc(quads.size() * 16 * Float.BYTES);
+                ByteBuffer buf = MemoryUtil.memAlloc(numGroups[0] * RaytracedLight.QuadGroup.BYTES);
 
-                for (RaytracedLight.Quad quad : quads) {
-                    quad.put(buf);
-                }
+                allGroups.forEach((light, groups) -> {
+                    Vector3i lightGroupPos = new Vector3i((int) light.getPosition().x / RaytracedLight.QuadGroup.SIZE, (int) light.getPosition().y / RaytracedLight.QuadGroup.SIZE, (int) light.getPosition().z / RaytracedLight.QuadGroup.SIZE);
+                    groups.values().stream()
+                            .sorted(Comparator.comparingDouble(group -> group.pos().distance(lightGroupPos)))
+                            .forEachOrdered(group -> group.put(buf));
+                });
 
                 buf.flip();
                 glBufferData(GL_SHADER_STORAGE_BUFFER, buf, GL_DYNAMIC_DRAW);

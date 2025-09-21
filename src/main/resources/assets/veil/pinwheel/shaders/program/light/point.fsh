@@ -1,4 +1,5 @@
 #version 430 core
+#extension GL_NV_gpu_shader5 : enable
 
 #include "veil:common"
 #include "veil:deferred_utils"
@@ -22,11 +23,17 @@ uniform bool Raytrace = true;
 uniform uint NumQuads;
 
 struct Quad {
-    vec3 v1, v2, v3, v4;
+    vec4 v1, v2, v3, v4;
+};
+
+struct QuadGroup {
+    uvec3 min, max;
+    Quad[64] quads;
+    uint len;
 };
 
 layout(std430, binding = 0) buffer Quads {
-    Quad quads[];
+    QuadGroup quadGroups[];
 };
 layout(std430, binding = 1) buffer QuadRanges {
     uvec2 quadRanges[];
@@ -62,19 +69,17 @@ bool raycastTriangle(mediump vec3 ro, mediump vec3 rd, mediump vec3 v0, mediump 
 }
 
 bool raycastQuad(mediump vec3 origin, mediump vec3 dir, mediump float len, Quad q) {
-    mediump vec3 total = q.v1 + q.v2 + q.v3 + q.v4;
+    return raycastTriangle(origin, dir, q.v1.xyz, q.v2.xyz, q.v3.xyz, len) || raycastTriangle(origin, dir, q.v1.xyz, q.v3.xyz, q.v4.xyz, len);
+}
 
-    if (dot(dir, normalize(total - 4 * origin)) < 0) {
-        //return false;
+bool raycastGroup(mediump vec3 origin, mediump vec3 dir, mediump float len, QuadGroup g) {
+    for (uint i = 0; i < g.len; i++) {
+       if (raycastQuad(origin, dir, len, g.quads[i])) {
+           return true;
+       }
     }
 
-    mediump vec3 center = total * 0.25;
-
-    if (lengthSquared((origin + dir * dot(center - origin, dir)) - center) > lengthSquared(q.v1 - center)) {
-        return false;
-    }
-
-    return raycastTriangle(origin, dir, q.v1, q.v2, q.v3, len) || raycastTriangle(origin, dir, q.v1, q.v3, q.v4, len);
+    return false;
 }
 
 bool raycastQuads(vec3 origin, vec3 target) {
@@ -85,12 +90,12 @@ bool raycastQuads(vec3 origin, vec3 target) {
     mediump vec3 delta = target - origin;
     mediump vec3 dir = normalize(delta);
     mediump float len = length(delta);
-    uvec2 range = quadRanges[lightID];
+    uvec2 range = uvec2(0, quadGroups.length());//quadRanges[lightID];
 
     for (uint i = range.x; i <= range.y; i++) {
-        Quad q = quads[i];
+        QuadGroup g = quadGroups[i];
 
-        if (raycastQuad(origin, dir, len, q)) {
+        if (raycastGroup(origin, dir, len, g)) {
             return true;
         }
     }
@@ -109,19 +114,21 @@ void main() {
     float depth = texture(DiffuseDepthSampler, screenUv).r;
     vec3 pos = viewToWorldSpace(viewPosFromDepth(depth, screenUv));
 
+    bool shadow = raycastQuads(lightPos, pos);
+
     vec3 offset = lightPos - pos;
 
     vec3 normalVS = texture(VeilDynamicNormalSampler, screenUv).xyz;
     vec3 lightDirection = normalize((VeilCamera.ViewMat * vec4(offset, 0.0)).xyz);
     float diffuse = clamp(0.0, 1.0, dot(normalVS, lightDirection));
     diffuse = (diffuse + MINECRAFT_AMBIENT_LIGHT) / (1.0 + MINECRAFT_AMBIENT_LIGHT);
-    diffuse *= attenuate_no_cusp(length(offset), radius);
+    diffuse *= attenuate_no_cusp(length(offset), shadow ? radius / 2 : radius);
 
     float reflectivity = 0.05;
     vec3 diffuseColor = diffuse * lightColor;
     fragColor = vec4(albedoColor.rgb * diffuseColor * (1.0 - reflectivity) + diffuseColor * reflectivity, 1.0);
 
-    if (raycastQuads(lightPos, pos)) {
-        fragColor /= 4;
+    if (shadow) {
+        fragColor /= 2;
     }
 }
