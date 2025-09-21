@@ -14,6 +14,8 @@ uniform sampler2D VeilDynamicAlbedoSampler;
 uniform sampler2D VeilDynamicNormalSampler;
 uniform sampler2D DiffuseDepthSampler;
 
+uniform vec3 CameraPos;
+
 uniform vec2 ScreenSize;
 
 uniform bool Raytrace = true;
@@ -36,32 +38,43 @@ float lengthSquared(vec3 vec) {
     return vec.x * vec.x + vec.y * vec.y + vec.z * vec.z;
 }
 
-bool raycastTriangle(vec3 ro, vec3 rd, vec3 v0, vec3 v1, vec3 v2, float m) {
-    vec3 v1v0 = v1 - v0;
-    vec3 v2v0 = v2 - v0;
-    vec3 rov0 = ro - v0;
-    vec3  n = cross( v1v0, v2v0 );
-    vec3  q = cross( rov0, rd );
-    float d = 1.0/dot( rd, n );
-    float u = d*dot( -q, v2v0 );
-    float v = d*dot(  q, v1v0 );
-    float t = d*dot( -n, rov0 );
-    if( u<0.0 || v<0.0 || (u+v)>1.0 ) t = -1.0;
-    return t > 1e-3 && t < m;
+bool raycastTriangle(mediump vec3 ro, mediump vec3 rd, mediump vec3 v0, mediump vec3 v1, mediump vec3 v2, mediump float m) {
+    mediump vec3 v1v0 = v1 - v0;
+    mediump vec3 v2v0 = v2 - v0;
+    mediump vec3 rov0 = ro - v0;
+    mediump vec3 n = cross(v1v0, v2v0);
+    mediump vec3 q = cross(rov0, rd);
+    mediump float d = 1.0 / dot(rd, n);
+    mediump float u = d * dot(-q, v2v0);
+
+    if (u < 0) {
+        return false;
+    }
+
+    mediump float v = d * dot(q, v1v0);
+
+    if (v < 0 || u + v > 1) {
+        return false;
+    }
+
+    mediump float t = d * dot(-n, rov0);
+    return t > 1e-3 && t < m - 1e-2;
 }
 
-bool raycastQuad(vec3 origin, vec3 dir, float len, Quad q) {
-    vec3 center = (q.v1 + q.v2 + q.v3 + q.v4) * 0.25;
-    float radius = length(q.v1 - center); // approximate bounding sphere
+bool raycastQuad(mediump vec3 origin, mediump vec3 dir, mediump float len, Quad q) {
+    mediump vec3 total = q.v1 + q.v2 + q.v3 + q.v4;
 
-    // project center onto ray
-    float t = dot(center - origin, dir);
-    float distSq = lengthSquared((origin + dir * t) - center);
-    if (distSq > radius * radius) return false;
+    if (dot(dir, normalize(total - 4 * origin)) < 0) {
+        //return false;
+    }
 
-    // only now do precise triangle checks
-    return raycastTriangle(origin, dir, q.v1, q.v2, q.v3, len) ||
-    raycastTriangle(origin, dir, q.v1, q.v3, q.v4, len);
+    mediump vec3 center = total * 0.25;
+
+    if (lengthSquared((origin + dir * dot(center - origin, dir)) - center) > lengthSquared(q.v1 - center)) {
+        return false;
+    }
+
+    return raycastTriangle(origin, dir, q.v1, q.v2, q.v3, len) || raycastTriangle(origin, dir, q.v1, q.v3, q.v4, len);
 }
 
 bool raycastQuads(vec3 origin, vec3 target) {
@@ -69,9 +82,9 @@ bool raycastQuads(vec3 origin, vec3 target) {
         return false;
     }
 
-    vec3 delta = target - origin;
-    vec3 dir = normalize(delta);
-    float len = length(delta);
+    mediump vec3 delta = target - origin;
+    mediump vec3 dir = normalize(delta);
+    mediump float len = length(delta);
     uvec2 range = quadRanges[lightID];
 
     for (uint i = range.x; i <= range.y; i++) {
@@ -89,18 +102,13 @@ void main() {
     vec2 screenUv = gl_FragCoord.xy / ScreenSize;
 
     vec4 albedoColor = texture(VeilDynamicAlbedoSampler, screenUv);
-    if(albedoColor.a == 0) {
+    if (albedoColor.a == 0) {
         discard;
     }
 
     float depth = texture(DiffuseDepthSampler, screenUv).r;
     vec3 pos = viewToWorldSpace(viewPosFromDepth(depth, screenUv));
 
-    if (raycastQuads(pos, lightPos)) {
-        discard;
-    }
-
-    // lighting calculation
     vec3 offset = lightPos - pos;
 
     vec3 normalVS = texture(VeilDynamicNormalSampler, screenUv).xyz;
@@ -112,4 +120,8 @@ void main() {
     float reflectivity = 0.05;
     vec3 diffuseColor = diffuse * lightColor;
     fragColor = vec4(albedoColor.rgb * diffuseColor * (1.0 - reflectivity) + diffuseColor * reflectivity, 1.0);
+
+    if (raycastQuads(lightPos, pos)) {
+        fragColor /= 4;
+    }
 }

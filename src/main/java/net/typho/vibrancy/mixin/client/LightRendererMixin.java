@@ -8,6 +8,7 @@ import foundry.veil.api.client.render.light.renderer.LightRenderer;
 import foundry.veil.api.client.render.shader.program.ShaderProgram;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.render.Camera;
 import net.minecraft.client.render.VertexConsumer;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.client.world.ClientWorld;
@@ -57,6 +58,8 @@ public abstract class LightRendererMixin {
     )
     private void applyShader(CallbackInfoReturnable<Boolean> cir, @Local ShaderProgram shader) {
         shader.setInt("Raytrace", VibrancyClient.RAYTRACE_LIGHTS.getValue() ? 1 : 0);
+        Camera camera = MinecraftClient.getInstance().gameRenderer.getCamera();
+        shader.setFloats("CameraPos", (float) camera.getPos().x, (float) camera.getPos().y, (float) camera.getPos().z);
 
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, quadSSBO);
         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, rangesSSBO);
@@ -79,6 +82,7 @@ public abstract class LightRendererMixin {
                 if (world != null) {
                     for (PointLight light : lights) {
                         ranges[i++] = quads.size();
+                        Vector3f lightPos = new Vector3f((float) light.getPosition().x, (float) light.getPosition().y, (float) light.getPosition().z);
                         BlockBox box = new BlockBox(new BlockPos((int) Math.floor(light.getPosition().x), (int) Math.floor(light.getPosition().y), (int) Math.floor(light.getPosition().z))).expand(5);//(int) Math.ceil(light.getRadius()) + 1);
                         MatrixStack stack = new MatrixStack();
                         Random random = Random.create();
@@ -89,66 +93,74 @@ public abstract class LightRendererMixin {
                                     BlockPos pos = new BlockPos(x, y, z);
                                     BlockState state = world.getBlockState(pos);
 
-                                    stack.push();
-                                    stack.translate(pos.getX(), pos.getY(), pos.getZ());
+                                    if (/*MinecraftClient.getInstance().worldRenderer.frustum.isVisible(new Box(pos)) && */MinecraftClient.getInstance().gameRenderer.getCamera().getBlockPos().isWithinDistance(pos, 64)) {
+                                        stack.push();
+                                        stack.translate(pos.getX(), pos.getY(), pos.getZ());
 
-                                    List<Vector3f> vertices = new LinkedList<>();
+                                        List<Vector3f> vertices = new LinkedList<>(), normals = new LinkedList<>();
 
-                                    MinecraftClient.getInstance().getBlockRenderManager().renderBlock(
-                                            state,
-                                            pos,
-                                            world,
-                                            stack,
-                                            new VertexConsumer() {
-                                                @Override
-                                                public VertexConsumer vertex(float x, float y, float z) {
-                                                    vertices.add(new Vector3f(x, y, z));
-                                                    return this;
+                                        MinecraftClient.getInstance().getBlockRenderManager().renderBlock(
+                                                state,
+                                                pos,
+                                                world,
+                                                stack,
+                                                new VertexConsumer() {
+                                                    @Override
+                                                    public VertexConsumer vertex(float x, float y, float z) {
+                                                        vertices.add(new Vector3f(x, y, z));
+                                                        return this;
+                                                    }
+
+                                                    @Override
+                                                    public VertexConsumer color(int red, int green, int blue, int alpha) {
+                                                        return this;
+                                                    }
+
+                                                    @Override
+                                                    public VertexConsumer texture(float u, float v) {
+                                                        return this;
+                                                    }
+
+                                                    @Override
+                                                    public VertexConsumer overlay(int u, int v) {
+                                                        return this;
+                                                    }
+
+                                                    @Override
+                                                    public VertexConsumer light(int u, int v) {
+                                                        return this;
+                                                    }
+
+                                                    @Override
+                                                    public VertexConsumer normal(float x, float y, float z) {
+                                                        normals.add(new Vector3f(x, y, z));
+                                                        return this;
+                                                    }
+                                                },
+                                                false,
+                                                random
+                                        );
+
+                                        if (vertices.size() % 4 != 0) {
+                                            System.err.println("[Vibrancy] Block " + state + " doesn't use quads for rendering, skipping it for raytracing");
+                                        } else {
+                                            for (int j = 0; j < vertices.size(); j += 4) {
+                                                for (int k = j; k < j + 4; k++) {
+                                                    if (normals.get(k).dot(lightPos.sub(vertices.get(k), new Vector3f())) > 0) {
+                                                        quads.add(new RaytracedLight.Quad(
+                                                                vertices.get(j),
+                                                                vertices.get(j + 1),
+                                                                vertices.get(j + 2),
+                                                                vertices.get(j + 3)
+                                                        ));
+                                                        break;
+                                                    }
                                                 }
-
-                                                @Override
-                                                public VertexConsumer color(int red, int green, int blue, int alpha) {
-                                                    return this;
-                                                }
-
-                                                @Override
-                                                public VertexConsumer texture(float u, float v) {
-                                                    return this;
-                                                }
-
-                                                @Override
-                                                public VertexConsumer overlay(int u, int v) {
-                                                    return this;
-                                                }
-
-                                                @Override
-                                                public VertexConsumer light(int u, int v) {
-                                                    return this;
-                                                }
-
-                                                @Override
-                                                public VertexConsumer normal(float x, float y, float z) {
-                                                    return this;
-                                                }
-                                            },
-                                            false,
-                                            random
-                                    );
-
-                                    if (vertices.size() % 4 != 0) {
-                                        System.err.println("[Vibrancy] Block " + state + " doesn't use quads for rendering, skipping it for raytracing");
-                                    } else {
-                                        for (int j = 0; j < vertices.size(); j += 4) {
-                                            quads.add(new RaytracedLight.Quad(
-                                                    vertices.get(j),
-                                                    vertices.get(j + 1),
-                                                    vertices.get(j + 2),
-                                                    vertices.get(j + 3)
-                                            ));
+                                            }
                                         }
-                                    }
 
-                                    stack.pop();
+                                        stack.pop();
+                                    }
                                 }
                             }
                         }
