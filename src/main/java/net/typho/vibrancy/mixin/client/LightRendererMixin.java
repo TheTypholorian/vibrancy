@@ -13,9 +13,9 @@ import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.random.Random;
 import net.typho.vibrancy.client.RaytracedLight;
+import org.joml.Vector3f;
 import org.lwjgl.system.MemoryUtil;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -69,9 +69,16 @@ public abstract class LightRendererMixin {
             if (world != null) {
                 for (PointLight light : lights) {
                     ranges[i++] = quads.size();
-                    BlockBox box = new BlockBox(new BlockPos((int) Math.floor(light.getPosition().x), (int) Math.floor(light.getPosition().y), (int) Math.floor(light.getPosition().z))).expand((int) Math.ceil(light.getRadius()) + 1);
+                    BlockBox box = new BlockBox(new BlockPos((int) Math.floor(light.getPosition().x), (int) Math.floor(light.getPosition().y), (int) Math.floor(light.getPosition().z))).expand(5);//(int) Math.ceil(light.getRadius()) + 1);
                     MatrixStack stack = new MatrixStack();
                     Random random = Random.create();
+
+                    quads.add(new RaytracedLight.Quad(
+                            new Vector3f((float) light.getPosition().x + 2, (float) light.getPosition().y + 3f, (float) light.getPosition().z - 0.5f),
+                            new Vector3f((float) light.getPosition().x + 2, (float) light.getPosition().y + 3f, (float) light.getPosition().z + 0.5f),
+                            new Vector3f((float) light.getPosition().x + 2, (float) light.getPosition().y - 3f, (float) light.getPosition().z + 0.5f),
+                            new Vector3f((float) light.getPosition().x + 2, (float) light.getPosition().y - 3f, (float) light.getPosition().z - 0.5f)
+                    ));
 
                     for (int x = box.getMinX(); x <= box.getMaxX(); x++) {
                         for (int y = box.getMinY(); y <= box.getMaxY(); y++) {
@@ -82,7 +89,7 @@ public abstract class LightRendererMixin {
                                 stack.push();
                                 stack.translate(pos.getX(), pos.getY(), pos.getZ());
 
-                                List<Vec3d> vertices = new LinkedList<>();
+                                List<Vector3f> vertices = new LinkedList<>();
 
                                 MinecraftClient.getInstance().getBlockRenderManager().renderBlock(
                                         state,
@@ -92,7 +99,7 @@ public abstract class LightRendererMixin {
                                         new VertexConsumer() {
                                             @Override
                                             public VertexConsumer vertex(float x, float y, float z) {
-                                                vertices.add(new Vec3d(x, y, z));
+                                                vertices.add(new Vector3f(x, y, z));
                                                 return this;
                                             }
 
@@ -145,9 +152,11 @@ public abstract class LightRendererMixin {
                 }
             }
 
-            System.out.println("uploading " + quads.size() + " quads");
+            if (quads.size() > 2000) {
+                System.out.println("uploading " + quads.size() + " quads");
+            }
 
-            ByteBuffer buf = MemoryUtil.memAlloc(quads.size() * 12 * Float.BYTES);
+            ByteBuffer buf = MemoryUtil.memAlloc(quads.size() * 16 * Float.BYTES);
 
             for (RaytracedLight.Quad quad : quads) {
                 quad.put(buf);

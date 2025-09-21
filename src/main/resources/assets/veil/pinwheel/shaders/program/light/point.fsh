@@ -30,24 +30,20 @@ layout(std430, binding = 1) buffer QuadRanges {
     uvec2 quadRanges[];
 };
 
+out vec4 fragColor;
+
 bool raycastTriangle(vec3 ro, vec3 rd, vec3 v0, vec3 v1, vec3 v2, float m) {
-    vec3 e1 = v1 - v0;
-    vec3 e2 = v2 - v0;
-    vec3 p  = cross(rd, e2);
-    float det = dot(e1, p);
-    if (abs(det) < 1e-6) return false;
-
-    float invDet = 1.0 / det;
-    vec3 s = ro - v0;
-    float u = dot(s, p) * invDet;
-    if (u < 0.0 || u > 1.0) return false;
-
-    vec3 q = cross(s, e1);
-    float v = dot(rd, q) * invDet;
-    if (v < 0.0 || u + v > 1.0) return false;
-
-    float t = dot(e2, q) * invDet;
-    return t > 0.0 && t < m;
+    vec3 v1v0 = v1 - v0;
+    vec3 v2v0 = v2 - v0;
+    vec3 rov0 = ro - v0;
+    vec3  n = cross( v1v0, v2v0 );
+    vec3  q = cross( rov0, rd );
+    float d = 1.0/dot( rd, n );
+    float u = d*dot( -q, v2v0 );
+    float v = d*dot(  q, v1v0 );
+    float t = d*dot( -n, rov0 );
+    if( u<0.0 || v<0.0 || (u+v)>1.0 ) t = -1.0;
+    return t > 0 && t < m;
 }
 
 bool raycastQuad(vec3 origin, vec3 dir, float len, Quad q) {
@@ -83,8 +79,6 @@ bool raycastQuads(vec3 origin, vec3 target) {
     return false;
 }
 
-out vec4 fragColor;
-
 void main() {
     vec2 screenUv = gl_FragCoord.xy / ScreenSize;
 
@@ -97,19 +91,20 @@ void main() {
     vec3 pos = viewToWorldSpace(viewPosFromDepth(depth, screenUv));
 
     if (raycastQuads(pos, lightPos)) {
+        //fragColor = vec4(normalize(lightPos - pos), 1);
         discard;
+    } else {
+        // lighting calculation
+        vec3 offset = lightPos - pos;
+
+        vec3 normalVS = texture(VeilDynamicNormalSampler, screenUv).xyz;
+        vec3 lightDirection = normalize((VeilCamera.ViewMat * vec4(offset, 0.0)).xyz);
+        float diffuse = clamp(0.0, 1.0, dot(normalVS, lightDirection));
+        diffuse = (diffuse + MINECRAFT_AMBIENT_LIGHT) / (1.0 + MINECRAFT_AMBIENT_LIGHT);
+        diffuse *= attenuate_no_cusp(length(offset), radius);
+
+        float reflectivity = 0.05;
+        vec3 diffuseColor = diffuse * lightColor;
+        fragColor = vec4(albedoColor.rgb * diffuseColor * (1.0 - reflectivity) + diffuseColor * reflectivity, 1.0);
     }
-
-    // lighting calculation
-    vec3 offset = lightPos - pos;
-
-    vec3 normalVS = texture(VeilDynamicNormalSampler, screenUv).xyz;
-    vec3 lightDirection = normalize((VeilCamera.ViewMat * vec4(offset, 0.0)).xyz);
-    float diffuse = clamp(0.0, 1.0, dot(normalVS, lightDirection));
-    diffuse = (diffuse + MINECRAFT_AMBIENT_LIGHT) / (1.0 + MINECRAFT_AMBIENT_LIGHT);
-    diffuse *= attenuate_no_cusp(length(offset), radius);
-
-    float reflectivity = 0.05;
-    vec3 diffuseColor = diffuse * lightColor;
-    fragColor = vec4(albedoColor.rgb * diffuseColor * (1.0 - reflectivity) + diffuseColor * reflectivity, 1.0);
 }

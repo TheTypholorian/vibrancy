@@ -1,6 +1,6 @@
 package net.typho.vibrancy.client;
 
-import net.minecraft.util.math.Vec3d;
+import org.joml.Vector3f;
 
 import java.nio.ByteBuffer;
 
@@ -11,12 +11,12 @@ public interface RaytracedLight {
 
     void uploadQuads();
 
-    record Quad(Vec3d v1, Vec3d v2, Vec3d v3, Vec3d v4) {
+    record Quad(Vector3f v1, Vector3f v2, Vector3f v3, Vector3f v4) {
         public void put(ByteBuffer buf) {
-            buf.putFloat((float) v1.x).putFloat((float) v1.y).putFloat((float) v1.z);
-            buf.putFloat((float) v2.x).putFloat((float) v2.y).putFloat((float) v2.z);
-            buf.putFloat((float) v3.x).putFloat((float) v3.y).putFloat((float) v3.z);
-            buf.putFloat((float) v4.x).putFloat((float) v4.y).putFloat((float) v4.z);
+            buf.putFloat(v1.x).putFloat(v1.y).putFloat(v1.z).putFloat(0);
+            buf.putFloat(v2.x).putFloat(v2.y).putFloat(v2.z).putFloat(0);
+            buf.putFloat(v3.x).putFloat(v3.y).putFloat(v3.z).putFloat(0);
+            buf.putFloat(v4.x).putFloat(v4.y).putFloat(v4.z).putFloat(0);
         }
     }
 }
