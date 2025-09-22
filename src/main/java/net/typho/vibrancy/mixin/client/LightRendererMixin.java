@@ -73,7 +73,7 @@ public abstract class LightRendererMixin {
             if (!lights.isEmpty()) {
                 glBindBuffer(GL_SHADER_STORAGE_BUFFER, quadSSBO);
 
-                Map<PointLight, Map<Vector3i, RaytracedLight.QuadGroup>> allGroups = new LinkedHashMap<>();
+                Map<PointLight, Map<Vector3i, List<RaytracedLight.QuadGroup>>> allGroups = new LinkedHashMap<>();
                 int[] ranges = new int[lights.size() * 2], numGroups = {0};
                 int i = 0;
 
@@ -83,8 +83,8 @@ public abstract class LightRendererMixin {
                     for (PointLight light : lights) {
                         ranges[i++] = numGroups[0];
                         Vector3f lightPos = new Vector3f((float) light.getPosition().x, (float) light.getPosition().y, (float) light.getPosition().z);
-                        Map<Vector3i, RaytracedLight.QuadGroup> groups = new LinkedHashMap<>();
-                        BlockBox box = new BlockBox(new BlockPos((int) Math.floor(light.getPosition().x), (int) Math.floor(light.getPosition().y), (int) Math.floor(light.getPosition().z))).expand(1);//(int) Math.ceil(light.getRadius()) + 1);
+                        Map<Vector3i, List<RaytracedLight.QuadGroup>> groups = new LinkedHashMap<>();
+                        BlockBox box = new BlockBox(new BlockPos((int) Math.floor(light.getPosition().x), (int) Math.floor(light.getPosition().y), (int) Math.floor(light.getPosition().z))).expand(15);//(int) Math.ceil(light.getRadius()) + 1);
                         MatrixStack stack = new MatrixStack();
                         Random random = Random.create();
 
@@ -95,11 +95,8 @@ public abstract class LightRendererMixin {
                                 for (int z = box.getMinZ(); z <= box.getMaxZ(); z++) {
                                     BlockPos pos = new BlockPos(x, y, z);
                                     BlockState state = world.getBlockState(pos);
-
-                                    RaytracedLight.QuadGroup group = groups.computeIfAbsent(new Vector3i(x / RaytracedLight.QuadGroup.SIZE, y / RaytracedLight.QuadGroup.SIZE, z / RaytracedLight.QuadGroup.SIZE), k -> {
-                                        numGroups[0]++;
-                                        return new RaytracedLight.QuadGroup(k, new LinkedList<>());
-                                    });
+                                    Vector3i groupPos = new Vector3i(x / RaytracedLight.QuadGroup.SIZE, y / RaytracedLight.QuadGroup.SIZE, z / RaytracedLight.QuadGroup.SIZE);
+                                    List<RaytracedLight.QuadGroup> groupList = groups.computeIfAbsent(groupPos, k -> new LinkedList<>());
 
                                     stack.push();
                                     stack.translate(pos.getX(), pos.getY(), pos.getZ());
@@ -154,6 +151,14 @@ public abstract class LightRendererMixin {
                                         for (int j = 0; j < vertices.size(); j += 4) {
                                             for (int k = j; k < j + 4; k++) {
                                                 if (normals.get(k).dot(lightPos.sub(vertices.get(k), new Vector3f())) > 0) {
+                                                    RaytracedLight.QuadGroup group = groupList.isEmpty() ? null : groupList.getLast();
+
+                                                    if (group == null || group.quads().size() == RaytracedLight.QuadGroup.MAX_QUADS) {
+                                                        group = new RaytracedLight.QuadGroup(groupPos, new LinkedList<>());;
+                                                        groupList.add(group);
+                                                        numGroups[0]++;
+                                                    }
+
                                                     group.quads().add(new RaytracedLight.Quad(
                                                             vertices.get(j),
                                                             vertices.get(j + 1),
@@ -175,14 +180,21 @@ public abstract class LightRendererMixin {
                     }
                 }
 
-                ByteBuffer buf = MemoryUtil.memAlloc(numGroups[0] * RaytracedLight.QuadGroup.BYTES);
+                List<RaytracedLight.QuadGroup> flatGroups = allGroups.entrySet().stream()
+                        .flatMap(entry -> {
+                            Vector3i lightGroupPos = new Vector3i((int) entry.getKey().getPosition().x / RaytracedLight.QuadGroup.SIZE, (int) entry.getKey().getPosition().y / RaytracedLight.QuadGroup.SIZE, (int) entry.getKey().getPosition().z / RaytracedLight.QuadGroup.SIZE);
+                            return entry.getValue().values().stream()
+                                    .flatMap(Collection::stream)
+                                    .filter(group -> !group.quads().isEmpty())
+                                    .sorted(Comparator.comparingDouble(group -> group.pos().distance(lightGroupPos)));
+                        })
+                        .toList();
 
-                allGroups.forEach((light, groups) -> {
-                    Vector3i lightGroupPos = new Vector3i((int) light.getPosition().x / RaytracedLight.QuadGroup.SIZE, (int) light.getPosition().y / RaytracedLight.QuadGroup.SIZE, (int) light.getPosition().z / RaytracedLight.QuadGroup.SIZE);
-                    groups.values().stream()
-                            .sorted(Comparator.comparingDouble(group -> group.pos().distance(lightGroupPos)))
-                            .forEachOrdered(group -> group.put(buf));
-                });
+                ByteBuffer buf = MemoryUtil.memAlloc(flatGroups.size() * RaytracedLight.QuadGroup.BYTES);
+
+                for (RaytracedLight.QuadGroup group : flatGroups) {
+                    group.put(buf);
+                }
 
                 buf.flip();
                 glBufferData(GL_SHADER_STORAGE_BUFFER, buf, GL_DYNAMIC_DRAW);

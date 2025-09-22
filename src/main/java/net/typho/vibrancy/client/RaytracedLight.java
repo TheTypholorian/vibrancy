@@ -15,18 +15,19 @@ public interface RaytracedLight {
     void uploadQuads();
 
     record QuadGroup(Vector3i pos, List<Quad> quads) {
-        public static final int MAX_QUADS = 64, SIZE = 8, BYTES = (4 + MAX_QUADS * 16) * Float.BYTES + Integer.BYTES;
+        public static final int MAX_QUADS = 64, SIZE = 6, BYTES = (8 + MAX_QUADS * 16) * Float.BYTES;
 
         public void put(ByteBuffer buf) {
-            buf.putInt(pos.x).putInt(pos.y).putInt(pos.z).putInt(0);
-            buf.putInt(pos.x + SIZE).putInt(pos.y + SIZE).putInt(pos.z + SIZE).putInt(0);
+            int index = buf.position();
+
+            buf.putInt(pos.x * SIZE).putInt(pos.y * SIZE).putInt(pos.z * SIZE).putInt(quads.size());
+            buf.putInt((pos.x + 1) * SIZE).putInt((pos.y + 1) * SIZE).putInt((pos.z + 1) * SIZE).putInt(0);
 
             for (Quad quad : quads) {
                 quad.put(buf);
             }
 
-            buf.position(Float.BYTES * (4 + MAX_QUADS * 16));
-            buf.putInt(quads.size());
+            buf.position(index + BYTES);
         }
     }
 
