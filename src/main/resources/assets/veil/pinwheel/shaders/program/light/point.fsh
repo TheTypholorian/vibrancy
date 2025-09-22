@@ -42,7 +42,7 @@ float lengthSquared(vec3 vec) {
     return vec.x * vec.x + vec.y * vec.y + vec.z * vec.z;
 }
 
-bool raycastTriangle(mediump vec3 ro, mediump vec3 rd, mediump vec3 v0, mediump vec3 v1, mediump vec3 v2, mediump float m) {
+bool raycastTriangle(mediump vec3 ro, mediump vec3 rd, mediump vec3 v0, mediump vec3 v1, mediump vec3 v2, mediump float m, mediump float margin) {
     mediump vec3 v1v0 = v1 - v0;
     mediump vec3 v2v0 = v2 - v0;
     mediump vec3 rov0 = ro - v0;
@@ -62,11 +62,11 @@ bool raycastTriangle(mediump vec3 ro, mediump vec3 rd, mediump vec3 v0, mediump 
     }
 
     mediump float t = d * dot(-n, rov0);
-    return t > 0.075 && t < m - 0.075;
+    return t > margin && t < m - margin;
 }
 
-bool raycastQuad(mediump vec3 origin, mediump vec3 dir, mediump float len, Quad q) {
-    return raycastTriangle(origin, dir, q.v1.xyz, q.v2.xyz, q.v3.xyz, len) || raycastTriangle(origin, dir, q.v1.xyz, q.v3.xyz, q.v4.xyz, len);
+bool raycastQuad(mediump vec3 origin, mediump vec3 dir, mediump float len, mediump float margin, Quad q) {
+    return raycastTriangle(origin, dir, q.v1.xyz, q.v2.xyz, q.v3.xyz, len, margin) || raycastTriangle(origin, dir, q.v1.xyz, q.v3.xyz, q.v4.xyz, len, margin);
 }
 
 bool raycastAABB(mediump vec3 ro, mediump vec3 rd, mediump vec3 bmin, mediump vec3 bmax, mediump float len) {
@@ -84,10 +84,10 @@ bool raycastAABB(mediump vec3 ro, mediump vec3 rd, mediump vec3 bmin, mediump ve
     return tmax >= tmin;
 }
 
-bool raycastGroup(mediump vec3 origin, mediump vec3 dir, mediump float len, QuadGroup g) {
+bool raycastGroup(mediump vec3 origin, mediump vec3 dir, mediump float len, mediump float margin, QuadGroup g) {
     if (raycastAABB(origin, dir, vec3(g.min.xyz), vec3(g.max.xyz), len)) {
         for (uint i = 0; i < g.min.w; i++) {
-            if (raycastQuad(origin, dir, len, g.quads[i])) {
+            if (raycastQuad(origin, dir, len, margin, g.quads[i])) {
                 return true;
             }
         }
@@ -96,7 +96,7 @@ bool raycastGroup(mediump vec3 origin, mediump vec3 dir, mediump float len, Quad
     return false;
 }
 
-bool raycastQuads(vec3 origin, vec3 target) {
+bool raycastQuads(vec3 origin, vec3 target, float margin) {
     if (!Raytrace) {
         return false;
     }
@@ -109,7 +109,7 @@ bool raycastQuads(vec3 origin, vec3 target) {
     for (uint i = range.x; i <= range.y; i++) {
         QuadGroup g = quadGroups[i];
 
-        if (raycastGroup(origin, dir, len, g)) {
+        if (raycastGroup(origin, dir, len, margin, g)) {
             return true;
         }
     }
@@ -129,16 +129,18 @@ void main() {
     vec3 lightDirection = normalize((VeilCamera.ViewMat * vec4(offset, 0.0)).xyz);
     float diffuse = clamp(0.0, 1.0, dot(normalVS, lightDirection));
 
-    bool shadow = diffuse > 0 && raycastQuads(lightPos, pos);
-
     diffuse = (diffuse + MINECRAFT_AMBIENT_LIGHT) / (1.0 + MINECRAFT_AMBIENT_LIGHT);
-    diffuse *= attenuate_no_cusp(length(offset), shadow ? radius / 2 : radius);
+    diffuse *= attenuate_no_cusp(length(offset), radius);
 
     float reflectivity = 0.05;
-    vec3 diffuseColor = diffuse * lightColor;
-    fragColor = vec4(diffuseColor * (1.0 - reflectivity) + diffuseColor * reflectivity, 1.0);
+    vec4 diffuseColor = diffuse * vec4(lightColor, 1);
+    fragColor = diffuseColor * (1.0 - reflectivity) + diffuseColor * reflectivity;
 
-    if (shadow) {
-        fragColor /= 2;
+    if (length(fragColor) > 0.2) {
+        if (raycastQuads(lightPos, pos, depthSampleToWorldDepth(depth) / 1000)) {
+            fragColor /= 4;
+        }
     }
+
+    gl_FragDepth = depth;
 }

@@ -2,6 +2,5 @@
   "width": "q.screen_width / 3",
   "height": "q.screen_height / 3",
   "depth": true,
-  "format": "RGBA16F",
-  "linear": true
+  "format": "RGBA16F"
 }

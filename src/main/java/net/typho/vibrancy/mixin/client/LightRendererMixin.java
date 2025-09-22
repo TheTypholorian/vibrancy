@@ -89,7 +89,7 @@ public abstract class LightRendererMixin {
                         Vector3f lightPos = new Vector3f((float) light.getPosition().x, (float) light.getPosition().y, (float) light.getPosition().z);
                         BlockPos lightBlockPos = new BlockPos((int) Math.floor(light.getPosition().x), (int) Math.floor(light.getPosition().y), (int) Math.floor(light.getPosition().z));
                         Map<Vector3i, List<RaytracedLight.QuadGroup>> groups = new LinkedHashMap<>();
-                        BlockBox box = new BlockBox(lightBlockPos).expand(5);//(int) Math.ceil(light.getRadius()) + 1);
+                        BlockBox box = new BlockBox(lightBlockPos).expand(10);//(int) Math.ceil(light.getRadius()) + 1);
                         MatrixStack stack = new MatrixStack();
                         Random random = Random.create();
 

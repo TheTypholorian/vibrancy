@@ -2,6 +2,7 @@
   "vertex": "veil:blit_screen",
   "fragment": "veil:core/composite",
   "textures": {
+    "AlbedoSampler": "veil:dynamic_buffer/albedo",
     "LightSampler": {
       "type": "framebuffer",
       "name": "veil:light"
