@@ -7,9 +7,11 @@
     "client.LightRendererMixin",
     "client.ShaderImportProcessorMixin",
     "client.SodiumGameOptionPagesMixin",
-    "client.VanillaShaderCompilerMixin"
+    "client.VanillaShaderCompilerMixin",
+    "client.VeilRenderSystemMixin"
   ],
   "client": [
+    "client.DebugHudMixin",
     "client.LightmapTextureManagerMixin",
     "client.ShaderProgramMixin",
     "client.VideoOptionsScreenMixin"

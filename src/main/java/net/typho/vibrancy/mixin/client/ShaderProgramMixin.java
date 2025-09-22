@@ -1,5 +1,8 @@
 package net.typho.vibrancy.mixin.client;
 
+import foundry.veil.api.client.render.VeilRenderSystem;
+import foundry.veil.api.client.render.dynamicbuffer.DynamicBufferType;
+import foundry.veil.impl.client.render.dynamicbuffer.DynamicBufferManger;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.GlUniform;
 import net.minecraft.client.gl.ShaderProgram;
@@ -21,6 +24,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 public abstract class ShaderProgramMixin {
     @Shadow
     public abstract @Nullable GlUniform getUniform(String name);
+
+    @Shadow public abstract void addSampler(String name, Object sampler);
 
     @Unique
     private GlUniform camPos;
@@ -48,6 +53,11 @@ public abstract class ShaderProgramMixin {
 
         if (renderTime != null) {
             renderTime.set((float) GLFW.glfwGetTime());
+        }
+
+        DynamicBufferManger bufferManger = VeilRenderSystem.renderer().getDynamicBufferManger();
+        for (DynamicBufferType dynamicBuffer : DynamicBufferType.values()) {
+            addSampler(dynamicBuffer.getSourceName() + "Sampler", bufferManger.getBufferTexture(dynamicBuffer));
         }
     }
 }

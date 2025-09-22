@@ -1,0 +1,14 @@
+{
+  "vertex": "veil:blit_screen",
+  "fragment": "veil:core/composite",
+  "textures": {
+    "LightSampler": {
+      "type": "framebuffer",
+      "name": "veil:light"
+    },
+    "LightDepthSampler": {
+      "type": "framebuffer",
+      "name": "veil:light:depth"
+    }
+  }
+}

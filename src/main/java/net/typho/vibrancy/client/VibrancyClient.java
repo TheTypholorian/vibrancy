@@ -20,6 +20,9 @@ import net.minecraft.util.math.MathHelper;
 import net.typho.vibrancy.Vibrancy;
 import org.lwjgl.glfw.GLFW;
 
+import java.util.LinkedList;
+import java.util.List;
+
 public class VibrancyClient implements ClientModInitializer {
     public static final SimpleOption<Boolean> DYNAMIC_LIGHTMAP = SimpleOption.ofBoolean("options.vibrancy.dynamic_lightmap", true);
     public static final SimpleOption<Boolean> RAYTRACE_LIGHTS = SimpleOption.ofBoolean("options.vibrancy.raytrace_lights", true);
@@ -28,11 +31,13 @@ public class VibrancyClient implements ClientModInitializer {
             GLFW.GLFW_KEY_F9,
             "key.categories.misc"
     ));
+    public static final List<DynamicLightInfo> DYNAMIC_LIGHT_INFOS = new LinkedList<>();
 
     @Override
     public void onInitializeClient() {
+        int[] ticks = {0};
         ClientTickEvents.START_CLIENT_TICK.register(client -> {
-            if (VeilRenderSystem.renderer().getLightRenderer() instanceof RaytracedLightRenderer ray) {
+            if (ticks[0]++ % 20 == 0 && VeilRenderSystem.renderer().getLightRenderer() instanceof RaytracedLightRenderer ray) {
                 ray.upload();
             }
         });

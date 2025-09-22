@@ -1,5 +1,4 @@
 #version 430 core
-#extension GL_NV_gpu_shader5 : enable
 
 #include "veil:common"
 #include "veil:deferred_utils"
@@ -11,7 +10,6 @@ in vec3 lightPos;
 in vec3 lightColor;
 in float radius;
 
-uniform sampler2D VeilDynamicAlbedoSampler;
 uniform sampler2D VeilDynamicNormalSampler;
 uniform sampler2D DiffuseDepthSampler;
 
@@ -64,7 +62,7 @@ bool raycastTriangle(mediump vec3 ro, mediump vec3 rd, mediump vec3 v0, mediump 
     }
 
     mediump float t = d * dot(-n, rov0);
-    return t > 1e-3 && t < m - 1e-3;
+    return t > 0.075 && t < m - 0.075;
 }
 
 bool raycastQuad(mediump vec3 origin, mediump vec3 dir, mediump float len, Quad q) {
@@ -120,29 +118,25 @@ bool raycastQuads(vec3 origin, vec3 target) {
 }
 
 void main() {
-    vec2 screenUv = gl_FragCoord.xy / ScreenSize;
-
-    vec4 albedoColor = texture(VeilDynamicAlbedoSampler, screenUv);
-    if (albedoColor.a == 0) {
-        discard;
-    }
+    vec2 screenUv = gl_FragCoord.xy / (ScreenSize / 3);
 
     float depth = texture(DiffuseDepthSampler, screenUv).r;
     vec3 pos = viewToWorldSpace(viewPosFromDepth(depth, screenUv));
-
-    bool shadow = raycastQuads(lightPos, pos);
 
     vec3 offset = lightPos - pos;
 
     vec3 normalVS = texture(VeilDynamicNormalSampler, screenUv).xyz;
     vec3 lightDirection = normalize((VeilCamera.ViewMat * vec4(offset, 0.0)).xyz);
     float diffuse = clamp(0.0, 1.0, dot(normalVS, lightDirection));
+
+    bool shadow = diffuse > 0 && raycastQuads(lightPos, pos);
+
     diffuse = (diffuse + MINECRAFT_AMBIENT_LIGHT) / (1.0 + MINECRAFT_AMBIENT_LIGHT);
     diffuse *= attenuate_no_cusp(length(offset), shadow ? radius / 2 : radius);
 
     float reflectivity = 0.05;
     vec3 diffuseColor = diffuse * lightColor;
-    fragColor = vec4(albedoColor.rgb * diffuseColor * (1.0 - reflectivity) + diffuseColor * reflectivity, 1.0);
+    fragColor = vec4(diffuseColor * (1.0 - reflectivity) + diffuseColor * reflectivity, 1.0);
 
     if (shadow) {
         fragColor /= 2;

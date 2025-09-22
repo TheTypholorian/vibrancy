@@ -15,6 +15,7 @@ import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.random.Random;
+import net.typho.vibrancy.client.DynamicLightInfo;
 import net.typho.vibrancy.client.RaytracedLight;
 import net.typho.vibrancy.client.RaytracedLightRenderer;
 import net.typho.vibrancy.client.VibrancyClient;
@@ -67,6 +68,8 @@ public abstract class LightRendererMixin {
 
     @Unique
     public void ray$upload() {
+        VibrancyClient.DYNAMIC_LIGHT_INFOS.clear();
+
         if (VibrancyClient.RAYTRACE_LIGHTS.getValue()) {
             List<PointLight> lights = getLights(LightTypeRegistry.POINT.get());
 
@@ -82,9 +85,11 @@ public abstract class LightRendererMixin {
                 if (world != null) {
                     for (PointLight light : lights) {
                         ranges[i++] = numGroups[0];
+                        int localNumQuads = 0, localNumGroups = 0;
                         Vector3f lightPos = new Vector3f((float) light.getPosition().x, (float) light.getPosition().y, (float) light.getPosition().z);
+                        BlockPos lightBlockPos = new BlockPos((int) Math.floor(light.getPosition().x), (int) Math.floor(light.getPosition().y), (int) Math.floor(light.getPosition().z));
                         Map<Vector3i, List<RaytracedLight.QuadGroup>> groups = new LinkedHashMap<>();
-                        BlockBox box = new BlockBox(new BlockPos((int) Math.floor(light.getPosition().x), (int) Math.floor(light.getPosition().y), (int) Math.floor(light.getPosition().z))).expand(15);//(int) Math.ceil(light.getRadius()) + 1);
+                        BlockBox box = new BlockBox(lightBlockPos).expand(5);//(int) Math.ceil(light.getRadius()) + 1);
                         MatrixStack stack = new MatrixStack();
                         Random random = Random.create();
 
@@ -157,8 +162,10 @@ public abstract class LightRendererMixin {
                                                         group = new RaytracedLight.QuadGroup(groupPos, new LinkedList<>());;
                                                         groupList.add(group);
                                                         numGroups[0]++;
+                                                        localNumGroups++;
                                                     }
 
+                                                    localNumQuads++;
                                                     group.quads().add(new RaytracedLight.Quad(
                                                             vertices.get(j),
                                                             vertices.get(j + 1),
@@ -177,6 +184,8 @@ public abstract class LightRendererMixin {
                         }
 
                         ranges[i++] = numGroups[0];
+
+                        VibrancyClient.DYNAMIC_LIGHT_INFOS.add(new DynamicLightInfo(lightBlockPos, localNumGroups, localNumQuads / localNumGroups, localNumQuads));
                     }
                 }
 
