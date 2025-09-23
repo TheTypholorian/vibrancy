@@ -28,6 +28,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.nio.ByteBuffer;
+import java.util.Comparator;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -171,23 +172,9 @@ public abstract class LightRendererMixin {
                             }
                         }
 
-                        quadLoop:
-                        for (RaytracedLight.Quad quad : localQuads) {
-                            Vector3f vertex = quad.center();
-                            Vector3f delta = vertex.sub(lightPos, new Vector3f());
-                            float length = delta.length();
-                            delta.div(length);
-
-                            for (RaytracedLight.Quad quad1 : localQuads) {
-                                if (quad != quad1) {
-                                    if (quad1.raycast(lightPos, delta, length)) {
-                                        continue quadLoop;
-                                    }
-                                }
-                            }
-
-                            quads.add(quad);
-                        }
+                        localQuads.stream()
+                                .sorted(Comparator.comparingDouble(quad -> quad.center().distanceSquared(lightPos)))
+                                .forEachOrdered(quads::add);
 
                         ranges[i++] = numQuads[0];
 

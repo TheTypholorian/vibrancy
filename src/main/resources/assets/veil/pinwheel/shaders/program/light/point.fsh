@@ -95,7 +95,13 @@ void main() {
 
     vec3 normalVS = texture(VeilDynamicNormalSampler, screenUv).xyz;
     vec3 lightDirection = normalize((VeilCamera.ViewMat * vec4(offset, 0.0)).xyz);
-    float diffuse = clamp(0.0, 1.0, dot(normalVS, lightDirection));
+    float normalDiff = dot(normalVS, lightDirection);
+
+    if (normalDiff < 0 || raycastQuads(lightPos, pos, 1e-1)) {
+        discard;
+    }
+
+    float diffuse = clamp(0.0, 1.0, normalDiff);
 
     diffuse = (diffuse + MINECRAFT_AMBIENT_LIGHT) / (1.0 + MINECRAFT_AMBIENT_LIGHT);
     diffuse *= attenuate_no_cusp(length(offset), radius);
@@ -103,12 +109,6 @@ void main() {
     float reflectivity = 0.05;
     vec4 diffuseColor = diffuse * vec4(lightColor, 1);
     fragColor = diffuseColor * (1.0 - reflectivity) + diffuseColor * reflectivity;
-
-    //if (lengthSquared(fragColor) > 0) {
-        if (raycastQuads(lightPos, pos, 1e-1)) {
-            fragColor /= 4;
-        }
-    //}
 
     gl_FragDepth = depth;
 }
