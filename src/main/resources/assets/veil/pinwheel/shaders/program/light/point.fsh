@@ -14,8 +14,8 @@ uniform sampler2D VeilDynamicNormalSampler;
 uniform sampler2D DiffuseDepthSampler;
 
 uniform vec3 CameraPos;
-
 uniform vec2 ScreenSize;
+uniform int LightScale = 1;
 
 uniform bool Raytrace = true;
 
@@ -36,7 +36,7 @@ float lengthSquared(vec3 vec) {
     return vec.x * vec.x + vec.y * vec.y + vec.z * vec.z;
 }
 
-bool raycastTriangle(mediump vec3 ro, mediump vec3 rd, mediump vec3 v0, mediump vec3 v1, mediump vec3 v2, mediump float m, mediump float margin) {
+bool raycastTriangle(mediump vec3 ro, mediump vec3 rd, mediump vec3 v0, mediump vec3 v1, mediump vec3 v2, mediump float m) {
     mediump vec3 v1v0 = v1 - v0;
     mediump vec3 v2v0 = v2 - v0;
     mediump vec3 rov0 = ro - v0;
@@ -56,11 +56,12 @@ bool raycastTriangle(mediump vec3 ro, mediump vec3 rd, mediump vec3 v0, mediump 
     }
 
     mediump float t = d * dot(-n, rov0);
-    return t > margin && t < m - margin;
+
+    return t > 0 && t < m;
 }
 
-bool raycastQuad(mediump vec3 origin, mediump vec3 dir, mediump float len, mediump float margin, Quad q) {
-    return raycastTriangle(origin, dir, q.v1.xyz, q.v2.xyz, q.v3.xyz, len, margin) || raycastTriangle(origin, dir, q.v1.xyz, q.v3.xyz, q.v4.xyz, len, margin);
+bool raycastQuad(mediump vec3 origin, mediump vec3 dir, mediump float len, Quad q) {
+    return raycastTriangle(origin, dir, q.v1.xyz, q.v2.xyz, q.v3.xyz, len) || raycastTriangle(origin, dir, q.v1.xyz, q.v3.xyz, q.v4.xyz, len);
 }
 
 bool raycastQuads(vec3 origin, vec3 target, float margin) {
@@ -76,7 +77,7 @@ bool raycastQuads(vec3 origin, vec3 target, float margin) {
     for (uint i = range.x; i <= range.y; i++) {
         Quad q = quads[i];
 
-        if (raycastQuad(origin, dir, len, margin, q)) {
+        if (raycastQuad(origin, dir, len - margin, q)) {
             return true;
         }
     }
@@ -85,7 +86,7 @@ bool raycastQuads(vec3 origin, vec3 target, float margin) {
 }
 
 void main() {
-    vec2 screenUv = gl_FragCoord.xy / (ScreenSize / 8);
+    vec2 screenUv = gl_FragCoord.xy / (ScreenSize / LightScale);
 
     float depth = texture(DiffuseDepthSampler, screenUv).r;
     vec3 pos = viewToWorldSpace(viewPosFromDepth(depth, screenUv));
@@ -103,11 +104,11 @@ void main() {
     vec4 diffuseColor = diffuse * vec4(lightColor, 1);
     fragColor = diffuseColor * (1.0 - reflectivity) + diffuseColor * reflectivity;
 
-    if (length(fragColor) > 0.2) {
-        if (raycastQuads(lightPos, pos, depthSampleToWorldDepth(depth) / 100)) {
+    //if (lengthSquared(fragColor) > 0) {
+        if (raycastQuads(lightPos, pos, 1e-1)) {
             fragColor /= 4;
         }
-    }
+    //}
 
     gl_FragDepth = depth;
 }

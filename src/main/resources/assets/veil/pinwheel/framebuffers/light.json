@@ -1,6 +1,6 @@
 {
-  "width": "q.screen_width / 8",
-  "height": "q.screen_height / 8",
+  "width": "q.screen_width / 1",
+  "height": "q.screen_height / 1",
   "depth": true,
   "format": "RGBA16F",
   "linear": true

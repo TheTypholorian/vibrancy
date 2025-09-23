@@ -86,6 +86,7 @@ public abstract class LightRendererMixin {
                     for (PointLight light : lights) {
                         ranges[i++] = numQuads[0];
                         int localNumQuads = 0;
+                        List<RaytracedLight.Quad> localQuads = new LinkedList<>();
                         Vector3f lightPos = new Vector3f((float) light.getPosition().x, (float) light.getPosition().y, (float) light.getPosition().z);
                         BlockPos lightBlockPos = new BlockPos((int) Math.floor(light.getPosition().x), (int) Math.floor(light.getPosition().y), (int) Math.floor(light.getPosition().z));
                         BlockBox box = new BlockBox(lightBlockPos).expand(8);//(int) Math.ceil(light.getRadius()) + 1);
@@ -153,7 +154,7 @@ public abstract class LightRendererMixin {
                                                 if (normals.get(k).dot(lightPos.sub(vertices.get(k), new Vector3f())) > 0) {
                                                     numQuads[0]++;
                                                     localNumQuads++;
-                                                    quads.add(new RaytracedLight.Quad(
+                                                    localQuads.add(new RaytracedLight.Quad(
                                                             vertices.get(j),
                                                             vertices.get(j + 1),
                                                             vertices.get(j + 2),
@@ -168,6 +169,24 @@ public abstract class LightRendererMixin {
                                     stack.pop();
                                 }
                             }
+                        }
+
+                        quadLoop:
+                        for (RaytracedLight.Quad quad : localQuads) {
+                            Vector3f vertex = quad.center();
+                            Vector3f delta = vertex.sub(lightPos, new Vector3f());
+                            float length = delta.length();
+                            delta.div(length);
+
+                            for (RaytracedLight.Quad quad1 : localQuads) {
+                                if (quad != quad1) {
+                                    if (quad1.raycast(lightPos, delta, length)) {
+                                        continue quadLoop;
+                                    }
+                                }
+                            }
+
+                            quads.add(quad);
                         }
 
                         ranges[i++] = numQuads[0];
