@@ -32,6 +32,8 @@ public interface RaytracedLight {
     }
 
     record Quad(Vector3f v1, Vector3f v2, Vector3f v3, Vector3f v4) {
+        public static final int BYTES = 16 * Float.BYTES;
+
         public void put(ByteBuffer buf) {
             buf.putFloat(v1.x).putFloat(v1.y).putFloat(v1.z).putFloat(0);
             buf.putFloat(v2.x).putFloat(v2.y).putFloat(v2.z).putFloat(0);

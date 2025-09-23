@@ -18,19 +18,13 @@ uniform vec3 CameraPos;
 uniform vec2 ScreenSize;
 
 uniform bool Raytrace = true;
-uniform uint NumQuads;
 
 struct Quad {
     vec4 v1, v2, v3, v4;
 };
 
-struct QuadGroup {
-    uvec4 min, max;
-    Quad[64] quads;
-};
-
 layout(std430, binding = 0) buffer Quads {
-    QuadGroup quadGroups[];
+    Quad quads[];
 };
 layout(std430, binding = 1) buffer QuadRanges {
     uvec2 quadRanges[];
@@ -69,33 +63,6 @@ bool raycastQuad(mediump vec3 origin, mediump vec3 dir, mediump float len, mediu
     return raycastTriangle(origin, dir, q.v1.xyz, q.v2.xyz, q.v3.xyz, len, margin) || raycastTriangle(origin, dir, q.v1.xyz, q.v3.xyz, q.v4.xyz, len, margin);
 }
 
-bool raycastAABB(mediump vec3 ro, mediump vec3 rd, mediump vec3 bmin, mediump vec3 bmax, mediump float len) {
-    mediump vec3 invDir = 1.0 / rd;
-
-    mediump vec3 t0s = (bmin - ro) * invDir;
-    mediump vec3 t1s = (bmax - ro) * invDir;
-
-    mediump vec3 tsmaller = min(t0s, t1s);
-    mediump vec3 tbigger = max(t0s, t1s);
-
-    mediump float tmin = max(max(tsmaller.x, tsmaller.y), tsmaller.z);
-    mediump float tmax = min(min(tbigger.x, tbigger.y), tbigger.z);
-
-    return tmax >= tmin;
-}
-
-bool raycastGroup(mediump vec3 origin, mediump vec3 dir, mediump float len, mediump float margin, QuadGroup g) {
-    if (raycastAABB(origin, dir, vec3(g.min.xyz), vec3(g.max.xyz), len)) {
-        for (uint i = 0; i < g.min.w; i++) {
-            if (raycastQuad(origin, dir, len, margin, g.quads[i])) {
-                return true;
-            }
-        }
-    }
-
-    return false;
-}
-
 bool raycastQuads(vec3 origin, vec3 target, float margin) {
     if (!Raytrace) {
         return false;
@@ -107,9 +74,9 @@ bool raycastQuads(vec3 origin, vec3 target, float margin) {
     uvec2 range = quadRanges[lightID];
 
     for (uint i = range.x; i <= range.y; i++) {
-        QuadGroup g = quadGroups[i];
+        Quad q = quads[i];
 
-        if (raycastGroup(origin, dir, len, margin, g)) {
+        if (raycastQuad(origin, dir, len, margin, q)) {
             return true;
         }
     }
@@ -118,7 +85,7 @@ bool raycastQuads(vec3 origin, vec3 target, float margin) {
 }
 
 void main() {
-    vec2 screenUv = gl_FragCoord.xy / (ScreenSize / 3);
+    vec2 screenUv = gl_FragCoord.xy / (ScreenSize / 8);
 
     float depth = texture(DiffuseDepthSampler, screenUv).r;
     vec3 pos = viewToWorldSpace(viewPosFromDepth(depth, screenUv));
@@ -137,7 +104,7 @@ void main() {
     fragColor = diffuseColor * (1.0 - reflectivity) + diffuseColor * reflectivity;
 
     if (length(fragColor) > 0.2) {
-        if (raycastQuads(lightPos, pos, depthSampleToWorldDepth(depth) / 1000)) {
+        if (raycastQuads(lightPos, pos, depthSampleToWorldDepth(depth) / 100)) {
             fragColor /= 4;
         }
     }

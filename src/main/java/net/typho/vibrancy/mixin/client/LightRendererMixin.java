@@ -20,7 +20,6 @@ import net.typho.vibrancy.client.RaytracedLight;
 import net.typho.vibrancy.client.RaytracedLightRenderer;
 import net.typho.vibrancy.client.VibrancyClient;
 import org.joml.Vector3f;
-import org.joml.Vector3i;
 import org.lwjgl.system.MemoryUtil;
 import org.spongepowered.asm.mixin.*;
 import org.spongepowered.asm.mixin.injection.At;
@@ -29,7 +28,8 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.LinkedList;
+import java.util.List;
 
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL30.glBindBufferBase;
@@ -76,32 +76,27 @@ public abstract class LightRendererMixin {
             if (!lights.isEmpty()) {
                 glBindBuffer(GL_SHADER_STORAGE_BUFFER, quadSSBO);
 
-                Map<PointLight, Map<Vector3i, List<RaytracedLight.QuadGroup>>> allGroups = new LinkedHashMap<>();
-                int[] ranges = new int[lights.size() * 2], numGroups = {0};
+                List<RaytracedLight.Quad> quads = new LinkedList<>();
+                int[] ranges = new int[lights.size() * 2], numQuads = {0};
                 int i = 0;
 
                 ClientWorld world = MinecraftClient.getInstance().world;
 
                 if (world != null) {
                     for (PointLight light : lights) {
-                        ranges[i++] = numGroups[0];
-                        int localNumQuads = 0, localNumGroups = 0;
+                        ranges[i++] = numQuads[0];
+                        int localNumQuads = 0;
                         Vector3f lightPos = new Vector3f((float) light.getPosition().x, (float) light.getPosition().y, (float) light.getPosition().z);
                         BlockPos lightBlockPos = new BlockPos((int) Math.floor(light.getPosition().x), (int) Math.floor(light.getPosition().y), (int) Math.floor(light.getPosition().z));
-                        Map<Vector3i, List<RaytracedLight.QuadGroup>> groups = new LinkedHashMap<>();
-                        BlockBox box = new BlockBox(lightBlockPos).expand(10);//(int) Math.ceil(light.getRadius()) + 1);
+                        BlockBox box = new BlockBox(lightBlockPos).expand(8);//(int) Math.ceil(light.getRadius()) + 1);
                         MatrixStack stack = new MatrixStack();
                         Random random = Random.create();
-
-                        allGroups.put(light, groups);
 
                         for (int x = box.getMinX(); x <= box.getMaxX(); x++) {
                             for (int y = box.getMinY(); y <= box.getMaxY(); y++) {
                                 for (int z = box.getMinZ(); z <= box.getMaxZ(); z++) {
                                     BlockPos pos = new BlockPos(x, y, z);
                                     BlockState state = world.getBlockState(pos);
-                                    Vector3i groupPos = new Vector3i(x / RaytracedLight.QuadGroup.SIZE, y / RaytracedLight.QuadGroup.SIZE, z / RaytracedLight.QuadGroup.SIZE);
-                                    List<RaytracedLight.QuadGroup> groupList = groups.computeIfAbsent(groupPos, k -> new LinkedList<>());
 
                                     stack.push();
                                     stack.translate(pos.getX(), pos.getY(), pos.getZ());
@@ -156,17 +151,9 @@ public abstract class LightRendererMixin {
                                         for (int j = 0; j < vertices.size(); j += 4) {
                                             for (int k = j; k < j + 4; k++) {
                                                 if (normals.get(k).dot(lightPos.sub(vertices.get(k), new Vector3f())) > 0) {
-                                                    RaytracedLight.QuadGroup group = groupList.isEmpty() ? null : groupList.getLast();
-
-                                                    if (group == null || group.quads().size() == RaytracedLight.QuadGroup.MAX_QUADS) {
-                                                        group = new RaytracedLight.QuadGroup(groupPos, new LinkedList<>());;
-                                                        groupList.add(group);
-                                                        numGroups[0]++;
-                                                        localNumGroups++;
-                                                    }
-
+                                                    numQuads[0]++;
                                                     localNumQuads++;
-                                                    group.quads().add(new RaytracedLight.Quad(
+                                                    quads.add(new RaytracedLight.Quad(
                                                             vertices.get(j),
                                                             vertices.get(j + 1),
                                                             vertices.get(j + 2),
@@ -183,26 +170,16 @@ public abstract class LightRendererMixin {
                             }
                         }
 
-                        ranges[i++] = numGroups[0];
+                        ranges[i++] = numQuads[0];
 
-                        VibrancyClient.DYNAMIC_LIGHT_INFOS.add(new DynamicLightInfo(lightBlockPos, localNumGroups, localNumQuads / localNumGroups, localNumQuads));
+                        VibrancyClient.DYNAMIC_LIGHT_INFOS.add(new DynamicLightInfo(lightBlockPos, localNumQuads));
                     }
                 }
 
-                List<RaytracedLight.QuadGroup> flatGroups = allGroups.entrySet().stream()
-                        .flatMap(entry -> {
-                            Vector3i lightGroupPos = new Vector3i((int) entry.getKey().getPosition().x / RaytracedLight.QuadGroup.SIZE, (int) entry.getKey().getPosition().y / RaytracedLight.QuadGroup.SIZE, (int) entry.getKey().getPosition().z / RaytracedLight.QuadGroup.SIZE);
-                            return entry.getValue().values().stream()
-                                    .flatMap(Collection::stream)
-                                    .filter(group -> !group.quads().isEmpty())
-                                    .sorted(Comparator.comparingDouble(group -> group.pos().distance(lightGroupPos)));
-                        })
-                        .toList();
+                ByteBuffer buf = MemoryUtil.memAlloc(quads.size() * RaytracedLight.Quad.BYTES);
 
-                ByteBuffer buf = MemoryUtil.memAlloc(flatGroups.size() * RaytracedLight.QuadGroup.BYTES);
-
-                for (RaytracedLight.QuadGroup group : flatGroups) {
-                    group.put(buf);
+                for (RaytracedLight.Quad quad : quads) {
+                    quad.put(buf);
                 }
 
                 buf.flip();
