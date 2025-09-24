@@ -22,6 +22,7 @@ import net.minecraft.util.math.random.Random;
 import net.typho.vibrancy.Vibrancy;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
+import org.joml.Vector2f;
 import org.joml.Vector3f;
 import org.lwjgl.system.MemoryUtil;
 
@@ -79,7 +80,6 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
                 Vector3f lightPos = new Vector3f((float) getPosition().x, (float) getPosition().y, (float) getPosition().z);
                 BlockBox box = new BlockBox(lightBlockPos).expand(15);
                 MatrixStack stack = new MatrixStack();
-                Random random = Random.create();
                 BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION);
                 List<Quad> quads = new LinkedList<>();
 
@@ -95,6 +95,7 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
                                 stack.translate(pos.getX(), pos.getY(), pos.getZ());
 
                                 List<Vector3f> flatVertices = new LinkedList<>(), normals = new LinkedList<>();
+                                List<Vector2f> flatTexCoords = new LinkedList<>();
 
                                 MinecraftClient.getInstance().getBlockRenderManager().renderBlock(
                                         state,
@@ -115,6 +116,7 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
 
                                             @Override
                                             public VertexConsumer texture(float u, float v) {
+                                                flatTexCoords.add(new Vector2f(u, v));
                                                 return this;
                                             }
 
@@ -135,7 +137,7 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
                                             }
                                         },
                                         true,
-                                        random
+                                        Random.create(lightBlockPos.hashCode())
                                 );
 
                                 if (flatVertices.size() % 4 != 0) {
@@ -160,7 +162,7 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
                                                     vertices[i + 4] = vertex.add(vertex.sub(lightPos, new Vector3f()).normalize(radius * 2));
                                                 }
 
-                                                quads.add(new Quad(vertices[0], vertices[1], vertices[2], vertices[3]));
+                                                quads.add(new Quad(vertices[0], vertices[1], vertices[2], vertices[3], flatTexCoords.get(j), flatTexCoords.get(j + 1), flatTexCoords.get(j + 2), flatTexCoords.get(j + 3)));
 
                                                 builder.vertex(vertices[0])
                                                         .vertex(vertices[1])

@@ -5,6 +5,7 @@
     "DiffuseDepthSampler": {
       "type": "framebuffer",
       "name": "minecraft:main:depth"
-    }
+    },
+    "BlockAtlasSampler": "minecraft:textures/atlas/blocks.png"
   }
 }
