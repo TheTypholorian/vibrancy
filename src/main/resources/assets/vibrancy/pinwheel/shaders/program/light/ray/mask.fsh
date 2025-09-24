@@ -16,6 +16,8 @@ uniform sampler2D DiffuseDepthSampler;
 uniform vec3 LightPos;
 uniform vec2 ScreenSize;
 
+uniform bool Detailed = false;
+
 in flat uint index;
 
 out vec4 fragColor;
@@ -71,29 +73,31 @@ bool raycastQuad(vec3 origin, vec3 dir, float len, Quad q, out float t, out vec3
 void main() {
     fragColor = vec4(1);
 
-    vec2 screenUv = gl_FragCoord.xy / ScreenSize;
+    if (Detailed) {
+        vec2 screenUv = gl_FragCoord.xy / ScreenSize;
 
-    float depth = texelFetch(DiffuseDepthSampler, ivec2(gl_FragCoord.xy), 0).r;
-    vec3 Pos = viewToWorldSpace(viewPosFromDepth(depth, screenUv));
+        float depth = texelFetch(DiffuseDepthSampler, ivec2(gl_FragCoord.xy), 0).r;
+        vec3 Pos = viewToWorldSpace(viewPosFromDepth(depth, screenUv));
 
-    vec3 delta = Pos - LightPos;
-    float len = length(delta);
-    vec3 dir = delta / len;
+        vec3 delta = Pos - LightPos;
+        float len = length(delta);
+        vec3 dir = delta / len;
 
-    float t;
-    vec3 bary;
-    vec2 uv0, uv1, uv2;
+        float t;
+        vec3 bary;
+        vec2 uv0, uv1, uv2;
 
-    if (!raycastQuad(LightPos, dir, len, quads[index], t, bary, uv0, uv1, uv2)) {
-        discard;
-    } else {
-        vec2 uv = uv0 * bary.x + uv1 * bary.y + uv2 * bary.z;
-        vec4 col = texture(BlockAtlasSampler, uv);
-
-        fragColor = col;
-
-        if (col.a == 0) {
+        if (!raycastQuad(LightPos, dir, len, quads[index], t, bary, uv0, uv1, uv2)) {
             discard;
+        } else {
+            vec2 uv = uv0 * bary.x + uv1 * bary.y + uv2 * bary.z;
+            vec4 col = texture(BlockAtlasSampler, uv);
+
+            fragColor = col;
+
+            if (col.a == 0) {
+                discard;
+            }
         }
     }
 }

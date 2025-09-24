@@ -4,6 +4,7 @@
   "package": "net.typho.vibrancy.mixin",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
+    "client.LightingProviderMixin",
     "client.ShaderImportProcessorMixin",
     "client.SodiumGameOptionPagesMixin",
     "client.VanillaShaderCompilerMixin",

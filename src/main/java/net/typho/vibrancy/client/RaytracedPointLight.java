@@ -40,7 +40,7 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
     public static final VertexBuffer SCREEN_VBO = new VertexBuffer(VertexBuffer.Usage.STATIC);
     protected final VertexBuffer geomVBO = new VertexBuffer(VertexBuffer.Usage.DYNAMIC);
     protected final int quadsSSBO = glGenBuffers();
-    protected boolean visible = true;
+    protected boolean visible = true, anyShadows = false;
 
     static {
         BufferBuilder bufferBuilder = RenderSystem.renderThreadTesselator().begin(VertexFormat.DrawMode.TRIANGLE_STRIP, VertexFormats.POSITION);
@@ -68,7 +68,7 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
     public void prepare(LightRenderer renderer, CullFrustum frustum) {
         BlockPos lightBlockPos = new BlockPos((int) Math.floor(getPosition().x), (int) Math.floor(getPosition().y), (int) Math.floor(getPosition().z));
 
-        visible = frustum.testAab(new Box(lightBlockPos).expand(radius + 2));
+        visible = frustum.testAab(new Box(lightBlockPos).expand(radius + 2)) && lightBlockPos.isWithinDistance(MinecraftClient.getInstance().player.getBlockPos(), 32);
 
         if (isDirty() && visible) {
             clean();
@@ -207,6 +207,13 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
                     }
                 }
 
+                if (numQuads == 0) {
+                    anyShadows = false;
+                    return;
+                } else {
+                    anyShadows = true;
+                }
+
                 geomVBO.bind();
                 geomVBO.upload(builder.end());
                 VertexBuffer.unbind();
@@ -234,9 +241,11 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
         glClearDepth(depthClear);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        geomVBO.bind();
-        geomVBO.draw(view, RenderSystem.getProjectionMatrix(), RenderSystem.getShader());
-        VertexBuffer.unbind();
+        if (anyShadows) {
+            geomVBO.bind();
+            geomVBO.draw(view, RenderSystem.getProjectionMatrix(), RenderSystem.getShader());
+            VertexBuffer.unbind();
+        }
     }
 
     @Override
@@ -251,6 +260,7 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
             ShaderProgram shader = Objects.requireNonNull(RenderSystem.getShader());
 
             shader.getUniformOrDefault("LightPos").set((float) position.x, (float) position.y, (float) position.z);
+            shader.getUniformOrDefault("Detailed").set(position.distanceSquared(camera.getPos().x, camera.getPos().y, camera.getPos().z) < 16 * 16 ? 1 : 0);
 
             RenderSystem.depthMask(true);
             RenderSystem.disableBlend();
