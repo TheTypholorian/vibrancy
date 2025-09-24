@@ -34,7 +34,7 @@ import static org.lwjgl.opengl.GL11.*;
 public class RaytracedPointLight extends PointLight implements RaytracedLight {
     public static final VertexBuffer SCREEN_VBO = new VertexBuffer(VertexBuffer.Usage.STATIC);
     protected final VertexBuffer geomVBO = new VertexBuffer(VertexBuffer.Usage.DYNAMIC);
-    protected boolean render = true;
+    protected boolean visible = true;
 
     static {
         BufferBuilder bufferBuilder = RenderSystem.renderThreadTesselator().begin(VertexFormat.DrawMode.TRIANGLE_STRIP, VertexFormats.POSITION);
@@ -54,12 +54,17 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
     }
 
     @Override
+    public boolean isVisible() {
+        return visible;
+    }
+
+    @Override
     public void prepare(LightRenderer renderer, CullFrustum frustum) {
         BlockPos lightBlockPos = new BlockPos((int) Math.floor(getPosition().x), (int) Math.floor(getPosition().y), (int) Math.floor(getPosition().z));
 
-        render = frustum.testAab(new Box(lightBlockPos).expand(radius + 2));
+        visible = frustum.testAab(new Box(lightBlockPos).expand(radius + 2));
 
-        if (isDirty() && render) {
+        if (isDirty() && visible) {
             clean();
 
             ClientWorld world = MinecraftClient.getInstance().world;
@@ -76,123 +81,126 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
                     for (int y = box.getMinY(); y <= box.getMaxY(); y++) {
                         for (int z = box.getMinZ(); z <= box.getMaxZ(); z++) {
                             BlockPos pos = new BlockPos(x, y, z);
-                            BlockState state = world.getBlockState(pos);
 
-                            stack.push();
-                            stack.translate(pos.getX(), pos.getY(), pos.getZ());
+                            if (!pos.equals(lightBlockPos)) {
+                                BlockState state = world.getBlockState(pos);
 
-                            List<Vector3f> flatVertices = new LinkedList<>(), normals = new LinkedList<>();
-                            List<Vector2f> flatTexCoords = new LinkedList<>();
+                                stack.push();
+                                stack.translate(pos.getX(), pos.getY(), pos.getZ());
 
-                            MinecraftClient.getInstance().getBlockRenderManager().renderBlock(
-                                    state,
-                                    pos,
-                                    world,
-                                    stack,
-                                    new VertexConsumer() {
-                                        @Override
-                                        public VertexConsumer vertex(float x, float y, float z) {
-                                            flatVertices.add(new Vector3f(x, y, z));
-                                            return this;
-                                        }
+                                List<Vector3f> flatVertices = new LinkedList<>(), normals = new LinkedList<>();
+                                List<Vector2f> flatTexCoords = new LinkedList<>();
 
-                                        @Override
-                                        public VertexConsumer color(int red, int green, int blue, int alpha) {
-                                            return this;
-                                        }
-
-                                        @Override
-                                        public VertexConsumer texture(float u, float v) {
-                                            flatTexCoords.add(new Vector2f(u, v));
-                                            return this;
-                                        }
-
-                                        @Override
-                                        public VertexConsumer overlay(int u, int v) {
-                                            return this;
-                                        }
-
-                                        @Override
-                                        public VertexConsumer light(int u, int v) {
-                                            return this;
-                                        }
-
-                                        @Override
-                                        public VertexConsumer normal(float x, float y, float z) {
-                                            normals.add(new Vector3f(x, y, z));
-                                            return this;
-                                        }
-                                    },
-                                    true,
-                                    random
-                            );
-
-                            if (flatVertices.size() % 4 != 0) {
-                                System.err.println("[Vibrancy] Block " + state + " doesn't use quads for rendering, skipping it for raytracing");
-                            } else {
-                                for (int j = 0; j < flatVertices.size(); j += 4) {
-                                    for (int k = j; k < j + 4; k++) {
-                                        if (normals.get(k).dot(lightPos.sub(flatVertices.get(k), new Vector3f())) > 0) {
-                                            Vector3f[] vertices = new Vector3f[]{
-                                                    flatVertices.get(j),
-                                                    flatVertices.get(j + 1),
-                                                    flatVertices.get(j + 2),
-                                                    flatVertices.get(j + 3),
-                                                    null,
-                                                    null,
-                                                    null,
-                                                    null
-                                            };
-                                            Vector2f[] texCoords = new Vector2f[]{
-                                                    flatTexCoords.get(j),
-                                                    flatTexCoords.get(j + 1),
-                                                    flatTexCoords.get(j + 2),
-                                                    flatTexCoords.get(j + 3)
-                                            };
-
-                                            for (int i = 0; i < 4; i++) {
-                                                Vector3f vertex = new Vector3f(vertices[i]);
-                                                vertices[i + 4] = vertex.add(vertex.sub(lightPos, new Vector3f()).normalize(radius * 2));
+                                MinecraftClient.getInstance().getBlockRenderManager().renderBlock(
+                                        state,
+                                        pos,
+                                        world,
+                                        stack,
+                                        new VertexConsumer() {
+                                            @Override
+                                            public VertexConsumer vertex(float x, float y, float z) {
+                                                flatVertices.add(new Vector3f(x, y, z));
+                                                return this;
                                             }
 
-                                            builder.vertex(vertices[0]).texture(texCoords[0].x, texCoords[0].y)
-                                                    .vertex(vertices[1]).texture(texCoords[1].x, texCoords[1].y)
-                                                    .vertex(vertices[2]).texture(texCoords[2].x, texCoords[2].y)
-                                                    .vertex(vertices[3]).texture(texCoords[3].x, texCoords[3].y);
+                                            @Override
+                                            public VertexConsumer color(int red, int green, int blue, int alpha) {
+                                                return this;
+                                            }
 
-                                            builder.vertex(vertices[1]).texture(texCoords[1].x, texCoords[1].y)
-                                                    .vertex(vertices[5]).texture(texCoords[1].x, texCoords[1].y)
-                                                    .vertex(vertices[6]).texture(texCoords[2].x, texCoords[2].y)
-                                                    .vertex(vertices[2]).texture(texCoords[2].x, texCoords[2].y);
+                                            @Override
+                                            public VertexConsumer texture(float u, float v) {
+                                                flatTexCoords.add(new Vector2f(u, v));
+                                                return this;
+                                            }
 
-                                            builder.vertex(vertices[5]).texture(texCoords[1].x, texCoords[1].y)
-                                                    .vertex(vertices[4]).texture(texCoords[0].x, texCoords[0].y)
-                                                    .vertex(vertices[7]).texture(texCoords[3].x, texCoords[3].y)
-                                                    .vertex(vertices[6]).texture(texCoords[2].x, texCoords[2].y);
+                                            @Override
+                                            public VertexConsumer overlay(int u, int v) {
+                                                return this;
+                                            }
 
-                                            builder.vertex(vertices[4]).texture(texCoords[0].x, texCoords[0].y)
-                                                    .vertex(vertices[0]).texture(texCoords[0].x, texCoords[0].y)
-                                                    .vertex(vertices[3]).texture(texCoords[3].x, texCoords[3].y)
-                                                    .vertex(vertices[7]).texture(texCoords[3].x, texCoords[3].y);
+                                            @Override
+                                            public VertexConsumer light(int u, int v) {
+                                                return this;
+                                            }
 
-                                            builder.vertex(vertices[1]).texture(texCoords[1].x, texCoords[1].y)
-                                                    .vertex(vertices[0]).texture(texCoords[0].x, texCoords[0].y)
-                                                    .vertex(vertices[4]).texture(texCoords[0].x, texCoords[0].y)
-                                                    .vertex(vertices[5]).texture(texCoords[1].x, texCoords[1].y);
+                                            @Override
+                                            public VertexConsumer normal(float x, float y, float z) {
+                                                normals.add(new Vector3f(x, y, z));
+                                                return this;
+                                            }
+                                        },
+                                        true,
+                                        random
+                                );
 
-                                            builder.vertex(vertices[3]).texture(texCoords[3].x, texCoords[3].y)
-                                                    .vertex(vertices[2]).texture(texCoords[2].x, texCoords[2].y)
-                                                    .vertex(vertices[6]).texture(texCoords[2].x, texCoords[2].y)
-                                                    .vertex(vertices[7]).texture(texCoords[3].x, texCoords[3].y);
-                                            quads += 6;
+                                if (flatVertices.size() % 4 != 0) {
+                                    System.err.println("[Vibrancy] Block " + state + " doesn't use quads for rendering, skipping it for raytracing");
+                                } else {
+                                    for (int j = 0; j < flatVertices.size(); j += 4) {
+                                        for (int k = j; k < j + 4; k++) {
+                                            if (normals.get(k).dot(lightPos.sub(flatVertices.get(k), new Vector3f())) > 0) {
+                                                Vector3f[] vertices = new Vector3f[]{
+                                                        flatVertices.get(j),
+                                                        flatVertices.get(j + 1),
+                                                        flatVertices.get(j + 2),
+                                                        flatVertices.get(j + 3),
+                                                        null,
+                                                        null,
+                                                        null,
+                                                        null
+                                                };
+                                                Vector2f[] texCoords = new Vector2f[]{
+                                                        flatTexCoords.get(j),
+                                                        flatTexCoords.get(j + 1),
+                                                        flatTexCoords.get(j + 2),
+                                                        flatTexCoords.get(j + 3)
+                                                };
 
-                                            break;
+                                                for (int i = 0; i < 4; i++) {
+                                                    Vector3f vertex = new Vector3f(vertices[i]);
+                                                    vertices[i + 4] = vertex.add(vertex.sub(lightPos, new Vector3f()).normalize(radius * 2));
+                                                }
+
+                                                builder.vertex(vertices[0]).texture(texCoords[0].x, texCoords[0].y)
+                                                        .vertex(vertices[1]).texture(texCoords[1].x, texCoords[1].y)
+                                                        .vertex(vertices[2]).texture(texCoords[2].x, texCoords[2].y)
+                                                        .vertex(vertices[3]).texture(texCoords[3].x, texCoords[3].y);
+
+                                                builder.vertex(vertices[1]).texture(texCoords[1].x, texCoords[1].y)
+                                                        .vertex(vertices[5]).texture(texCoords[1].x, texCoords[1].y)
+                                                        .vertex(vertices[6]).texture(texCoords[2].x, texCoords[2].y)
+                                                        .vertex(vertices[2]).texture(texCoords[2].x, texCoords[2].y);
+
+                                                builder.vertex(vertices[5]).texture(texCoords[1].x, texCoords[1].y)
+                                                        .vertex(vertices[4]).texture(texCoords[0].x, texCoords[0].y)
+                                                        .vertex(vertices[7]).texture(texCoords[3].x, texCoords[3].y)
+                                                        .vertex(vertices[6]).texture(texCoords[2].x, texCoords[2].y);
+
+                                                builder.vertex(vertices[4]).texture(texCoords[0].x, texCoords[0].y)
+                                                        .vertex(vertices[0]).texture(texCoords[0].x, texCoords[0].y)
+                                                        .vertex(vertices[3]).texture(texCoords[3].x, texCoords[3].y)
+                                                        .vertex(vertices[7]).texture(texCoords[3].x, texCoords[3].y);
+
+                                                builder.vertex(vertices[1]).texture(texCoords[1].x, texCoords[1].y)
+                                                        .vertex(vertices[0]).texture(texCoords[0].x, texCoords[0].y)
+                                                        .vertex(vertices[4]).texture(texCoords[0].x, texCoords[0].y)
+                                                        .vertex(vertices[5]).texture(texCoords[1].x, texCoords[1].y);
+
+                                                builder.vertex(vertices[3]).texture(texCoords[3].x, texCoords[3].y)
+                                                        .vertex(vertices[2]).texture(texCoords[2].x, texCoords[2].y)
+                                                        .vertex(vertices[6]).texture(texCoords[2].x, texCoords[2].y)
+                                                        .vertex(vertices[7]).texture(texCoords[3].x, texCoords[3].y);
+                                                quads += 6;
+
+                                                break;
+                                            }
                                         }
                                     }
                                 }
-                            }
 
-                            stack.pop();
+                                stack.pop();
+                            }
                         }
                     }
                 }
@@ -219,7 +227,7 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
 
     @Override
     public void render(LightRenderer renderer) {
-        if (render) {
+        if (isVisible()) {
             Camera camera = MinecraftClient.getInstance().gameRenderer.getCamera();
             Matrix4f view = new Matrix4f()
                     .rotate(camera.getRotation().invert(new Quaternionf()))

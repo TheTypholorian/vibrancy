@@ -11,7 +11,7 @@ import java.util.Arrays;
 import java.util.Iterator;
 
 public interface RaytracedLight extends NativeResource {
-    default boolean shouldRaytrace() {
+    default boolean isVisible() {
         return true;
     }
 

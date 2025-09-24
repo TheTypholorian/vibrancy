@@ -37,7 +37,7 @@ public abstract class RaytracedLightRenderer<T extends Light & RaytracedLight> i
 
     @Override
     public int getVisibleLights() {
-        return lights.size();
+        return (int) lights.stream().filter(RaytracedLight::isVisible).count();
     }
 
     @Override
