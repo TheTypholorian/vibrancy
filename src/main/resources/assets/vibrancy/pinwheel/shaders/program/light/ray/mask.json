@@ -1,4 +1,10 @@
 {
   "vertex": "vibrancy:light/ray/mask",
-  "fragment": "vibrancy:light/ray/mask"
+  "fragment": "vibrancy:light/ray/mask",
+  "textures": {
+    "DiffuseDepthSampler": {
+      "type": "framebuffer",
+      "name": "minecraft:main:depth"
+    }
+  }
 }

@@ -2,10 +2,10 @@
   "width": "q.screen_width",
   "height": "q.screen_height",
   "autoClear": false,
+  "format": "R8",
   "depth": {
     "type": "texture",
     "format": "DEPTH_COMPONENT",
-    "name": "ShadowMaskBackDepthSampler"
-  },
-  "format": "RGBA8"
+    "name": "ShadowMaskFrontDepthSampler"
+  }
 }

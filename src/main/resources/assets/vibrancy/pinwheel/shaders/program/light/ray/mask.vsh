@@ -1,14 +1,13 @@
-#version 440
+#version 430
 
 uniform mat4 ModelViewMat;
 uniform mat4 ProjMat;
 
 in vec3 Position;
-in vec2 TexCoord;
 
-out vec2 tc;
+out flat uint index;
 
 void main() {
     gl_Position = ProjMat * ModelViewMat * vec4(Position, 1);
-    tc = TexCoord;
+    index = uint(gl_VertexID / 24);
 }
