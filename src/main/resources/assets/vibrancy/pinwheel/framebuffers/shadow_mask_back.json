@@ -4,7 +4,8 @@
   "autoClear": false,
   "depth": {
     "type": "texture",
-    "format": "DEPTH_COMPONENT"
+    "format": "DEPTH_COMPONENT",
+    "name": "ShadowMaskBackDepthSampler"
   },
   "format": "RGBA8"
 }

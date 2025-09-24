@@ -168,7 +168,6 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
     protected void renderMask(Identifier fbo, Matrix4f view, double depthClear) {
         Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(fbo)).bind(true);
         glClearColor(0f, 0f, 0f, 0f);
-        glClearDepth(depthClear);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         geomVBO.bind();
@@ -186,11 +185,10 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
         VeilRenderSystem.setShader(Identifier.of(Vibrancy.MOD_ID, "light/ray/mask"));
         ShaderProgram shader = Objects.requireNonNull(RenderSystem.getShader());
 
-        glEnable(GL_DEPTH_TEST);
-        glEnable(GL_CULL_FACE);
+        RenderSystem.depthMask(true);
 
         glCullFace(GL_BACK);
-        renderMask(Identifier.of(Vibrancy.MOD_ID, "shadow_mask_front"), view, 1);
+        renderMask(Identifier.of(Vibrancy.MOD_ID, "shadow_mask_front"), view, -1);
 
         glCullFace(GL_FRONT);
         renderMask(Identifier.of(Vibrancy.MOD_ID, "shadow_mask_back"), view, 1);
