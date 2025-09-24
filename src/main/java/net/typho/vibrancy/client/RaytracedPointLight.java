@@ -58,7 +58,7 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
             int quads = 0;
             Vector3f lightPos = new Vector3f((float) getPosition().x, (float) getPosition().y, (float) getPosition().z);
             BlockPos lightBlockPos = new BlockPos((int) Math.floor(getPosition().x), (int) Math.floor(getPosition().y), (int) Math.floor(getPosition().z));
-            BlockBox box = new BlockBox(lightBlockPos).expand(1);
+            BlockBox box = new BlockBox(lightBlockPos).expand(15);
             MatrixStack stack = new MatrixStack();
             Random random = Random.create();
             BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION);
@@ -112,7 +112,7 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
                                         return this;
                                     }
                                 },
-                                false,
+                                true,
                                 random
                         );
 
