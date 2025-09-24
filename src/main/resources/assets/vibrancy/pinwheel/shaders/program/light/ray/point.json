@@ -1,0 +1,26 @@
+{
+  "vertex": "vibrancy:light/ray/point",
+  "fragment": "vibrancy:light/ray/point",
+  "textures": {
+    "DiffuseDepthSampler": {
+      "type": "framebuffer",
+      "name": "minecraft:main:depth"
+    },
+    "ShadowMaskBackSampler": {
+      "type": "framebuffer",
+      "name": "vibrancy:shadow_mask_back"
+    },
+    "ShadowMaskBackDepthSampler": {
+      "type": "framebuffer",
+      "name": "vibrancy:shadow_mask_back:depth"
+    },
+    "ShadowMaskFrontSampler": {
+      "type": "framebuffer",
+      "name": "vibrancy:shadow_mask_front"
+    },
+    "ShadowMaskFrontDepthSampler": {
+      "type": "framebuffer",
+      "name": "vibrancy:shadow_mask_front:depth"
+    }
+  }
+}

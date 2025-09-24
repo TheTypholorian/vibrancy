@@ -1,37 +1,23 @@
 package net.typho.vibrancy.client;
 
+import foundry.veil.api.client.render.CullFrustum;
+import foundry.veil.api.client.render.light.renderer.LightRenderer;
 import org.jetbrains.annotations.NotNull;
 import org.joml.Vector3f;
-import org.joml.Vector3i;
+import org.lwjgl.system.NativeResource;
 
 import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.Iterator;
-import java.util.List;
 
-public interface RaytracedLight {
+public interface RaytracedLight extends NativeResource {
     default boolean shouldRaytrace() {
         return true;
     }
 
-    void uploadQuads();
+    void prepare(LightRenderer renderer, CullFrustum frustum);
 
-    record QuadGroup(Vector3i pos, List<Quad> quads) {
-        public static final int MAX_QUADS = 64, SIZE = 6, BYTES = (8 + MAX_QUADS * 16) * Float.BYTES;
-
-        public void put(ByteBuffer buf) {
-            int index = buf.position();
-
-            buf.putInt(pos.x * SIZE).putInt(pos.y * SIZE).putInt(pos.z * SIZE).putInt(quads.size());
-            buf.putInt((pos.x + 1) * SIZE).putInt((pos.y + 1) * SIZE).putInt((pos.z + 1) * SIZE).putInt(0);
-
-            for (Quad quad : quads) {
-                quad.put(buf);
-            }
-
-            buf.position(index + BYTES);
-        }
-    }
+    void render(LightRenderer renderer);
 
     record Quad(Vector3f v1, Vector3f v2, Vector3f v3, Vector3f v4) implements Iterable<Vector3f> {
         public static final int BYTES = 16 * Float.BYTES;

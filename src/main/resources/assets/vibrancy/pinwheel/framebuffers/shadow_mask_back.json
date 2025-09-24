@@ -1,0 +1,10 @@
+{
+  "width": "q.screen_width",
+  "height": "q.screen_height",
+  "autoClear": false,
+  "depth": {
+    "type": "texture",
+    "format": "DEPTH_COMPONENT"
+  },
+  "format": "RGBA8"
+}

@@ -17,11 +17,12 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.random.Random;
 import net.typho.vibrancy.client.DynamicLightInfo;
 import net.typho.vibrancy.client.RaytracedLight;
-import net.typho.vibrancy.client.RaytracedLightRenderer;
 import net.typho.vibrancy.client.VibrancyClient;
 import org.joml.Vector3f;
 import org.lwjgl.system.MemoryUtil;
-import org.spongepowered.asm.mixin.*;
+import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -37,7 +38,7 @@ import static org.lwjgl.opengl.GL30.glBindBufferBase;
 import static org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER;
 
 @Mixin(value = LightRenderer.class, remap = false)
-@Implements(@Interface(iface = RaytracedLightRenderer.class, prefix = "ray$"))
+//@Implements(@Interface(iface = RaytracedLightRenderer.class, prefix = "ray$"))
 public abstract class LightRendererMixin {
     @Shadow
     public abstract <T extends Light> List<T> getLights(LightTypeRegistry.LightType<? extends T> type);
@@ -90,7 +91,7 @@ public abstract class LightRendererMixin {
                         List<RaytracedLight.Quad> localQuads = new LinkedList<>();
                         Vector3f lightPos = new Vector3f((float) light.getPosition().x, (float) light.getPosition().y, (float) light.getPosition().z);
                         BlockPos lightBlockPos = new BlockPos((int) Math.floor(light.getPosition().x), (int) Math.floor(light.getPosition().y), (int) Math.floor(light.getPosition().z));
-                        BlockBox box = new BlockBox(lightBlockPos).expand(8);//(int) Math.ceil(light.getRadius()) + 1);
+                        BlockBox box = new BlockBox(lightBlockPos).expand(8);
                         MatrixStack stack = new MatrixStack();
                         Random random = Random.create();
 

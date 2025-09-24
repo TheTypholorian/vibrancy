@@ -1,8 +1,8 @@
 package net.typho.vibrancy.client;
 
-import foundry.veil.api.client.render.VeilRenderSystem;
+import foundry.veil.api.client.registry.LightTypeRegistry;
+import foundry.veil.platform.registry.RegistrationProvider;
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.ResourcePackActivationType;
@@ -22,6 +22,7 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.LinkedList;
 import java.util.List;
+import java.util.function.Supplier;
 
 public class VibrancyClient implements ClientModInitializer {
     public static final SimpleOption<Boolean> DYNAMIC_LIGHTMAP = SimpleOption.ofBoolean("options.vibrancy.dynamic_lightmap", true);
@@ -32,15 +33,11 @@ public class VibrancyClient implements ClientModInitializer {
             "key.categories.misc"
     ));
     public static final List<DynamicLightInfo> DYNAMIC_LIGHT_INFOS = new LinkedList<>();
+    public static final RegistrationProvider<LightTypeRegistry.LightType<?>> LIGHT_TYPE_PROVIDER = RegistrationProvider.get(LightTypeRegistry.REGISTRY_KEY, Vibrancy.MOD_ID);
+    public static final Supplier<LightTypeRegistry.LightType<RaytracedPointLight>> RAY_POINT_LIGHT = LIGHT_TYPE_PROVIDER.register("ray_point", () -> new LightTypeRegistry.LightType<>(RaytracedPointLightRenderer::new, (level, camera) -> new RaytracedPointLight().setTo(camera).setRadius(15)));
 
     @Override
     public void onInitializeClient() {
-        int[] ticks = {0};
-        ClientTickEvents.START_CLIENT_TICK.register(client -> {
-            if (ticks[0]++ % 20 == 0 && VeilRenderSystem.renderer().getLightRenderer() instanceof RaytracedLightRenderer ray) {
-                ray.upload();
-            }
-        });
         ResourceManagerHelper.registerBuiltinResourcePack(Identifier.of(Vibrancy.MOD_ID, "emissive_ores"), FabricLoader.getInstance().getModContainer(Vibrancy.MOD_ID).orElseThrow(), Text.translatable("pack.name.vibrancy.emissive_ores"), ResourcePackActivationType.DEFAULT_ENABLED);
         ResourceManagerHelper.registerBuiltinResourcePack(Identifier.of(Vibrancy.MOD_ID, "vibrant_textures"), FabricLoader.getInstance().getModContainer(Vibrancy.MOD_ID).orElseThrow(), Text.translatable("pack.name.vibrancy.textures"), ResourcePackActivationType.DEFAULT_ENABLED);
         ResourceManagerHelper.registerBuiltinResourcePack(Identifier.of(Vibrancy.MOD_ID, "ripple"), FabricLoader.getInstance().getModContainer(Vibrancy.MOD_ID).orElseThrow(), Text.translatable("pack.name.vibrancy.ripple"), ResourcePackActivationType.DEFAULT_ENABLED);
