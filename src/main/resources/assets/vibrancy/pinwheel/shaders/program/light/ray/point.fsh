@@ -7,6 +7,7 @@ uniform sampler2D ShadowMaskBackSampler;
 uniform sampler2D ShadowMaskBackDepthSampler;
 uniform sampler2D ShadowMaskFrontSampler;
 uniform sampler2D ShadowMaskFrontDepthSampler;
+uniform sampler2D BlockAtlasSampler;
 
 uniform vec2 ScreenSize;
 uniform vec3 LightPos;
@@ -29,6 +30,17 @@ void main() {
     float worldDepth = depthSampleToWorldDepth(depth);
 
     if (worldDepth > maskFrontDepth + 1e-3 && worldDepth < maskBackDepth - 1e-3) {
-        fragColor.rgb *= 1 - texelFetch(ShadowMaskBackSampler, ivec2(gl_FragCoord.xy), 0).a;
+        vec4 backColor = texelFetch(ShadowMaskBackSampler, ivec2(gl_FragCoord.xy), 0);
+        vec4 frontColor = texelFetch(ShadowMaskFrontSampler, ivec2(gl_FragCoord.xy), 0);
+
+        if (backColor.a > 0) {
+            float delta = (worldDepth - maskFrontDepth) / maskBackDepth;
+            vec2 tc = (backColor.rg - frontColor.rg) * delta + frontColor.rg;
+            vec4 sampleColor = texture(BlockAtlasSampler, tc);
+
+            if (sampleColor.a > 0) {
+                fragColor.rgb *= 1 - backColor.a;
+            }
+        }
     }
 }

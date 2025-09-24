@@ -21,6 +21,7 @@ import net.minecraft.util.math.random.Random;
 import net.typho.vibrancy.Vibrancy;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
+import org.joml.Vector2f;
 import org.joml.Vector3f;
 
 import java.util.LinkedList;
@@ -58,10 +59,10 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
             int quads = 0;
             Vector3f lightPos = new Vector3f((float) getPosition().x, (float) getPosition().y, (float) getPosition().z);
             BlockPos lightBlockPos = new BlockPos((int) Math.floor(getPosition().x), (int) Math.floor(getPosition().y), (int) Math.floor(getPosition().z));
-            BlockBox box = new BlockBox(lightBlockPos).expand(15);
+            BlockBox box = new BlockBox(lightBlockPos).expand(1);
             MatrixStack stack = new MatrixStack();
             Random random = Random.create();
-            BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION);
+            BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_TEXTURE);
 
             for (int x = box.getMinX(); x <= box.getMaxX(); x++) {
                 for (int y = box.getMinY(); y <= box.getMaxY(); y++) {
@@ -73,6 +74,7 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
                         stack.translate(pos.getX(), pos.getY(), pos.getZ());
 
                         List<Vector3f> flatVertices = new LinkedList<>(), normals = new LinkedList<>();
+                        List<Vector2f> flatTexCoords = new LinkedList<>();
 
                         MinecraftClient.getInstance().getBlockRenderManager().renderBlock(
                                 state,
@@ -93,6 +95,7 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
 
                                     @Override
                                     public VertexConsumer texture(float u, float v) {
+                                        flatTexCoords.add(new Vector2f(u, v));
                                         return this;
                                     }
 
@@ -132,18 +135,47 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
                                                 null,
                                                 null
                                         };
+                                        Vector2f[] texCoords = new Vector2f[]{
+                                                flatTexCoords.get(j),
+                                                flatTexCoords.get(j + 1),
+                                                flatTexCoords.get(j + 2),
+                                                flatTexCoords.get(j + 3)
+                                        };
 
                                         for (int i = 0; i < 4; i++) {
                                             Vector3f vertex = new Vector3f(vertices[i]);
                                             vertices[i + 4] = vertex.add(vertex.sub(lightPos, new Vector3f()).normalize(radius));
                                         }
 
-                                        builder.vertex(vertices[0]).vertex(vertices[1]).vertex(vertices[2]).vertex(vertices[3]);
-                                        builder.vertex(vertices[1]).vertex(vertices[5]).vertex(vertices[6]).vertex(vertices[2]);
-                                        builder.vertex(vertices[5]).vertex(vertices[4]).vertex(vertices[7]).vertex(vertices[6]);
-                                        builder.vertex(vertices[4]).vertex(vertices[0]).vertex(vertices[3]).vertex(vertices[7]);
-                                        builder.vertex(vertices[1]).vertex(vertices[0]).vertex(vertices[4]).vertex(vertices[5]);
-                                        builder.vertex(vertices[3]).vertex(vertices[2]).vertex(vertices[6]).vertex(vertices[7]);
+                                        builder.vertex(vertices[0]).texture(texCoords[0].x, texCoords[0].y)
+                                                .vertex(vertices[1]).texture(texCoords[1].x, texCoords[1].y)
+                                                .vertex(vertices[2]).texture(texCoords[2].x, texCoords[2].y)
+                                                .vertex(vertices[3]).texture(texCoords[3].x, texCoords[3].y);
+
+                                        builder.vertex(vertices[1]).texture(texCoords[1].x, texCoords[1].y)
+                                                .vertex(vertices[5]).texture(texCoords[1].x, texCoords[1].y)
+                                                .vertex(vertices[6]).texture(texCoords[2].x, texCoords[2].y)
+                                                .vertex(vertices[2]).texture(texCoords[2].x, texCoords[2].y);
+
+                                        builder.vertex(vertices[5]).texture(texCoords[1].x, texCoords[1].y)
+                                                .vertex(vertices[4]).texture(texCoords[0].x, texCoords[0].y)
+                                                .vertex(vertices[7]).texture(texCoords[3].x, texCoords[3].y)
+                                                .vertex(vertices[6]).texture(texCoords[2].x, texCoords[2].y);
+
+                                        builder.vertex(vertices[4]).texture(texCoords[0].x, texCoords[0].y)
+                                                .vertex(vertices[0]).texture(texCoords[0].x, texCoords[0].y)
+                                                .vertex(vertices[3]).texture(texCoords[3].x, texCoords[3].y)
+                                                .vertex(vertices[7]).texture(texCoords[3].x, texCoords[3].y);
+
+                                        builder.vertex(vertices[1]).texture(texCoords[1].x, texCoords[1].y)
+                                                .vertex(vertices[0]).texture(texCoords[0].x, texCoords[0].y)
+                                                .vertex(vertices[4]).texture(texCoords[0].x, texCoords[0].y)
+                                                .vertex(vertices[5]).texture(texCoords[1].x, texCoords[1].y);
+
+                                        builder.vertex(vertices[3]).texture(texCoords[3].x, texCoords[3].y)
+                                                .vertex(vertices[2]).texture(texCoords[2].x, texCoords[2].y)
+                                                .vertex(vertices[6]).texture(texCoords[2].x, texCoords[2].y)
+                                                .vertex(vertices[7]).texture(texCoords[3].x, texCoords[3].y);
                                         quads += 6;
 
                                         break;
@@ -187,6 +219,7 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
         ShaderProgram shader = Objects.requireNonNull(RenderSystem.getShader());
 
         RenderSystem.depthMask(true);
+        RenderSystem.disableBlend();
 
         glCullFace(GL_FRONT);
         glDepthFunc(GL_GEQUAL);
@@ -198,6 +231,7 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
 
         Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(VeilFramebuffers.LIGHT)).bind(true);
         VeilRenderSystem.setShader(Identifier.of(Vibrancy.MOD_ID, "light/ray/point"));
+        RenderSystem.enableBlend();
 
         shader = Objects.requireNonNull(RenderSystem.getShader());
 

@@ -21,6 +21,7 @@
     "ShadowMaskFrontDepthSampler": {
       "type": "framebuffer",
       "name": "vibrancy:shadow_mask_front:depth"
-    }
+    },
+    "BlockAtlasSampler": "minecraft:textures/atlas/blocks.png"
   }
 }
