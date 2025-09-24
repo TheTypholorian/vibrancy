@@ -28,13 +28,7 @@ void main() {
 
     float worldDepth = depthSampleToWorldDepth(depth);
 
-    if (maskBackDepth > maskFrontDepth) {
-        if (worldDepth > maskFrontDepth - 1e-3 && worldDepth < maskBackDepth + 1e-3) {
-            fragColor.rgb *= 1 - texelFetch(ShadowMaskBackSampler, ivec2(gl_FragCoord.xy), 0).a;
-        }
-    } else {
-        if (worldDepth < maskFrontDepth - 1e-3 && worldDepth > maskBackDepth + 1e-3) {
-            fragColor.rgb *= 1 - texelFetch(ShadowMaskBackSampler, ivec2(gl_FragCoord.xy), 0).a;
-        }
+    if (worldDepth > maskFrontDepth + 1e-3 && worldDepth < maskBackDepth - 1e-3) {
+        fragColor.rgb *= 1 - texelFetch(ShadowMaskBackSampler, ivec2(gl_FragCoord.xy), 0).a;
     }
 }
