@@ -17,6 +17,7 @@ import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Box;
 import net.minecraft.util.math.random.Random;
 import net.typho.vibrancy.Vibrancy;
 import org.joml.Matrix4f;
@@ -33,6 +34,7 @@ import static org.lwjgl.opengl.GL11.*;
 public class RaytracedPointLight extends PointLight implements RaytracedLight {
     public static final VertexBuffer SCREEN_VBO = new VertexBuffer(VertexBuffer.Usage.STATIC);
     protected final VertexBuffer geomVBO = new VertexBuffer(VertexBuffer.Usage.DYNAMIC);
+    protected boolean render = true;
 
     static {
         BufferBuilder bufferBuilder = RenderSystem.renderThreadTesselator().begin(VertexFormat.DrawMode.TRIANGLE_STRIP, VertexFormats.POSITION);
@@ -53,7 +55,11 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
 
     @Override
     public void prepare(LightRenderer renderer, CullFrustum frustum) {
-        if (isDirty()) {
+        BlockPos lightBlockPos = new BlockPos((int) Math.floor(getPosition().x), (int) Math.floor(getPosition().y), (int) Math.floor(getPosition().z));
+
+        render = frustum.testAab(new Box(lightBlockPos).expand(radius + 2));
+
+        if (isDirty() && render) {
             clean();
 
             ClientWorld world = MinecraftClient.getInstance().world;
@@ -61,7 +67,6 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
             if (world != null) {
                 int quads = 0;
                 Vector3f lightPos = new Vector3f((float) getPosition().x, (float) getPosition().y, (float) getPosition().z);
-                BlockPos lightBlockPos = new BlockPos((int) Math.floor(getPosition().x), (int) Math.floor(getPosition().y), (int) Math.floor(getPosition().z));
                 BlockBox box = new BlockBox(lightBlockPos).expand(15);
                 MatrixStack stack = new MatrixStack();
                 Random random = Random.create();
@@ -214,40 +219,42 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
 
     @Override
     public void render(LightRenderer renderer) {
-        Camera camera = MinecraftClient.getInstance().gameRenderer.getCamera();
-        Matrix4f view = new Matrix4f()
-                .rotate(camera.getRotation().invert(new Quaternionf()))
-                .translate((float) -camera.getPos().x, (float) -camera.getPos().y, (float) -camera.getPos().z);
+        if (render) {
+            Camera camera = MinecraftClient.getInstance().gameRenderer.getCamera();
+            Matrix4f view = new Matrix4f()
+                    .rotate(camera.getRotation().invert(new Quaternionf()))
+                    .translate((float) -camera.getPos().x, (float) -camera.getPos().y, (float) -camera.getPos().z);
 
-        VeilRenderSystem.setShader(Identifier.of(Vibrancy.MOD_ID, "light/ray/mask"));
-        ShaderProgram shader = Objects.requireNonNull(RenderSystem.getShader());
+            VeilRenderSystem.setShader(Identifier.of(Vibrancy.MOD_ID, "light/ray/mask"));
+            ShaderProgram shader = Objects.requireNonNull(RenderSystem.getShader());
 
-        RenderSystem.depthMask(true);
-        RenderSystem.disableBlend();
+            RenderSystem.depthMask(true);
+            RenderSystem.disableBlend();
 
-        shader.getUniformOrDefault("Back").set(1);
-        glCullFace(GL_FRONT);
-        glDepthFunc(GL_GEQUAL);
-        renderMask(Identifier.of(Vibrancy.MOD_ID, "shadow_mask_back"), view, 0);
+            shader.getUniformOrDefault("Back").set(1);
+            glCullFace(GL_FRONT);
+            glDepthFunc(GL_GEQUAL);
+            renderMask(Identifier.of(Vibrancy.MOD_ID, "shadow_mask_back"), view, 0);
 
-        shader.getUniformOrDefault("Back").set(0);
-        glCullFace(GL_BACK);
-        glDepthFunc(GL_LEQUAL);
-        renderMask(Identifier.of(Vibrancy.MOD_ID, "shadow_mask_front"), view, 1);
+            shader.getUniformOrDefault("Back").set(0);
+            glCullFace(GL_BACK);
+            glDepthFunc(GL_LEQUAL);
+            renderMask(Identifier.of(Vibrancy.MOD_ID, "shadow_mask_front"), view, 1);
 
-        Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(VeilFramebuffers.LIGHT)).bind(true);
-        VeilRenderSystem.setShader(Identifier.of(Vibrancy.MOD_ID, "light/ray/point"));
-        RenderSystem.enableBlend();
+            Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(VeilFramebuffers.LIGHT)).bind(true);
+            VeilRenderSystem.setShader(Identifier.of(Vibrancy.MOD_ID, "light/ray/point"));
+            RenderSystem.enableBlend();
 
-        shader = Objects.requireNonNull(RenderSystem.getShader());
+            shader = Objects.requireNonNull(RenderSystem.getShader());
 
-        shader.getUniformOrDefault("LightPos").set((float) position.x, (float) position.y, (float) position.z);
-        shader.getUniformOrDefault("LightColor").set(color.x, color.y, color.z);
-        shader.getUniformOrDefault("LightRadius").set(15f);
+            shader.getUniformOrDefault("LightPos").set((float) position.x, (float) position.y, (float) position.z);
+            shader.getUniformOrDefault("LightColor").set(color.x, color.y, color.z);
+            shader.getUniformOrDefault("LightRadius").set(15f);
 
-        SCREEN_VBO.bind();
-        SCREEN_VBO.draw(view, RenderSystem.getProjectionMatrix(), shader);
-        VertexBuffer.unbind();
+            SCREEN_VBO.bind();
+            SCREEN_VBO.draw(view, RenderSystem.getProjectionMatrix(), shader);
+            VertexBuffer.unbind();
+        }
     }
 
     @Override
