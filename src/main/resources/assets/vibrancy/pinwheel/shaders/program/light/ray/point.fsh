@@ -38,9 +38,9 @@ void main() {
             vec2 tc = (backColor.rg - frontColor.rg) * delta + frontColor.rg;
             vec4 sampleColor = texture(BlockAtlasSampler, tc);
 
-            if (sampleColor.a > 0) {
+            //if (sampleColor.a > 0) {
                 fragColor.rgb *= 1 - backColor.a;
-            }
+            //}
         }
     }
 }

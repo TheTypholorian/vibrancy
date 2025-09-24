@@ -1,5 +1,7 @@
 #version 440
 
+uniform bool Back;
+
 in vec2 tc;
 
 out vec4 fragColor;
