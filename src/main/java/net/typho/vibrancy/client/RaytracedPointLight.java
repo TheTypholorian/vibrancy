@@ -283,7 +283,7 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
             shader = Objects.requireNonNull(RenderSystem.getShader());
 
             shader.getUniformOrDefault("LightPos").set((float) position.x, (float) position.y, (float) position.z);
-            shader.getUniformOrDefault("LightColor").set(color.x, color.y, color.z);
+            shader.getUniformOrDefault("LightColor").set(color.x * brightness, color.y * brightness, color.z * brightness);
             shader.getUniformOrDefault("LightRadius").set(15f);
 
             SCREEN_VBO.bind();

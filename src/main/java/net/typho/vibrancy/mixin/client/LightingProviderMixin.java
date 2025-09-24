@@ -33,7 +33,11 @@ public class LightingProviderMixin {
                     }
                 }
 
-                VeilRenderSystem.renderer().getLightRenderer().addLight(new RaytracedPointBlockLight(pos).setBrightness(0.1f).setColor(1f, 1f, 0.59f).setRadius(MinecraftClient.getInstance().world.getBlockState(pos).getLuminance()));
+                int lumi = MinecraftClient.getInstance().world.getBlockState(pos).getLuminance();
+
+                if (lumi > 0) {
+                    VeilRenderSystem.renderer().getLightRenderer().addLight(new RaytracedPointBlockLight(pos).setBrightness(0.3f).setColor(1f, 1f, 0.59f).setRadius(lumi));
+                }
             });
         }
     }

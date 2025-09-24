@@ -3,8 +3,10 @@
   "id": "vibrancy",
   "version": "${version}",
   "name": "Vibrancy",
-  "description": "",
-  "authors": [],
+  "description": "A visuals mod that keeps the vanilla feel, adding colored lights and basic raytraced shadows",
+  "authors": [
+    "The Typhothanian"
+  ],
   "contact": {},
   "license": "MIT",
   "icon": "assets/vibrancy/icon.png",
