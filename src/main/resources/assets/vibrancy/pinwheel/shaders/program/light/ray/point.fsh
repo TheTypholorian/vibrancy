@@ -20,7 +20,7 @@ uniform float LightRadius;
 out vec4 fragColor;
 
 void applyShadowColor(vec4 color) {
-    if (color.a == 0) {
+    if (color.a == 1) {
         discard;
     } else {
         // wip code for blocks tinting light
