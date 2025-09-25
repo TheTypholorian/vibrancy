@@ -1,0 +1,14 @@
+{
+  "minecraft:torch": {
+    "color": [1, 1, 0.59],
+    "brightness": 0.3,
+    "flicker": 0.1
+  },
+  "minecraft:wall_torch": "minecraft:torch",
+  "minecraft:soul_torch": {
+    "color": [0.48, 1, 1],
+    "brightness": 0.2,
+    "flicker": 0.0075
+  },
+  "minecraft:soul_wall_torch": "minecraft:soul_torch"
+}

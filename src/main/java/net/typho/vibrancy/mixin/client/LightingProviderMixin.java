@@ -3,9 +3,11 @@ package net.typho.vibrancy.mixin.client;
 import foundry.veil.api.client.render.VeilRenderSystem;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.chunk.light.LightingProvider;
+import net.typho.vibrancy.client.DynamicLightInfo;
 import net.typho.vibrancy.client.RaytracedPointBlockLight;
 import net.typho.vibrancy.client.RaytracedPointLight;
 import net.typho.vibrancy.client.VibrancyClient;
@@ -33,10 +35,11 @@ public class LightingProviderMixin {
                     }
                 }
 
-                int lumi = MinecraftClient.getInstance().world.getBlockState(pos).getLuminance();
+                BlockState state = MinecraftClient.getInstance().world.getBlockState(pos);
+                DynamicLightInfo info = DynamicLightInfo.get(state);
 
-                if (lumi > 0) {
-                    VeilRenderSystem.renderer().getLightRenderer().addLight(new RaytracedPointBlockLight(pos).setBrightness(0.3f).setColor(1f, 1f, 0.59f).setRadius(lumi));
+                if (info != null) {
+                    VeilRenderSystem.renderer().getLightRenderer().addLight(new RaytracedPointBlockLight(pos).setFlicker(info.flicker().orElse(0f)).setBrightness(info.brightness().orElse(1f)).setColor(info.color().x, info.color().y, info.color().z).setRadius(info.radius().orElse((float) state.getLuminance())));
                 }
             });
         }

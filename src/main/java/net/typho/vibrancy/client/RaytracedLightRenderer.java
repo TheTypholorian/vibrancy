@@ -15,7 +15,6 @@ public abstract class RaytracedLightRenderer<T extends Light & RaytracedLight> i
 
     @Override
     public void prepareLights(LightRenderer lightRenderer, List<T> lights, Set<T> removedLights, CullFrustum frustum) {
-        VibrancyClient.DYNAMIC_LIGHT_INFOS.clear();
         this.lights.clear();
 
         for (T light : lights) {

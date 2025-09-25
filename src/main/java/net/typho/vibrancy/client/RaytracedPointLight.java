@@ -18,12 +18,14 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.random.Random;
 import net.typho.vibrancy.Vibrancy;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
+import org.lwjgl.glfw.GLFW;
 import org.lwjgl.system.MemoryUtil;
 
 import java.nio.ByteBuffer;
@@ -41,6 +43,7 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
     protected final VertexBuffer geomVBO = new VertexBuffer(VertexBuffer.Usage.DYNAMIC);
     protected final int quadsSSBO = glGenBuffers();
     protected boolean visible = true, anyShadows = false;
+    protected float flicker = 0, flickerMin, flickerMax, flickerStart = (float) GLFW.glfwGetTime();
 
     static {
         BufferBuilder bufferBuilder = RenderSystem.renderThreadTesselator().begin(VertexFormat.DrawMode.TRIANGLE_STRIP, VertexFormats.POSITION);
@@ -52,6 +55,16 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
         SCREEN_VBO.bind();
         SCREEN_VBO.upload(bufferBuilder.end());
         VertexBuffer.unbind();
+    }
+
+    public float getFlicker() {
+        return flicker;
+    }
+
+    public RaytracedPointLight setFlicker(float flicker) {
+        this.flicker = flicker;
+        markDirty();
+        return this;
     }
 
     @Override
@@ -229,8 +242,6 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
                 glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
                 MemoryUtil.memFree(buf);
-
-                VibrancyClient.DYNAMIC_LIGHT_INFOS.add(new DynamicLightInfo(lightBlockPos, numQuads));
             }
         }
     }
@@ -281,6 +292,16 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
 
             shader = Objects.requireNonNull(RenderSystem.getShader());
+
+            float time = (float) GLFW.glfwGetTime();
+
+            while (time - flickerStart > 1) {
+                flickerStart++;
+                flickerMin = flickerMax;
+                flickerMax = new java.util.Random().nextFloat(-1, 1);
+            }
+
+            float brightness = getBrightness() * (1 + flicker * MathHelper.lerp(time - flickerStart, flickerMin, flickerMax));
 
             shader.getUniformOrDefault("LightPos").set((float) position.x, (float) position.y, (float) position.z);
             shader.getUniformOrDefault("LightColor").set(color.x * brightness, color.y * brightness, color.z * brightness);
