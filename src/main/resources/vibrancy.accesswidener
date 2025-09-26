@@ -6,3 +6,4 @@ accessible class net/minecraft/client/render/block/BlockModelRenderer$AmbientOcc
 accessible field net/minecraft/client/render/block/BlockModelRenderer$AmbientOcclusionCalculator brightness [F
 accessible field net/minecraft/client/render/block/BlockModelRenderer$AmbientOcclusionCalculator light [I
 accessible field net/minecraft/client/render/WorldRenderer frustum Lnet/minecraft/client/render/Frustum;
+accessible method net/minecraft/client/render/model/BlockStatesLoader toStatePredicate (Lnet/minecraft/state/StateManager;Ljava/lang/String;)Ljava/util/function/Predicate;

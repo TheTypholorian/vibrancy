@@ -2,14 +2,15 @@ package net.typho.vibrancy.client;
 
 import foundry.veil.api.client.render.light.PointLight;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
 import org.joml.Vector3dc;
 
 public class RaytracedPointBlockLight extends RaytracedPointLight {
     public final BlockPos blockPos;
 
-    public RaytracedPointBlockLight(BlockPos blockPos) {
+    public RaytracedPointBlockLight(BlockPos blockPos, Vec3d offset) {
         this.blockPos = blockPos;
-        super.setPosition(blockPos.getX() + 0.5, blockPos.getY() + 0.5, blockPos.getZ() + 0.5);
+        super.setPosition(blockPos.getX() + offset.x, blockPos.getY() + offset.y, blockPos.getZ() + offset.z);
     }
 
     @Override

@@ -7,7 +7,7 @@
     "client.LightingProviderMixin",
     "client.RegistryKeyMixin",
     "client.ShaderImportProcessorMixin",
-    "client.SodiumGameOptionPagesMixin",
+    "client.SodiumGameOptionsPagesAccessor",
     "client.VanillaShaderCompilerMixin",
     "client.VeilRenderSystemMixin",
     "client.WorldChunkMixin"
@@ -16,6 +16,7 @@
     "client.BlockModelRendererMixin",
     "client.LightmapTextureManagerMixin",
     "client.ShaderProgramMixin",
+    "client.SodiumOptionsGUIMixin",
     "client.VideoOptionsScreenMixin"
   ],
   "injectors": {

@@ -18,6 +18,7 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
+import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.random.Random;
 import net.typho.vibrancy.Vibrancy;
 import org.joml.Matrix4f;
@@ -80,7 +81,7 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
     public void prepare(LightRenderer renderer, CullFrustum frustum) {
         BlockPos lightBlockPos = new BlockPos((int) Math.floor(getPosition().x), (int) Math.floor(getPosition().y), (int) Math.floor(getPosition().z));
 
-        visible = frustum.testAab(new Box(lightBlockPos).expand(radius + 2)) && lightBlockPos.isWithinDistance(MinecraftClient.getInstance().player.getBlockPos(), 32);
+        visible = frustum.testAab(new Box(lightBlockPos).expand(radius + 2)) && lightBlockPos.isWithinDistance(MinecraftClient.getInstance().player.getBlockPos(), VibrancyClient.LIGHT_CULL_DISTANCE.getValue() * 16);
 
         if (isDirty() && visible) {
             clean();
@@ -157,7 +158,7 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
                                 } else {
                                     for (int j = 0; j < flatVertices.size(); j += 4) {
                                         for (int k = j; k < j + 4; k++) {
-                                            if (normals.get(k).dot(lightPos.sub(flatVertices.get(k), new Vector3f())) > 0) {
+                                            if (normals.get(k).dot(lightPos.sub(flatVertices.get(k), new Vector3f())) > 0 || flatVertices.get(k).distanceSquared(lightPos) < 4) {
                                                 Vector3f[] vertices = new Vector3f[]{
                                                         flatVertices.get(j),
                                                         flatVertices.get(j + 1),
@@ -270,7 +271,7 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
             ShaderProgram shader = Objects.requireNonNull(RenderSystem.getShader());
 
             shader.getUniformOrDefault("LightPos").set((float) position.x, (float) position.y, (float) position.z);
-            shader.getUniformOrDefault("Detailed").set(position.distanceSquared(camera.getPos().x, camera.getPos().y, camera.getPos().z) < 16 * 16 ? 1 : 0);
+            shader.getUniformOrDefault("Detailed").set(position.distanceSquared(camera.getPos().x, camera.getPos().y, camera.getPos().z) < MathHelper.square(VibrancyClient.RAYTRACE_DISTANCE.getValue() * 16) ? 1 : 0);
 
             RenderSystem.depthMask(true);
             RenderSystem.disableBlend();

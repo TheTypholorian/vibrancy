@@ -1,14 +1,51 @@
 {
-  "minecraft:torch": {
+  "torch": {
     "color": [1, 1, 0.59],
+    "offset": [0.5, 0.5625, 0.5],
     "brightness": 0.3,
-    "flicker": 0.1
+    "flicker": 0.3
   },
-  "minecraft:wall_torch": "minecraft:torch",
-  "minecraft:soul_torch": {
+  "wall_torch": {
+    "copy": "torch",
+    "offset": {
+      "facing=east": [0.5, 0.9375, 0.25],
+      "facing=north": [0.25, 0.9375, 0.5],
+      "facing=south": [0.75, 0.9375, 0.5],
+      "facing=west": [0.5, 0.9375, 0.75],
+      "default": [0.5, 0.9375, 0.5]
+    }
+  },
+  "lantern": "torch",
+  "fire": "torch",
+  "soul_torch": {
     "color": [0.48, 1, 1],
+    "offset": [0.5, 0.5625, 0.5],
     "brightness": 0.2,
-    "flicker": 0.0075
+    "flicker": 0.3
   },
-  "minecraft:soul_wall_torch": "minecraft:soul_torch"
+  "soul_wall_torch": {
+    "copy": "soul_torch",
+    "offset": {
+      "facing=east": [0.5, 0.9375, 0.25],
+      "facing=north": [0.25, 0.9375, 0.5],
+      "facing=south": [0.75, 0.9375, 0.5],
+      "facing=west": [0.5, 0.9375, 0.75],
+      "default": [0.5, 0.9375, 0.5]
+    }
+  },
+  "soul_lantern": "soul_torch",
+  "soul_fire": "soul_torch",
+  "#candles": {
+    "color": [1, 1, 0.59],
+    "offset": [0.5, 0.5625, 0.5],
+    "brightness": {
+      "candles=1,lit=true": 0.05,
+      "candles=2,lit=true": 0.1,
+      "candles=3,lit=true": 0.15,
+      "candles=4,lit=true": 0.2,
+      "lit=false": 0,
+      "default": 0.2
+    },
+    "flicker": 0.3
+  }
 }

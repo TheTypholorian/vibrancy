@@ -6,6 +6,7 @@ import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.chunk.light.LightingProvider;
 import net.typho.vibrancy.client.DynamicLightInfo;
 import net.typho.vibrancy.client.RaytracedPointBlockLight;
@@ -39,7 +40,16 @@ public class LightingProviderMixin {
                 DynamicLightInfo info = DynamicLightInfo.get(state);
 
                 if (info != null) {
-                    VeilRenderSystem.renderer().getLightRenderer().addLight(new RaytracedPointBlockLight(pos).setFlicker(info.flicker().orElse(0f)).setBrightness(info.brightness().orElse(1f)).setColor(info.color().x, info.color().y, info.color().z).setRadius(info.radius().orElse((float) state.getLuminance())));
+                    VeilRenderSystem.renderer().getLightRenderer().addLight(
+                            new RaytracedPointBlockLight(
+                                    pos,
+                                    info.offset().apply(state).orElse(new Vec3d(0.5, 0.5, 0.5))
+                            )
+                                    .setFlicker(info.flicker().apply(state).orElse(0f))
+                                    .setBrightness(info.brightness().apply(state).orElse(1f))
+                                    .setColor(info.color().x, info.color().y, info.color().z)
+                                    .setRadius(info.radius().apply(state).orElse((float) state.getLuminance()))
+                    );
                 }
             });
         }

@@ -1,13 +1,17 @@
 package net.typho.vibrancy.client;
 
-import com.google.gson.JsonElement;
+import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonParser;
-import com.mojang.datafixers.util.Either;
-import com.mojang.datafixers.util.Pair;
-import com.mojang.serialization.DataResult;
-import com.mojang.serialization.JsonOps;
 import foundry.veil.api.client.registry.LightTypeRegistry;
 import foundry.veil.platform.registry.RegistrationProvider;
+import net.caffeinemc.mods.sodium.client.gui.options.OptionGroup;
+import net.caffeinemc.mods.sodium.client.gui.options.OptionImpact;
+import net.caffeinemc.mods.sodium.client.gui.options.OptionImpl;
+import net.caffeinemc.mods.sodium.client.gui.options.OptionPage;
+import net.caffeinemc.mods.sodium.client.gui.options.control.ControlValueFormatter;
+import net.caffeinemc.mods.sodium.client.gui.options.control.SliderControl;
+import net.caffeinemc.mods.sodium.client.gui.options.control.TickBoxControl;
+import net.caffeinemc.mods.sodium.client.gui.options.storage.MinecraftOptionsStorage;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
@@ -15,6 +19,7 @@ import net.fabricmc.fabric.api.resource.ResourcePackActivationType;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.Block;
+import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.option.GameOptions;
 import net.minecraft.client.option.KeyBinding;
@@ -22,7 +27,10 @@ import net.minecraft.client.option.SimpleOption;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.effect.StatusEffects;
+import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKey;
+import net.minecraft.registry.RegistryKeys;
+import net.minecraft.registry.tag.TagKey;
 import net.minecraft.resource.Resource;
 import net.minecraft.resource.ResourceManager;
 import net.minecraft.resource.ResourceType;
@@ -34,12 +42,28 @@ import org.lwjgl.glfw.GLFW;
 
 import java.io.BufferedReader;
 import java.io.IOException;
-import java.util.Map;
+import java.util.LinkedList;
+import java.util.List;
 import java.util.function.Supplier;
 
 public class VibrancyClient implements ClientModInitializer {
     public static final SimpleOption<Boolean> DYNAMIC_LIGHTMAP = SimpleOption.ofBoolean("options.vibrancy.dynamic_lightmap", true);
-    public static final SimpleOption<Boolean> RAYTRACE_LIGHTS = SimpleOption.ofBoolean("options.vibrancy.raytrace_lights", true);
+    public static final SimpleOption<Integer> RAYTRACE_DISTANCE = new SimpleOption<>(
+            "options.vibrancy.raytrace_distance",
+            value -> Tooltip.of(Text.translatable("options.vibrancy.raytrace_distance.tooltip")),
+            (text, value) -> GameOptions.getGenericValueText(text, Text.translatable("options.chunks", value)),
+            new SimpleOption.ValidatingIntSliderCallbacks(1, 16, false),
+            4,
+            value -> {}
+    );
+    public static final SimpleOption<Integer> LIGHT_CULL_DISTANCE = new SimpleOption<>(
+            "options.vibrancy.light_cull_distance",
+            value -> Tooltip.of(Text.translatable("options.vibrancy.light_cull_distance.tooltip")),
+            (text, value) -> GameOptions.getGenericValueText(text, Text.translatable("options.chunks", value)),
+            new SimpleOption.ValidatingIntSliderCallbacks(1, 16, false),
+            8,
+            value -> {}
+    );
     public static final KeyBinding SAVE_LIGHTMAP = !FabricLoader.getInstance().isDevelopmentEnvironment() ? null : KeyBindingHelper.registerKeyBinding(new KeyBinding(
             "key.vibrancy.debug.save_lightmap",
             GLFW.GLFW_KEY_F9,
@@ -47,6 +71,38 @@ public class VibrancyClient implements ClientModInitializer {
     ));
     public static final RegistrationProvider<LightTypeRegistry.LightType<?>> LIGHT_TYPE_PROVIDER = RegistrationProvider.get(LightTypeRegistry.REGISTRY_KEY, Vibrancy.MOD_ID);
     public static final Supplier<LightTypeRegistry.LightType<RaytracedPointLight>> RAY_POINT_LIGHT = LIGHT_TYPE_PROVIDER.register("ray_point", () -> new LightTypeRegistry.LightType<>(RaytracedPointLightRenderer::new, (level, camera) -> new RaytracedPointLight().setTo(camera).setRadius(15)));
+
+    public static OptionPage rtxPage(MinecraftOptionsStorage vanillaOpts) {
+        List<OptionGroup> groups = new LinkedList<>();
+
+        groups.add(OptionGroup.createBuilder()
+                .add(OptionImpl.createBuilder(boolean.class, vanillaOpts)
+                        .setName(Text.translatable("options.vibrancy.dynamic_lightmap"))
+                        .setTooltip(Text.translatable("options.vibrancy.dynamic_lightmap.tooltip"))
+                        .setControl(TickBoxControl::new)
+                        .setBinding((opts, value) -> DYNAMIC_LIGHTMAP.setValue(value), opts -> DYNAMIC_LIGHTMAP.getValue())
+                        .build())
+                .build());
+
+        groups.add(OptionGroup.createBuilder()
+                .add(OptionImpl.createBuilder(int.class, vanillaOpts)
+                        .setName(Text.translatable("options.vibrancy.raytrace_distance"))
+                        .setTooltip(Text.translatable("options.vibrancy.raytrace_distance.tooltip"))
+                        .setControl(option -> new SliderControl(option, 1, 16, 1, ControlValueFormatter.translateVariable("options.chunks")))
+                        .setBinding((opts, value) -> RAYTRACE_DISTANCE.setValue(value), opts -> RAYTRACE_DISTANCE.getValue())
+                        .setImpact(OptionImpact.HIGH)
+                        .build())
+                .add(OptionImpl.createBuilder(int.class, vanillaOpts)
+                        .setName(Text.translatable("options.vibrancy.light_cull_distance"))
+                        .setTooltip(Text.translatable("options.vibrancy.light_cull_distance.tooltip"))
+                        .setControl(option -> new SliderControl(option, 1, 16, 1, ControlValueFormatter.translateVariable("options.chunks")))
+                        .setBinding((opts, value) -> LIGHT_CULL_DISTANCE.setValue(value), opts -> LIGHT_CULL_DISTANCE.getValue())
+                        .setImpact(OptionImpact.HIGH)
+                        .build())
+                .build());
+
+        return new OptionPage(Text.translatable("options.vibrancy.page"), ImmutableList.copyOf(groups));
+    }
 
     @Override
     public void onInitializeClient() {
@@ -62,14 +118,18 @@ public class VibrancyClient implements ClientModInitializer {
 
                 for (Resource resource : manager.getAllResources(Identifier.of(Vibrancy.MOD_ID, "dynamic_lights.json"))) {
                     try (BufferedReader reader = resource.getReader()) {
-                        DataResult<Pair<Map<RegistryKey<Block>, Either<DynamicLightInfo, RegistryKey<Block>>>, JsonElement>> result = DynamicLightInfo.FILE_CODEC.decode(JsonOps.INSTANCE, JsonParser.parseReader(reader));
-
-                        if (result.isSuccess()) {
-                            result.getOrThrow().getFirst().forEach((k, v) -> DynamicLightInfo.MAP.put(k, v.map(
-                                    info -> state -> info,
-                                    key -> state -> DynamicLightInfo.get(key, state)
-                            )));
-                        }
+                        JsonParser.parseReader(reader).getAsJsonObject().asMap().forEach((key, value) -> {
+                            if (key.startsWith("#")) {
+                                TagKey<Block> tagKey = TagKey.of(RegistryKeys.BLOCK, Identifier.of(key.substring(1)));
+                                Registries.BLOCK.getEntryList(tagKey).orElseThrow().forEach(entry -> {
+                                    RegistryKey<Block> regKey = entry.getKey().orElseThrow();
+                                    DynamicLightInfo.MAP.put(regKey, new DynamicLightInfo.Builder().load(Registries.BLOCK.get(regKey), value).build());
+                                });
+                            } else {
+                                RegistryKey<Block> regKey = RegistryKey.of(RegistryKeys.BLOCK, Identifier.of(key));
+                                DynamicLightInfo.MAP.put(regKey, new DynamicLightInfo.Builder().load(Registries.BLOCK.get(regKey), value).build());
+                            }
+                        });
                     } catch (IOException e) {
                         throw new RuntimeException(e);
                     }

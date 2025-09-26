@@ -6,9 +6,12 @@
   "pack.name.vibrancy.ripple": "Enchantment Ripple",
   "pack.description.vibrancy.ripple": "An improved \"rippling\" effect for the enchantment glint",
   "key.vibrancy.debug.save_lightmap": "Save Lightmap [Debug]",
-  "options.vibrancy.dynamic_lightmap": "Dynamic Lightmap [Vibrancy]",
-  "options.vibrancy.dynamic_lightmap.tooltip": "Tweaks the lighting colors based on player position. Ex: Light blue in a cold biome, yellow-tan in a desert biome, orange in the nether",
   "debug.vibrancy.save_lightmap": "Saved lightmap to %s",
-  "options.vibrancy.raytrace_lights": "Raytrace Lights [Vibrancy]",
-  "options.vibrancy.raytrace_lights.tooltip": "Prevents dynamic lights from shining through blocks"
+  "options.vibrancy.page": "Vibrancy",
+  "options.vibrancy.dynamic_lightmap": "Dynamic Lightmap",
+  "options.vibrancy.dynamic_lightmap.tooltip": "Tweaks the lighting colors based on player position. Ex: Light blue in a cold biome, yellow-tan in a desert biome, orange in the nether",
+  "options.vibrancy.raytrace_distance": "Raytrace Distance",
+  "options.vibrancy.raytrace_distance.tooltip": "The distance from camera where lights have perfect shadows, lights beyond this use an approximation",
+  "options.vibrancy.light_cull_distance": "Light Cull Distance",
+  "options.vibrancy.light_cull_distance.tooltip": "The distance from camera when lights are no longer displayed (for performance reasons)"
 }
