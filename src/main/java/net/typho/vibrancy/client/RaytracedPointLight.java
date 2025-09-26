@@ -110,6 +110,8 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
                                 List<Vector3f> flatVertices = new LinkedList<>(), normals = new LinkedList<>();
                                 List<Vector2f> flatTexCoords = new LinkedList<>();
 
+                                RenderLayer layer = RenderLayers.getBlockLayer(state);
+
                                 MinecraftClient.getInstance().getBlockRenderManager().renderBlock(
                                         state,
                                         pos,
@@ -175,7 +177,7 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
                                                     vertices[i + 4] = vertex.add(vertex.sub(lightPos, new Vector3f()).normalize(radius * 2));
                                                 }
 
-                                                quads.add(new Quad(vertices[0], vertices[1], vertices[2], vertices[3], flatTexCoords.get(j), flatTexCoords.get(j + 1), flatTexCoords.get(j + 2), flatTexCoords.get(j + 3)));
+                                                quads.add(new Quad(vertices[0], vertices[1], vertices[2], vertices[3], flatTexCoords.get(j), flatTexCoords.get(j + 1), flatTexCoords.get(j + 2), flatTexCoords.get(j + 3), layer.isTranslucent() || layer != RenderLayer.getSolid()));
 
                                                 builder.vertex(vertices[0])
                                                         .vertex(vertices[1])
@@ -247,12 +249,12 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
     }
 
     protected void renderMask(Identifier fbo, Matrix4f view, double depthClear) {
-        Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(fbo)).bind(true);
-        glClearColor(0f, 0f, 0f, 0f);
-        glClearDepth(depthClear);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
         if (anyShadows) {
+            Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(fbo)).bind(true);
+            glClearColor(0f, 0f, 0f, 0f);
+            glClearDepth(depthClear);
+            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
             geomVBO.bind();
             geomVBO.draw(view, RenderSystem.getProjectionMatrix(), RenderSystem.getShader());
             VertexBuffer.unbind();

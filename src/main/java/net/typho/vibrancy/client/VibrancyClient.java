@@ -121,10 +121,10 @@ public class VibrancyClient implements ClientModInitializer {
                         JsonParser.parseReader(reader).getAsJsonObject().asMap().forEach((key, value) -> {
                             if (key.startsWith("#")) {
                                 TagKey<Block> tagKey = TagKey.of(RegistryKeys.BLOCK, Identifier.of(key.substring(1)));
-                                Registries.BLOCK.getEntryList(tagKey).orElseThrow().forEach(entry -> {
+                                Registries.BLOCK.getEntryList(tagKey).ifPresentOrElse(list -> list.forEach(entry -> {
                                     RegistryKey<Block> regKey = entry.getKey().orElseThrow();
                                     DynamicLightInfo.MAP.put(regKey, new DynamicLightInfo.Builder().load(Registries.BLOCK.get(regKey), value).build());
-                                });
+                                }), () -> System.err.println("No values for " + tagKey));
                             } else {
                                 RegistryKey<Block> regKey = RegistryKey.of(RegistryKeys.BLOCK, Identifier.of(key));
                                 DynamicLightInfo.MAP.put(regKey, new DynamicLightInfo.Builder().load(Registries.BLOCK.get(regKey), value).build());

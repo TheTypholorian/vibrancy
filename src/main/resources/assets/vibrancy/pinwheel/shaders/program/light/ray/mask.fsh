@@ -3,8 +3,16 @@
 #include "veil:deferred_utils"
 
 struct Quad {
-    vec3 v1, v2, v3, v4;
+    vec3 v1; uint doSample;
+    vec3 v2; float _p2;
+    vec3 v3; float _p3;
+    vec3 v4; float _p4;
+
     vec2 uv1, uv2, uv3, uv4;
+
+    vec3 n; float d;
+    vec3 e1; float lenE1;
+    vec3 e2; float lenE2;
 };
 
 layout(std430, binding = 0) buffer Quads {
@@ -22,52 +30,40 @@ in flat uint index;
 
 out vec4 fragColor;
 
-bool raycastTriangle(vec3 ro, vec3 rd, vec3 v0, vec3 v1, vec3 v2, float m, out float t, out float u, out float v) {
-    vec3 v1v0 = v1 - v0;
-    vec3 v2v0 = v2 - v0;
-    vec3 rov0 = ro - v0;
-    vec3 n = cross(v1v0, v2v0);
-    vec3 q = cross(rov0, rd);
-    float d = 1.0 / dot(rd, n);
-    u = d * dot(-q, v2v0);
+bool raycastQuad(vec3 origin, vec3 dir, float len, Quad q, out vec2 uv) {
+    float denom = dot(dir, q.n);
+    if (denom >= 0.0) return false;
 
-    if (u < 0) {
-        return false;
+    float tt = (q.d - dot(origin, q.n)) / denom;
+    if (tt < 1e-3 || tt > len - 1e-3) return false;
+
+    vec3 p = origin + tt * dir;
+    vec3 vp = p - q.v1;
+
+    float d11 = q.lenE1;
+    float d12 = dot(q.e1, q.e2);
+    float d22 = q.lenE2;
+    float d1p = dot(q.e1, vp);
+    float d2p = dot(q.e2, vp);
+
+    float invDenom = 1.0 / (d11 * d22 - d12 * d12);
+    float a = (d22 * d1p - d12 * d2p) * invDenom;
+    float b = (d11 * d2p - d12 * d1p) * invDenom;
+
+    if (a < 0.0 || b < 0.0 || a > 1.0 || b > 1.0) return false;
+
+    if (q.doSample == 1) {
+        uv = mix(mix(q.uv1, q.uv2, a), mix(q.uv4, q.uv3, a), b);
+        vec4 col = texture(BlockAtlasSampler, uv);
+
+        fragColor = col;
+
+        if (col.a == 0) {
+            discard;
+        }
     }
 
-    v = d * dot(q, v1v0);
-
-    if (v < 0 || u + v > 1) {
-        return false;
-    }
-
-    t = d * dot(-n, rov0);
-
-    return t > 1e-3 && t < m - 1e-3;
-}
-
-bool raycastQuad(vec3 origin, vec3 dir, float len, Quad q, out float t, out vec3 bary, out vec2 uv0, out vec2 uv1, out vec2 uv2) {
-    float tu, uu, vv;
-
-    if (raycastTriangle(origin, dir, q.v1, q.v2, q.v3, len, tu, uu, vv)) {
-        t = tu;
-        bary = vec3(1.0 - uu - vv, uu, vv);
-        uv0 = q.uv1;
-        uv1 = q.uv2;
-        uv2 = q.uv3;
-        return true;
-    }
-
-    if (raycastTriangle(origin, dir, q.v1, q.v3, q.v4, len, tu, uu, vv)) {
-        t = tu;
-        bary = vec3(1.0 - uu - vv, uu, vv);
-        uv0 = q.uv1;
-        uv1 = q.uv3;
-        uv2 = q.uv4;
-        return true;
-    }
-
-    return false;
+    return true;
 }
 
 void main() {
@@ -83,21 +79,12 @@ void main() {
         float len = length(delta);
         vec3 dir = delta / len;
 
-        float t;
-        vec3 bary;
-        vec2 uv0, uv1, uv2;
+        Quad q = quads[index];
+        vec2 uv;
 
-        if (!raycastQuad(LightPos, dir, len, quads[index], t, bary, uv0, uv1, uv2)) {
+        // 35%
+        if (!raycastQuad(LightPos, dir, len, q, uv)) {
             discard;
-        } else {
-            vec2 uv = uv0 * bary.x + uv1 * bary.y + uv2 * bary.z;
-            vec4 col = texture(BlockAtlasSampler, uv);
-
-            fragColor = col;
-
-            if (col.a == 0) {
-                discard;
-            }
         }
     }
 }
