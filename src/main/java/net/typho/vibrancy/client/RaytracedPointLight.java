@@ -28,6 +28,9 @@ import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.system.MemoryUtil;
 
+import java.io.File;
+import java.io.FileNotFoundException;
+import java.io.PrintWriter;
 import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.List;
@@ -42,7 +45,7 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
     public static final VertexBuffer SCREEN_VBO = new VertexBuffer(VertexBuffer.Usage.STATIC);
     protected final VertexBuffer geomVBO = new VertexBuffer(VertexBuffer.Usage.DYNAMIC);
     protected final int quadsSSBO = glGenBuffers();
-    protected boolean visible = true, anyShadows = false;
+    protected boolean visible = true, anyShadows = false, remove = false;
     protected float flicker = 0, flickerMin, flickerMax, flickerStart = (float) GLFW.glfwGetTime();
 
     static {
@@ -91,17 +94,25 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
             if (world != null) {
                 int numQuads = 0;
                 Vector3f lightPos = new Vector3f((float) getPosition().x, (float) getPosition().y, (float) getPosition().z);
-                BlockBox box = new BlockBox(lightBlockPos).expand(15);
+                int blockRadius = (int) Math.ceil(radius) - 4;
+                BlockBox box = new BlockBox(lightBlockPos).expand(blockRadius);
                 MatrixStack stack = new MatrixStack();
                 BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION);
                 List<Quad> quads = new LinkedList<>();
+                PrintWriter out = null;
+
+                try {
+                    out = new File("mesh.obj").exists() ? null : new PrintWriter("mesh.obj");
+                } catch (FileNotFoundException e) {
+                    throw new RuntimeException(e);
+                }
 
                 for (int x = box.getMinX(); x <= box.getMaxX(); x++) {
                     for (int y = box.getMinY(); y <= box.getMaxY(); y++) {
                         for (int z = box.getMinZ(); z <= box.getMaxZ(); z++) {
                             BlockPos pos = new BlockPos(x, y, z);
 
-                            if (!pos.equals(lightBlockPos)) {
+                            if (!pos.equals(lightBlockPos) && pos.isWithinDistance(lightBlockPos, blockRadius)) {
                                 BlockState state = world.getBlockState(pos);
 
                                 stack.push();
@@ -174,7 +185,8 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
 
                                                 for (int i = 0; i < 4; i++) {
                                                     Vector3f vertex = new Vector3f(vertices[i]);
-                                                    vertices[i + 4] = vertex.add(vertex.sub(lightPos, new Vector3f()).normalize(radius * 2));
+                                                    Vector3f off = vertex.sub(lightPos, new Vector3f());
+                                                    vertices[i + 4] = vertex.add(off.normalize((radius * 2) - off.length() + 1));
                                                 }
 
                                                 quads.add(new Quad(vertices[0], vertices[1], vertices[2], vertices[3], flatTexCoords.get(j), flatTexCoords.get(j + 1), flatTexCoords.get(j + 2), flatTexCoords.get(j + 3), layer.isTranslucent() || layer != RenderLayer.getSolid()));
@@ -208,6 +220,43 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
                                                         .vertex(vertices[2])
                                                         .vertex(vertices[6])
                                                         .vertex(vertices[7]);
+
+                                                if (out != null) {
+                                                    int i = numQuads * 4 + 1;
+
+                                                    out.println("v " + vertices[0].x + " " + vertices[0].y + " " + vertices[0].z);
+                                                    out.println("v " + vertices[1].x + " " + vertices[1].y + " " + vertices[1].z);
+                                                    out.println("v " + vertices[2].x + " " + vertices[2].y + " " + vertices[2].z);
+                                                    out.println("v " + vertices[3].x + " " + vertices[3].y + " " + vertices[3].z);
+                                                    out.println("v " + vertices[1].x + " " + vertices[1].y + " " + vertices[1].z);
+                                                    out.println("v " + vertices[5].x + " " + vertices[5].y + " " + vertices[5].z);
+                                                    out.println("v " + vertices[6].x + " " + vertices[6].y + " " + vertices[6].z);
+                                                    out.println("v " + vertices[2].x + " " + vertices[2].y + " " + vertices[2].z);
+                                                    out.println("v " + vertices[5].x + " " + vertices[5].y + " " + vertices[5].z);
+                                                    out.println("v " + vertices[4].x + " " + vertices[4].y + " " + vertices[4].z);
+                                                    out.println("v " + vertices[7].x + " " + vertices[7].y + " " + vertices[7].z);
+                                                    out.println("v " + vertices[6].x + " " + vertices[6].y + " " + vertices[6].z);
+                                                    out.println("v " + vertices[4].x + " " + vertices[4].y + " " + vertices[4].z);
+                                                    out.println("v " + vertices[0].x + " " + vertices[0].y + " " + vertices[0].z);
+                                                    out.println("v " + vertices[3].x + " " + vertices[3].y + " " + vertices[3].z);
+                                                    out.println("v " + vertices[7].x + " " + vertices[7].y + " " + vertices[7].z);
+                                                    out.println("v " + vertices[1].x + " " + vertices[1].y + " " + vertices[1].z);
+                                                    out.println("v " + vertices[0].x + " " + vertices[0].y + " " + vertices[0].z);
+                                                    out.println("v " + vertices[4].x + " " + vertices[4].y + " " + vertices[4].z);
+                                                    out.println("v " + vertices[5].x + " " + vertices[5].y + " " + vertices[5].z);
+                                                    out.println("v " + vertices[3].x + " " + vertices[3].y + " " + vertices[3].z);
+                                                    out.println("v " + vertices[2].x + " " + vertices[2].y + " " + vertices[2].z);
+                                                    out.println("v " + vertices[6].x + " " + vertices[6].y + " " + vertices[6].z);
+                                                    out.println("v " + vertices[7].x + " " + vertices[7].y + " " + vertices[7].z);
+
+                                                    out.println("f " + i++ + " " + i++ + " " + i++ + " " + i++);
+                                                    out.println("f " + i++ + " " + i++ + " " + i++ + " " + i++);
+                                                    out.println("f " + i++ + " " + i++ + " " + i++ + " " + i++);
+                                                    out.println("f " + i++ + " " + i++ + " " + i++ + " " + i++);
+                                                    out.println("f " + i++ + " " + i++ + " " + i++ + " " + i++);
+                                                    out.println("f " + i++ + " " + i++ + " " + i++ + " " + i++);
+                                                }
+
                                                 numQuads += 6;
 
                                                 break;
@@ -263,6 +312,11 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
 
     @Override
     public void render(LightRenderer renderer) {
+        if (remove) {
+            VeilRenderSystem.renderer().getLightRenderer().removeLight(this);
+            return;
+        }
+
         if (isVisible()) {
             Camera camera = MinecraftClient.getInstance().gameRenderer.getCamera();
             Matrix4f view = new Matrix4f()

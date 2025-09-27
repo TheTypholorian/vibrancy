@@ -1,15 +1,18 @@
 package net.typho.vibrancy.client;
 
 import com.google.gson.*;
+import foundry.veil.api.client.render.VeilRenderSystem;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import org.joml.Vector3f;
 
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -23,6 +26,43 @@ public record DynamicLightInfo(Vector3f color, BlockStateFunction<Optional<Float
     @SuppressWarnings("deprecation")
     public static DynamicLightInfo get(BlockState state) {
         return get(state.getBlock().getRegistryEntry().registryKey(), state);
+    }
+
+    public RaytracedPointBlockLight createLight(BlockPos pos, BlockState state) {
+        return (RaytracedPointBlockLight) new RaytracedPointBlockLight(
+                pos,
+                state.getBlock(),
+                this,
+                offset().apply(state).orElse(new Vec3d(0.5, 0.5, 0.5))
+        )
+                .setFlicker(flicker().apply(state).orElse(0f))
+                .setBrightness(brightness().apply(state).orElse(1f))
+                .setColor(color().x, color().y, color().z)
+                .setRadius(radius().apply(state).orElse((float) state.getLuminance()));
+    }
+
+    public void addLight(BlockPos pos, BlockState state, boolean removeOld) {
+        boolean add = true;
+
+        if (removeOld) {
+            List<RaytracedPointLight> lights = VeilRenderSystem.renderer().getLightRenderer().getLights(VibrancyClient.RAY_POINT_LIGHT.get());
+
+            for (RaytracedPointLight light : lights) {
+                if (light instanceof RaytracedPointBlockLight block) {
+                    if (block.blockPos.equals(pos)) {
+                        if (block.info == this) {
+                            add = false;
+                        } else {
+                            light.remove = true;
+                        }
+                    }
+                }
+            }
+        }
+
+        if (add) {
+            VeilRenderSystem.renderer().getLightRenderer().addLight(createLight(pos, state));
+        }
     }
 
     public static class Builder {

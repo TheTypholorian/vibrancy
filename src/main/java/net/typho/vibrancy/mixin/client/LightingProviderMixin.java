@@ -1,12 +1,9 @@
 package net.typho.vibrancy.mixin.client;
 
 import foundry.veil.api.client.render.VeilRenderSystem;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Vec3d;
 import net.minecraft.world.chunk.light.LightingProvider;
 import net.typho.vibrancy.client.DynamicLightInfo;
 import net.typho.vibrancy.client.RaytracedPointBlockLight;
@@ -26,8 +23,13 @@ public class LightingProviderMixin {
             at = @At("TAIL")
     )
     private void checkBlock(BlockPos pos, CallbackInfo ci) {
-        if (FabricLoader.getInstance().getEnvironmentType() == EnvType.CLIENT) {
-            MinecraftClient.getInstance().execute(() -> {
+        MinecraftClient.getInstance().execute(() -> {
+            BlockState state = MinecraftClient.getInstance().world.getBlockState(pos);
+            DynamicLightInfo info = DynamicLightInfo.get(state);
+
+            if (info != null) {
+                info.addLight(pos, state, true);
+            } else {
                 List<RaytracedPointLight> lights = VeilRenderSystem.renderer().getLightRenderer().getLights(VibrancyClient.RAY_POINT_LIGHT.get());
 
                 for (RaytracedPointLight light : lights) {
@@ -35,23 +37,7 @@ public class LightingProviderMixin {
                         VeilRenderSystem.renderer().getLightRenderer().removeLight(light);
                     }
                 }
-
-                BlockState state = MinecraftClient.getInstance().world.getBlockState(pos);
-                DynamicLightInfo info = DynamicLightInfo.get(state);
-
-                if (info != null) {
-                    VeilRenderSystem.renderer().getLightRenderer().addLight(
-                            new RaytracedPointBlockLight(
-                                    pos,
-                                    info.offset().apply(state).orElse(new Vec3d(0.5, 0.5, 0.5))
-                            )
-                                    .setFlicker(info.flicker().apply(state).orElse(0f))
-                                    .setBrightness(info.brightness().apply(state).orElse(1f))
-                                    .setColor(info.color().x, info.color().y, info.color().z)
-                                    .setRadius(info.radius().apply(state).orElse((float) state.getLuminance()))
-                    );
-                }
-            });
-        }
+            }
+        });
     }
 }

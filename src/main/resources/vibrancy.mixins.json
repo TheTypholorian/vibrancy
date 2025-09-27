@@ -3,21 +3,21 @@
   "minVersion": "0.8",
   "package": "net.typho.vibrancy.mixin",
   "compatibilityLevel": "JAVA_21",
-  "mixins": [
-    "client.LightingProviderMixin",
-    "client.RegistryKeyMixin",
-    "client.ShaderImportProcessorMixin",
-    "client.SodiumGameOptionsPagesAccessor",
-    "client.VanillaShaderCompilerMixin",
-    "client.VeilRenderSystemMixin",
-    "client.WorldChunkMixin"
-  ],
   "client": [
     "client.BlockModelRendererMixin",
+    "client.ClientPlayNetworkHandlerMixin",
+    "client.GlDebugMixin",
+    "client.LightingProviderMixin",
     "client.LightmapTextureManagerMixin",
+    "client.RegistryKeyMixin",
+    "client.ShaderImportProcessorMixin",
     "client.ShaderProgramMixin",
+    "client.SodiumGameOptionsPagesAccessor",
     "client.SodiumOptionsGUIMixin",
-    "client.VideoOptionsScreenMixin"
+    "client.VanillaShaderCompilerMixin",
+    "client.VeilRenderSystemMixin",
+    "client.VideoOptionsScreenMixin",
+    "client.WorldChunkMixin"
   ],
   "injectors": {
     "defaultRequire": 1

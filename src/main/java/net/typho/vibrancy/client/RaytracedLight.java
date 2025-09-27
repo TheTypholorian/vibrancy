@@ -38,6 +38,29 @@ public interface RaytracedLight extends NativeResource {
             );
         }
 
+        public boolean raycast(Vector3f origin, Vector3f dir, float len) {
+            float denom = dir.dot(n);
+            if (denom >= 0.0) return false;
+
+            float tt = (d - origin.dot(n)) / denom;
+            if (tt < 1e-3 || tt > len - 1e-3) return false;
+
+            Vector3f p = dir.mul(tt, new Vector3f()).add(origin);
+            Vector3f vp = p.sub(v1, new Vector3f());
+
+            float d11 = e1.dot(e1);
+            float d12 = e1.dot(e2);
+            float d22 = e2.dot(e2);
+            float d1p = e1.dot(vp);
+            float d2p = e2.dot(vp);
+
+            float invDenom = 1f / (d11 * d22 - d12 * d12);
+            float a = (d22 * d1p - d12 * d2p) * invDenom;
+            float b = (d11 * d2p - d12 * d1p) * invDenom;
+
+            return !(a < 0.0) && !(b < 0.0) && !(a > 1.0) && !(b > 1.0);
+        }
+
         public void put(ByteBuffer buf) {
             buf.putFloat(v1.x).putFloat(v1.y).putFloat(v1.z).putInt(sample ? 1 : 0);
             buf.putFloat(v2.x).putFloat(v2.y).putFloat(v2.z).putFloat(0);
