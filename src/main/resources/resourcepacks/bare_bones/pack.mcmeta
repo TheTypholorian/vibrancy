@@ -1,0 +1,29 @@
+{
+  "pack": {
+    "pack_format": 34,
+    "supported_formats": [34, 64],
+    "description": {
+      "translate": "pack.name.vibrancy.bare_bones"
+    }
+  },
+  "overlays": {
+    "entries": [
+      {
+        "directory": "overlay_1_21_2",
+        "formats": [42, 64]
+      },
+      {
+        "directory": "overlay_1_21_4",
+        "formats": [46, 64]
+      },
+      {
+        "directory": "overlay_1_21_5",
+        "formats": [55, 64]
+      },
+      {
+        "directory": "overlay_1_21_6",
+        "formats": [55, 64]
+      }
+    ]
+  }
+}
