@@ -4,6 +4,7 @@
   "package": "net.typho.vibrancy.mixin",
   "compatibilityLevel": "JAVA_21",
   "client": [
+    "client.AbstractBlockStateMixin",
     "client.BlockModelRendererMixin",
     "client.ClientPlayNetworkHandlerMixin",
     "client.GlDebugMixin",

@@ -16,6 +16,7 @@ uniform vec2 ScreenSize;
 uniform vec3 LightPos;
 uniform vec3 LightColor;
 uniform float LightRadius;
+uniform bool AnyShadows;
 
 out vec4 fragColor;
 
@@ -52,19 +53,21 @@ void main() {
     vec3 diffuseColor = diffuse * LightColor;
     fragColor = vec4(albedoColor.rgb * diffuseColor * (1.0 - reflectivity) + diffuseColor * reflectivity, 1.0);
 
-    // raytracing
-    float maskBackDepth = depthSampleToWorldDepth(texelFetch(ShadowMaskBackDepthSampler, ivec2(gl_FragCoord.xy), 0).r);
-    float maskFrontDepth = depthSampleToWorldDepth(texelFetch(ShadowMaskFrontDepthSampler, ivec2(gl_FragCoord.xy), 0).r);
+    if (AnyShadows) {
+        // raytracing
+        float maskBackDepth = depthSampleToWorldDepth(texelFetch(ShadowMaskBackDepthSampler, ivec2(gl_FragCoord.xy), 0).r);
+        float maskFrontDepth = depthSampleToWorldDepth(texelFetch(ShadowMaskFrontDepthSampler, ivec2(gl_FragCoord.xy), 0).r);
 
-    float worldDepth = depthSampleToWorldDepth(depth);
+        float worldDepth = depthSampleToWorldDepth(depth);
 
-    if (maskFrontDepth > maskBackDepth) {
-        if (worldDepth < maskBackDepth - 1e-3) {
-            applyShadowColor(texelFetch(ShadowMaskBackSampler, ivec2(gl_FragCoord.xy), 0));
-        }
-    } else {
-        if (worldDepth > maskFrontDepth + 1e-3 && worldDepth < maskBackDepth - 1e-3) {
-            applyShadowColor(texelFetch(ShadowMaskBackSampler, ivec2(gl_FragCoord.xy), 0));
+        if (maskFrontDepth > maskBackDepth) {
+            if (worldDepth < maskBackDepth - 1e-3) {
+                applyShadowColor(texelFetch(ShadowMaskBackSampler, ivec2(gl_FragCoord.xy), 0));
+            }
+        } else {
+            if (worldDepth > maskFrontDepth + 1e-3 && worldDepth < maskBackDepth - 1e-3) {
+                applyShadowColor(texelFetch(ShadowMaskBackSampler, ivec2(gl_FragCoord.xy), 0));
+            }
         }
     }
 }

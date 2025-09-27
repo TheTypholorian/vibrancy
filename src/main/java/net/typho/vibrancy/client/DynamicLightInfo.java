@@ -4,8 +4,7 @@ import com.google.gson.*;
 import foundry.veil.api.client.render.VeilRenderSystem;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
-import net.minecraft.registry.RegistryKey;
-import net.minecraft.registry.RegistryKeys;
+import net.minecraft.registry.Registries;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
@@ -15,20 +14,28 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.function.Predicate;
 
 public record DynamicLightInfo(Vector3f color, BlockStateFunction<Optional<Float>> radius, BlockStateFunction<Optional<Float>> brightness, BlockStateFunction<Optional<Float>> flicker, BlockStateFunction<Optional<Vec3d>> offset) {
-    public static final Map<RegistryKey<Block>, DynamicLightInfo> MAP = new LinkedHashMap<>();
+    public static final Map<Predicate<BlockState>, Function<BlockState, DynamicLightInfo>> MAP = new LinkedHashMap<>();
 
-    public static DynamicLightInfo get(RegistryKey<Block> key, BlockState state) {
-        return MAP.getOrDefault(key, null);
-    }
-
-    @SuppressWarnings("deprecation")
     public static DynamicLightInfo get(BlockState state) {
-        return get(state.getBlock().getRegistryEntry().registryKey(), state);
+        return MAP.entrySet().stream()
+                .filter(entry -> entry.getKey().test(state))
+                .findAny()
+                .map(entry -> entry.getValue().apply(state))
+                .orElse(null);
     }
 
     public RaytracedPointBlockLight createLight(BlockPos pos, BlockState state) {
+        float brightness = brightness().apply(state).orElse(1f);
+        float radius = radius().apply(state).orElse((float) state.getLuminance());
+
+        if (brightness <= 0 || radius <= 0) {
+            return null;
+        }
+
         return (RaytracedPointBlockLight) new RaytracedPointBlockLight(
                 pos,
                 state.getBlock(),
@@ -36,9 +43,9 @@ public record DynamicLightInfo(Vector3f color, BlockStateFunction<Optional<Float
                 offset().apply(state).orElse(new Vec3d(0.5, 0.5, 0.5))
         )
                 .setFlicker(flicker().apply(state).orElse(0f))
-                .setBrightness(brightness().apply(state).orElse(1f))
+                .setBrightness(brightness)
                 .setColor(color().x, color().y, color().z)
-                .setRadius(radius().apply(state).orElse((float) state.getLuminance()));
+                .setRadius(radius);
     }
 
     public void addLight(BlockPos pos, BlockState state, boolean removeOld) {
@@ -61,14 +68,18 @@ public record DynamicLightInfo(Vector3f color, BlockStateFunction<Optional<Float
         }
 
         if (add) {
-            VeilRenderSystem.renderer().getLightRenderer().addLight(createLight(pos, state));
+            RaytracedPointBlockLight light = createLight(pos, state);
+
+            if (light != null) {
+                VeilRenderSystem.renderer().getLightRenderer().addLight(light);
+            }
         }
     }
 
     public static class Builder {
         public Vector3f color;
         public BlockStateFunction<Optional<Float>> radius = state -> Optional.empty(), brightness = state -> Optional.empty(), flicker = state -> Optional.empty();
-        public BlockStateFunction<Optional<Vec3d>> offset;
+        public BlockStateFunction<Optional<Vec3d>> offset = state -> Optional.empty();
 
         public Builder color(Vector3f color) {
             this.color = color;
@@ -215,7 +226,13 @@ public record DynamicLightInfo(Vector3f color, BlockStateFunction<Optional<Float
                         JsonPrimitive primitive = copy.getAsJsonPrimitive();
 
                         if (primitive.isString()) {
-                            copy(MAP.get(RegistryKey.of(RegistryKeys.BLOCK, Identifier.of(primitive.getAsString()))));
+                            String s = primitive.getAsString();
+
+                            if (s.startsWith("#")) {
+                                throw new IllegalArgumentException("Can't copy the dynamic light info of a tag (for technical reasons)");
+                            }
+
+                            copy(get(Registries.BLOCK.get(Identifier.of(s)).getDefaultState()));
                         } else {
                             throw new JsonParseException("Expected a string for copy while parsing dynamic light info for \"" + block + "\", got " + primitive);
                         }
@@ -230,7 +247,13 @@ public record DynamicLightInfo(Vector3f color, BlockStateFunction<Optional<Float
                 JsonPrimitive primitive = json.getAsJsonPrimitive();
 
                 if (primitive.isString()) {
-                    return copy(MAP.get(RegistryKey.of(RegistryKeys.BLOCK, Identifier.of(primitive.getAsString()))));
+                    String s = primitive.getAsString();
+
+                    if (s.startsWith("#")) {
+                        throw new IllegalArgumentException("Can't copy the dynamic light info of a tag (for technical reasons)");
+                    }
+
+                    return copy(get(Registries.BLOCK.get(Identifier.of(s)).getDefaultState()));
                 }
             }
 

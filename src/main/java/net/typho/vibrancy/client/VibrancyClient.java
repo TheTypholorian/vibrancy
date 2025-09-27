@@ -1,6 +1,7 @@
 package net.typho.vibrancy.client;
 
 import com.google.common.collect.ImmutableList;
+import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import foundry.veil.api.client.registry.LightTypeRegistry;
 import foundry.veil.platform.registry.RegistrationProvider;
@@ -36,14 +37,17 @@ import net.minecraft.resource.ResourceManager;
 import net.minecraft.resource.ResourceType;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.Util;
 import net.minecraft.util.math.MathHelper;
 import net.typho.vibrancy.Vibrancy;
 import org.lwjgl.glfw.GLFW;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.Map;
 import java.util.function.Supplier;
 
 public class VibrancyClient implements ClientModInitializer {
@@ -69,6 +73,7 @@ public class VibrancyClient implements ClientModInitializer {
             GLFW.GLFW_KEY_F9,
             "key.categories.misc"
     ));
+    public static final Map<RegistryKey<Block>, BlockStateFunction<Boolean>> EMISSIVE_OVERRIDES = new LinkedHashMap<>();
     public static final RegistrationProvider<LightTypeRegistry.LightType<?>> LIGHT_TYPE_PROVIDER = RegistrationProvider.get(LightTypeRegistry.REGISTRY_KEY, Vibrancy.MOD_ID);
     public static final Supplier<LightTypeRegistry.LightType<RaytracedPointLight>> RAY_POINT_LIGHT = LIGHT_TYPE_PROVIDER.register("ray_point", () -> new LightTypeRegistry.LightType<>(RaytracedPointLightRenderer::new, (level, camera) -> new RaytracedPointLight().setTo(camera).setRadius(15)));
 
@@ -121,14 +126,25 @@ public class VibrancyClient implements ClientModInitializer {
                         JsonParser.parseReader(reader).getAsJsonObject().asMap().forEach((key, value) -> {
                             if (key.startsWith("#")) {
                                 TagKey<Block> tagKey = TagKey.of(RegistryKeys.BLOCK, Identifier.of(key.substring(1)));
-                                Registries.BLOCK.getEntryList(tagKey).ifPresentOrElse(list -> list.forEach(entry -> {
-                                    RegistryKey<Block> regKey = entry.getKey().orElseThrow();
-                                    DynamicLightInfo.MAP.put(regKey, new DynamicLightInfo.Builder().load(Registries.BLOCK.get(regKey), value).build());
-                                }), () -> System.err.println("No values for " + tagKey));
+                                DynamicLightInfo.MAP.put(state -> state.isIn(tagKey), Util.memoize(state -> new DynamicLightInfo.Builder().load(state.getRegistryEntry().value(), value).build()));
                             } else {
                                 RegistryKey<Block> regKey = RegistryKey.of(RegistryKeys.BLOCK, Identifier.of(key));
-                                DynamicLightInfo.MAP.put(regKey, new DynamicLightInfo.Builder().load(Registries.BLOCK.get(regKey), value).build());
+                                DynamicLightInfo info = new DynamicLightInfo.Builder().load(Registries.BLOCK.get(regKey), value).build();
+                                DynamicLightInfo.MAP.put(state -> state.matchesKey(regKey), state -> info);
                             }
+                        });
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+
+                EMISSIVE_OVERRIDES.clear();
+
+                for (Resource resource : manager.getAllResources(Identifier.of(Vibrancy.MOD_ID, "emissive_blocks.json"))) {
+                    try (BufferedReader reader = resource.getReader()) {
+                        JsonParser.parseReader(reader).getAsJsonObject().asMap().forEach((key, value) -> {
+                            RegistryKey<Block> regKey = RegistryKey.of(RegistryKeys.BLOCK, Identifier.of(key));
+                            EMISSIVE_OVERRIDES.put(regKey, BlockStateFunction.parseJson(Registries.BLOCK.get(regKey), value, JsonElement::getAsBoolean, () -> false));
                         });
                     } catch (IOException e) {
                         throw new RuntimeException(e);

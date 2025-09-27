@@ -95,11 +95,17 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
                 int numQuads = 0;
                 Vector3f lightPos = new Vector3f((float) getPosition().x, (float) getPosition().y, (float) getPosition().z);
                 int blockRadius = (int) Math.ceil(radius) - 4;
+
+                if (blockRadius < 1) {
+                    anyShadows = false;
+                    return;
+                }
+
                 BlockBox box = new BlockBox(lightBlockPos).expand(blockRadius);
                 MatrixStack stack = new MatrixStack();
                 BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION);
                 List<Quad> quads = new LinkedList<>();
-                PrintWriter out = null;
+                PrintWriter out;
 
                 try {
                     out = new File("mesh.obj").exists() ? null : new PrintWriter("mesh.obj");
@@ -298,16 +304,14 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
     }
 
     protected void renderMask(Identifier fbo, Matrix4f view, double depthClear) {
-        if (anyShadows) {
-            Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(fbo)).bind(true);
-            glClearColor(0f, 0f, 0f, 0f);
-            glClearDepth(depthClear);
-            glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(fbo)).bind(true);
+        glClearColor(0f, 0f, 0f, 0f);
+        glClearDepth(depthClear);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-            geomVBO.bind();
-            geomVBO.draw(view, RenderSystem.getProjectionMatrix(), RenderSystem.getShader());
-            VertexBuffer.unbind();
-        }
+        geomVBO.bind();
+        geomVBO.draw(view, RenderSystem.getProjectionMatrix(), RenderSystem.getShader());
+        VertexBuffer.unbind();
     }
 
     @Override
@@ -322,30 +326,33 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
             Matrix4f view = new Matrix4f()
                     .rotate(camera.getRotation().invert(new Quaternionf()))
                     .translate((float) -camera.getPos().x, (float) -camera.getPos().y, (float) -camera.getPos().z);
+            ShaderProgram shader;
 
-            VeilRenderSystem.setShader(Identifier.of(Vibrancy.MOD_ID, "light/ray/mask"));
-            ShaderProgram shader = Objects.requireNonNull(RenderSystem.getShader());
+            if (anyShadows) {
+                VeilRenderSystem.setShader(Identifier.of(Vibrancy.MOD_ID, "light/ray/mask"));
+                shader = Objects.requireNonNull(RenderSystem.getShader());
 
-            shader.getUniformOrDefault("LightPos").set((float) position.x, (float) position.y, (float) position.z);
-            shader.getUniformOrDefault("Detailed").set(position.distanceSquared(camera.getPos().x, camera.getPos().y, camera.getPos().z) < MathHelper.square(VibrancyClient.RAYTRACE_DISTANCE.getValue() * 16) ? 1 : 0);
+                shader.getUniformOrDefault("LightPos").set((float) position.x, (float) position.y, (float) position.z);
+                shader.getUniformOrDefault("Detailed").set(position.distanceSquared(camera.getPos().x, camera.getPos().y, camera.getPos().z) < MathHelper.square(VibrancyClient.RAYTRACE_DISTANCE.getValue() * 16) ? 1 : 0);
 
-            RenderSystem.depthMask(true);
-            RenderSystem.disableBlend();
+                RenderSystem.depthMask(true);
+                RenderSystem.disableBlend();
 
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, quadsSSBO);
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, quadsSSBO);
 
-            glCullFace(GL_FRONT);
-            glDepthFunc(GL_GEQUAL);
-            renderMask(Identifier.of(Vibrancy.MOD_ID, "shadow_mask_back"), view, 0);
+                glCullFace(GL_FRONT);
+                glDepthFunc(GL_GEQUAL);
+                renderMask(Identifier.of(Vibrancy.MOD_ID, "shadow_mask_back"), view, 0);
 
-            glCullFace(GL_BACK);
-            glDepthFunc(GL_LEQUAL);
-            renderMask(Identifier.of(Vibrancy.MOD_ID, "shadow_mask_front"), view, 1);
+                glCullFace(GL_BACK);
+                glDepthFunc(GL_LEQUAL);
+                renderMask(Identifier.of(Vibrancy.MOD_ID, "shadow_mask_front"), view, 1);
 
-            Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(VeilFramebuffers.LIGHT)).bind(true);
-            VeilRenderSystem.setShader(Identifier.of(Vibrancy.MOD_ID, "light/ray/point"));
-            RenderSystem.enableBlend();
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
+                Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(VeilFramebuffers.LIGHT)).bind(true);
+                VeilRenderSystem.setShader(Identifier.of(Vibrancy.MOD_ID, "light/ray/point"));
+                RenderSystem.enableBlend();
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
+            }
 
             shader = Objects.requireNonNull(RenderSystem.getShader());
 
@@ -361,7 +368,8 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
 
             shader.getUniformOrDefault("LightPos").set((float) position.x, (float) position.y, (float) position.z);
             shader.getUniformOrDefault("LightColor").set(color.x * brightness, color.y * brightness, color.z * brightness);
-            shader.getUniformOrDefault("LightRadius").set(15f);
+            shader.getUniformOrDefault("LightRadius").set(radius);
+            shader.getUniformOrDefault("AnyShadows").set(anyShadows ? 1 : 0);
 
             SCREEN_VBO.bind();
             SCREEN_VBO.draw(view, RenderSystem.getProjectionMatrix(), shader);
