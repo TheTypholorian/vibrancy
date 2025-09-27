@@ -1,12 +1,11 @@
 package net.typho.vibrancy.mixin;
 
-import foundry.veil.api.client.render.VeilRenderSystem;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.chunk.WorldChunk;
-import net.typho.vibrancy.RaytracedPointLight;
-import net.typho.vibrancy.Vibrancy;
+import net.typho.vibrancy.RaytracedPointBlockLight;
+import net.typho.vibrancy.RaytracedPointBlockLightRenderer;
 import org.joml.Vector3d;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -24,7 +23,7 @@ public class WorldChunkMixin {
     )
     private void setBlockState(BlockPos pos, BlockState state, boolean moved, CallbackInfoReturnable<BlockState> cir) {
         MinecraftClient.getInstance().execute(() -> {
-            for (RaytracedPointLight light : VeilRenderSystem.renderer().getLightRenderer().getLights(Vibrancy.RAY_POINT_LIGHT.get())) {
+            for (RaytracedPointBlockLight light : RaytracedPointBlockLightRenderer.INSTANCE.lights.values()) {
                 if (light.getPosition().distanceSquared(new Vector3d(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5)) <= light.getRadius() * light.getRadius()) {
                     light.markDirty();
                 }

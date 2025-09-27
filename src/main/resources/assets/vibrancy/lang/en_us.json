@@ -5,6 +5,8 @@
   "pack.description.vibrancy.emissive_ores": "Makes ores emissive (by osfanbuff63)",
   "pack.name.vibrancy.ripple": "Enchantment Ripple",
   "pack.description.vibrancy.ripple": "An improved \"rippling\" effect for the enchantment glint",
+  "pack.name.vibrancy.bare_bones": "Bare Bones",
+  "pack.description.vibrancy.bare_bones": "Just like the trailers!",
   "key.vibrancy.debug.save_lightmap": "Save Lightmap [Debug]",
   "debug.vibrancy.save_lightmap": "Saved lightmap to %s",
   "options.vibrancy.page": "Vibrancy",
@@ -13,5 +15,9 @@
   "options.vibrancy.raytrace_distance": "Raytrace Distance",
   "options.vibrancy.raytrace_distance.tooltip": "The distance from camera where lights have perfect shadows, lights beyond this use an approximation",
   "options.vibrancy.light_cull_distance": "Light Cull Distance",
-  "options.vibrancy.light_cull_distance.tooltip": "The distance from camera when lights are no longer displayed (for performance reasons)"
+  "options.vibrancy.light_cull_distance.tooltip": "The distance from camera when lights are no longer displayed (for performance reasons)",
+  "options.vibrancy.max_raytraced_lights": "Max Raytraced Lights",
+  "options.vibrancy.max_raytraced_lights.tooltip": "A cap on the number of raytraced lights, avoiding lag",
+  "options.vibrancy.max_raytraced_lights.value": "%s lights",
+  "options.vibrancy.max_raytraced_lights.max": "Unlimited"
 }

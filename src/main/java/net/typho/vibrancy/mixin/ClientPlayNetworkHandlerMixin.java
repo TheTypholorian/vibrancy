@@ -27,7 +27,7 @@ public class ClientPlayNetworkHandlerMixin {
         if (chunk != null) {
             chunk.forEachBlockMatchingPredicate(
                     state -> DynamicLightInfo.get(state) != null,
-                    (pos, state) -> MinecraftClient.getInstance().execute(() -> DynamicLightInfo.get(state).addLight(pos, state, false))
+                    (pos, state) -> MinecraftClient.getInstance().execute(() -> DynamicLightInfo.get(state).addLight(pos, state))
             );
         }
     }

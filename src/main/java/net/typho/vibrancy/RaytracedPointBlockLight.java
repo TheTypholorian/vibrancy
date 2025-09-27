@@ -1,8 +1,6 @@
 package net.typho.vibrancy;
 
-import foundry.veil.api.client.render.CullFrustum;
 import foundry.veil.api.client.render.light.PointLight;
-import foundry.veil.api.client.render.light.renderer.LightRenderer;
 import net.minecraft.block.Block;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.math.BlockPos;
@@ -22,21 +20,21 @@ public class RaytracedPointBlockLight extends RaytracedPointLight {
     }
 
     @Override
-    public void prepare(LightRenderer renderer, CullFrustum frustum) {
+    public void render(boolean raytrace) {
         if (MinecraftClient.getInstance().world.getBlockState(blockPos).getBlock() == block) {
-            super.prepare(renderer, frustum);
+            super.render(raytrace);
         } else {
             remove = true;
         }
     }
 
     @Override
-    public PointLight setPosition(Vector3dc position) {
+    public final PointLight setPosition(Vector3dc position) {
         throw new UnsupportedOperationException("Can't move a block light");
     }
 
     @Override
-    public PointLight setPosition(double x, double y, double z) {
+    public final PointLight setPosition(double x, double y, double z) {
         throw new UnsupportedOperationException("Can't move a block light");
     }
 

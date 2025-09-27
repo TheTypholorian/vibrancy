@@ -2,7 +2,7 @@ package net.typho.vibrancy.mixin;
 
 import net.caffeinemc.mods.sodium.client.gui.SodiumOptionsGUI;
 import net.caffeinemc.mods.sodium.client.gui.options.OptionPage;
-import net.typho.vibrancy.Vibrancy;
+import net.typho.vibrancy.SodiumCompat;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Pseudo;
@@ -29,6 +29,6 @@ public class SodiumOptionsGUIMixin {
             )
     )
     private void init(CallbackInfo ci) {
-        pages.add(Vibrancy.rtxPage(SodiumGameOptionsPagesAccessor.vanillaOpts()));
+        pages.add(SodiumCompat.rtxPage(SodiumGameOptionsPagesAccessor.vanillaOpts()));
     }
 }

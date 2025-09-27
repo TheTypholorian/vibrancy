@@ -1,7 +1,6 @@
 package net.typho.vibrancy;
 
-import foundry.veil.api.client.render.CullFrustum;
-import foundry.veil.api.client.render.light.renderer.LightRenderer;
+import net.minecraft.util.math.Vec3d;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
 import org.lwjgl.system.NativeResource;
@@ -13,9 +12,9 @@ public interface RaytracedLight extends NativeResource {
         return true;
     }
 
-    void prepare(LightRenderer renderer, CullFrustum frustum);
+    void render(boolean raytrace);
 
-    void render(LightRenderer renderer);
+    double lazyDistance(Vec3d vec);
 
     record Quad(
             Vector3f v1, Vector3f v2, Vector3f v3, Vector3f v4,

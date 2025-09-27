@@ -1,18 +1,7 @@
 package net.typho.vibrancy;
 
-import com.google.common.collect.ImmutableList;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
-import foundry.veil.api.client.registry.LightTypeRegistry;
-import foundry.veil.platform.registry.RegistrationProvider;
-import net.caffeinemc.mods.sodium.client.gui.options.OptionGroup;
-import net.caffeinemc.mods.sodium.client.gui.options.OptionImpact;
-import net.caffeinemc.mods.sodium.client.gui.options.OptionImpl;
-import net.caffeinemc.mods.sodium.client.gui.options.OptionPage;
-import net.caffeinemc.mods.sodium.client.gui.options.control.ControlValueFormatter;
-import net.caffeinemc.mods.sodium.client.gui.options.control.SliderControl;
-import net.caffeinemc.mods.sodium.client.gui.options.control.TickBoxControl;
-import net.caffeinemc.mods.sodium.client.gui.options.storage.MinecraftOptionsStorage;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
@@ -44,10 +33,7 @@ import org.lwjgl.glfw.GLFW;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.List;
 import java.util.Map;
-import java.util.function.Supplier;
 
 public class Vibrancy implements ClientModInitializer {
     public static final String MOD_ID = "vibrancy";
@@ -69,45 +55,24 @@ public class Vibrancy implements ClientModInitializer {
             8,
             value -> {}
     );
+    public static final SimpleOption<Integer> MAX_RAYTRACED_LIGHTS = new SimpleOption<>(
+            "options.vibrancy.max_raytraced_lights",
+            value -> Tooltip.of(Text.translatable("options.vibrancy.max_raytraced_lights.tooltip")),
+            (text, value) -> GameOptions.getGenericValueText(text, value > 100 ? Text.translatable("options.vibrancy.max_raytraced_lights.max") : Text.translatable("options.vibrancy.max_raytraced_lights.value", value)),
+            new SimpleOption.ValidatingIntSliderCallbacks(5, 105, false),
+            20,
+            value -> {}
+    );
     public static final KeyBinding SAVE_LIGHTMAP = !FabricLoader.getInstance().isDevelopmentEnvironment() ? null : KeyBindingHelper.registerKeyBinding(new KeyBinding(
             "key.vibrancy.debug.save_lightmap",
             GLFW.GLFW_KEY_F9,
             "key.categories.misc"
     ));
     public static final Map<RegistryKey<Block>, BlockStateFunction<Boolean>> EMISSIVE_OVERRIDES = new LinkedHashMap<>();
-    public static final RegistrationProvider<LightTypeRegistry.LightType<?>> LIGHT_TYPE_PROVIDER = RegistrationProvider.get(LightTypeRegistry.REGISTRY_KEY, Vibrancy.MOD_ID);
-    public static final Supplier<LightTypeRegistry.LightType<RaytracedPointLight>> RAY_POINT_LIGHT = LIGHT_TYPE_PROVIDER.register("ray_point", () -> new LightTypeRegistry.LightType<>(RaytracedPointLightRenderer::new, (level, camera) -> new RaytracedPointLight().setTo(camera).setRadius(15)));
 
-    public static OptionPage rtxPage(MinecraftOptionsStorage vanillaOpts) {
-        List<OptionGroup> groups = new LinkedList<>();
-
-        groups.add(OptionGroup.createBuilder()
-                .add(OptionImpl.createBuilder(boolean.class, vanillaOpts)
-                        .setName(Text.translatable("options.vibrancy.dynamic_lightmap"))
-                        .setTooltip(Text.translatable("options.vibrancy.dynamic_lightmap.tooltip"))
-                        .setControl(TickBoxControl::new)
-                        .setBinding((opts, value) -> DYNAMIC_LIGHTMAP.setValue(value), opts -> DYNAMIC_LIGHTMAP.getValue())
-                        .build())
-                .build());
-
-        groups.add(OptionGroup.createBuilder()
-                .add(OptionImpl.createBuilder(int.class, vanillaOpts)
-                        .setName(Text.translatable("options.vibrancy.raytrace_distance"))
-                        .setTooltip(Text.translatable("options.vibrancy.raytrace_distance.tooltip"))
-                        .setControl(option -> new SliderControl(option, 1, 16, 1, ControlValueFormatter.translateVariable("options.chunks")))
-                        .setBinding((opts, value) -> RAYTRACE_DISTANCE.setValue(value), opts -> RAYTRACE_DISTANCE.getValue())
-                        .setImpact(OptionImpact.HIGH)
-                        .build())
-                .add(OptionImpl.createBuilder(int.class, vanillaOpts)
-                        .setName(Text.translatable("options.vibrancy.light_cull_distance"))
-                        .setTooltip(Text.translatable("options.vibrancy.light_cull_distance.tooltip"))
-                        .setControl(option -> new SliderControl(option, 1, 16, 1, ControlValueFormatter.translateVariable("options.chunks")))
-                        .setBinding((opts, value) -> LIGHT_CULL_DISTANCE.setValue(value), opts -> LIGHT_CULL_DISTANCE.getValue())
-                        .setImpact(OptionImpact.HIGH)
-                        .build())
-                .build());
-
-        return new OptionPage(Text.translatable("options.vibrancy.page"), ImmutableList.copyOf(groups));
+    public static int maxLights() {
+        int v = MAX_RAYTRACED_LIGHTS.getValue();
+        return v > 100 ? Integer.MAX_VALUE : v;
     }
 
     @Override
@@ -153,9 +118,9 @@ public class Vibrancy implements ClientModInitializer {
                 }
             }
         });
-        ResourceManagerHelper.registerBuiltinResourcePack(Identifier.of(Vibrancy.MOD_ID, "emissive_ores"), FabricLoader.getInstance().getModContainer(Vibrancy.MOD_ID).orElseThrow(), Text.translatable("pack.name.vibrancy.emissive_ores"), ResourcePackActivationType.DEFAULT_ENABLED);
-        ResourceManagerHelper.registerBuiltinResourcePack(Identifier.of(Vibrancy.MOD_ID, "vibrant_textures"), FabricLoader.getInstance().getModContainer(Vibrancy.MOD_ID).orElseThrow(), Text.translatable("pack.name.vibrancy.textures"), ResourcePackActivationType.DEFAULT_ENABLED);
+        ResourceManagerHelper.registerBuiltinResourcePack(Identifier.of(Vibrancy.MOD_ID, "vibrant_textures"), FabricLoader.getInstance().getModContainer(Vibrancy.MOD_ID).orElseThrow(), Text.translatable("pack.name.vibrancy.textures"), ResourcePackActivationType.NORMAL);
         ResourceManagerHelper.registerBuiltinResourcePack(Identifier.of(Vibrancy.MOD_ID, "ripple"), FabricLoader.getInstance().getModContainer(Vibrancy.MOD_ID).orElseThrow(), Text.translatable("pack.name.vibrancy.ripple"), ResourcePackActivationType.DEFAULT_ENABLED);
+        ResourceManagerHelper.registerBuiltinResourcePack(Identifier.of(Vibrancy.MOD_ID, "bare_bones"), FabricLoader.getInstance().getModContainer(Vibrancy.MOD_ID).orElseThrow(), Text.translatable("pack.name.vibrancy.bare_bones"), ResourcePackActivationType.DEFAULT_ENABLED);
     }
 
     public static float[] getTempTint(DimensionLightInfo dimLight, float temp) {

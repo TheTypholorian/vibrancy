@@ -1,7 +1,6 @@
 package net.typho.vibrancy;
 
 import com.google.gson.*;
-import foundry.veil.api.client.render.VeilRenderSystem;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.registry.Registries;
@@ -11,7 +10,6 @@ import net.minecraft.util.math.Vec3d;
 import org.joml.Vector3f;
 
 import java.util.LinkedHashMap;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.function.Function;
@@ -48,30 +46,14 @@ public record DynamicLightInfo(Vector3f color, BlockStateFunction<Optional<Float
                 .setRadius(radius);
     }
 
-    public void addLight(BlockPos pos, BlockState state, boolean removeOld) {
-        boolean add = true;
+    public void addLight(BlockPos pos, BlockState state) {
+        RaytracedPointBlockLight light = createLight(pos, state);
 
-        if (removeOld) {
-            List<RaytracedPointLight> lights = VeilRenderSystem.renderer().getLightRenderer().getLights(Vibrancy.RAY_POINT_LIGHT.get());
+        if (light != null) {
+            RaytracedPointBlockLight old = RaytracedPointBlockLightRenderer.INSTANCE.lights.put(pos, light);
 
-            for (RaytracedPointLight light : lights) {
-                if (light instanceof RaytracedPointBlockLight block) {
-                    if (block.blockPos.equals(pos)) {
-                        if (block.info == this) {
-                            add = false;
-                        } else {
-                            light.remove = true;
-                        }
-                    }
-                }
-            }
-        }
-
-        if (add) {
-            RaytracedPointBlockLight light = createLight(pos, state);
-
-            if (light != null) {
-                VeilRenderSystem.renderer().getLightRenderer().addLight(light);
+            if (old != null) {
+                old.free();
             }
         }
     }

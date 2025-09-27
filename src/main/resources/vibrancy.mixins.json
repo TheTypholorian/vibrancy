@@ -16,7 +16,6 @@
     "SodiumGameOptionsPagesAccessor",
     "SodiumOptionsGUIMixin",
     "VanillaShaderCompilerMixin",
-    "VeilRenderSystemMixin",
     "VideoOptionsScreenMixin",
     "WorldChunkMixin"
   ],
@@ -25,5 +24,8 @@
   },
   "overwrites": {
     "requireAnnotations": true
-  }
+  },
+  "mixins": [
+    "LightRendererMixin"
+  ]
 }

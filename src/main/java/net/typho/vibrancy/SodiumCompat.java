@@ -1,0 +1,59 @@
+package net.typho.vibrancy;
+
+import com.google.common.collect.ImmutableList;
+import net.caffeinemc.mods.sodium.client.gui.options.OptionGroup;
+import net.caffeinemc.mods.sodium.client.gui.options.OptionImpact;
+import net.caffeinemc.mods.sodium.client.gui.options.OptionImpl;
+import net.caffeinemc.mods.sodium.client.gui.options.OptionPage;
+import net.caffeinemc.mods.sodium.client.gui.options.control.ControlValueFormatter;
+import net.caffeinemc.mods.sodium.client.gui.options.control.SliderControl;
+import net.caffeinemc.mods.sodium.client.gui.options.control.TickBoxControl;
+import net.caffeinemc.mods.sodium.client.gui.options.storage.MinecraftOptionsStorage;
+import net.minecraft.text.Text;
+
+import java.util.LinkedList;
+import java.util.List;
+
+public final class SodiumCompat {
+    private SodiumCompat() {
+    }
+
+    public static OptionPage rtxPage(MinecraftOptionsStorage vanillaOpts) {
+        List<OptionGroup> groups = new LinkedList<>();
+
+        groups.add(OptionGroup.createBuilder()
+                .add(OptionImpl.createBuilder(boolean.class, vanillaOpts)
+                        .setName(Text.translatable("options.vibrancy.dynamic_lightmap"))
+                        .setTooltip(Text.translatable("options.vibrancy.dynamic_lightmap.tooltip"))
+                        .setControl(TickBoxControl::new)
+                        .setBinding((opts, value) -> Vibrancy.DYNAMIC_LIGHTMAP.setValue(value), opts -> Vibrancy.DYNAMIC_LIGHTMAP.getValue())
+                        .build())
+                .build());
+
+        groups.add(OptionGroup.createBuilder()
+                .add(OptionImpl.createBuilder(int.class, vanillaOpts)
+                        .setName(Text.translatable("options.vibrancy.raytrace_distance"))
+                        .setTooltip(Text.translatable("options.vibrancy.raytrace_distance.tooltip"))
+                        .setControl(option -> new SliderControl(option, 1, 16, 1, ControlValueFormatter.translateVariable("options.chunks")))
+                        .setBinding((opts, value) -> Vibrancy.RAYTRACE_DISTANCE.setValue(value), opts -> Vibrancy.RAYTRACE_DISTANCE.getValue())
+                        .setImpact(OptionImpact.HIGH)
+                        .build())
+                .add(OptionImpl.createBuilder(int.class, vanillaOpts)
+                        .setName(Text.translatable("options.vibrancy.light_cull_distance"))
+                        .setTooltip(Text.translatable("options.vibrancy.light_cull_distance.tooltip"))
+                        .setControl(option -> new SliderControl(option, 1, 16, 1, ControlValueFormatter.translateVariable("options.chunks")))
+                        .setBinding((opts, value) -> Vibrancy.LIGHT_CULL_DISTANCE.setValue(value), opts -> Vibrancy.LIGHT_CULL_DISTANCE.getValue())
+                        .setImpact(OptionImpact.HIGH)
+                        .build())
+                .add(OptionImpl.createBuilder(int.class, vanillaOpts)
+                        .setName(Text.translatable("options.vibrancy.max_raytraced_lights"))
+                        .setTooltip(Text.translatable("options.vibrancy.max_raytraced_lights.tooltip"))
+                        .setControl(option -> new SliderControl(option, 5, 105, 5, v -> v > 100 ? Text.translatable("options.vibrancy.max_raytraced_lights.max") : Text.translatable("options.vibrancy.max_raytraced_lights.value", v)))
+                        .setBinding((opts, value) -> Vibrancy.MAX_RAYTRACED_LIGHTS.setValue(value), opts -> Vibrancy.MAX_RAYTRACED_LIGHTS.getValue())
+                        .setImpact(OptionImpact.HIGH)
+                        .build())
+                .build());
+
+        return new OptionPage(Text.translatable("options.vibrancy.page"), ImmutableList.copyOf(groups));
+    }
+}

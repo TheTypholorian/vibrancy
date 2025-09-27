@@ -1,46 +1,20 @@
 package net.typho.vibrancy;
 
-import foundry.veil.api.client.render.CullFrustum;
 import foundry.veil.api.client.render.light.Light;
-import foundry.veil.api.client.render.light.renderer.LightRenderer;
-import foundry.veil.api.client.render.light.renderer.LightTypeRenderer;
+import net.minecraft.client.MinecraftClient;
 import org.lwjgl.system.NativeResource;
 
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Set;
+import java.util.Collection;
+import java.util.Comparator;
 
-public abstract class RaytracedLightRenderer<T extends Light & RaytracedLight> implements LightTypeRenderer<T> {
-    private final List<T> lights = new LinkedList<>();
+public abstract class RaytracedLightRenderer<T extends Light & RaytracedLight> implements NativeResource {
+    public void render() {
+        int[] cap = {0};
 
-    @Override
-    public void prepareLights(LightRenderer lightRenderer, List<T> lights, Set<T> removedLights, CullFrustum frustum) {
-        this.lights.clear();
-
-        for (T light : lights) {
-            light.prepare(lightRenderer, frustum);
-            this.lights.add(light);
-        }
-
-        for (T light : removedLights) {
-            light.free();
-        }
+        getLights().stream()
+                .sorted(Comparator.comparingDouble(light -> light.lazyDistance(MinecraftClient.getInstance().gameRenderer.getCamera().getPos())))
+                .forEachOrdered(light -> light.render(cap[0]++ < Vibrancy.maxLights()));
     }
 
-    @Override
-    public void renderLights(LightRenderer lightRenderer, List<T> lights) {
-        for (T light : lights) {
-            light.render(lightRenderer);
-        }
-    }
-
-    @Override
-    public int getVisibleLights() {
-        return (int) lights.stream().filter(RaytracedLight::isVisible).count();
-    }
-
-    @Override
-    public void free() {
-        lights.forEach(NativeResource::close);
-    }
+    public abstract Collection<? extends T> getLights();
 }

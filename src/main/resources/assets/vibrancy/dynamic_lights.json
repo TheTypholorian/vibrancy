@@ -83,30 +83,9 @@
     "color": [1, 1, 1],
     "brightness": 1
   },
-  "light": {
-    "color": [1, 1, 1],
-    "brightness": {
-      "level=0": 0.0,
-      "level=1": 0.03,
-      "level=2": 0.06,
-      "level=3": 0.09,
-      "level=4": 0.12,
-      "level=5": 0.15,
-      "level=6": 0.18,
-      "level=7": 0.21,
-      "level=8": 0.24,
-      "level=9": 0.27,
-      "level=10": 0.3,
-      "level=11": 0.33,
-      "level=12": 0.36,
-      "level=13": 0.39,
-      "level=14": 0.42,
-      "level=15": 0.45
-    }
-  },
   "sea_lantern": {
     "color": [0.79, 0.89, 0.86],
-    "brightness": 0.4
+    "brightness": 0.2
   },
   "conduit": "sea_lantern",
   "shroomlight": {

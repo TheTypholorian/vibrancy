@@ -1,20 +1,16 @@
 package net.typho.vibrancy.mixin;
 
-import foundry.veil.api.client.render.VeilRenderSystem;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.chunk.light.LightingProvider;
 import net.typho.vibrancy.DynamicLightInfo;
 import net.typho.vibrancy.RaytracedPointBlockLight;
-import net.typho.vibrancy.RaytracedPointLight;
-import net.typho.vibrancy.Vibrancy;
+import net.typho.vibrancy.RaytracedPointBlockLightRenderer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
-import java.util.List;
 
 @Mixin(LightingProvider.class)
 public class LightingProviderMixin {
@@ -29,14 +25,12 @@ public class LightingProviderMixin {
                 DynamicLightInfo info = DynamicLightInfo.get(state);
 
                 if (info != null) {
-                    info.addLight(pos, state, true);
+                    info.addLight(pos, state);
                 } else {
-                    List<RaytracedPointLight> lights = VeilRenderSystem.renderer().getLightRenderer().getLights(Vibrancy.RAY_POINT_LIGHT.get());
+                    RaytracedPointBlockLight light = RaytracedPointBlockLightRenderer.INSTANCE.lights.get(pos);
 
-                    for (RaytracedPointLight light : lights) {
-                        if (light instanceof RaytracedPointBlockLight block && block.blockPos.equals(pos)) {
-                            VeilRenderSystem.renderer().getLightRenderer().removeLight(light);
-                        }
+                    if (light != null) {
+                        light.free();
                     }
                 }
             }
