@@ -297,13 +297,13 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
 
             float time = (float) GLFW.glfwGetTime();
 
-            while (time - flickerStart > 1) {
-                flickerStart++;
+            while (time - flickerStart > 0.25) {
+                flickerStart += 0.25f;
                 flickerMin = flickerMax;
                 flickerMax = new java.util.Random().nextFloat(-1, 1);
             }
 
-            float brightness = getBrightness();// * (1 + flicker * MathHelper.lerp(time - flickerStart, flickerMin, flickerMax));
+            float brightness = getBrightness() * (1 + flicker * MathHelper.lerp((time - flickerStart) * 4, flickerMin, flickerMax));
 
             shader.getUniformOrDefault("LightPos").set((float) position.x, (float) position.y, (float) position.z);
             shader.getUniformOrDefault("LightColor").set(color.x * brightness, color.y * brightness, color.z * brightness);
