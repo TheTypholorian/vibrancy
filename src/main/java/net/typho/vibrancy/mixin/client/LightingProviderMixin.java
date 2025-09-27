@@ -24,17 +24,19 @@ public class LightingProviderMixin {
     )
     private void checkBlock(BlockPos pos, CallbackInfo ci) {
         MinecraftClient.getInstance().execute(() -> {
-            BlockState state = MinecraftClient.getInstance().world.getBlockState(pos);
-            DynamicLightInfo info = DynamicLightInfo.get(state);
+            if (MinecraftClient.getInstance().world != null) {
+                BlockState state = MinecraftClient.getInstance().world.getBlockState(pos);
+                DynamicLightInfo info = DynamicLightInfo.get(state);
 
-            if (info != null) {
-                info.addLight(pos, state, true);
-            } else {
-                List<RaytracedPointLight> lights = VeilRenderSystem.renderer().getLightRenderer().getLights(VibrancyClient.RAY_POINT_LIGHT.get());
+                if (info != null) {
+                    info.addLight(pos, state, true);
+                } else {
+                    List<RaytracedPointLight> lights = VeilRenderSystem.renderer().getLightRenderer().getLights(VibrancyClient.RAY_POINT_LIGHT.get());
 
-                for (RaytracedPointLight light : lights) {
-                    if (light instanceof RaytracedPointBlockLight block && block.blockPos.equals(pos)) {
-                        VeilRenderSystem.renderer().getLightRenderer().removeLight(light);
+                    for (RaytracedPointLight light : lights) {
+                        if (light instanceof RaytracedPointBlockLight block && block.blockPos.equals(pos)) {
+                            VeilRenderSystem.renderer().getLightRenderer().removeLight(light);
+                        }
                     }
                 }
             }
