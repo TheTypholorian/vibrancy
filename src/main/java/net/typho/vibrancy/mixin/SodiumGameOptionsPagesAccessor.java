@@ -1,4 +1,4 @@
-package net.typho.vibrancy.mixin.client;
+package net.typho.vibrancy.mixin;
 
 import net.caffeinemc.mods.sodium.client.gui.SodiumGameOptionPages;
 import net.caffeinemc.mods.sodium.client.gui.options.storage.MinecraftOptionsStorage;

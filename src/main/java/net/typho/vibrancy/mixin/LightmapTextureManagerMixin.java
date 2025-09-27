@@ -1,4 +1,4 @@
-package net.typho.vibrancy.mixin.client;
+package net.typho.vibrancy.mixin;
 
 import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
@@ -9,7 +9,7 @@ import net.minecraft.client.texture.NativeImageBackedTexture;
 import net.minecraft.text.Text;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.world.biome.Biome;
-import net.typho.vibrancy.client.VibrancyClient;
+import net.typho.vibrancy.Vibrancy;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -42,7 +42,7 @@ public class LightmapTextureManagerMixin {
             method = "update"
     )
     private void update(float delta, Operation<Void> original) {
-        if (VibrancyClient.DYNAMIC_LIGHTMAP.getValue()) {
+        if (Vibrancy.DYNAMIC_LIGHTMAP.getValue()) {
             if (client.world != null && client.player != null) {
                 Biome biome = client.world.getBiome(client.player.getBlockPos()).value();
 
@@ -54,14 +54,14 @@ public class LightmapTextureManagerMixin {
 
                     client.getProfiler().push("lightTex");
 
-                    VibrancyClient.createLightmap(client.world, client.player, client.options, image, temp, humid, delta);
+                    Vibrancy.createLightmap(client.world, client.player, client.options, image, temp, humid, delta);
 
                     texture.upload();
                     client.getProfiler().pop();
 
-                    if (VibrancyClient.SAVE_LIGHTMAP != null && VibrancyClient.SAVE_LIGHTMAP.isPressed()) {
+                    if (Vibrancy.SAVE_LIGHTMAP != null && Vibrancy.SAVE_LIGHTMAP.isPressed()) {
                         try (NativeImage big = new NativeImage(1024, 1024, false)) {
-                            VibrancyClient.createLightmap(client.world, client.player, client.options, big, temp, humid, delta);
+                            Vibrancy.createLightmap(client.world, client.player, client.options, big, temp, humid, delta);
                             File file = new File("lightmap.png").getAbsoluteFile();
                             big.writeTo(file);
                             client.player.sendMessage(Text.translatable("debug.vibrancy.save_lightmap", file));
@@ -74,7 +74,7 @@ public class LightmapTextureManagerMixin {
         } else {
             original.call(delta);
 
-            if (client.player != null && VibrancyClient.SAVE_LIGHTMAP != null && VibrancyClient.SAVE_LIGHTMAP.isPressed()) {
+            if (client.player != null && Vibrancy.SAVE_LIGHTMAP != null && Vibrancy.SAVE_LIGHTMAP.isPressed()) {
                 try {
                     File file = new File("lightmap.png").getAbsoluteFile();
                     image.writeTo(file);

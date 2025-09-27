@@ -1,4 +1,4 @@
-package net.typho.vibrancy.client;
+package net.typho.vibrancy;
 
 import foundry.veil.api.client.render.CullFrustum;
 import foundry.veil.api.client.render.light.Light;

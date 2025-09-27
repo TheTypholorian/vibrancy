@@ -1,4 +1,4 @@
-package net.typho.vibrancy.mixin.client;
+package net.typho.vibrancy.mixin;
 
 import net.fabricmc.fabric.api.renderer.v1.material.RenderMaterial;
 import net.fabricmc.fabric.api.renderer.v1.mesh.QuadEmitter;

@@ -1,4 +1,4 @@
-package net.typho.vibrancy.mixin.client;
+package net.typho.vibrancy.mixin;
 
 import net.minecraft.client.gl.GlDebug;
 import org.slf4j.Logger;

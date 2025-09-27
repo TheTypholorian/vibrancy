@@ -1,14 +1,14 @@
-package net.typho.vibrancy.mixin.client;
+package net.typho.vibrancy.mixin;
 
 import foundry.veil.api.client.render.VeilRenderSystem;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.chunk.light.LightingProvider;
-import net.typho.vibrancy.client.DynamicLightInfo;
-import net.typho.vibrancy.client.RaytracedPointBlockLight;
-import net.typho.vibrancy.client.RaytracedPointLight;
-import net.typho.vibrancy.client.VibrancyClient;
+import net.typho.vibrancy.DynamicLightInfo;
+import net.typho.vibrancy.RaytracedPointBlockLight;
+import net.typho.vibrancy.RaytracedPointLight;
+import net.typho.vibrancy.Vibrancy;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -31,7 +31,7 @@ public class LightingProviderMixin {
                 if (info != null) {
                     info.addLight(pos, state, true);
                 } else {
-                    List<RaytracedPointLight> lights = VeilRenderSystem.renderer().getLightRenderer().getLights(VibrancyClient.RAY_POINT_LIGHT.get());
+                    List<RaytracedPointLight> lights = VeilRenderSystem.renderer().getLightRenderer().getLights(Vibrancy.RAY_POINT_LIGHT.get());
 
                     for (RaytracedPointLight light : lights) {
                         if (light instanceof RaytracedPointBlockLight block && block.blockPos.equals(pos)) {

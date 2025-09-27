@@ -12,13 +12,7 @@
   "icon": "assets/vibrancy/icon.png",
   "environment": "*",
   "entrypoints": {
-    "fabric-datagen": [
-      "net.typho.vibrancy.client.VibrancyDataGenerator"
-    ],
     "client": [
-      "net.typho.vibrancy.client.VibrancyClient"
-    ],
-    "main": [
       "net.typho.vibrancy.Vibrancy"
     ]
   },

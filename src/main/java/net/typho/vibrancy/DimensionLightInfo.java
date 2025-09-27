@@ -1,4 +1,4 @@
-package net.typho.vibrancy.client;
+package net.typho.vibrancy;
 
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.util.Identifier;

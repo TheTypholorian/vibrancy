@@ -1,9 +1,9 @@
-package net.typho.vibrancy.mixin.client;
+package net.typho.vibrancy.mixin;
 
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import net.minecraft.client.gui.screen.option.VideoOptionsScreen;
 import net.minecraft.client.option.SimpleOption;
-import net.typho.vibrancy.client.VibrancyClient;
+import net.typho.vibrancy.Vibrancy;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
@@ -16,8 +16,8 @@ public class VideoOptionsScreenMixin {
     private static SimpleOption<?>[] getOptions(SimpleOption<?>[] original) {
         SimpleOption<?>[] arr = new SimpleOption[original.length + 2];
         System.arraycopy(original, 0, arr, 0, original.length);
-        arr[original.length - 1] = VibrancyClient.DYNAMIC_LIGHTMAP;
-        arr[original.length] = VibrancyClient.RAYTRACE_DISTANCE;
+        arr[original.length - 1] = Vibrancy.DYNAMIC_LIGHTMAP;
+        arr[original.length] = Vibrancy.RAYTRACE_DISTANCE;
         return arr;
     }
 }

@@ -1,4 +1,4 @@
-package net.typho.vibrancy.client;
+package net.typho.vibrancy;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 import foundry.veil.api.client.registry.LightTypeRegistry;
@@ -20,7 +20,6 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.random.Random;
-import net.typho.vibrancy.Vibrancy;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector2f;
@@ -72,7 +71,7 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
 
     @Override
     public LightTypeRegistry.LightType<?> getType() {
-        return VibrancyClient.RAY_POINT_LIGHT.get();
+        return Vibrancy.RAY_POINT_LIGHT.get();
     }
 
     @Override
@@ -84,7 +83,7 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
     public void prepare(LightRenderer renderer, CullFrustum frustum) {
         BlockPos lightBlockPos = new BlockPos((int) Math.floor(getPosition().x), (int) Math.floor(getPosition().y), (int) Math.floor(getPosition().z));
 
-        visible = frustum.testAab(new Box(lightBlockPos).expand(radius + 2)) && lightBlockPos.isWithinDistance(MinecraftClient.getInstance().player.getBlockPos(), VibrancyClient.LIGHT_CULL_DISTANCE.getValue() * 16);
+        visible = frustum.testAab(new Box(lightBlockPos).expand(radius + 2)) && lightBlockPos.isWithinDistance(MinecraftClient.getInstance().player.getBlockPos(), Vibrancy.LIGHT_CULL_DISTANCE.getValue() * 16);
 
         if (isDirty() && visible) {
             clean();
@@ -333,7 +332,7 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
                 shader = Objects.requireNonNull(RenderSystem.getShader());
 
                 shader.getUniformOrDefault("LightPos").set((float) position.x, (float) position.y, (float) position.z);
-                shader.getUniformOrDefault("Detailed").set(position.distanceSquared(camera.getPos().x, camera.getPos().y, camera.getPos().z) < MathHelper.square(VibrancyClient.RAYTRACE_DISTANCE.getValue() * 16) ? 1 : 0);
+                shader.getUniformOrDefault("Detailed").set(position.distanceSquared(camera.getPos().x, camera.getPos().y, camera.getPos().z) < MathHelper.square(Vibrancy.RAYTRACE_DISTANCE.getValue() * 16) ? 1 : 0);
 
                 RenderSystem.depthMask(true);
                 RenderSystem.disableBlend();

@@ -1,4 +1,4 @@
-package net.typho.vibrancy.client;
+package net.typho.vibrancy;
 
 import com.google.gson.*;
 import foundry.veil.api.client.render.VeilRenderSystem;
@@ -52,7 +52,7 @@ public record DynamicLightInfo(Vector3f color, BlockStateFunction<Optional<Float
         boolean add = true;
 
         if (removeOld) {
-            List<RaytracedPointLight> lights = VeilRenderSystem.renderer().getLightRenderer().getLights(VibrancyClient.RAY_POINT_LIGHT.get());
+            List<RaytracedPointLight> lights = VeilRenderSystem.renderer().getLightRenderer().getLights(Vibrancy.RAY_POINT_LIGHT.get());
 
             for (RaytracedPointLight light : lights) {
                 if (light instanceof RaytracedPointBlockLight block) {

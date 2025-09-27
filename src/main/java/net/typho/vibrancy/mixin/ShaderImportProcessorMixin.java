@@ -1,11 +1,11 @@
-package net.typho.vibrancy.mixin.client;
+package net.typho.vibrancy.mixin;
 
 import foundry.veil.api.client.render.shader.processor.ShaderImportProcessor;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 
-@Mixin(value = ShaderImportProcessor.class, remap = false)
+@Mixin(ShaderImportProcessor.class)
 public class ShaderImportProcessorMixin {
     @ModifyArg(
             method = "modify",

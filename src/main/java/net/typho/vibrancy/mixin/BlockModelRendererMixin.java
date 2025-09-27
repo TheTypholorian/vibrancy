@@ -1,4 +1,4 @@
-package net.typho.vibrancy.mixin.client;
+package net.typho.vibrancy.mixin;
 
 import com.llamalad7.mixinextras.sugar.Local;
 import net.minecraft.client.render.block.BlockModelRenderer;

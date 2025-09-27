@@ -1,12 +1,12 @@
-package net.typho.vibrancy.mixin.client;
+package net.typho.vibrancy.mixin;
 
 import net.minecraft.block.AbstractBlock;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.BlockView;
-import net.typho.vibrancy.client.BlockStateFunction;
-import net.typho.vibrancy.client.VibrancyClient;
+import net.typho.vibrancy.BlockStateFunction;
+import net.typho.vibrancy.Vibrancy;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
@@ -28,7 +28,7 @@ public abstract class AbstractBlockStateMixin {
     )
     @SuppressWarnings("deprecation")
     private void hasEmissiveLighting(BlockView world, BlockPos pos, CallbackInfoReturnable<Boolean> cir) {
-        BlockStateFunction<Boolean> func = VibrancyClient.EMISSIVE_OVERRIDES.get(getBlock().getRegistryEntry().registryKey());
+        BlockStateFunction<Boolean> func = Vibrancy.EMISSIVE_OVERRIDES.get(getBlock().getRegistryEntry().registryKey());
 
         if (func != null) {
             cir.setReturnValue(func.apply(asBlockState()));

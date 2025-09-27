@@ -1,4 +1,4 @@
-package net.typho.vibrancy.client;
+package net.typho.vibrancy;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
