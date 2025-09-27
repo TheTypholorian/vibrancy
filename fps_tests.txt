@@ -1,0 +1,3 @@
+31 lights in testing world (30 fps cap)
+9/27 2:36 PM: 27 fps 100% gpu
+9/27 4:24 PM: 30 fps 75% gpu

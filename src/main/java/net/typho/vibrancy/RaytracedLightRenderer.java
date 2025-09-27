@@ -9,6 +9,7 @@ import java.util.Comparator;
 
 public abstract class RaytracedLightRenderer<T extends Light & RaytracedLight> implements NativeResource {
     public void render() {
+        Vibrancy.blitViewPos();
         int[] cap = {0};
 
         getLights().stream()
