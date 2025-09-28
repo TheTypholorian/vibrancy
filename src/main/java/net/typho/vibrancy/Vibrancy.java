@@ -5,6 +5,7 @@ import com.google.gson.JsonParser;
 import com.mojang.blaze3d.systems.RenderSystem;
 import foundry.veil.api.client.render.VeilRenderSystem;
 import net.fabricmc.api.ClientModInitializer;
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientWorldEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
@@ -33,6 +34,7 @@ import net.minecraft.resource.ResourceType;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
+import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.MathHelper;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
@@ -73,6 +75,14 @@ public class Vibrancy implements ClientModInitializer {
             50,
             value -> {}
     );
+    public static final SimpleOption<Integer> MAX_SHADOW_DISTANCE = new SimpleOption<>(
+            "options.vibrancy.max_shadow_distance",
+            value -> Tooltip.of(Text.translatable("options.vibrancy.max_shadow_distance.tooltip")),
+            (text, value) -> GameOptions.getGenericValueText(text, value > 15 ? Text.translatable("options.vibrancy.max_shadow_distance.max") : Text.translatable("options.vibrancy.max_shadow_distance.value", value)),
+            new SimpleOption.ValidatingIntSliderCallbacks(1, 16, false),
+            8,
+            value -> {}
+    );
     public static boolean SEEN_ALPHA_TEXT = false;
     public static final KeyBinding SAVE_LIGHTMAP = !FabricLoader.getInstance().isDevelopmentEnvironment() ? null : KeyBindingHelper.registerKeyBinding(new KeyBinding(
             "key.vibrancy.debug.save_lightmap",
@@ -86,8 +96,14 @@ public class Vibrancy implements ClientModInitializer {
         return v > 100 ? Integer.MAX_VALUE : v;
     }
 
+    public static int capShadowDistance(int distance) {
+        int v = MAX_SHADOW_DISTANCE.getValue();
+        return v > 15 ? distance : Math.min(distance, v);
+    }
+
     @Override
     public void onInitializeClient() {
+        ClientChunkEvents.CHUNK_UNLOAD.register((world, chunk) -> RaytracedPointBlockLightRenderer.INSTANCE.lights.keySet().removeIf(pos -> new ChunkPos(pos).equals(chunk.getPos())));
         ClientWorldEvents.AFTER_CLIENT_WORLD_CHANGE.register((client, world) -> RaytracedPointBlockLightRenderer.INSTANCE.lights.clear());
         ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(new SimpleSynchronousResourceReloadListener() {
             @Override

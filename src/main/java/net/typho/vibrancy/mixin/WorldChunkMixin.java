@@ -24,8 +24,10 @@ public class WorldChunkMixin {
     private void setBlockState(BlockPos pos, BlockState state, boolean moved, CallbackInfoReturnable<BlockState> cir) {
         MinecraftClient.getInstance().execute(() -> {
             for (RaytracedPointBlockLight light : RaytracedPointBlockLightRenderer.INSTANCE.lights.values()) {
-                if (light.getPosition().distanceSquared(new Vector3d(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5)) <= light.getRadius() * light.getRadius()) {
-                    light.markDirty();
+                if (light != null) {
+                    if (light.getPosition().distanceSquared(new Vector3d(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5)) <= light.getRadius() * light.getRadius()) {
+                        light.markDirty();
+                    }
                 }
             }
         });

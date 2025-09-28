@@ -52,6 +52,13 @@ public final class SodiumCompat {
                         .setBinding((opts, value) -> Vibrancy.MAX_RAYTRACED_LIGHTS.setValue(value), opts -> Vibrancy.MAX_RAYTRACED_LIGHTS.getValue())
                         .setImpact(OptionImpact.HIGH)
                         .build())
+                .add(OptionImpl.createBuilder(int.class, vanillaOpts)
+                        .setName(Text.translatable("options.vibrancy.max_shadow_distance"))
+                        .setTooltip(Text.translatable("options.vibrancy.max_shadow_distance.tooltip"))
+                        .setControl(option -> new SliderControl(option, 1, 16, 1, v -> v > 15 ? Text.translatable("options.vibrancy.max_shadow_distance.max") : Text.translatable("options.vibrancy.max_shadow_distance.value", v)))
+                        .setBinding((opts, value) -> Vibrancy.MAX_SHADOW_DISTANCE.setValue(value), opts -> Vibrancy.MAX_SHADOW_DISTANCE.getValue())
+                        .setImpact(OptionImpact.HIGH)
+                        .build())
                 .build());
 
         return new OptionPage(Text.translatable("options.vibrancy.page"), ImmutableList.copyOf(groups));

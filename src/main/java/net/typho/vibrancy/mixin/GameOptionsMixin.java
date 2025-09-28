@@ -17,6 +17,7 @@ public class GameOptionsMixin {
         visitor.accept("vibrancy/raytrace_distance", Vibrancy.RAYTRACE_DISTANCE);
         visitor.accept("vibrancy/light_cull_distance", Vibrancy.LIGHT_CULL_DISTANCE);
         visitor.accept("vibrancy/max_raytraced_lights", Vibrancy.MAX_RAYTRACED_LIGHTS);
+        visitor.accept("vibrancy/max_shadow_distance", Vibrancy.MAX_SHADOW_DISTANCE);
     }
 
     @Inject(

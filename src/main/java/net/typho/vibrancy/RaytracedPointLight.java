@@ -84,7 +84,7 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
             if (world != null) {
                 int numQuads = 0;
                 Vector3f lightPos = new Vector3f((float) getPosition().x, (float) getPosition().y, (float) getPosition().z);
-                int blockRadius = (int) Math.ceil(radius) - 4;
+                int blockRadius = Vibrancy.capShadowDistance((int) Math.ceil(radius) - 4);
 
                 if (blockRadius < 1) {
                     raytrace = false;
