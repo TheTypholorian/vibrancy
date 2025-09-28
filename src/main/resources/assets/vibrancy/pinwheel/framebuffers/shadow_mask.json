@@ -5,6 +5,6 @@
   "depth": {
     "type": "texture",
     "format": "DEPTH_COMPONENT",
-    "name": "ShadowMaskBackDepthSampler"
+    "name": "ShadowMaskDepthSampler"
   }
 }

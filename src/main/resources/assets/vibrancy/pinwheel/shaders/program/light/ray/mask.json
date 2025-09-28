@@ -6,10 +6,6 @@
       "type": "framebuffer",
       "name": "minecraft:main:depth"
     },
-    "WorldPosSampler": {
-      "type": "framebuffer",
-      "name": "vibrancy:view_pos"
-    },
     "BlockAtlasSampler": "minecraft:textures/atlas/blocks.png"
   }
 }

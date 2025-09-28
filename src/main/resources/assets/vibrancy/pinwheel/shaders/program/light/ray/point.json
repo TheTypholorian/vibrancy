@@ -6,21 +6,13 @@
       "type": "framebuffer",
       "name": "minecraft:main:depth"
     },
-    "ShadowMaskBackSampler": {
+    "ShadowMaskSampler": {
       "type": "framebuffer",
-      "name": "vibrancy:shadow_mask_back"
+      "name": "vibrancy:shadow_mask"
     },
-    "ShadowMaskBackDepthSampler": {
+    "ShadowMaskDepthSampler": {
       "type": "framebuffer",
-      "name": "vibrancy:shadow_mask_back:depth"
-    },
-    "ShadowMaskFrontSampler": {
-      "type": "framebuffer",
-      "name": "vibrancy:shadow_mask_front"
-    },
-    "ShadowMaskFrontDepthSampler": {
-      "type": "framebuffer",
-      "name": "vibrancy:shadow_mask_front:depth"
+      "name": "vibrancy:shadow_mask:depth"
     }
   }
 }

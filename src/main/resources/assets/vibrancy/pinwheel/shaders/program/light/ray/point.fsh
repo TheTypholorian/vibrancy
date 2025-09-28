@@ -6,9 +6,8 @@
 #include "veil:light"
 
 uniform sampler2D DiffuseDepthSampler;
-uniform sampler2D ShadowMaskBackSampler;
-uniform sampler2D ShadowMaskBackDepthSampler;
-uniform sampler2D ShadowMaskFrontDepthSampler;
+uniform sampler2D ShadowMaskSampler;
+uniform sampler2D ShadowMaskDepthSampler;
 uniform sampler2D VeilDynamicNormalSampler;
 uniform sampler2D VeilDynamicAlbedoSampler;
 
@@ -45,7 +44,8 @@ void main() {
 
     vec3 normalVS = texelFetch(VeilDynamicNormalSampler, ivec2(gl_FragCoord.xy), 0).xyz;
     vec3 lightDirection = normalize((VeilCamera.ViewMat * vec4(offset, 0.0)).xyz);
-    float diffuse = clamp(0.0, 1.0, dot(normalVS, lightDirection));
+    float normalD = dot(normalVS, lightDirection);
+    float diffuse = clamp(0.0, 1.0, normalD);
     diffuse = (diffuse + MINECRAFT_AMBIENT_LIGHT) / (1.0 + MINECRAFT_AMBIENT_LIGHT);
     diffuse *= attenuate_no_cusp(length(offset), LightRadius);
 
@@ -55,19 +55,11 @@ void main() {
 
     if (AnyShadows) {
         // raytracing
-        float maskBackDepth = depthSampleToWorldDepth(texelFetch(ShadowMaskBackDepthSampler, ivec2(gl_FragCoord.xy), 0).r);
-        float maskFrontDepth = depthSampleToWorldDepth(texelFetch(ShadowMaskFrontDepthSampler, ivec2(gl_FragCoord.xy), 0).r);
-
+        float maskDepth = depthSampleToWorldDepth(texelFetch(ShadowMaskDepthSampler, ivec2(gl_FragCoord.xy), 0).r);
         float worldDepth = depthSampleToWorldDepth(depth);
 
-        if (maskFrontDepth > maskBackDepth) {
-            if (worldDepth < maskBackDepth - 1e-3) {
-                applyShadowColor(texelFetch(ShadowMaskBackSampler, ivec2(gl_FragCoord.xy), 0));
-            }
-        } else {
-            if (worldDepth > maskFrontDepth + 1e-3 && worldDepth < maskBackDepth - 1e-3) {
-                applyShadowColor(texelFetch(ShadowMaskBackSampler, ivec2(gl_FragCoord.xy), 0));
-            }
+        if (worldDepth > maskDepth - 1e-3) {
+            applyShadowColor(texelFetch(ShadowMaskSampler, ivec2(gl_FragCoord.xy), 0));
         }
     }
 }

@@ -85,6 +85,13 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
                 int numQuads = 0;
                 Vector3f lightPos = new Vector3f((float) getPosition().x, (float) getPosition().y, (float) getPosition().z);
                 int blockRadius = Vibrancy.capShadowDistance((int) Math.ceil(radius) - 4);
+                PrintWriter out;
+
+                try {
+                    out = FabricLoader.getInstance().isDevelopmentEnvironment() && new File("mesh.obj").exists() ? null : new PrintWriter("mesh.obj");
+                } catch (FileNotFoundException e) {
+                    throw new RuntimeException(e);
+                }
 
                 if (blockRadius < 1) {
                     raytrace = false;
@@ -93,13 +100,6 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
                     MatrixStack stack = new MatrixStack();
                     BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION);
                     List<Quad> quads = new LinkedList<>();
-                    PrintWriter out;
-
-                    try {
-                        out = FabricLoader.getInstance().isDevelopmentEnvironment() && new File("mesh.obj").exists() ? null : new PrintWriter("mesh.obj");
-                    } catch (FileNotFoundException e) {
-                        throw new RuntimeException(e);
-                    }
 
                     for (int x = box.getMinX(); x <= box.getMaxX(); x++) {
                         for (int y = box.getMinY(); y <= box.getMaxY(); y++) {
@@ -165,99 +165,18 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
                                         System.err.println("[Vibrancy] Block " + state + " doesn't use quads for rendering, skipping it for raytracing");
                                     } else {
                                         for (int j = 0; j < flatVertices.size(); j += 4) {
-                                            for (int k = j; k < j + 4; k++) {
-                                                if (normals.get(k).dot(lightPos.sub(flatVertices.get(k), new Vector3f())) > 0 || flatVertices.get(k).distanceSquared(lightPos) < 4) {
-
-                                                    Vector3f[] vertices = new Vector3f[]{
-                                                            flatVertices.get(j),
-                                                            flatVertices.get(j + 1),
-                                                            flatVertices.get(j + 2),
-                                                            flatVertices.get(j + 3),
-                                                            null,
-                                                            null,
-                                                            null,
-                                                            null
-                                                    };
-
-                                                    for (int i = 0; i < 4; i++) {
-                                                        Vector3f vertex = new Vector3f(vertices[i]);
-                                                        Vector3f off = vertex.sub(lightPos, new Vector3f());
-                                                        vertices[i + 4] = vertex.add(off.normalize((radius) - off.length() + 1));
-                                                    }
-
-                                                    quads.add(new Quad(vertices[0], vertices[1], vertices[2], vertices[3], flatTexCoords.get(j), flatTexCoords.get(j + 1), flatTexCoords.get(j + 2), flatTexCoords.get(j + 3), layer.isTranslucent() || layer != RenderLayer.getSolid()));
-
-                                                    builder.vertex(vertices[0])
-                                                            .vertex(vertices[1])
-                                                            .vertex(vertices[2])
-                                                            .vertex(vertices[3]);
-
-                                                    builder.vertex(vertices[1])
-                                                            .vertex(vertices[5])
-                                                            .vertex(vertices[6])
-                                                            .vertex(vertices[2]);
-
-                                                    builder.vertex(vertices[5])
-                                                            .vertex(vertices[4])
-                                                            .vertex(vertices[7])
-                                                            .vertex(vertices[6]);
-
-                                                    builder.vertex(vertices[4])
-                                                            .vertex(vertices[0])
-                                                            .vertex(vertices[3])
-                                                            .vertex(vertices[7]);
-
-                                                    builder.vertex(vertices[1])
-                                                            .vertex(vertices[0])
-                                                            .vertex(vertices[4])
-                                                            .vertex(vertices[5]);
-
-                                                    builder.vertex(vertices[3])
-                                                            .vertex(vertices[2])
-                                                            .vertex(vertices[6])
-                                                            .vertex(vertices[7]);
-
-                                                    if (out != null) {
-                                                        int i = numQuads * 4 + 1;
-
-                                                        out.println("v " + vertices[0].x + " " + vertices[0].y + " " + vertices[0].z);
-                                                        out.println("v " + vertices[1].x + " " + vertices[1].y + " " + vertices[1].z);
-                                                        out.println("v " + vertices[2].x + " " + vertices[2].y + " " + vertices[2].z);
-                                                        out.println("v " + vertices[3].x + " " + vertices[3].y + " " + vertices[3].z);
-                                                        out.println("v " + vertices[1].x + " " + vertices[1].y + " " + vertices[1].z);
-                                                        out.println("v " + vertices[5].x + " " + vertices[5].y + " " + vertices[5].z);
-                                                        out.println("v " + vertices[6].x + " " + vertices[6].y + " " + vertices[6].z);
-                                                        out.println("v " + vertices[2].x + " " + vertices[2].y + " " + vertices[2].z);
-                                                        out.println("v " + vertices[5].x + " " + vertices[5].y + " " + vertices[5].z);
-                                                        out.println("v " + vertices[4].x + " " + vertices[4].y + " " + vertices[4].z);
-                                                        out.println("v " + vertices[7].x + " " + vertices[7].y + " " + vertices[7].z);
-                                                        out.println("v " + vertices[6].x + " " + vertices[6].y + " " + vertices[6].z);
-                                                        out.println("v " + vertices[4].x + " " + vertices[4].y + " " + vertices[4].z);
-                                                        out.println("v " + vertices[0].x + " " + vertices[0].y + " " + vertices[0].z);
-                                                        out.println("v " + vertices[3].x + " " + vertices[3].y + " " + vertices[3].z);
-                                                        out.println("v " + vertices[7].x + " " + vertices[7].y + " " + vertices[7].z);
-                                                        out.println("v " + vertices[1].x + " " + vertices[1].y + " " + vertices[1].z);
-                                                        out.println("v " + vertices[0].x + " " + vertices[0].y + " " + vertices[0].z);
-                                                        out.println("v " + vertices[4].x + " " + vertices[4].y + " " + vertices[4].z);
-                                                        out.println("v " + vertices[5].x + " " + vertices[5].y + " " + vertices[5].z);
-                                                        out.println("v " + vertices[3].x + " " + vertices[3].y + " " + vertices[3].z);
-                                                        out.println("v " + vertices[2].x + " " + vertices[2].y + " " + vertices[2].z);
-                                                        out.println("v " + vertices[6].x + " " + vertices[6].y + " " + vertices[6].z);
-                                                        out.println("v " + vertices[7].x + " " + vertices[7].y + " " + vertices[7].z);
-
-                                                        out.println("f " + i++ + " " + i++ + " " + i++ + " " + i++);
-                                                        out.println("f " + i++ + " " + i++ + " " + i++ + " " + i++);
-                                                        out.println("f " + i++ + " " + i++ + " " + i++ + " " + i++);
-                                                        out.println("f " + i++ + " " + i++ + " " + i++ + " " + i++);
-                                                        out.println("f " + i++ + " " + i++ + " " + i++ + " " + i++);
-                                                        out.println("f " + i++ + " " + i++ + " " + i++ + " " + i++);
-                                                    }
-
-                                                    numQuads += 6;
-
-                                                    break;
-                                                }
-                                            }
+                                            quads.add(new Quad(
+                                                    flatVertices.get(j),
+                                                    flatVertices.get(j + 1),
+                                                    flatVertices.get(j + 2),
+                                                    flatVertices.get(j + 3),
+                                                    normals.get(j),
+                                                    normals.get(j + 1),
+                                                    normals.get(j + 2),
+                                                    normals.get(j + 3),
+                                                    flatTexCoords.get(j), flatTexCoords.get(j + 1), flatTexCoords.get(j + 2), flatTexCoords.get(j + 3),
+                                                    layer.isTranslucent() || layer != RenderLayer.getSolid()
+                                            ));
                                         }
                                     }
 
@@ -267,7 +186,35 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
                         }
                     }
 
-                    if (numQuads == 0) {
+                    List<Quad> shadowQuads = new LinkedList<>();
+
+                    for (Quad shadow : quads) {
+                        for (Quad surface : quads) {
+                            if (shadow != surface) {
+                                Vector3f[] dirs = new Vector3f[4];
+                                float[] lens = new float[4];
+
+                                for (int i = 0; i < 4; i++) {
+                                    Vector3f dir = shadow.getVert(i).sub(lightPos, new Vector3f()).normalize();
+                                    dirs[i] = dir;
+                                    lens[i] = surface.raycast(lightPos, dir);
+                                }
+
+                                Quad q = shadow.normalize(lightPos, dirs, lens);
+
+                                if (q != null) {
+                                    builder.vertex(q.v1())
+                                            .vertex(q.v2())
+                                            .vertex(q.v3())
+                                            .vertex(q.v4());
+
+                                    shadowQuads.add(q);
+                                }
+                            }
+                        }
+                    }
+
+                    if (shadowQuads.isEmpty()) {
                         anyShadows = false;
                     } else {
                         anyShadows = true;
@@ -311,13 +258,10 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
 
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, quadsSSBO);
 
-                glCullFace(GL_FRONT);
-                glDepthFunc(GL_GEQUAL);
-                renderMask(Identifier.of(Vibrancy.MOD_ID, "shadow_mask_back"), view, 0);
-
                 glCullFace(GL_BACK);
                 glDepthFunc(GL_LEQUAL);
-                renderMask(Identifier.of(Vibrancy.MOD_ID, "shadow_mask_front"), view, 1);
+                RenderSystem.enableCull();
+                renderMask(Identifier.of(Vibrancy.MOD_ID, "shadow_mask"), view, 1);
 
                 RenderSystem.depthMask(false);
                 RenderSystem.enableBlend();

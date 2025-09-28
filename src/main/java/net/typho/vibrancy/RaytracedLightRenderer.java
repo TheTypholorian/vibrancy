@@ -11,7 +11,7 @@ public abstract class RaytracedLightRenderer<T extends Light & RaytracedLight> i
     public int numRaytraced = 0, numVisible = 0;
 
     public void render() {
-        Vibrancy.blitViewPos();
+        //Vibrancy.blitViewPos();
         int[] cap = {0};
         numRaytraced = 0;
         numVisible = 0;
