@@ -4,6 +4,7 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import foundry.veil.api.client.render.VeilRenderSystem;
 import foundry.veil.api.client.render.framebuffer.VeilFramebuffers;
 import foundry.veil.api.client.render.light.PointLight;
+import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.ShaderProgram;
@@ -95,7 +96,7 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
                     PrintWriter out;
 
                     try {
-                        out = new File("mesh.obj").exists() ? null : new PrintWriter("mesh.obj");
+                        out = FabricLoader.getInstance().isDevelopmentEnvironment() && new File("mesh.obj").exists() ? null : new PrintWriter("mesh.obj");
                     } catch (FileNotFoundException e) {
                         throw new RuntimeException(e);
                     }
@@ -104,8 +105,9 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
                         for (int y = box.getMinY(); y <= box.getMaxY(); y++) {
                             for (int z = box.getMinZ(); z <= box.getMaxZ(); z++) {
                                 BlockPos pos = new BlockPos(x, y, z);
+                                double sqDist = pos.getSquaredDistance(lightBlockPos);
 
-                                if (!pos.equals(lightBlockPos) && pos.isWithinDistance(lightBlockPos, blockRadius)) {
+                                if (sqDist != 0 && sqDist < blockRadius * blockRadius) {
                                     BlockState state = world.getBlockState(pos);
 
                                     stack.push();
@@ -155,7 +157,7 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
                                                     return this;
                                                 }
                                             },
-                                            true,
+                                            sqDist != 1,
                                             Random.create(lightBlockPos.hashCode())
                                     );
 
@@ -214,6 +216,7 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
                                                             .vertex(vertices[2])
                                                             .vertex(vertices[6])
                                                             .vertex(vertices[7]);
+
                                                     if (out != null) {
                                                         int i = numQuads * 4 + 1;
 

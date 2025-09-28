@@ -30,7 +30,7 @@ bool raycastQuad(vec3 origin, vec3 dir, float len, Quad q, out vec2 uv) {
     float a = q.inv11 * d1p + q.inv12 * d2p;
     float b = q.inv21 * d1p + q.inv22 * d2p;
 
-    if (a < 0.0 || b < 0.0 || a > 1.0 || b > 1.0) return false;
+    if (a < 0 || b < 0 || a > 1 || b > 1) return false;
 
     if (q.doSample == 1u) {
         uv = mix(mix(q.uv1, q.uv2, a), mix(q.uv4, q.uv3, a), b);

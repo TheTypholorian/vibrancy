@@ -18,23 +18,25 @@ void main() {
     fragColor = vec4(1);
 
     // 40-80%
-    vec3 Pos = texelFetch(WorldPosSampler, ivec2(gl_FragCoord.xy), 0).rgb;
+    if (Detailed) {
+        vec3 Pos = texelFetch(WorldPosSampler, ivec2(gl_FragCoord.xy), 0).rgb;
 
-    vec3 delta = Pos - LightPos;
-    float len = length(delta);
-    vec3 dir = delta / len;
+        vec3 delta = Pos - LightPos;
+        float len = length(delta);
+        vec3 dir = delta / len;
 
-    vec2 uv;
+        vec2 uv;
 
-    if (raycastQuad(LightPos, dir, len, q, uv)) {
-        if (q.doSample == 1) {
-            vec4 color = texture(BlockAtlasSampler, uv);
+        if (raycastQuad(LightPos, dir, len, q, uv)) {
+            if (q.doSample == 1) {
+                fragColor = texture(BlockAtlasSampler, uv);
 
-            if (color.a == 0) {
-                discard;
+                if (fragColor.a == 0) {
+                    discard;
+                }
             }
+        } else {
+            discard;
         }
-    } else {
-        discard;
     }
 }

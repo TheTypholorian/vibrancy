@@ -142,7 +142,7 @@ public class Vibrancy implements ClientModInitializer {
                 .translate((float) -camera.getPos().x, (float) -camera.getPos().y, (float) -camera.getPos().z);
 
         VeilRenderSystem.setShader(Identifier.of(Vibrancy.MOD_ID, "view_pos"));
-        Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(Identifier.of(MOD_ID, "view_pos"))).bind(false);
+        Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(Identifier.of(MOD_ID, "view_pos"))).bind(true);
 
         RaytracedPointLight.SCREEN_VBO.bind();
         RaytracedPointLight.SCREEN_VBO.draw(view, RenderSystem.getProjectionMatrix(), RenderSystem.getShader());
