@@ -1,6 +1,5 @@
 package net.typho.vibrancy;
 
-import net.minecraft.util.math.MathHelper;
 import net.minecraft.util.math.Vec3d;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
@@ -42,44 +41,20 @@ public interface RaytracedLight extends NativeResource {
 
         public float raycast(Vector3f origin, Vector3f dir) {
             float denom = dir.dot(n);
-            if (denom >= 0.0) return 0;
+            if (denom >= 0.0) return -1;
 
             return (d - origin.dot(n)) / denom;
         }
 
-        public float rayBlend(Vector3f dir1, Vector3f dir2) {
-            float denom1 = dir1.dot(n);
-            float denom2 = dir2.dot(n);
-            if (denom1 < 0.0f || denom2 >= 0.0f) return 0f;
-
-            return denom1 / (denom1 - denom2);
-        }
-
-        public Quad normalize(Vector3f origin, Vector3f[] dirs, float[] lens) {
-            Vector3f[] verts = new Vector3f[]{v1, v2, v3, v4};
+        public Quad project(Vector3f origin, Vector3f[] dirs, float[] lens) {
+            Vector3f[] verts = {v1, v2, v3, v4};
 
             for (int i = 0; i < 4; i++) {
                 Vector3f dir = dirs[i];
                 float t = lens[i];
 
-                if (t < 1e-1) {
-                    Vector3f dir2 = switch (i) {
-                        case 0 -> lens[1] < 1e-1 ? dirs[3] : dirs[1];
-                        case 1 -> lens[2] < 1e-1 ? dirs[0] : dirs[2];
-                        case 2 -> lens[3] < 1e-1 ? dirs[1] : dirs[3];
-                        case 3 -> lens[0] < 1e-1 ? dirs[2] : dirs[0];
-                        default -> throw new IllegalStateException(String.valueOf(i));
-                    };
-                    float delta = (float) MathHelper.clamp(rayBlend(dir, dir2) + 1e-2, 0, 1);
-                    dir = dir.lerp(dir2, delta).normalize();
-                    t = raycast(origin, dir);
-                    verts[i] = switch (i) {
-                        case 0 -> lens[1] < 1e-1 ? getVert(3) : getVert(1);
-                        case 1 -> lens[2] < 1e-1 ? getVert(0) : getVert(2);
-                        case 2 -> lens[3] < 1e-1 ? getVert(1) : getVert(3);
-                        case 3 -> lens[0] < 1e-1 ? getVert(2) : getVert(0);
-                        default -> throw new IllegalStateException(String.valueOf(i));
-                    };
+                if (t < 0) {
+                    return null;
                 }
 
                 Vector3f dir1 = verts[i].sub(origin, new Vector3f());

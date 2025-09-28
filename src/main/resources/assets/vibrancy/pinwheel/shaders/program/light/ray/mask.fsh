@@ -8,7 +8,7 @@ out vec4 fragColor;
 void main() {
     fragColor = vec4(1);
 
-    if (abs(texture(DiffuseDepthSampler, gl_FragCoord.xy / ScreenSize).r - gl_FragCoord.z) > 1e-4) {
+    if (abs(texture(DiffuseDepthSampler, gl_FragCoord.xy / ScreenSize).r - gl_FragCoord.z) > 1e-6) {
         discard;
     }
 }

@@ -195,12 +195,19 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
                                 float[] lens = new float[4];
 
                                 for (int i = 0; i < 4; i++) {
-                                    Vector3f dir = shadow.getVert(i).sub(lightPos, new Vector3f()).normalize();
+                                    Vector3f dir = shadow.getVert(i).sub(lightPos, new Vector3f());
+                                    float len = dir.length();
+                                    dir.div(len);
                                     dirs[i] = dir;
-                                    lens[i] = surface.raycast(lightPos, dir);
+
+                                    if (shadow.getVert(i).distanceSquared(surface.getVert(i)) < 1e-2 * 1e-2) {
+                                        lens[i] = len;
+                                    } else {
+                                        lens[i] = surface.raycast(lightPos, dir);
+                                    }
                                 }
 
-                                Quad q = shadow.normalize(lightPos, dirs, lens);
+                                Quad q = shadow.project(lightPos, dirs, lens);
 
                                 if (q != null) {
                                     builder.vertex(q.v1())
@@ -260,11 +267,12 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
 
                 glCullFace(GL_BACK);
                 glDepthFunc(GL_LEQUAL);
-                RenderSystem.enableCull();
+                RenderSystem.disableCull();
                 renderMask(Identifier.of(Vibrancy.MOD_ID, "shadow_mask"), view, 1);
 
                 RenderSystem.depthMask(false);
                 RenderSystem.enableBlend();
+                RenderSystem.enableCull();
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
             }
 
