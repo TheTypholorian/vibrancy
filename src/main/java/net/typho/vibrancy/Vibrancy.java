@@ -47,6 +47,7 @@ import java.util.Objects;
 public class Vibrancy implements ClientModInitializer {
     public static final String MOD_ID = "vibrancy";
 
+    public static final Identifier LOGO_TEXTURE = Identifier.of(MOD_ID, "textures/gui/title/vibrancy.png");
     public static final SimpleOption<Boolean> DYNAMIC_LIGHTMAP = SimpleOption.ofBoolean("options.vibrancy.dynamic_lightmap", true);
     public static final SimpleOption<Integer> RAYTRACE_DISTANCE = new SimpleOption<>(
             "options.vibrancy.raytrace_distance",
@@ -69,9 +70,10 @@ public class Vibrancy implements ClientModInitializer {
             value -> Tooltip.of(Text.translatable("options.vibrancy.max_raytraced_lights.tooltip")),
             (text, value) -> GameOptions.getGenericValueText(text, value > 100 ? Text.translatable("options.vibrancy.max_raytraced_lights.max") : Text.translatable("options.vibrancy.max_raytraced_lights.value", value)),
             new SimpleOption.ValidatingIntSliderCallbacks(5, 105, false),
-            20,
+            50,
             value -> {}
     );
+    public static boolean SEEN_ALPHA_TEXT = false;
     public static final KeyBinding SAVE_LIGHTMAP = !FabricLoader.getInstance().isDevelopmentEnvironment() ? null : KeyBindingHelper.registerKeyBinding(new KeyBinding(
             "key.vibrancy.debug.save_lightmap",
             GLFW.GLFW_KEY_F9,

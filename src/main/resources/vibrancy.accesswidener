@@ -8,3 +8,5 @@ accessible field net/minecraft/client/render/block/BlockModelRenderer$AmbientOcc
 accessible field net/minecraft/client/render/WorldRenderer frustum Lnet/minecraft/client/render/Frustum;
 accessible method net/minecraft/client/render/model/BlockStatesLoader toStatePredicate (Lnet/minecraft/state/StateManager;Ljava/lang/String;)Ljava/util/function/Predicate;
 accessible field net/minecraft/client/render/RenderPhase name Ljava/lang/String;
+accessible class net/minecraft/client/option/GameOptions$OptionVisitor
+accessible class net/minecraft/client/option/GameOptions$Visitor

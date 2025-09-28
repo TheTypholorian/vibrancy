@@ -19,5 +19,6 @@
   "options.vibrancy.max_raytraced_lights": "Max Raytraced Lights",
   "options.vibrancy.max_raytraced_lights.tooltip": "A cap on the number of raytraced lights, avoiding lag",
   "options.vibrancy.max_raytraced_lights.value": "%s lights",
-  "options.vibrancy.max_raytraced_lights.max": "Unlimited"
+  "options.vibrancy.max_raytraced_lights.max": "Unlimited",
+  "screen.vibrancy.alpha.title": "Thank you for using Vibrancy!\n\nThis mod is still a work-in-progress, and the raytraced shadows §emay flicker§r a little in certain cases. Some quality was sacrificed for this to be playable, and the shadows §emight not always look correct§r. These are §eknown issues§r, so please don't waste time reporting them. Any suggestions from fellow coders on how to optimize the raytracing will be greatly appreciated. You can tweak cap values for lights in the video options, they are currently set to what worked best on my computer."
 }
