@@ -1,5 +1,7 @@
 package net.typho.vibrancy;
 
+import net.minecraft.client.render.VertexConsumer;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
@@ -17,6 +19,7 @@ public interface RaytracedLight extends NativeResource {
     double lazyDistance(Vec3d vec);
 
     record Quad(
+            BlockPos blockPos,
             Vector3f v1, Vector3f v2, Vector3f v3, Vector3f v4,
             Vector2f uv1, Vector2f uv2, Vector2f uv3, Vector2f uv4,
             Vector3f n, float d,
@@ -25,9 +28,10 @@ public interface RaytracedLight extends NativeResource {
     ) {
         public static final int BYTES = 40 * Float.BYTES;
 
-        public Quad(Vector3f v1, Vector3f v2, Vector3f v3, Vector3f v4,
+        public Quad(BlockPos blockPos, Vector3f v1, Vector3f v2, Vector3f v3, Vector3f v4,
                     Vector2f uv1, Vector2f uv2, Vector2f uv3, Vector2f uv4, boolean sample) {
             this(
+                    blockPos,
                     v1, v2, v3, v4, uv1, uv2, uv3, uv4,
                     new Vector3f(v2).sub(v1).cross(new Vector3f(v4).sub(v1)).normalize(),
                     new Vector3f(v2).sub(v1).cross(new Vector3f(v4).sub(v1)).normalize().dot(v1),
@@ -63,6 +67,40 @@ public interface RaytracedLight extends NativeResource {
             float inv22 =  d11 * invDet;
 
             buf.putFloat(inv11).putFloat(inv12).putFloat(inv21).putFloat(inv22);
+        }
+    }
+
+    record ShadowVolume(Quad caster, Vector3f[] vertices) {
+        public void render(VertexConsumer consumer) {
+            consumer.vertex(vertices()[0])
+                    .vertex(vertices()[1])
+                    .vertex(vertices()[2])
+                    .vertex(vertices()[3]);
+
+            consumer.vertex(vertices()[1])
+                    .vertex(vertices()[5])
+                    .vertex(vertices()[6])
+                    .vertex(vertices()[2]);
+
+            consumer.vertex(vertices()[5])
+                    .vertex(vertices()[4])
+                    .vertex(vertices()[7])
+                    .vertex(vertices()[6]);
+
+            consumer.vertex(vertices()[4])
+                    .vertex(vertices()[0])
+                    .vertex(vertices()[3])
+                    .vertex(vertices()[7]);
+
+            consumer.vertex(vertices()[1])
+                    .vertex(vertices()[0])
+                    .vertex(vertices()[4])
+                    .vertex(vertices()[5]);
+
+            consumer.vertex(vertices()[3])
+                    .vertex(vertices()[2])
+                    .vertex(vertices()[6])
+                    .vertex(vertices()[7]);
         }
     }
 }

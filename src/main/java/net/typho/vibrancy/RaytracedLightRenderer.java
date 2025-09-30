@@ -36,6 +36,8 @@ public abstract class RaytracedLightRenderer<T extends Light & RaytracedLight> i
 
                     light.render(b);
                 });
+
+        RaytracedPointLight.DIRTY.clear();
     }
 
     public abstract Collection<? extends T> getLights();

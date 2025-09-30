@@ -14,10 +14,7 @@ import net.minecraft.client.render.*;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockBox;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.*;
 import net.minecraft.util.math.random.Random;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
@@ -27,9 +24,10 @@ import org.lwjgl.glfw.GLFW;
 import org.lwjgl.system.MemoryUtil;
 
 import java.nio.ByteBuffer;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
+import java.util.function.Consumer;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL15.*;
@@ -37,11 +35,15 @@ import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER;
 
 public class RaytracedPointLight extends PointLight implements RaytracedLight {
+    public static final Set<BlockPos> DIRTY = new HashSet<>();
     public static final VertexBuffer SCREEN_VBO = new VertexBuffer(VertexBuffer.Usage.STATIC);
+    protected final List<BlockPos> dirty = new LinkedList<>();
     protected final VertexBuffer geomVBO = new VertexBuffer(VertexBuffer.Usage.DYNAMIC);
     protected final int quadsSSBO = glGenBuffers();
     protected boolean remove = false, anyShadows = false;
     protected float flicker = 0, flickerMin, flickerMax, flickerStart = (float) GLFW.glfwGetTime();
+    protected List<ShadowVolume> volumes = new LinkedList<>();
+    protected CompletableFuture<List<ShadowVolume>> fullRebuildTask;
 
     static {
         BufferBuilder bufferBuilder = RenderSystem.renderThreadTesselator().begin(VertexFormat.DrawMode.TRIANGLE_STRIP, VertexFormats.POSITION);
@@ -70,177 +72,199 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
         return getPosition().distanceSquared(vec.x, vec.y, vec.z);
     }
 
+    public void getQuads(ClientWorld world, BlockPos pos, Consumer<ShadowVolume> out, MatrixStack stack, double sqDist, BlockPos lightBlockPos, Vector3f lightPos) {
+        BlockState state = world.getBlockState(pos);
+
+        stack.push();
+        stack.translate(pos.getX(), pos.getY(), pos.getZ());
+
+        List<Vector3f> flatVertices = new LinkedList<>(), normals = new LinkedList<>();
+        List<Vector2f> flatTexCoords = new LinkedList<>();
+
+        RenderLayer layer = RenderLayers.getBlockLayer(state);
+
+        MinecraftClient.getInstance().getBlockRenderManager().renderBlock(
+                state,
+                pos,
+                world,
+                stack,
+                new VertexConsumer() {
+                    @Override
+                    public VertexConsumer vertex(float x, float y, float z) {
+                        flatVertices.add(new Vector3f(x, y, z));
+                        return this;
+                    }
+
+                    @Override
+                    public VertexConsumer color(int red, int green, int blue, int alpha) {
+                        return this;
+                    }
+
+                    @Override
+                    public VertexConsumer texture(float u, float v) {
+                        flatTexCoords.add(new Vector2f(u, v));
+                        return this;
+                    }
+
+                    @Override
+                    public VertexConsumer overlay(int u, int v) {
+                        return this;
+                    }
+
+                    @Override
+                    public VertexConsumer light(int u, int v) {
+                        return this;
+                    }
+
+                    @Override
+                    public VertexConsumer normal(float x, float y, float z) {
+                        normals.add(new Vector3f(x, y, z));
+                        return this;
+                    }
+                },
+                sqDist != 1,
+                Random.create(lightBlockPos.hashCode())
+        );
+
+        if (flatVertices.size() % 4 != 0) {
+            System.err.println("[Vibrancy] Block " + state + " doesn't use quads for rendering, skipping it for raytracing");
+        } else {
+            for (int j = 0; j < flatVertices.size(); j += 4) {
+                for (int k = j; k < j + 4; k++) {
+                    if (normals.get(k).dot(lightPos.sub(flatVertices.get(k), new Vector3f())) > 0 || flatVertices.get(k).distanceSquared(lightPos) < 4) {
+
+                        Vector3f[] vertices = new Vector3f[]{
+                                flatVertices.get(j),
+                                flatVertices.get(j + 1),
+                                flatVertices.get(j + 2),
+                                flatVertices.get(j + 3),
+                                null,
+                                null,
+                                null,
+                                null
+                        };
+
+                        for (int i = 0; i < 4; i++) {
+                            Vector3f vertex = new Vector3f(vertices[i]);
+                            Vector3f off = vertex.sub(lightPos, new Vector3f());
+                            vertices[i + 4] = vertex.add(off.normalize((radius) - off.length() + 1));
+                        }
+
+                        out.accept(new ShadowVolume(
+                                new Quad(pos, vertices[0], vertices[1], vertices[2], vertices[3], flatTexCoords.get(j), flatTexCoords.get(j + 1), flatTexCoords.get(j + 2), flatTexCoords.get(j + 3), layer.isTranslucent() || layer != RenderLayer.getSolid()),
+                                vertices
+                        ));
+
+                        break;
+                    }
+                }
+            }
+        }
+
+        stack.pop();
+    }
+
+    public void upload(BufferBuilder builder, Collection<ShadowVolume> volumes) {
+        if (volumes.isEmpty()) {
+            anyShadows = false;
+        } else {
+            anyShadows = true;
+            geomVBO.bind();
+            geomVBO.upload(builder.end());
+            VertexBuffer.unbind();
+
+            ByteBuffer buf = MemoryUtil.memAlloc(volumes.size() * Quad.BYTES);
+
+            for (ShadowVolume v : volumes) {
+                v.caster().put(buf);
+            }
+
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, quadsSSBO);
+            glBufferData(GL_SHADER_STORAGE_BUFFER, buf.flip(), GL_DYNAMIC_DRAW);
+            glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+
+            MemoryUtil.memFree(buf);
+        }
+    }
+
+    public void regenQuads(ClientWorld world, BlockPos pos, Consumer<ShadowVolume> out, MatrixStack stack, BlockPos lightBlockPos, Vector3f lightPos) {
+        volumes.removeIf(v -> v.caster().blockPos().equals(pos));
+        getQuads(world, pos, out, stack, pos.getSquaredDistance(lightBlockPos), lightBlockPos, lightPos);
+    }
+
     @Override
     public void render(boolean raytrace) {
         BlockPos lightBlockPos = new BlockPos((int) Math.floor(getPosition().x), (int) Math.floor(getPosition().y), (int) Math.floor(getPosition().z));
+        Vector3f lightPos = new Vector3f((float) getPosition().x, (float) getPosition().y, (float) getPosition().z);
+        int blockRadius = Vibrancy.capShadowDistance((int) Math.ceil(radius) - 4);
+        BlockBox box = new BlockBox(lightBlockPos).expand(blockRadius);
 
-        if (isDirty() && raytrace) {
-            clean();
+        for (BlockPos pos : DIRTY) {
+            if (box.contains(pos)) {
+                dirty.add(pos);
+            }
+        }
 
+        if (raytrace) {
             ClientWorld world = MinecraftClient.getInstance().world;
 
             if (world != null) {
-                int numQuads = 0;
-                Vector3f lightPos = new Vector3f((float) getPosition().x, (float) getPosition().y, (float) getPosition().z);
-                int blockRadius = Vibrancy.capShadowDistance((int) Math.ceil(radius) - 4);
-
                 if (blockRadius < 1) {
                     raytrace = false;
                 } else {
-                    BlockBox box = new BlockBox(lightBlockPos).expand(blockRadius);
-                    MatrixStack stack = new MatrixStack();
-                    BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION);
-                    List<Quad> quads = new LinkedList<>();
+                    if (fullRebuildTask != null && fullRebuildTask.isDone()) {
+                        try {
+                            volumes = fullRebuildTask.get();
+                            BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION);
 
-                    for (int x = box.getMinX(); x <= box.getMaxX(); x++) {
-                        for (int y = box.getMinY(); y <= box.getMaxY(); y++) {
-                            for (int z = box.getMinZ(); z <= box.getMaxZ(); z++) {
-                                BlockPos pos = new BlockPos(x, y, z);
-                                double sqDist = pos.getSquaredDistance(lightBlockPos);
+                            for (ShadowVolume volume : volumes) {
+                                volume.render(builder);
+                            }
 
-                                if (sqDist != 0 && sqDist < blockRadius * blockRadius) {
-                                    BlockState state = world.getBlockState(pos);
+                            upload(builder, volumes);
+                        } catch (InterruptedException | ExecutionException e) {
+                            throw new RuntimeException(e);
+                        }
+                    } else if (isDirty()) {
+                        clean();
+                        fullRebuildTask = CompletableFuture.supplyAsync(() -> {
+                            MatrixStack stack = new MatrixStack();
+                            List<ShadowVolume> volumes = new LinkedList<>();
 
-                                    stack.push();
-                                    stack.translate(pos.getX(), pos.getY(), pos.getZ());
+                            for (int x = box.getMinX(); x <= box.getMaxX(); x++) {
+                                for (int y = box.getMinY(); y <= box.getMaxY(); y++) {
+                                    for (int z = box.getMinZ(); z <= box.getMaxZ(); z++) {
+                                        BlockPos pos = new BlockPos(x, y, z);
+                                        double sqDist = pos.getSquaredDistance(lightBlockPos);
 
-                                    List<Vector3f> flatVertices = new LinkedList<>(), normals = new LinkedList<>();
-                                    List<Vector2f> flatTexCoords = new LinkedList<>();
-
-                                    RenderLayer layer = RenderLayers.getBlockLayer(state);
-
-                                    MinecraftClient.getInstance().getBlockRenderManager().renderBlock(
-                                            state,
-                                            pos,
-                                            world,
-                                            stack,
-                                            new VertexConsumer() {
-                                                @Override
-                                                public VertexConsumer vertex(float x, float y, float z) {
-                                                    flatVertices.add(new Vector3f(x, y, z));
-                                                    return this;
-                                                }
-
-                                                @Override
-                                                public VertexConsumer color(int red, int green, int blue, int alpha) {
-                                                    return this;
-                                                }
-
-                                                @Override
-                                                public VertexConsumer texture(float u, float v) {
-                                                    flatTexCoords.add(new Vector2f(u, v));
-                                                    return this;
-                                                }
-
-                                                @Override
-                                                public VertexConsumer overlay(int u, int v) {
-                                                    return this;
-                                                }
-
-                                                @Override
-                                                public VertexConsumer light(int u, int v) {
-                                                    return this;
-                                                }
-
-                                                @Override
-                                                public VertexConsumer normal(float x, float y, float z) {
-                                                    normals.add(new Vector3f(x, y, z));
-                                                    return this;
-                                                }
-                                            },
-                                            sqDist != 1,
-                                            Random.create(lightBlockPos.hashCode())
-                                    );
-
-                                    if (flatVertices.size() % 4 != 0) {
-                                        System.err.println("[Vibrancy] Block " + state + " doesn't use quads for rendering, skipping it for raytracing");
-                                    } else {
-                                        for (int j = 0; j < flatVertices.size(); j += 4) {
-                                            for (int k = j; k < j + 4; k++) {
-                                                if (normals.get(k).dot(lightPos.sub(flatVertices.get(k), new Vector3f())) > 0 || flatVertices.get(k).distanceSquared(lightPos) < 4) {
-
-                                                    Vector3f[] vertices = new Vector3f[]{
-                                                            flatVertices.get(j),
-                                                            flatVertices.get(j + 1),
-                                                            flatVertices.get(j + 2),
-                                                            flatVertices.get(j + 3),
-                                                            null,
-                                                            null,
-                                                            null,
-                                                            null
-                                                    };
-
-                                                    for (int i = 0; i < 4; i++) {
-                                                        Vector3f vertex = new Vector3f(vertices[i]);
-                                                        Vector3f off = vertex.sub(lightPos, new Vector3f());
-                                                        vertices[i + 4] = vertex.add(off.normalize((radius) - off.length() + 1));
-                                                    }
-
-                                                    quads.add(new Quad(vertices[0], vertices[1], vertices[2], vertices[3], flatTexCoords.get(j), flatTexCoords.get(j + 1), flatTexCoords.get(j + 2), flatTexCoords.get(j + 3), layer.isTranslucent() || layer != RenderLayer.getSolid()));
-
-                                                    builder.vertex(vertices[0])
-                                                            .vertex(vertices[1])
-                                                            .vertex(vertices[2])
-                                                            .vertex(vertices[3]);
-
-                                                    builder.vertex(vertices[1])
-                                                            .vertex(vertices[5])
-                                                            .vertex(vertices[6])
-                                                            .vertex(vertices[2]);
-
-                                                    builder.vertex(vertices[5])
-                                                            .vertex(vertices[4])
-                                                            .vertex(vertices[7])
-                                                            .vertex(vertices[6]);
-
-                                                    builder.vertex(vertices[4])
-                                                            .vertex(vertices[0])
-                                                            .vertex(vertices[3])
-                                                            .vertex(vertices[7]);
-
-                                                    builder.vertex(vertices[1])
-                                                            .vertex(vertices[0])
-                                                            .vertex(vertices[4])
-                                                            .vertex(vertices[5]);
-
-                                                    builder.vertex(vertices[3])
-                                                            .vertex(vertices[2])
-                                                            .vertex(vertices[6])
-                                                            .vertex(vertices[7]);
-
-                                                    numQuads += 6;
-
-                                                    break;
-                                                }
-                                            }
+                                        if (sqDist != 0 && sqDist < blockRadius * blockRadius) {
+                                            getQuads(world, pos, volumes::add, stack, sqDist, lightBlockPos, lightPos);
                                         }
                                     }
-
-                                    stack.pop();
                                 }
                             }
-                        }
-                    }
 
-                    if (numQuads == 0) {
-                        anyShadows = false;
-                    } else {
-                        anyShadows = true;
-                        geomVBO.bind();
-                        geomVBO.upload(builder.end());
-                        VertexBuffer.unbind();
+                            return volumes;
+                        });
+                    } else if (!dirty.isEmpty()) {
+                        MatrixStack stack = new MatrixStack();
+                        Consumer<ShadowVolume> out = volumes::add;
 
-                        ByteBuffer buf = MemoryUtil.memAlloc(quads.size() * Quad.BYTES);
+                        for (BlockPos pos : dirty) {
+                            regenQuads(world, pos, out, stack, lightBlockPos, lightPos);
 
-                        for (Quad quad : quads) {
-                            quad.put(buf);
+                            for (Direction dir : Direction.values()) {
+                                regenQuads(world, pos.offset(dir), out, stack, lightBlockPos, lightPos);
+                            }
                         }
 
-                        glBindBuffer(GL_SHADER_STORAGE_BUFFER, quadsSSBO);
-                        glBufferData(GL_SHADER_STORAGE_BUFFER, buf.flip(), GL_DYNAMIC_DRAW);
-                        glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
+                        BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION);
 
-                        MemoryUtil.memFree(buf);
+                        for (ShadowVolume volume : volumes) {
+                            volume.render(builder);
+                        }
+
+                        upload(builder, volumes);
                     }
                 }
             }

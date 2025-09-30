@@ -4,9 +4,7 @@ import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.chunk.WorldChunk;
-import net.typho.vibrancy.RaytracedPointBlockLight;
-import net.typho.vibrancy.RaytracedPointBlockLightRenderer;
-import org.joml.Vector3d;
+import net.typho.vibrancy.RaytracedPointLight;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -22,14 +20,6 @@ public class WorldChunkMixin {
             )
     )
     private void setBlockState(BlockPos pos, BlockState state, boolean moved, CallbackInfoReturnable<BlockState> cir) {
-        MinecraftClient.getInstance().execute(() -> {
-            for (RaytracedPointBlockLight light : RaytracedPointBlockLightRenderer.INSTANCE.lights.values()) {
-                if (light != null) {
-                    if (light.getPosition().distanceSquared(new Vector3d(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5)) <= light.getRadius() * light.getRadius()) {
-                        light.markDirty();
-                    }
-                }
-            }
-        });
+        MinecraftClient.getInstance().execute(() -> RaytracedPointLight.DIRTY.add(pos));
     }
 }
