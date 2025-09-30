@@ -1,7 +1,9 @@
 package net.typho.vibrancy;
 
+import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import foundry.veil.api.client.render.VeilRenderSystem;
+import foundry.veil.api.client.render.framebuffer.AdvancedFbo;
 import foundry.veil.api.client.render.framebuffer.VeilFramebuffers;
 import foundry.veil.api.client.render.light.PointLight;
 import net.minecraft.block.BlockState;
@@ -31,7 +33,7 @@ import java.util.Objects;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL15.*;
-import static org.lwjgl.opengl.GL30.glBindBufferBase;
+import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER;
 
 public class RaytracedPointLight extends PointLight implements RaytracedLight {
@@ -259,19 +261,19 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
                 shader.getUniformOrDefault("Detailed").set(position.distanceSquared(camera.getPos().x, camera.getPos().y, camera.getPos().z) < MathHelper.square(Vibrancy.RAYTRACE_DISTANCE.getValue() * 16) ? 1 : 0);
 
                 RenderSystem.depthMask(true);
-                RenderSystem.enableDepthTest();
-                RenderSystem.disableBlend();
+                RenderSystem.disableDepthTest();
+                RenderSystem.enableBlend();
+                RenderSystem.blendFunc(GlStateManager.SrcFactor.ONE, GlStateManager.DstFactor.ONE);
+                RenderSystem.blendEquation(GL_FUNC_ADD);
 
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, quadsSSBO);
 
                 glCullFace(GL_FRONT);
                 glDepthFunc(GL_GEQUAL);
-                renderMask(Identifier.of(Vibrancy.MOD_ID, "shadow_mask_back"), view, 0);
+                renderMask(Identifier.of(Vibrancy.MOD_ID, "shadow_mask"), view);
 
                 glCullFace(GL_BACK);
                 glDepthFunc(GL_LEQUAL);
-                renderMask(Identifier.of(Vibrancy.MOD_ID, "shadow_mask_front"), view, 1);
-
                 RenderSystem.depthMask(false);
                 RenderSystem.enableBlend();
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
@@ -302,10 +304,21 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
         }
     }
 
-    protected void renderMask(Identifier fbo, Matrix4f view, double depthClear) {
-        Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(fbo)).bind(true);
+    protected void renderMask(Identifier fbo, Matrix4f view) {
+        AdvancedFbo main = Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(Identifier.of("main")));
+        AdvancedFbo to = Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(fbo));
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, main.getId());
+        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, to.getId());
+
+        glBlitFramebuffer(
+                0, 0, main.getWidth(), main.getHeight(),
+                0, 0, to.getWidth(), to.getHeight(),
+                GL_DEPTH_BUFFER_BIT,
+                GL_NEAREST
+        );
+
+        to.bind(true);
         glClearColor(0f, 0f, 0f, 0f);
-        glClearDepth(depthClear);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         geomVBO.bind();

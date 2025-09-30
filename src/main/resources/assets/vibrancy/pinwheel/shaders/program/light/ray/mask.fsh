@@ -5,6 +5,7 @@
 
 uniform sampler2D BlockAtlasSampler;
 uniform sampler2D WorldPosSampler;
+uniform sampler2D DiffuseDepthSampler;
 uniform vec3 LightPos;
 uniform vec2 ScreenSize;
 
@@ -17,9 +18,10 @@ out vec4 fragColor;
 void main() {
     fragColor = vec4(1);
 
-    // 40-80%
+    // 10%
     if (Detailed) {
         vec3 Pos = texelFetch(WorldPosSampler, ivec2(gl_FragCoord.xy), 0).rgb;
+        float depth = texelFetch(DiffuseDepthSampler, ivec2(gl_FragCoord.xy), 0).r;
 
         vec3 delta = Pos - LightPos;
         float len = length(delta);
@@ -30,13 +32,9 @@ void main() {
         if (raycastQuad(LightPos, dir, len, q, uv)) {
             if (q.doSample == 1) {
                 fragColor = texture(BlockAtlasSampler, uv);
-
-                if (fragColor.a == 0) {
-                    discard;
-                }
             }
         } else {
-            discard;
+            fragColor = vec4(0);
         }
     }
 }
