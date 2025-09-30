@@ -1,7 +1,10 @@
 package net.typho.vibrancy;
 
+import foundry.veil.api.client.render.VeilRenderSystem;
+import foundry.veil.api.client.render.dynamicbuffer.DynamicBufferType;
 import foundry.veil.api.client.render.light.Light;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.util.Identifier;
 import org.lwjgl.system.NativeResource;
 
 import java.util.Collection;
@@ -11,10 +14,11 @@ public abstract class RaytracedLightRenderer<T extends Light & RaytracedLight> i
     public int numRaytraced = 0, numVisible = 0;
 
     public void render() {
-        //Vibrancy.blitViewPos();
         int[] cap = {0};
         numRaytraced = 0;
         numVisible = 0;
+
+        VeilRenderSystem.renderer().enableBuffers(Identifier.of(Vibrancy.MOD_ID, "mask"), DynamicBufferType.NORMAL);
 
         getLights().stream()
                 .sorted(Comparator.comparingDouble(light -> light.lazyDistance(MinecraftClient.getInstance().gameRenderer.getCamera().getPos())))
@@ -36,6 +40,8 @@ public abstract class RaytracedLightRenderer<T extends Light & RaytracedLight> i
 
                     light.render(b);
                 });
+
+        VeilRenderSystem.renderer().disableBuffers(Identifier.of(Vibrancy.MOD_ID, "mask"));
     }
 
     public abstract Collection<? extends T> getLights();

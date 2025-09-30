@@ -4,7 +4,6 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import foundry.veil.api.client.render.VeilRenderSystem;
 import foundry.veil.api.client.render.framebuffer.VeilFramebuffers;
 import foundry.veil.api.client.render.light.PointLight;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.ShaderProgram;
@@ -25,13 +24,8 @@ import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.system.MemoryUtil;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintWriter;
 import java.nio.ByteBuffer;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL15.*;
@@ -39,6 +33,11 @@ import static org.lwjgl.opengl.GL30.glBindBufferBase;
 import static org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER;
 
 public class RaytracedPointLight extends PointLight implements RaytracedLight {
+    public static final VertexFormat VERTEX_FORMAT = VertexFormat.builder()
+            .add("Position", VertexFormatElement.POSITION)
+            .add("UV0", VertexFormatElement.UV_0)
+            .add("Normal", VertexFormatElement.NORMAL)
+            .build();
     public static final VertexBuffer SCREEN_VBO = new VertexBuffer(VertexBuffer.Usage.STATIC);
     protected final VertexBuffer geomVBO = new VertexBuffer(VertexBuffer.Usage.DYNAMIC);
     protected final int quadsSSBO = glGenBuffers();
@@ -82,23 +81,14 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
             ClientWorld world = MinecraftClient.getInstance().world;
 
             if (world != null) {
-                int numQuads = 0;
                 Vector3f lightPos = new Vector3f((float) getPosition().x, (float) getPosition().y, (float) getPosition().z);
                 int blockRadius = Vibrancy.capShadowDistance((int) Math.ceil(radius) - 4);
-                PrintWriter out;
-
-                try {
-                    out = FabricLoader.getInstance().isDevelopmentEnvironment() && new File("mesh.obj").exists() ? null : new PrintWriter("mesh.obj");
-                } catch (FileNotFoundException e) {
-                    throw new RuntimeException(e);
-                }
 
                 if (blockRadius < 1) {
                     raytrace = false;
                 } else {
                     BlockBox box = new BlockBox(lightBlockPos).expand(blockRadius);
                     MatrixStack stack = new MatrixStack();
-                    BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION);
                     List<Quad> quads = new LinkedList<>();
 
                     for (int x = box.getMinX(); x <= box.getMaxX(); x++) {
@@ -186,40 +176,40 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
                         }
                     }
 
-                    List<Quad> shadowQuads = new LinkedList<>();
+                    Set<Quad> shadowQuads = new HashSet<>();
+                    BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.QUADS, VERTEX_FORMAT);
 
                     for (Quad shadow : quads) {
                         for (Quad surface : quads) {
                             if (shadow != surface) {
-                                Vector3f[] dirs = new Vector3f[4];
-                                float[] lens = new float[4];
-
-                                for (int i = 0; i < 4; i++) {
-                                    Vector3f dir = shadow.getVert(i).sub(lightPos, new Vector3f());
-                                    float len = dir.length();
-                                    dir.div(len);
-                                    dirs[i] = dir;
-
-                                    if (shadow.getVert(i).distanceSquared(surface.getVert(i)) < 1e-2 * 1e-2) {
-                                        lens[i] = len;
-                                    } else {
-                                        lens[i] = surface.raycast(lightPos, dir);
-                                    }
-                                }
-
-                                Quad q = shadow.project(lightPos, dirs, lens);
+                                Quad q = shadow.project(surface, lightPos, radius);
 
                                 if (q != null) {
-                                    builder.vertex(q.v1())
-                                            .vertex(q.v2())
-                                            .vertex(q.v3())
-                                            .vertex(q.v4());
-
                                     shadowQuads.add(q);
                                 }
                             }
                         }
                     }
+
+                    for (Quad q : shadowQuads) {
+                        builder.vertex(q.v1())
+                                .texture(q.uv1().x, q.uv1().y)
+                                .normal(q.n1().x, q.n1().y, q.n1().z)
+
+                                .vertex(q.v2())
+                                .texture(q.uv2().x, q.uv2().y)
+                                .normal(q.n2().x, q.n2().y, q.n2().z)
+
+                                .vertex(q.v3())
+                                .texture(q.uv3().x, q.uv3().y)
+                                .normal(q.n3().x, q.n3().y, q.n3().z)
+
+                                .vertex(q.v4())
+                                .texture(q.uv4().x, q.uv4().y)
+                                .normal(q.n4().x, q.n4().y, q.n4().z);
+                    }
+
+                    System.out.println(shadowQuads.size());
 
                     if (shadowQuads.isEmpty()) {
                         anyShadows = false;

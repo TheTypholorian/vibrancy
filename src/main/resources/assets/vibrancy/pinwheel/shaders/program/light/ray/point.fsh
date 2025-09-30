@@ -59,6 +59,7 @@ void main() {
         float worldDepth = depthSampleToWorldDepth(depth);
 
         if (worldDepth > maskDepth - 1e-3) {
+            //fragColor = vec4(1, 0, 0, 1);
             applyShadowColor(texelFetch(ShadowMaskSampler, ivec2(gl_FragCoord.xy), 0));
         }
     }

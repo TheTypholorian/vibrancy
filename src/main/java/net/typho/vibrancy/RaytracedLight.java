@@ -6,6 +6,7 @@ import org.joml.Vector3f;
 import org.lwjgl.system.NativeResource;
 
 import java.nio.ByteBuffer;
+import java.util.Objects;
 
 public interface RaytracedLight extends NativeResource {
     default boolean isVisible() {
@@ -39,37 +40,83 @@ public interface RaytracedLight extends NativeResource {
             );
         }
 
-        public float raycast(Vector3f origin, Vector3f dir) {
-            float denom = dir.dot(n);
-            if (denom >= 0.0) return -1;
-
-            return (d - origin.dot(n)) / denom;
+        @Override
+        public boolean equals(Object o) {
+            if (o == null || getClass() != o.getClass()) return false;
+            Quad quad = (Quad) o;
+            return Objects.equals(v1, quad.v1) && Objects.equals(v2, quad.v2) && Objects.equals(v3, quad.v3) && Objects.equals(v4, quad.v4);
         }
 
-        public Quad project(Vector3f origin, Vector3f[] dirs, float[] lens) {
+        @Override
+        public int hashCode() {
+            return Objects.hash(v1, v2, v3, v4);
+        }
+
+        public Quad project(Quad surface, Vector3f origin, float radius) {
             Vector3f[] verts = {v1, v2, v3, v4};
+            boolean[] missed = {false, false, false, false};
+            Vector3f[] fars = new Vector3f[4];
+            Float[] lens = {null, null, null, null};
 
             for (int i = 0; i < 4; i++) {
-                Vector3f dir = dirs[i];
-                float t = lens[i];
+                Vector3f vert = getVert(i);
+                Vector3f dir = vert.sub(origin, new Vector3f()).normalize();
 
-                if (t < 0) {
-                    return null;
+                float denom = dir.dot(surface.n);
+
+                if (denom >= 0) {
+                    missed[i] = true;
+                    fars[i] = dir.mul(radius, new Vector3f()).add(vert);
+                } else {
+                    Vector3f dir1 = verts[i].sub(origin, new Vector3f());
+                    float t = (surface.d - origin.dot(surface.n)) / denom;
+
+                    if (dir1.length() > t - 1e-3) {
+                        return null;
+                    }
+
+                    lens[i] = t;
+                    verts[i] = origin.add(dir.mul(t), new Vector3f());
                 }
+            }
 
-                Vector3f dir1 = verts[i].sub(origin, new Vector3f());
+            for (int i = 0; i < 4; i++) {
+                if (missed[i]) {
+                    Vector3f tFar = getAdj(i, lens, fars);
 
-                if (dir1.length() > t - 1e-3) {
-                    return null;
+                    if (tFar == null) {
+                        return null;
+                    }
+
+                    Vector3f mFar = fars[i];
+                    Vector3f dir = mFar.sub(tFar, new Vector3f()).normalize();
+
+                    float denom = dir.dot(surface.n);
+
+                    if (denom >= 0) {
+                        return null;
+                    }
+
+                    float t = (surface.d - mFar.dot(surface.n)) / denom;
+
+                    verts[i] = dir.normalize(t, new Vector3f()).add(mFar);
                 }
-
-                verts[i] = origin.add(dir.mul(t), new Vector3f());
             }
 
             return new Quad(
                     verts[0], verts[1], verts[2], verts[3],
                     n1, n2, n3, n4, uv1, uv2, uv3, uv4, sample
             );
+        }
+
+        public <T> T getAdj(int i, Float[] lens, T[] vals) {
+            return switch (i) {
+                case 0 -> lens[1] == null ? vals[3] : vals[1];
+                case 1 -> lens[2] == null ? vals[0] : vals[2];
+                case 2 -> lens[3] == null ? vals[1] : vals[3];
+                case 3 -> lens[0] == null ? vals[2] : vals[0];
+                default -> throw new IllegalArgumentException(String.valueOf(i));
+            };
         }
 
         public Vector3f getVert(int i) {
