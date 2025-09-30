@@ -4,7 +4,6 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import foundry.veil.api.client.render.VeilRenderSystem;
 import foundry.veil.api.client.render.framebuffer.VeilFramebuffers;
 import foundry.veil.api.client.render.light.PointLight;
-import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.ShaderProgram;
@@ -25,9 +24,6 @@ import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.system.MemoryUtil;
 
-import java.io.File;
-import java.io.FileNotFoundException;
-import java.io.PrintWriter;
 import java.nio.ByteBuffer;
 import java.util.LinkedList;
 import java.util.List;
@@ -93,13 +89,6 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
                     MatrixStack stack = new MatrixStack();
                     BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION);
                     List<Quad> quads = new LinkedList<>();
-                    PrintWriter out;
-
-                    try {
-                        out = FabricLoader.getInstance().isDevelopmentEnvironment() && new File("mesh.obj").exists() ? null : new PrintWriter("mesh.obj");
-                    } catch (FileNotFoundException e) {
-                        throw new RuntimeException(e);
-                    }
 
                     for (int x = box.getMinX(); x <= box.getMaxX(); x++) {
                         for (int y = box.getMinY(); y <= box.getMaxY(); y++) {
@@ -216,42 +205,6 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
                                                             .vertex(vertices[2])
                                                             .vertex(vertices[6])
                                                             .vertex(vertices[7]);
-
-                                                    if (out != null) {
-                                                        int i = numQuads * 4 + 1;
-
-                                                        out.println("v " + vertices[0].x + " " + vertices[0].y + " " + vertices[0].z);
-                                                        out.println("v " + vertices[1].x + " " + vertices[1].y + " " + vertices[1].z);
-                                                        out.println("v " + vertices[2].x + " " + vertices[2].y + " " + vertices[2].z);
-                                                        out.println("v " + vertices[3].x + " " + vertices[3].y + " " + vertices[3].z);
-                                                        out.println("v " + vertices[1].x + " " + vertices[1].y + " " + vertices[1].z);
-                                                        out.println("v " + vertices[5].x + " " + vertices[5].y + " " + vertices[5].z);
-                                                        out.println("v " + vertices[6].x + " " + vertices[6].y + " " + vertices[6].z);
-                                                        out.println("v " + vertices[2].x + " " + vertices[2].y + " " + vertices[2].z);
-                                                        out.println("v " + vertices[5].x + " " + vertices[5].y + " " + vertices[5].z);
-                                                        out.println("v " + vertices[4].x + " " + vertices[4].y + " " + vertices[4].z);
-                                                        out.println("v " + vertices[7].x + " " + vertices[7].y + " " + vertices[7].z);
-                                                        out.println("v " + vertices[6].x + " " + vertices[6].y + " " + vertices[6].z);
-                                                        out.println("v " + vertices[4].x + " " + vertices[4].y + " " + vertices[4].z);
-                                                        out.println("v " + vertices[0].x + " " + vertices[0].y + " " + vertices[0].z);
-                                                        out.println("v " + vertices[3].x + " " + vertices[3].y + " " + vertices[3].z);
-                                                        out.println("v " + vertices[7].x + " " + vertices[7].y + " " + vertices[7].z);
-                                                        out.println("v " + vertices[1].x + " " + vertices[1].y + " " + vertices[1].z);
-                                                        out.println("v " + vertices[0].x + " " + vertices[0].y + " " + vertices[0].z);
-                                                        out.println("v " + vertices[4].x + " " + vertices[4].y + " " + vertices[4].z);
-                                                        out.println("v " + vertices[5].x + " " + vertices[5].y + " " + vertices[5].z);
-                                                        out.println("v " + vertices[3].x + " " + vertices[3].y + " " + vertices[3].z);
-                                                        out.println("v " + vertices[2].x + " " + vertices[2].y + " " + vertices[2].z);
-                                                        out.println("v " + vertices[6].x + " " + vertices[6].y + " " + vertices[6].z);
-                                                        out.println("v " + vertices[7].x + " " + vertices[7].y + " " + vertices[7].z);
-
-                                                        out.println("f " + i++ + " " + i++ + " " + i++ + " " + i++);
-                                                        out.println("f " + i++ + " " + i++ + " " + i++ + " " + i++);
-                                                        out.println("f " + i++ + " " + i++ + " " + i++ + " " + i++);
-                                                        out.println("f " + i++ + " " + i++ + " " + i++ + " " + i++);
-                                                        out.println("f " + i++ + " " + i++ + " " + i++ + " " + i++);
-                                                        out.println("f " + i++ + " " + i++ + " " + i++ + " " + i++);
-                                                    }
 
                                                     numQuads += 6;
 

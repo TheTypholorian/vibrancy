@@ -42,7 +42,7 @@ dependencies {
     modImplementation("maven.modrinth:sodium:${project.sodium_version}")
     modImplementation("maven.modrinth:continuity:${project.continuity_version}")
 
-    modImplementation("foundry.veil:veil-fabric-${project.minecraft_version}:${project.veil_version}") {
+    include modImplementation("foundry.veil:veil-fabric-${project.minecraft_version}:${project.veil_version}") {
         exclude group: "maven.modrinth"
         exclude group: "me.fallenbreath"
     }
