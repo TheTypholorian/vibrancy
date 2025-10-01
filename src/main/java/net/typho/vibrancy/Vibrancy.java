@@ -2,8 +2,6 @@ package net.typho.vibrancy;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
-import com.mojang.blaze3d.systems.RenderSystem;
-import foundry.veil.api.client.render.VeilRenderSystem;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientWorldEvents;
@@ -13,14 +11,11 @@ import net.fabricmc.fabric.api.resource.ResourcePackActivationType;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.Block;
-import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gl.VertexBuffer;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.option.GameOptions;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.option.SimpleOption;
-import net.minecraft.client.render.Camera;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.effect.StatusEffects;
@@ -36,21 +31,19 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.MathHelper;
-import org.joml.Matrix4f;
-import org.joml.Quaternionf;
 import org.lwjgl.glfw.GLFW;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.Objects;
 
 public class Vibrancy implements ClientModInitializer {
     public static final String MOD_ID = "vibrancy";
 
     public static final Identifier LOGO_TEXTURE = Identifier.of(MOD_ID, "textures/gui/title/vibrancy.png");
     public static final SimpleOption<Boolean> DYNAMIC_LIGHTMAP = SimpleOption.ofBoolean("options.vibrancy.dynamic_lightmap", true);
+    public static final SimpleOption<Boolean> TRANSPARENCY_TEST = SimpleOption.ofBoolean("options.vibrancy.transparency_test", value -> Tooltip.of(Text.translatable("options.vibrancy.transparency_test.tooltip")), false);
     public static final SimpleOption<Integer> RAYTRACE_DISTANCE = new SimpleOption<>(
             "options.vibrancy.raytrace_distance",
             value -> Tooltip.of(Text.translatable("options.vibrancy.raytrace_distance.tooltip")),
@@ -90,6 +83,7 @@ public class Vibrancy implements ClientModInitializer {
             "key.categories.misc"
     ));
     public static final Map<RegistryKey<Block>, BlockStateFunction<Boolean>> EMISSIVE_OVERRIDES = new LinkedHashMap<>();
+    public static int NUM_LIGHT_TASKS = 0;
 
     public static int maxLights() {
         int v = MAX_RAYTRACED_LIGHTS.getValue();
@@ -148,22 +142,6 @@ public class Vibrancy implements ClientModInitializer {
         });
         ResourceManagerHelper.registerBuiltinResourcePack(Identifier.of(Vibrancy.MOD_ID, "vibrant_textures"), FabricLoader.getInstance().getModContainer(Vibrancy.MOD_ID).orElseThrow(), Text.translatable("pack.name.vibrancy.textures"), ResourcePackActivationType.NORMAL);
         ResourceManagerHelper.registerBuiltinResourcePack(Identifier.of(Vibrancy.MOD_ID, "ripple"), FabricLoader.getInstance().getModContainer(Vibrancy.MOD_ID).orElseThrow(), Text.translatable("pack.name.vibrancy.ripple"), ResourcePackActivationType.DEFAULT_ENABLED);
-    }
-
-    public static void blitViewPos() {
-        RenderSystem.disableDepthTest();
-
-        Camera camera = MinecraftClient.getInstance().gameRenderer.getCamera();
-        Matrix4f view = new Matrix4f()
-                .rotate(camera.getRotation().invert(new Quaternionf()))
-                .translate((float) -camera.getPos().x, (float) -camera.getPos().y, (float) -camera.getPos().z);
-
-        VeilRenderSystem.setShader(Identifier.of(Vibrancy.MOD_ID, "view_pos"));
-        Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(Identifier.of(MOD_ID, "view_pos"))).bind(true);
-
-        RaytracedPointLight.SCREEN_VBO.bind();
-        RaytracedPointLight.SCREEN_VBO.draw(view, RenderSystem.getProjectionMatrix(), RenderSystem.getShader());
-        VertexBuffer.unbind();
     }
 
     public static float[] getTempTint(DimensionLightInfo dimLight, float temp) {

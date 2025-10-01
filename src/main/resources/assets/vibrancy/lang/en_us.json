@@ -14,6 +14,8 @@
   "options.vibrancy.dynamic_lightmap.tooltip": "Tweaks the lighting colors based on player position. Ex: Light blue in a cold biome, yellow-tan in a desert biome, orange in the nether",
   "options.vibrancy.raytrace_distance": "Raytrace Distance",
   "options.vibrancy.raytrace_distance.tooltip": "The distance from camera where lights have perfect shadows, lights beyond this use an approximation",
+  "options.vibrancy.transparency_test": "Transparency Test",
+  "options.vibrancy.transparency_test.tooltip": "Whether \"transparent\" blocks such as glass, doors, stairs, and grates should cast shadows",
   "options.vibrancy.light_cull_distance": "Light Cull Distance",
   "options.vibrancy.light_cull_distance.tooltip": "The distance from camera when lights are no longer displayed (for performance reasons)",
   "options.vibrancy.max_raytraced_lights": "Max Raytraced Lights",

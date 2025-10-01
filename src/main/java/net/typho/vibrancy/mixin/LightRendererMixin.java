@@ -26,6 +26,8 @@ public class LightRendererMixin {
             at = @At("HEAD")
     )
     private void render(CallbackInfo ci) {
+        Vibrancy.NUM_LIGHT_TASKS = 0;
+
         if (VeilRenderSystem.renderer().enableBuffers(BUFFER_ID, DynamicBufferType.ALBEDO, DynamicBufferType.NORMAL)) {
             RaytracedPointBlockLightRenderer.INSTANCE.render();
         }
@@ -43,5 +45,7 @@ public class LightRendererMixin {
         } else {
             consumer.accept("Raytraced: " + RaytracedPointBlockLightRenderer.INSTANCE.numRaytraced + " / " + Vibrancy.MAX_RAYTRACED_LIGHTS.getValue());
         }
+
+        consumer.accept("Async tasks: " + Vibrancy.NUM_LIGHT_TASKS);
     }
 }

@@ -75,6 +75,10 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
     public void getQuads(ClientWorld world, BlockPos pos, Consumer<ShadowVolume> out, MatrixStack stack, double sqDist, BlockPos lightBlockPos, Vector3f lightPos) {
         BlockState state = world.getBlockState(pos);
 
+        if (Vibrancy.TRANSPARENCY_TEST.getValue() && state.isTransparent(world, pos)) {
+            return;
+        }
+
         stack.push();
         stack.translate(pos.getX(), pos.getY(), pos.getZ());
 
@@ -147,7 +151,7 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
                         for (int i = 0; i < 4; i++) {
                             Vector3f vertex = new Vector3f(vertices[i]);
                             Vector3f off = vertex.sub(lightPos, new Vector3f());
-                            vertices[i + 4] = vertex.add(off.normalize((radius) - off.length() + 1));
+                            vertices[i + 4] = vertex.add(off.normalize(radius * 2));
                         }
 
                         out.accept(new ShadowVolume(
@@ -196,7 +200,7 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
     public void render(boolean raytrace) {
         BlockPos lightBlockPos = new BlockPos((int) Math.floor(getPosition().x), (int) Math.floor(getPosition().y), (int) Math.floor(getPosition().z));
         Vector3f lightPos = new Vector3f((float) getPosition().x, (float) getPosition().y, (float) getPosition().z);
-        int blockRadius = Vibrancy.capShadowDistance((int) Math.ceil(radius) - 4);
+        int blockRadius = Vibrancy.capShadowDistance((int) Math.ceil(radius) - 2);
         BlockBox box = new BlockBox(lightBlockPos).expand(blockRadius);
 
         for (BlockPos pos : DIRTY) {
@@ -205,27 +209,31 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
             }
         }
 
-        if (raytrace) {
+        if (fullRebuildTask != null) {
+            Vibrancy.NUM_LIGHT_TASKS++;
+        }
+
+        if (fullRebuildTask != null && fullRebuildTask.isDone()) {
+            try {
+                volumes = fullRebuildTask.get();
+                BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION);
+
+                for (ShadowVolume volume : volumes) {
+                    volume.render(builder);
+                }
+
+                upload(builder, volumes);
+            } catch (InterruptedException | ExecutionException e) {
+                throw new RuntimeException(e);
+            }
+        } else if (raytrace) {
             ClientWorld world = MinecraftClient.getInstance().world;
 
             if (world != null) {
                 if (blockRadius < 1) {
                     raytrace = false;
                 } else {
-                    if (fullRebuildTask != null && fullRebuildTask.isDone()) {
-                        try {
-                            volumes = fullRebuildTask.get();
-                            BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION);
-
-                            for (ShadowVolume volume : volumes) {
-                                volume.render(builder);
-                            }
-
-                            upload(builder, volumes);
-                        } catch (InterruptedException | ExecutionException e) {
-                            throw new RuntimeException(e);
-                        }
-                    } else if (isDirty()) {
+                    if (isDirty()) {
                         clean();
                         fullRebuildTask = CompletableFuture.supplyAsync(() -> {
                             MatrixStack stack = new MatrixStack();
