@@ -197,9 +197,8 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
     }
 
     @Override
-    public void render(boolean raytrace) {
+    public void updateDirty(Iterable<BlockPos> it) {
         BlockPos lightBlockPos = new BlockPos((int) Math.floor(getPosition().x), (int) Math.floor(getPosition().y), (int) Math.floor(getPosition().z));
-        Vector3f lightPos = new Vector3f((float) getPosition().x, (float) getPosition().y, (float) getPosition().z);
         int blockRadius = Vibrancy.capShadowDistance((int) Math.ceil(radius) - 2);
         BlockBox box = new BlockBox(lightBlockPos).expand(blockRadius);
 
@@ -208,14 +207,34 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
                 dirty.add(pos);
             }
         }
+    }
 
-        if (fullRebuildTask != null) {
-            Vibrancy.NUM_LIGHT_TASKS++;
-        }
+    @Override
+    public void render(boolean raytrace) {
+        ClientWorld world = MinecraftClient.getInstance().world;
 
-        if (fullRebuildTask != null && fullRebuildTask.isDone()) {
-            try {
-                volumes = fullRebuildTask.get();
+        if (world != null) {
+            BlockPos lightBlockPos = new BlockPos((int) Math.floor(getPosition().x), (int) Math.floor(getPosition().y), (int) Math.floor(getPosition().z));
+            Vector3f lightPos = new Vector3f((float) getPosition().x, (float) getPosition().y, (float) getPosition().z);
+            int blockRadius = Vibrancy.capShadowDistance((int) Math.ceil(radius) - 2);
+            BlockBox box = new BlockBox(lightBlockPos).expand(blockRadius);
+
+            if (fullRebuildTask != null) {
+                Vibrancy.NUM_LIGHT_TASKS++;
+            }
+
+            if (!dirty.isEmpty()) {
+                MatrixStack stack = new MatrixStack();
+                Consumer<ShadowVolume> out = volumes::add;
+
+                for (BlockPos pos : dirty) {
+                    regenQuads(world, pos, out, stack, lightBlockPos, lightPos);
+
+                    for (Direction dir : Direction.values()) {
+                        regenQuads(world, pos.offset(dir), out, stack, lightBlockPos, lightPos);
+                    }
+                }
+
                 BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION);
 
                 for (ShadowVolume volume : volumes) {
@@ -223,13 +242,22 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
                 }
 
                 upload(builder, volumes);
-            } catch (InterruptedException | ExecutionException e) {
-                throw new RuntimeException(e);
             }
-        } else if (raytrace) {
-            ClientWorld world = MinecraftClient.getInstance().world;
 
-            if (world != null) {
+            if (fullRebuildTask != null && fullRebuildTask.isDone()) {
+                try {
+                    volumes = fullRebuildTask.get();
+                    BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION);
+
+                    for (ShadowVolume volume : volumes) {
+                        volume.render(builder);
+                    }
+
+                    upload(builder, volumes);
+                } catch (InterruptedException | ExecutionException e) {
+                    throw new RuntimeException(e);
+                }
+            } else if (raytrace) {
                 if (blockRadius < 1) {
                     raytrace = false;
                 } else {
@@ -254,85 +282,66 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
 
                             return volumes;
                         });
-                    } else if (!dirty.isEmpty()) {
-                        MatrixStack stack = new MatrixStack();
-                        Consumer<ShadowVolume> out = volumes::add;
-
-                        for (BlockPos pos : dirty) {
-                            regenQuads(world, pos, out, stack, lightBlockPos, lightPos);
-
-                            for (Direction dir : Direction.values()) {
-                                regenQuads(world, pos.offset(dir), out, stack, lightBlockPos, lightPos);
-                            }
-                        }
-
-                        BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION);
-
-                        for (ShadowVolume volume : volumes) {
-                            volume.render(builder);
-                        }
-
-                        upload(builder, volumes);
                     }
                 }
             }
-        }
 
-        if (isVisible()) {
-            Camera camera = MinecraftClient.getInstance().gameRenderer.getCamera();
-            Matrix4f view = new Matrix4f()
-                    .rotate(camera.getRotation().invert(new Quaternionf()))
-                    .translate((float) -camera.getPos().x, (float) -camera.getPos().y, (float) -camera.getPos().z);
-            ShaderProgram shader;
+            if (isVisible()) {
+                Camera camera = MinecraftClient.getInstance().gameRenderer.getCamera();
+                Matrix4f view = new Matrix4f()
+                        .rotate(camera.getRotation().invert(new Quaternionf()))
+                        .translate((float) -camera.getPos().x, (float) -camera.getPos().y, (float) -camera.getPos().z);
+                ShaderProgram shader;
 
-            if (anyShadows && raytrace) {
-                VeilRenderSystem.setShader(Identifier.of(Vibrancy.MOD_ID, "light/ray/mask"));
+                if (anyShadows && raytrace) {
+                    VeilRenderSystem.setShader(Identifier.of(Vibrancy.MOD_ID, "light/ray/mask"));
+                    shader = Objects.requireNonNull(RenderSystem.getShader());
+
+                    shader.getUniformOrDefault("LightPos").set((float) position.x, (float) position.y, (float) position.z);
+                    shader.getUniformOrDefault("Detailed").set(position.distanceSquared(camera.getPos().x, camera.getPos().y, camera.getPos().z) < MathHelper.square(Vibrancy.RAYTRACE_DISTANCE.getValue() * 16) ? 1 : 0);
+
+                    RenderSystem.depthMask(true);
+                    RenderSystem.disableDepthTest();
+                    RenderSystem.enableBlend();
+                    RenderSystem.blendFunc(GlStateManager.SrcFactor.ONE, GlStateManager.DstFactor.ONE);
+                    RenderSystem.blendEquation(GL_FUNC_ADD);
+
+                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, quadsSSBO);
+
+                    glCullFace(GL_FRONT);
+                    glDepthFunc(GL_GEQUAL);
+                    renderMask(Identifier.of(Vibrancy.MOD_ID, "shadow_mask"), view);
+
+                    glCullFace(GL_BACK);
+                    glDepthFunc(GL_LEQUAL);
+                    RenderSystem.depthMask(false);
+                    RenderSystem.enableBlend();
+                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
+                }
+
+                Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(VeilFramebuffers.LIGHT)).bind(true);
+                VeilRenderSystem.setShader(Identifier.of(Vibrancy.MOD_ID, "light/ray/point"));
                 shader = Objects.requireNonNull(RenderSystem.getShader());
 
+                float time = (float) GLFW.glfwGetTime();
+
+                while (time - flickerStart > 0.25) {
+                    flickerStart += 0.25f;
+                    flickerMin = flickerMax;
+                    flickerMax = new java.util.Random().nextFloat(-1, 1);
+                }
+
+                float brightness = getBrightness() * (1 + flicker * MathHelper.lerp((time - flickerStart) * 4, flickerMin, flickerMax));
+
                 shader.getUniformOrDefault("LightPos").set((float) position.x, (float) position.y, (float) position.z);
-                shader.getUniformOrDefault("Detailed").set(position.distanceSquared(camera.getPos().x, camera.getPos().y, camera.getPos().z) < MathHelper.square(Vibrancy.RAYTRACE_DISTANCE.getValue() * 16) ? 1 : 0);
+                shader.getUniformOrDefault("LightColor").set(color.x * brightness, color.y * brightness, color.z * brightness);
+                shader.getUniformOrDefault("LightRadius").set(radius);
+                shader.getUniformOrDefault("AnyShadows").set(anyShadows ? 1 : 0);
 
-                RenderSystem.depthMask(true);
-                RenderSystem.disableDepthTest();
-                RenderSystem.enableBlend();
-                RenderSystem.blendFunc(GlStateManager.SrcFactor.ONE, GlStateManager.DstFactor.ONE);
-                RenderSystem.blendEquation(GL_FUNC_ADD);
-
-                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, quadsSSBO);
-
-                glCullFace(GL_FRONT);
-                glDepthFunc(GL_GEQUAL);
-                renderMask(Identifier.of(Vibrancy.MOD_ID, "shadow_mask"), view);
-
-                glCullFace(GL_BACK);
-                glDepthFunc(GL_LEQUAL);
-                RenderSystem.depthMask(false);
-                RenderSystem.enableBlend();
-                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
+                SCREEN_VBO.bind();
+                SCREEN_VBO.draw(view, RenderSystem.getProjectionMatrix(), shader);
+                VertexBuffer.unbind();
             }
-
-            Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(VeilFramebuffers.LIGHT)).bind(true);
-            VeilRenderSystem.setShader(Identifier.of(Vibrancy.MOD_ID, "light/ray/point"));
-            shader = Objects.requireNonNull(RenderSystem.getShader());
-
-            float time = (float) GLFW.glfwGetTime();
-
-            while (time - flickerStart > 0.25) {
-                flickerStart += 0.25f;
-                flickerMin = flickerMax;
-                flickerMax = new java.util.Random().nextFloat(-1, 1);
-            }
-
-            float brightness = getBrightness() * (1 + flicker * MathHelper.lerp((time - flickerStart) * 4, flickerMin, flickerMax));
-
-            shader.getUniformOrDefault("LightPos").set((float) position.x, (float) position.y, (float) position.z);
-            shader.getUniformOrDefault("LightColor").set(color.x * brightness, color.y * brightness, color.z * brightness);
-            shader.getUniformOrDefault("LightRadius").set(radius);
-            shader.getUniformOrDefault("AnyShadows").set(anyShadows ? 1 : 0);
-
-            SCREEN_VBO.bind();
-            SCREEN_VBO.draw(view, RenderSystem.getProjectionMatrix(), shader);
-            VertexBuffer.unbind();
         }
     }
 

@@ -14,6 +14,8 @@ public interface RaytracedLight extends NativeResource {
         return true;
     }
 
+    void updateDirty(Iterable<BlockPos> it);
+
     void render(boolean raytrace);
 
     double lazyDistance(Vec3d vec);

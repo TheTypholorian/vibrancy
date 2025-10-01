@@ -76,6 +76,14 @@ public class Vibrancy implements ClientModInitializer {
             8,
             value -> {}
     );
+    public static final SimpleOption<Integer> MAX_LIGHT_RADIUS = new SimpleOption<>(
+            "options.vibrancy.max_light_radius",
+            value -> Tooltip.of(Text.translatable("options.vibrancy.max_light_radius.tooltip")),
+            (text, value) -> GameOptions.getGenericValueText(text, value > 15 ? Text.translatable("options.vibrancy.max_light_radius.max") : Text.translatable("options.vibrancy.max_light_radius.value", value)),
+            new SimpleOption.ValidatingIntSliderCallbacks(1, 16, false),
+            15,
+            value -> {}
+    );
     public static boolean SEEN_ALPHA_TEXT = false;
     public static final KeyBinding SAVE_LIGHTMAP = !FabricLoader.getInstance().isDevelopmentEnvironment() ? null : KeyBindingHelper.registerKeyBinding(new KeyBinding(
             "key.vibrancy.debug.save_lightmap",

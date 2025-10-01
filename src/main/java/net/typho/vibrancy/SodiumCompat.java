@@ -31,6 +31,12 @@ public final class SodiumCompat {
                 .build());
 
         groups.add(OptionGroup.createBuilder()
+                .add(OptionImpl.createBuilder(boolean.class, vanillaOpts)
+                        .setName(Text.translatable("options.vibrancy.transparency_test"))
+                        .setTooltip(Text.translatable("options.vibrancy.transparency_test.tooltip"))
+                        .setControl(TickBoxControl::new)
+                        .setBinding((opts, value) -> Vibrancy.TRANSPARENCY_TEST.setValue(value), opts -> Vibrancy.TRANSPARENCY_TEST.getValue())
+                        .build())
                 .add(OptionImpl.createBuilder(int.class, vanillaOpts)
                         .setName(Text.translatable("options.vibrancy.raytrace_distance"))
                         .setTooltip(Text.translatable("options.vibrancy.raytrace_distance.tooltip"))
@@ -57,6 +63,13 @@ public final class SodiumCompat {
                         .setTooltip(Text.translatable("options.vibrancy.max_shadow_distance.tooltip"))
                         .setControl(option -> new SliderControl(option, 1, 16, 1, v -> v > 15 ? Text.translatable("options.vibrancy.max_shadow_distance.max") : Text.translatable("options.vibrancy.max_shadow_distance.value", v)))
                         .setBinding((opts, value) -> Vibrancy.MAX_SHADOW_DISTANCE.setValue(value), opts -> Vibrancy.MAX_SHADOW_DISTANCE.getValue())
+                        .setImpact(OptionImpact.HIGH)
+                        .build())
+                .add(OptionImpl.createBuilder(int.class, vanillaOpts)
+                        .setName(Text.translatable("options.vibrancy.max_light_radius"))
+                        .setTooltip(Text.translatable("options.vibrancy.max_light_radius.tooltip"))
+                        .setControl(option -> new SliderControl(option, 1, 16, 1, v -> v > 15 ? Text.translatable("options.vibrancy.max_light_radius.max") : Text.translatable("options.vibrancy.max_light_radius.value", v)))
+                        .setBinding((opts, value) -> Vibrancy.MAX_LIGHT_RADIUS.setValue(value), opts -> Vibrancy.MAX_LIGHT_RADIUS.getValue())
                         .setImpact(OptionImpact.HIGH)
                         .build())
                 .build());

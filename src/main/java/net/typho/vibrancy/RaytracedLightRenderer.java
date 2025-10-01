@@ -15,6 +15,10 @@ public abstract class RaytracedLightRenderer<T extends Light & RaytracedLight> i
         numRaytraced = 0;
         numVisible = 0;
 
+        for (T light : getLights()) {
+            light.updateDirty(RaytracedPointLight.DIRTY);
+        }
+
         getLights().stream()
                 .sorted(Comparator.comparingDouble(light -> light.lazyDistance(MinecraftClient.getInstance().gameRenderer.getCamera().getPos())))
                 .filter(light -> {
