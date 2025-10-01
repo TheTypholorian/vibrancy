@@ -28,6 +28,7 @@
     "requireAnnotations": true
   },
   "mixins": [
-    "LightRendererMixin"
+    "LightRendererMixin",
+    "PlayerEntityMixin"
   ]
 }

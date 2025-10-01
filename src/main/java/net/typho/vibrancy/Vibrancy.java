@@ -2,6 +2,7 @@ package net.typho.vibrancy;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientWorldEvents;
@@ -11,13 +12,19 @@ import net.fabricmc.fabric.api.resource.ResourcePackActivationType;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.Block;
+import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gl.VertexBuffer;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.option.GameOptions;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.option.SimpleOption;
+import net.minecraft.client.render.BufferBuilder;
+import net.minecraft.client.render.VertexFormat;
+import net.minecraft.client.render.VertexFormats;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.world.ClientWorld;
+import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryKey;
@@ -29,12 +36,14 @@ import net.minecraft.resource.ResourceType;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.ChunkPos;
 import net.minecraft.util.math.MathHelper;
 import org.lwjgl.glfw.GLFW;
 
 import java.io.BufferedReader;
 import java.io.IOException;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -43,7 +52,7 @@ public class Vibrancy implements ClientModInitializer {
 
     public static final Identifier LOGO_TEXTURE = Identifier.of(MOD_ID, "textures/gui/title/vibrancy.png");
     public static final SimpleOption<Boolean> DYNAMIC_LIGHTMAP = SimpleOption.ofBoolean("options.vibrancy.dynamic_lightmap", true);
-    public static final SimpleOption<Boolean> TRANSPARENCY_TEST = SimpleOption.ofBoolean("options.vibrancy.transparency_test", value -> Tooltip.of(Text.translatable("options.vibrancy.transparency_test.tooltip")), false);
+    public static final SimpleOption<Boolean> TRANSPARENCY_TEST = SimpleOption.ofBoolean("options.vibrancy.transparency_test", value -> Tooltip.of(Text.translatable("options.vibrancy.transparency_test.tooltip")), true);
     public static final SimpleOption<Integer> RAYTRACE_DISTANCE = new SimpleOption<>(
             "options.vibrancy.raytrace_distance",
             value -> Tooltip.of(Text.translatable("options.vibrancy.raytrace_distance.tooltip")),
@@ -91,7 +100,26 @@ public class Vibrancy implements ClientModInitializer {
             "key.categories.misc"
     ));
     public static final Map<RegistryKey<Block>, BlockStateFunction<Boolean>> EMISSIVE_OVERRIDES = new LinkedHashMap<>();
-    public static int NUM_LIGHT_TASKS = 0;
+    public static VertexBuffer SCREEN_VBO;
+    public static final Map<BlockPos, RaytracedPointBlockLight> BLOCK_LIGHTS = new LinkedHashMap<>();
+    public static final Map<LivingEntity, RaytracedPointEntityLight> ENTITY_LIGHTS = new LinkedHashMap<>();
+    public static int NUM_LIGHT_TASKS = 0, NUM_RAYTRACED_LIGHTS = 0, NUM_VISIBLE_LIGHTS = 0;
+
+    static {
+        RenderSystem.recordRenderCall(() -> {
+            SCREEN_VBO = new VertexBuffer(VertexBuffer.Usage.STATIC);
+
+            BufferBuilder builder = RenderSystem.renderThreadTesselator().begin(VertexFormat.DrawMode.TRIANGLE_STRIP, VertexFormats.POSITION);
+            builder.vertex(-1, 1, 0);
+            builder.vertex(-1, -1, 0);
+            builder.vertex(1, 1, 0);
+            builder.vertex(1, -1, 0);
+
+            SCREEN_VBO.bind();
+            SCREEN_VBO.upload(builder.end());
+            VertexBuffer.unbind();
+        });
+    }
 
     public static int maxLights() {
         int v = MAX_RAYTRACED_LIGHTS.getValue();
@@ -103,10 +131,86 @@ public class Vibrancy implements ClientModInitializer {
         return v > 15 ? distance : Math.min(distance, v);
     }
 
+    public static boolean shouldRenderLight(RaytracedLight light) {
+        boolean b = light.lazyDistance(MinecraftClient.getInstance().gameRenderer.getCamera().getPos()) / 16 < Vibrancy.LIGHT_CULL_DISTANCE.getValue() * Vibrancy.LIGHT_CULL_DISTANCE.getValue();
+
+        if (b) {
+            NUM_VISIBLE_LIGHTS++;
+        }
+
+        return b;
+    }
+
+    public static double getLightDistance(RaytracedLight light) {
+        return light.lazyDistance(MinecraftClient.getInstance().gameRenderer.getCamera().getPos());
+    }
+
+    public static void renderLight(RaytracedLight light, int[] cap) {
+        boolean raytrace = cap[0] < Vibrancy.maxLights();
+
+        if (light.render(raytrace)) {
+            if (raytrace) {
+                NUM_RAYTRACED_LIGHTS++;
+            }
+
+            cap[0]++;
+        }
+    }
+
+    public static void renderLights() {
+        BLOCK_LIGHTS.values().removeIf(light -> light == null || light.remove);
+        int[] cap = {0};
+        NUM_RAYTRACED_LIGHTS = 0;
+        NUM_VISIBLE_LIGHTS = 0;
+
+        for (RaytracedPointBlockLight light : BLOCK_LIGHTS.values()) {
+            light.updateDirty(RaytracedLight.DIRTY);
+        }
+
+        for (RaytracedPointEntityLight light : ENTITY_LIGHTS.values()) {
+            light.updateDirty(RaytracedLight.DIRTY);
+        }
+
+        ENTITY_LIGHTS.values().stream()
+                .sorted(Comparator.comparingDouble(Vibrancy::getLightDistance))
+                .filter(Vibrancy::shouldRenderLight)
+                .forEachOrdered(light -> renderLight(light, cap));
+        BLOCK_LIGHTS.values().stream()
+                .sorted(Comparator.comparingDouble(Vibrancy::getLightDistance))
+                .filter(Vibrancy::shouldRenderLight)
+                .forEachOrdered(light -> renderLight(light, cap));
+
+        RaytracedLight.DIRTY.clear();
+    }
+
     @Override
     public void onInitializeClient() {
-        ClientChunkEvents.CHUNK_UNLOAD.register((world, chunk) -> RaytracedPointBlockLightRenderer.INSTANCE.lights.keySet().removeIf(pos -> new ChunkPos(pos).equals(chunk.getPos())));
-        ClientWorldEvents.AFTER_CLIENT_WORLD_CHANGE.register((client, world) -> RaytracedPointBlockLightRenderer.INSTANCE.lights.clear());
+        ClientChunkEvents.CHUNK_UNLOAD.register((world, chunk) -> {
+            BLOCK_LIGHTS.values().removeIf(light -> {
+                boolean b = new ChunkPos(light.blockPos).equals(chunk.getPos());
+
+                if (b) {
+                    light.free();
+                }
+
+                return b;
+            });
+            ENTITY_LIGHTS.values().removeIf(light -> {
+                boolean b = light.entity.getChunkPos().equals(chunk.getPos());
+
+                if (b) {
+                    light.free();
+                }
+
+                return b;
+            });
+        });
+        ClientWorldEvents.AFTER_CLIENT_WORLD_CHANGE.register((client, world) -> {
+            BLOCK_LIGHTS.values().forEach(RaytracedPointBlockLight::free);
+            BLOCK_LIGHTS.clear();
+            ENTITY_LIGHTS.values().forEach(RaytracedPointEntityLight::free);
+            ENTITY_LIGHTS.clear();
+        });
         ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(new SimpleSynchronousResourceReloadListener() {
             @Override
             public Identifier getFabricId() {

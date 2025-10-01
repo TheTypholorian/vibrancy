@@ -4,7 +4,6 @@ import foundry.veil.api.client.render.VeilRenderSystem;
 import foundry.veil.api.client.render.dynamicbuffer.DynamicBufferType;
 import foundry.veil.api.client.render.light.renderer.LightRenderer;
 import net.minecraft.util.Identifier;
-import net.typho.vibrancy.RaytracedPointBlockLightRenderer;
 import net.typho.vibrancy.Vibrancy;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -29,7 +28,7 @@ public class LightRendererMixin {
         Vibrancy.NUM_LIGHT_TASKS = 0;
 
         if (VeilRenderSystem.renderer().enableBuffers(BUFFER_ID, DynamicBufferType.ALBEDO, DynamicBufferType.NORMAL)) {
-            RaytracedPointBlockLightRenderer.INSTANCE.render();
+            Vibrancy.renderLights();
         }
     }
 
@@ -38,12 +37,12 @@ public class LightRendererMixin {
             at = @At("TAIL")
     )
     private void addDebugInfo(Consumer<String> consumer, CallbackInfo ci) {
-        consumer.accept("Dynamic Lights: " + RaytracedPointBlockLightRenderer.INSTANCE.numVisible + " / " + RaytracedPointBlockLightRenderer.INSTANCE.lights.size());
+        consumer.accept("Dynamic Lights: " + Vibrancy.NUM_VISIBLE_LIGHTS + " / " + (Vibrancy.BLOCK_LIGHTS.size() + Vibrancy.ENTITY_LIGHTS.size()));
 
         if (Vibrancy.MAX_RAYTRACED_LIGHTS.getValue() > 100) {
-            consumer.accept("Raytraced: " + RaytracedPointBlockLightRenderer.INSTANCE.numRaytraced);
+            consumer.accept("Raytraced: " + Vibrancy.NUM_RAYTRACED_LIGHTS);
         } else {
-            consumer.accept("Raytraced: " + RaytracedPointBlockLightRenderer.INSTANCE.numRaytraced + " / " + Vibrancy.MAX_RAYTRACED_LIGHTS.getValue());
+            consumer.accept("Raytraced: " + Vibrancy.NUM_RAYTRACED_LIGHTS + " / " + Vibrancy.MAX_RAYTRACED_LIGHTS.getValue());
         }
 
         consumer.accept("Async tasks: " + Vibrancy.NUM_LIGHT_TASKS);

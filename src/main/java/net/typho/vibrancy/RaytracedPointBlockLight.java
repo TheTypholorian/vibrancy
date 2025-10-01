@@ -3,6 +3,7 @@ package net.typho.vibrancy;
 import foundry.veil.api.client.render.light.PointLight;
 import net.minecraft.block.Block;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
 import org.joml.Vector3dc;
@@ -20,12 +21,16 @@ public class RaytracedPointBlockLight extends RaytracedPointLight {
     }
 
     @Override
-    public void render(boolean raytrace) {
-        if (MinecraftClient.getInstance().world.getBlockState(blockPos).getBlock() == block) {
-            super.render(raytrace);
+    public boolean render(boolean raytrace) {
+        ClientWorld world = MinecraftClient.getInstance().world;
+
+        if (world != null && world.getBlockState(blockPos).getBlock() == block) {
+            return super.render(raytrace);
         } else {
             remove = true;
         }
+
+        return false;
     }
 
     @Override
@@ -40,6 +45,6 @@ public class RaytracedPointBlockLight extends RaytracedPointLight {
 
     @Override
     public String toString() {
-        return getClass().getSimpleName() + blockPos;
+        return getClass().getSimpleName() + "[" + blockPos.getX() + ", " + blockPos.getY() + ", " + blockPos.getZ() + "]";
     }
 }

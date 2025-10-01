@@ -1,6 +1,7 @@
 package net.typho.vibrancy;
 
 import com.google.gson.*;
+import foundry.veil.api.client.render.light.PointLight;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.registry.Registries;
@@ -26,7 +27,7 @@ public record DynamicLightInfo(Vector3f color, BlockStateFunction<Optional<Float
                 .orElse(null);
     }
 
-    public RaytracedPointBlockLight createLight(BlockPos pos, BlockState state) {
+    public RaytracedPointBlockLight createBlockLight(BlockPos pos, BlockState state) {
         float brightness = brightness().apply(state).orElse(1f);
         float radius = radius().apply(state).orElse((float) state.getLuminance());
 
@@ -34,28 +35,31 @@ public record DynamicLightInfo(Vector3f color, BlockStateFunction<Optional<Float
             return null;
         }
 
-        return (RaytracedPointBlockLight) new RaytracedPointBlockLight(
+        return (RaytracedPointBlockLight) initLight(new RaytracedPointBlockLight(
                 pos,
                 state.getBlock(),
                 this,
                 offset().apply(state).orElse(new Vec3d(0.5, 0.5, 0.5))
-        )
-                .setFlicker(flicker().apply(state).orElse(0f))
-                .setBrightness(brightness)
-                .setColor(color().x, color().y, color().z)
-                .setRadius(radius);
+        ).setFlicker(flicker().apply(state).orElse(0f)), state);
     }
 
-    public void addLight(BlockPos pos, BlockState state) {
-        RaytracedPointBlockLight light = createLight(pos, state);
+    public void addBlockLight(BlockPos pos, BlockState state) {
+        RaytracedPointBlockLight light = createBlockLight(pos, state);
 
         if (light != null) {
-            RaytracedPointBlockLight old = RaytracedPointBlockLightRenderer.INSTANCE.lights.put(pos, light);
+            RaytracedPointBlockLight old = Vibrancy.BLOCK_LIGHTS.put(pos, light);
 
             if (old != null) {
                 old.free();
             }
         }
+    }
+
+    public <L extends PointLight> L initLight(L light, BlockState state) {
+        light.setBrightness(brightness.apply(state).orElse(1f))
+                .setColor(color().x, color().y, color().z)
+                .setRadius(radius.apply(state).orElse((float) state.getLuminance()));
+        return light;
     }
 
     public static class Builder {

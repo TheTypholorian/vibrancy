@@ -6,7 +6,7 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.chunk.light.LightingProvider;
 import net.typho.vibrancy.DynamicLightInfo;
 import net.typho.vibrancy.RaytracedPointBlockLight;
-import net.typho.vibrancy.RaytracedPointBlockLightRenderer;
+import net.typho.vibrancy.Vibrancy;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -25,9 +25,9 @@ public class LightingProviderMixin {
                 DynamicLightInfo info = DynamicLightInfo.get(state);
 
                 if (info != null) {
-                    info.addLight(pos, state);
+                    info.addBlockLight(pos, state);
                 } else {
-                    RaytracedPointBlockLight light = RaytracedPointBlockLightRenderer.INSTANCE.lights.get(pos);
+                    RaytracedPointBlockLight light = Vibrancy.BLOCK_LIGHTS.get(pos);
 
                     if (light != null) {
                         light.free();
