@@ -31,6 +31,8 @@ public abstract class ShaderProgramMixin {
     private GlUniform camPos;
     @Unique
     private GlUniform renderTime;
+    @Unique
+    private GlUniform skyAngle;
 
     @Inject(
             method = "<init>",
@@ -39,6 +41,7 @@ public abstract class ShaderProgramMixin {
     private void init(ResourceFactory factory, String name, VertexFormat format, CallbackInfo ci) {
         camPos = getUniform("CameraPos");
         renderTime = getUniform("RenderTime");
+        skyAngle = getUniform("SkyAngle");
     }
 
     @Inject(
@@ -53,6 +56,10 @@ public abstract class ShaderProgramMixin {
 
         if (renderTime != null) {
             renderTime.set((float) GLFW.glfwGetTime());
+        }
+
+        if (skyAngle != null) {
+            skyAngle.set(MinecraftClient.getInstance().world.getSkyAngle(MinecraftClient.getInstance().getRenderTickCounter().getTickDelta(false)));
         }
 
         DynamicBufferManger bufferManger = VeilRenderSystem.renderer().getDynamicBufferManger();

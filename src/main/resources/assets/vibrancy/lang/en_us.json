@@ -16,6 +16,8 @@
   "options.vibrancy.raytrace_distance.tooltip": "The distance from camera where lights have perfect shadows, lights beyond this use an approximation",
   "options.vibrancy.transparency_test": "Transparency Test",
   "options.vibrancy.transparency_test.tooltip": "Whether \"transparent\" blocks such as glass, doors, stairs, and grates should cast shadows",
+  "options.vibrancy.better_sky": "Better Sky",
+  "options.vibrancy.better_sky.tooltip": "Improves the sky. That's it.",
   "options.vibrancy.light_cull_distance": "Light Cull Distance",
   "options.vibrancy.light_cull_distance.tooltip": "The distance from camera when lights are no longer displayed (for performance reasons)",
   "options.vibrancy.max_raytraced_lights": "Max Raytraced Lights",

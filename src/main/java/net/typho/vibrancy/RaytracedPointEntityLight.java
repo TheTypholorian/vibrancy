@@ -4,14 +4,12 @@ import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import foundry.veil.api.client.render.VeilRenderSystem;
 import foundry.veil.api.client.render.framebuffer.AdvancedFbo;
-import foundry.veil.api.client.render.framebuffer.VeilFramebuffers;
 import foundry.veil.api.client.render.light.PointLight;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.ShaderProgram;
 import net.minecraft.client.gl.VertexBuffer;
 import net.minecraft.client.render.*;
-import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.BlockItem;
@@ -80,16 +78,16 @@ public class RaytracedPointEntityLight extends PointLight implements RaytracedLi
         }
     }
 
-    public void regenQuadsSync(ClientWorld world, BlockPos pos, Consumer<Quad> out, MatrixStack stack, BlockPos lightBlockPos, Vector3f lightPos) {
+    public void regenQuadsSync(ClientWorld world, BlockPos pos, Consumer<Quad> out, BlockPos lightBlockPos, Vector3f lightPos) {
         quads.removeIf(q -> q.blockPos().equals(pos));
-        regenQuadsAsync(world, pos, out, stack, lightBlockPos, lightPos);
+        regenQuadsAsync(world, pos, out, lightBlockPos, lightPos);
     }
 
-    public void regenQuadsAsync(ClientWorld world, BlockPos pos, Consumer<Quad> out, MatrixStack stack, BlockPos lightBlockPos, Vector3f lightPos) {
-        getQuads(world, pos, out, stack, pos.getSquaredDistance(lightBlockPos), lightBlockPos, lightPos, false);
+    public void regenQuadsAsync(ClientWorld world, BlockPos pos, Consumer<Quad> out, BlockPos lightBlockPos, Vector3f lightPos) {
+        getQuads(world, pos, out, pos.getSquaredDistance(lightBlockPos), lightBlockPos, lightPos, false);
     }
 
-    public void regenAll(ClientWorld world, BlockBox box, MatrixStack stack, BlockPos lightBlockPos, Vector3f lightPos) {
+    public void regenAll(ClientWorld world, BlockBox box, BlockPos lightBlockPos, Vector3f lightPos) {
         fullRebuildTask = CompletableFuture.supplyAsync(() -> {
             System.out.println("start rebuild");
             List<Quad> quads = new LinkedList<>();
@@ -97,7 +95,7 @@ public class RaytracedPointEntityLight extends PointLight implements RaytracedLi
             for (int x = box.getMinX(); x <= box.getMaxX(); x++) {
                 for (int y = box.getMinY(); y <= box.getMaxY(); y++) {
                     for (int z = box.getMinZ(); z <= box.getMaxZ(); z++) {
-                        regenQuadsAsync(world, new BlockPos(x, y, z), quads::add, stack, lightBlockPos, lightPos);
+                        regenQuadsAsync(world, new BlockPos(x, y, z), quads::add, lightBlockPos, lightPos);
                     }
                 }
             }
@@ -152,15 +150,13 @@ public class RaytracedPointEntityLight extends PointLight implements RaytracedLi
                     if (quadBox == null || !quadBox.contains(entity.getBlockPos())) {
                         dirty.clear();
                         quadBox = box;
-                        regenAll(world, box.expand(blockRadius), new MatrixStack(), lightBlockPos, lightPos);
+                        regenAll(world, box.expand(blockRadius), lightBlockPos, lightPos);
                     } else if (!dirty.isEmpty()) {
-                        MatrixStack stack = new MatrixStack();
-
                         for (BlockPos pos : dirty) {
-                            regenQuadsSync(world, pos, quads::add, stack, lightBlockPos, lightPos);
+                            regenQuadsSync(world, pos, quads::add, lightBlockPos, lightPos);
 
                             for (Direction dir : Direction.values()) {
-                                regenQuadsSync(world, pos.offset(dir), quads::add, stack, lightBlockPos, lightPos);
+                                regenQuadsSync(world, pos.offset(dir), quads::add, lightBlockPos, lightPos);
                             }
                         }
                     }
@@ -212,7 +208,7 @@ public class RaytracedPointEntityLight extends PointLight implements RaytracedLi
                     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                 }
 
-                Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(VeilFramebuffers.LIGHT)).bind(true);
+                Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(Identifier.of(Vibrancy.MOD_ID, "ray_light"))).bind(true);
                 VeilRenderSystem.setShader(Identifier.of(Vibrancy.MOD_ID, "light/ray/point"));
                 shader = Objects.requireNonNull(RenderSystem.getShader());
 

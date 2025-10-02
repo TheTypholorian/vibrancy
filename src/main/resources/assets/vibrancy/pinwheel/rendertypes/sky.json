@@ -1,0 +1,25 @@
+{
+  "format": "POSITION",
+  "mode": "QUADS",
+  "bufferSize": "TRANSIENT",
+  "sort": false,
+  "layers": [
+    {
+      "type": "veil:shader",
+      "name": "vibrancy:sky"
+    },
+    {
+      "type": "minecraft:depth_test",
+      "mode": "never"
+    },
+    {
+      "type": "minecraft:cull",
+      "mode": "none"
+    },
+    {
+      "type": "minecraft:write_mask",
+      "color": true,
+      "depth": false
+    }
+  ]
+}

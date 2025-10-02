@@ -7,9 +7,11 @@ import net.minecraft.client.render.BufferBuilder;
 import net.minecraft.client.render.RenderLayer;
 import net.minecraft.client.render.RenderLayers;
 import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.util.math.MatrixStack;
+import net.minecraft.client.render.model.BakedModel;
+import net.minecraft.client.render.model.BakedQuad;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.random.Random;
 import org.joml.Vector2f;
@@ -18,7 +20,9 @@ import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.system.NativeResource;
 
 import java.nio.ByteBuffer;
-import java.util.*;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.Set;
 import java.util.function.Consumer;
 
 import static org.lwjgl.opengl.GL15.glBindBuffer;
@@ -38,94 +42,67 @@ public interface RaytracedLight extends NativeResource {
 
     double lazyDistance(Vec3d vec);
 
-    default void getQuads(ClientWorld world, BlockPos pos, Consumer<Quad> out, MatrixStack stack, double sqDist, BlockPos lightBlockPos, Vector3f lightPos, boolean normalTest) {
+    default void getQuads(Iterable<BakedQuad> bakedQuads, BlockPos pos, Consumer<Quad> out, RenderLayer layer) {
+        for (BakedQuad quad : bakedQuads) {
+            Vector3f[] positions = new Vector3f[4];
+            Vector2f[] uvs = new Vector2f[4];
+
+            int[] data = quad.getVertexData();
+            int stride = data.length / 4;
+
+            for (int i = 0, j = 0; i < 4; i++, j += stride) {
+                positions[i] = new Vector3f(
+                        Float.intBitsToFloat(data[j]) + pos.getX(),
+                        Float.intBitsToFloat(data[j + 1]) + pos.getY(),
+                        Float.intBitsToFloat(data[j + 2]) + pos.getZ()
+                );
+                uvs[i] = new Vector2f(
+                        Float.intBitsToFloat(data[j + 4]),
+                        Float.intBitsToFloat(data[j + 5])
+                );
+            }
+
+            out.accept(new Quad(
+                    pos,
+                    positions[0],
+                    positions[1],
+                    positions[2],
+                    positions[3],
+                    uvs[0],
+                    uvs[1],
+                    uvs[2],
+                    uvs[3],
+                    layer.isTranslucent() || layer != RenderLayer.getSolid()
+            ));
+
+            break;
+        }
+    }
+
+    default void getQuads(ClientWorld world, BlockPos pos, Consumer<Quad> out, double sqDist, BlockPos lightBlockPos, Vector3f lightPos, boolean normalTest) {
         BlockState state = world.getBlockState(pos);
 
         if (!Vibrancy.TRANSPARENCY_TEST.getValue() && state.isTransparent(world, pos)) {
             return;
         }
 
-        stack.push();
-        stack.translate(pos.getX(), pos.getY(), pos.getZ());
-
-        List<Vector3f> flatVertices = new LinkedList<>(), normals = new LinkedList<>();
-        List<Vector2f> flatTexCoords = new LinkedList<>();
+        //List<Quad> quads = new LinkedList<>();
 
         RenderLayer layer = RenderLayers.getBlockLayer(state);
+        BakedModel model = MinecraftClient.getInstance().getBlockRenderManager().getModel(state);
+        Random random = Random.create(lightBlockPos.hashCode());
 
-        MinecraftClient.getInstance().getBlockRenderManager().renderBlock(
-                state,
-                pos,
-                world,
-                stack,
-                new VertexConsumer() {
-                    @Override
-                    public VertexConsumer vertex(float x, float y, float z) {
-                        flatVertices.add(new Vector3f(x, y, z));
-                        return this;
-                    }
-
-                    @Override
-                    public VertexConsumer color(int red, int green, int blue, int alpha) {
-                        return this;
-                    }
-
-                    @Override
-                    public VertexConsumer texture(float u, float v) {
-                        flatTexCoords.add(new Vector2f(u, v));
-                        return this;
-                    }
-
-                    @Override
-                    public VertexConsumer overlay(int u, int v) {
-                        return this;
-                    }
-
-                    @Override
-                    public VertexConsumer light(int u, int v) {
-                        return this;
-                    }
-
-                    @Override
-                    public VertexConsumer normal(float x, float y, float z) {
-                        normals.add(new Vector3f(x, y, z));
-                        return this;
-                    }
-                },
-                sqDist != 1,
-                Random.create(lightBlockPos.hashCode())
-        );
-
-        if (flatVertices.size() % 4 != 0) {
-            System.err.println("[Vibrancy] Block " + state + " doesn't use quads for rendering, skipping it for raytracing");
-        } else {
-            for (int j = 0; j < flatVertices.size(); j += 4) {
-                for (int k = j; k < j + 4; k++) {
-                    if ((!normalTest || normals.get(k).dot(lightPos.sub(flatVertices.get(k), new Vector3f())) > 0) || flatVertices.get(k).distanceSquared(lightPos) < 4) {
-                        out.accept(new Quad(
-                                pos,
-                                flatVertices.get(j),
-                                flatVertices.get(j + 1),
-                                flatVertices.get(j + 2),
-                                flatVertices.get(j + 3),
-                                flatTexCoords.get(j),
-                                flatTexCoords.get(j + 1),
-                                flatTexCoords.get(j + 2),
-                                flatTexCoords.get(j + 3),
-                                layer.isTranslucent() || layer != RenderLayer.getSolid()
-                        ));
-
-                        break;
-                    }
-                }
-            }
+        for (Direction direction : Direction.values()) {
+            //if (!normalTest || (sqDist == 1 || Vibrancy.pointsToward(pos, direction, lightBlockPos))) {
+                getQuads(model.getQuads(state, direction, random), pos, out, layer);
+            //}
         }
 
-        stack.pop();
+        getQuads(model.getQuads(state, null, random), pos, out, layer);
     }
 
-    default void getVolumes(ClientWorld world, BlockPos pos, Consumer<ShadowVolume> out, MatrixStack stack, double sqDist, BlockPos lightBlockPos, Vector3f lightPos, float radius, boolean normalTest) {
-        getQuads(world, pos, quad -> out.accept(quad.toVolume(lightPos, radius * 2)), stack, sqDist, lightBlockPos, lightPos, normalTest);
+    default void getVolumes(ClientWorld world, BlockPos pos, Consumer<ShadowVolume> out, double sqDist, BlockPos lightBlockPos, Vector3f lightPos, float radius, boolean normalTest) {
+        getQuads(world, pos, quad -> out.accept(quad.toVolume(lightPos, radius * 2)), sqDist, lightBlockPos, lightPos, normalTest);
     }
 
     default void upload(BufferBuilder builder, Collection<ShadowVolume> volumes, VertexBuffer geomVBO, int quadsSSBO, int usage) {

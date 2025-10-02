@@ -14,9 +14,10 @@ public class VideoOptionsScreenMixin {
             at = @At("RETURN")
     )
     private static SimpleOption<?>[] getOptions(SimpleOption<?>[] original) {
-        SimpleOption<?>[] arr = new SimpleOption[original.length + 7];
+        SimpleOption<?>[] arr = new SimpleOption[original.length + 8];
         System.arraycopy(original, 0, arr, 0, original.length);
-        arr[original.length - 6] = Vibrancy.DYNAMIC_LIGHTMAP;
+        arr[original.length - 7] = Vibrancy.DYNAMIC_LIGHTMAP;
+        arr[original.length - 6] = Vibrancy.BETTER_SKY;
         arr[original.length - 5] = Vibrancy.TRANSPARENCY_TEST;
         arr[original.length - 4] = Vibrancy.RAYTRACE_DISTANCE;
         arr[original.length - 3] = Vibrancy.LIGHT_CULL_DISTANCE;

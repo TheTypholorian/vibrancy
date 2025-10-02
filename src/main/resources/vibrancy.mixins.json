@@ -5,6 +5,7 @@
   "compatibilityLevel": "JAVA_21",
   "client": [
     "AbstractBlockStateMixin",
+    "BackgroundRendererMixin",
     "BlockModelRendererMixin",
     "ClientPlayNetworkHandlerMixin",
     "GameOptionsMixin",
@@ -19,7 +20,8 @@
     "SodiumOptionsGUIMixin",
     "VanillaShaderCompilerMixin",
     "VideoOptionsScreenMixin",
-    "WorldChunkMixin"
+    "WorldChunkMixin",
+    "WorldRendererMixin"
   ],
   "injectors": {
     "defaultRequire": 1

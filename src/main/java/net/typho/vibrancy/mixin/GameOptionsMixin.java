@@ -16,6 +16,7 @@ public class GameOptionsMixin {
     private void acceptProfiledOptions(GameOptions.OptionVisitor visitor, CallbackInfo ci) {
         visitor.accept("vibrancy/dynamic_lightmap", Vibrancy.DYNAMIC_LIGHTMAP);
         visitor.accept("vibrancy/transparency_test", Vibrancy.TRANSPARENCY_TEST);
+        visitor.accept("vibrancy/better_sky", Vibrancy.BETTER_SKY);
         visitor.accept("vibrancy/raytrace_distance", Vibrancy.RAYTRACE_DISTANCE);
         visitor.accept("vibrancy/light_cull_distance", Vibrancy.LIGHT_CULL_DISTANCE);
         visitor.accept("vibrancy/max_raytraced_lights", Vibrancy.MAX_RAYTRACED_LIGHTS);

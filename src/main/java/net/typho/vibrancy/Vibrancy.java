@@ -2,27 +2,31 @@ package net.typho.vibrancy;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
+import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
+import foundry.veil.api.client.render.VeilRenderSystem;
+import foundry.veil.api.client.render.dynamicbuffer.DynamicBufferType;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientWorldEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.ResourcePackActivationType;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
 import net.fabricmc.loader.api.FabricLoader;
 import net.minecraft.block.Block;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.client.gl.ShaderProgram;
 import net.minecraft.client.gl.VertexBuffer;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.option.GameOptions;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.option.SimpleOption;
-import net.minecraft.client.render.BufferBuilder;
-import net.minecraft.client.render.VertexFormat;
-import net.minecraft.client.render.VertexFormats;
+import net.minecraft.client.render.*;
 import net.minecraft.client.texture.NativeImage;
+import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.effect.StatusEffects;
@@ -36,9 +40,9 @@ import net.minecraft.resource.ResourceType;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.util.math.MathHelper;
+import net.minecraft.util.math.*;
+import org.joml.Matrix4f;
+import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFW;
 
 import java.io.BufferedReader;
@@ -51,8 +55,9 @@ public class Vibrancy implements ClientModInitializer {
     public static final String MOD_ID = "vibrancy";
 
     public static final Identifier LOGO_TEXTURE = Identifier.of(MOD_ID, "textures/gui/title/vibrancy.png");
-    public static final SimpleOption<Boolean> DYNAMIC_LIGHTMAP = SimpleOption.ofBoolean("options.vibrancy.dynamic_lightmap", true);
+    public static final SimpleOption<Boolean> DYNAMIC_LIGHTMAP = SimpleOption.ofBoolean("options.vibrancy.dynamic_lightmap", value -> Tooltip.of(Text.translatable("options.vibrancy.dynamic_lightmap.tooltip")), true);
     public static final SimpleOption<Boolean> TRANSPARENCY_TEST = SimpleOption.ofBoolean("options.vibrancy.transparency_test", value -> Tooltip.of(Text.translatable("options.vibrancy.transparency_test.tooltip")), true);
+    public static final SimpleOption<Boolean> BETTER_SKY = SimpleOption.ofBoolean("options.vibrancy.better_sky", value -> Tooltip.of(Text.translatable("options.vibrancy.better_sky.tooltip")), true);
     public static final SimpleOption<Integer> RAYTRACE_DISTANCE = new SimpleOption<>(
             "options.vibrancy.raytrace_distance",
             value -> Tooltip.of(Text.translatable("options.vibrancy.raytrace_distance.tooltip")),
@@ -104,6 +109,7 @@ public class Vibrancy implements ClientModInitializer {
     public static final Map<BlockPos, RaytracedPointBlockLight> BLOCK_LIGHTS = new LinkedHashMap<>();
     public static final Map<LivingEntity, RaytracedPointEntityLight> ENTITY_LIGHTS = new LinkedHashMap<>();
     public static int NUM_LIGHT_TASKS = 0, NUM_RAYTRACED_LIGHTS = 0, NUM_VISIBLE_LIGHTS = 0;
+    public static VertexBuffer SKY_BUFFER;
 
     static {
         RenderSystem.recordRenderCall(() -> {
@@ -157,6 +163,20 @@ public class Vibrancy implements ClientModInitializer {
         }
     }
 
+    public static boolean pointsToward(BlockPos from, Direction dir, BlockPos to) {
+        return switch (dir.getAxis()) {
+            case X -> dir.getDirection() == Direction.AxisDirection.POSITIVE
+                    ? from.getX() < to.getX()
+                    : from.getX() > to.getX();
+            case Y -> dir.getDirection() == Direction.AxisDirection.POSITIVE
+                    ? from.getY() < to.getY()
+                    : from.getY() > to.getY();
+            case Z -> dir.getDirection() == Direction.AxisDirection.POSITIVE
+                    ? from.getZ() < to.getZ()
+                    : from.getZ() > to.getZ();
+        };
+    }
+
     public static void renderLights() {
         BLOCK_LIGHTS.values().removeIf(light -> light == null || light.remove);
         int[] cap = {0};
@@ -183,8 +203,130 @@ public class Vibrancy implements ClientModInitializer {
         RaytracedLight.DIRTY.clear();
     }
 
+    public static void renderSky(Matrix4f viewMat, Matrix4f projMat, float tickDelta, Camera camera, boolean thickFog, MinecraftClient client, WorldRenderer renderer) {
+        MatrixStack stack = new MatrixStack();
+        Tessellator tessellator = Tessellator.getInstance();
+        stack.multiplyPositionMatrix(viewMat);
+        Vec3d skyColor = client.world.getSkyColor(client.gameRenderer.getCamera().getPos(), tickDelta);
+        VeilRenderSystem.setShader(Identifier.of(MOD_ID, "sky"));
+        ShaderProgram shader = RenderSystem.getShader();
+        shader.getUniformOrDefault("SkyColor").set((float) skyColor.x, (float) skyColor.y, (float) skyColor.z);
+        RenderSystem.depthMask(false);
+
+        if (SKY_BUFFER == null) {
+            SKY_BUFFER = new VertexBuffer(VertexBuffer.Usage.STATIC);
+            SKY_BUFFER.bind();
+
+            BufferBuilder builder = tessellator.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION);
+            Vector3f[] vertices = {
+                    new Vector3f(1, 1, 1),
+                    new Vector3f(1, 1, -1),
+                    new Vector3f(1, -1, -1),
+                    new Vector3f(1, -1, 1),
+                    new Vector3f(-1, 1, 1),
+                    new Vector3f(-1, 1, -1),
+                    new Vector3f(-1, -1, -1),
+                    new Vector3f(-1, -1, 1),
+            };
+
+            builder.vertex(vertices[0])
+                    .vertex(vertices[1])
+                    .vertex(vertices[2])
+                    .vertex(vertices[3]);
+
+            builder.vertex(vertices[1])
+                    .vertex(vertices[5])
+                    .vertex(vertices[6])
+                    .vertex(vertices[2]);
+
+            builder.vertex(vertices[5])
+                    .vertex(vertices[4])
+                    .vertex(vertices[7])
+                    .vertex(vertices[6]);
+
+            builder.vertex(vertices[4])
+                    .vertex(vertices[0])
+                    .vertex(vertices[3])
+                    .vertex(vertices[7]);
+
+            builder.vertex(vertices[1])
+                    .vertex(vertices[0])
+                    .vertex(vertices[4])
+                    .vertex(vertices[5]);
+
+            builder.vertex(vertices[3])
+                    .vertex(vertices[2])
+                    .vertex(vertices[6])
+                    .vertex(vertices[7]);
+
+            SKY_BUFFER.upload(builder.end());
+        } else {
+            SKY_BUFFER.bind();
+        }
+
+        SKY_BUFFER.draw(stack.peek().getPositionMatrix(), projMat, shader);
+        VertexBuffer.unbind();
+        RenderSystem.enableBlend();
+        RenderSystem.blendFuncSeparate(GlStateManager.SrcFactor.SRC_ALPHA, GlStateManager.DstFactor.ONE, GlStateManager.SrcFactor.ONE, GlStateManager.DstFactor.ZERO);
+        stack.push();
+        float i = 1.0F - renderer.world.getRainGradient(tickDelta);
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, i);
+        stack.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-90.0F));
+        stack.multiply(RotationAxis.POSITIVE_X.rotationDegrees(renderer.world.getSkyAngle(tickDelta) * 360.0F));
+        Matrix4f matrix4f3 = stack.peek().getPositionMatrix();
+        float k = 30.0F;
+        RenderSystem.setShader(GameRenderer::getPositionTexProgram);
+        RenderSystem.setShaderTexture(0, Identifier.ofVanilla("textures/environment/sun.png"));
+        BufferBuilder bufferBuilder2 = tessellator.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_TEXTURE);
+        bufferBuilder2.vertex(matrix4f3, -k, 100.0F, -k).texture(0.0F, 0.0F);
+        bufferBuilder2.vertex(matrix4f3, k, 100.0F, -k).texture(1.0F, 0.0F);
+        bufferBuilder2.vertex(matrix4f3, k, 100.0F, k).texture(1.0F, 1.0F);
+        bufferBuilder2.vertex(matrix4f3, -k, 100.0F, k).texture(0.0F, 1.0F);
+        BufferRenderer.drawWithGlobalProgram(bufferBuilder2.end());
+        k = 20.0F;
+        RenderSystem.setShaderTexture(0, Identifier.ofVanilla("textures/environment/moon_phases.png"));
+        int r = renderer.world.getMoonPhase();
+        int s = r % 4;
+        int m = r / 4 % 2;
+        float t = (s) / 4.0F;
+        float o = (m) / 2.0F;
+        float p = (s + 1) / 4.0F;
+        float q = (m + 1) / 2.0F;
+        bufferBuilder2 = tessellator.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_TEXTURE);
+        bufferBuilder2.vertex(matrix4f3, -k, -100.0F, k).texture(p, q);
+        bufferBuilder2.vertex(matrix4f3, k, -100.0F, k).texture(t, q);
+        bufferBuilder2.vertex(matrix4f3, k, -100.0F, -k).texture(t, o);
+        bufferBuilder2.vertex(matrix4f3, -k, -100.0F, -k).texture(p, o);
+        BufferRenderer.drawWithGlobalProgram(bufferBuilder2.end());
+        float u = renderer.world.getStarBrightness(tickDelta) * i;
+
+        if (u > 0.0F) {
+            RenderSystem.setShaderColor(u, u, u, u);
+            BackgroundRenderer.clearFog();
+            renderer.starsBuffer.bind();
+            renderer.starsBuffer.draw(stack.peek().getPositionMatrix(), projMat, GameRenderer.getPositionProgram());
+            VertexBuffer.unbind();
+        }
+
+        stack.pop();
+        RenderSystem.disableBlend();
+        RenderSystem.defaultBlendFunc();
+        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+        RenderSystem.depthMask(true);
+    }
+
     @Override
     public void onInitializeClient() {
+        WorldRenderEvents.LAST.register(worldRenderContext -> {
+            NUM_LIGHT_TASKS = 0;
+            Identifier id = Identifier.of(Vibrancy.MOD_ID, "ray_light");
+
+            if (VeilRenderSystem.renderer().enableBuffers(id, DynamicBufferType.NORMAL)) {
+                renderLights();
+
+                VeilRenderSystem.renderer().disableBuffers(id, DynamicBufferType.NORMAL);
+            }
+        });
         ClientChunkEvents.CHUNK_UNLOAD.register((world, chunk) -> {
             BLOCK_LIGHTS.values().removeIf(light -> {
                 boolean b = new ChunkPos(light.blockPos).equals(chunk.getPos());

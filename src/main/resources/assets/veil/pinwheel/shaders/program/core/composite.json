@@ -1,0 +1,18 @@
+{
+  "vertex": "veil:blit_screen",
+  "fragment": "veil:core/composite",
+  "textures": {
+    "LightSampler": {
+      "type": "framebuffer",
+      "name": "veil:light"
+    },
+    "RayLightSampler": {
+      "type": "framebuffer",
+      "name": "vibrancy:ray_light"
+    },
+    "VeilDynamicAlbedoSampler": {
+      "type": "framebuffer",
+      "name": "veil:dynamic_buffer/albedo"
+    }
+  }
+}

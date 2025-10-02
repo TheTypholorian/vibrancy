@@ -13,6 +13,10 @@
     "ShadowMaskDepthSampler": {
       "type": "framebuffer",
       "name": "vibrancy:shadow_mask:depth"
+    },
+    "VeilDynamicNormalSampler": {
+      "type": "framebuffer",
+      "name": "veil:dynamic_buffer/normal"
     }
   }
 }

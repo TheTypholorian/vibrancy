@@ -4,13 +4,11 @@ import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import foundry.veil.api.client.render.VeilRenderSystem;
 import foundry.veil.api.client.render.framebuffer.AdvancedFbo;
-import foundry.veil.api.client.render.framebuffer.VeilFramebuffers;
 import foundry.veil.api.client.render.light.PointLight;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.ShaderProgram;
 import net.minecraft.client.gl.VertexBuffer;
 import net.minecraft.client.render.*;
-import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.*;
@@ -65,9 +63,9 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
         }
     }
 
-    public void regenQuads(ClientWorld world, BlockPos pos, Consumer<ShadowVolume> out, MatrixStack stack, BlockPos lightBlockPos, Vector3f lightPos) {
+    public void regenQuads(ClientWorld world, BlockPos pos, Consumer<ShadowVolume> out, BlockPos lightBlockPos, Vector3f lightPos) {
         volumes.removeIf(v -> v.caster().blockPos().equals(pos));
-        getVolumes(world, pos, out, stack, pos.getSquaredDistance(lightBlockPos), lightBlockPos, lightPos, radius, true);
+        getVolumes(world, pos, out, pos.getSquaredDistance(lightBlockPos), lightBlockPos, lightPos, radius, true);
     }
 
     @Override
@@ -98,13 +96,17 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
             }
 
             if (!dirty.isEmpty()) {
-                MatrixStack stack = new MatrixStack();
-
                 for (BlockPos pos : dirty) {
-                    regenQuads(world, pos, volumes::add, stack, lightBlockPos, lightPos);
+                    if (!pos.equals(lightBlockPos)) {
+                        regenQuads(world, pos, volumes::add, lightBlockPos, lightPos);
+                    }
 
                     for (Direction dir : Direction.values()) {
-                        regenQuads(world, pos.offset(dir), volumes::add, stack, lightBlockPos, lightPos);
+                        BlockPos pos1 = pos.offset(dir);
+
+                        if (!pos1.equals(lightBlockPos)) {
+                            regenQuads(world, pos1, volumes::add, lightBlockPos, lightPos);
+                        }
                     }
                 }
 
@@ -138,17 +140,19 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
                     if (isDirty()) {
                         clean();
                         fullRebuildTask = CompletableFuture.supplyAsync(() -> {
-                            MatrixStack stack = new MatrixStack();
                             List<ShadowVolume> volumes = new LinkedList<>();
 
                             for (int x = box.getMinX(); x <= box.getMaxX(); x++) {
                                 for (int y = box.getMinY(); y <= box.getMaxY(); y++) {
                                     for (int z = box.getMinZ(); z <= box.getMaxZ(); z++) {
                                         BlockPos pos = new BlockPos(x, y, z);
-                                        double sqDist = pos.getSquaredDistance(lightBlockPos);
 
-                                        if (sqDist != 0 && sqDist < blockRadius * blockRadius) {
-                                            getVolumes(world, pos, volumes::add, stack, sqDist, lightBlockPos, lightPos, radius, true);
+                                        if (!pos.equals(lightBlockPos)) {
+                                            double sqDist = pos.getSquaredDistance(lightBlockPos);
+
+                                            if (sqDist != 0 && sqDist < blockRadius * blockRadius) {
+                                                getVolumes(world, pos, volumes::add, sqDist, lightBlockPos, lightPos, radius, true);
+                                            }
                                         }
                                     }
                                 }
@@ -197,7 +201,7 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
                     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                 }
 
-                Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(VeilFramebuffers.LIGHT)).bind(true);
+                Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(Identifier.of(Vibrancy.MOD_ID, "ray_light"))).bind(true);
                 VeilRenderSystem.setShader(Identifier.of(Vibrancy.MOD_ID, "light/ray/point"));
                 shader = Objects.requireNonNull(RenderSystem.getShader());
 
