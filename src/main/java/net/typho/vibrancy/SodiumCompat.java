@@ -34,6 +34,12 @@ public final class SodiumCompat {
                         .setControl(TickBoxControl::new)
                         .setBinding((opts, value) -> Vibrancy.BETTER_SKY.setValue(value), opts -> Vibrancy.BETTER_SKY.getValue())
                         .build())
+                .add(OptionImpl.createBuilder(boolean.class, vanillaOpts)
+                        .setName(Text.translatable("options.vibrancy.better_fog"))
+                        .setTooltip(Text.translatable("options.vibrancy.better_fog.tooltip"))
+                        .setControl(TickBoxControl::new)
+                        .setBinding((opts, value) -> Vibrancy.BETTER_FOG.setValue(value), opts -> Vibrancy.BETTER_FOG.getValue())
+                        .build())
                 .build());
 
         groups.add(OptionGroup.createBuilder()
