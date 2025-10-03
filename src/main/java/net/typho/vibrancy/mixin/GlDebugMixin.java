@@ -20,6 +20,13 @@ public class GlDebugMixin {
             at = @At("TAIL")
     )
     private static void info(int source, int type, int id, int severity, int messageLength, long message, long l, CallbackInfo ci) {
-        LOGGER.info("at {}", Thread.currentThread().getStackTrace()[6]);
+        for (StackTraceElement ste : Thread.currentThread().getStackTrace()) {
+            if (ste.getClassName().startsWith("java") || ste.getClassName().startsWith("lwjgl") || ste.getClassName().startsWith("net.minecraft.client.gl")) {
+                continue;
+            }
+
+            LOGGER.info("at {}", ste);
+            break;
+        }
     }
 }

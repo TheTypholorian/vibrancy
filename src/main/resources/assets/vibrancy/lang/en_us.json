@@ -20,6 +20,8 @@
   "options.vibrancy.better_sky.tooltip": "Improves the sky. That's it.",
   "options.vibrancy.better_fog": "Better Fog",
   "options.vibrancy.better_fog.tooltip": "Improves underwater visibility, darkness and blindness effects, nether fog, etc.",
+  "options.vibrancy.elytra_trails": "Elytra Trails",
+  "options.vibrancy.elytra_trails.tooltip": "White trails behind flying players, just like planes",
   "options.vibrancy.light_cull_distance": "Light Cull Distance",
   "options.vibrancy.light_cull_distance.tooltip": "The distance from camera when lights are no longer displayed (for performance reasons)",
   "options.vibrancy.max_raytraced_lights": "Max Raytraced Lights",

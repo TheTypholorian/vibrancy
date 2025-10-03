@@ -10,11 +10,13 @@ import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientWorldEvents;
 import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
+import net.fabricmc.fabric.api.client.particle.v1.ParticleFactoryRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.ResourcePackActivationType;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
 import net.fabricmc.loader.api.FabricLoader;
+import net.fabricmc.loader.api.ModContainer;
 import net.minecraft.block.Block;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.ShaderProgram;
@@ -24,13 +26,16 @@ import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.option.GameOptions;
 import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.option.SimpleOption;
+import net.minecraft.client.particle.CampfireSmokeParticle;
 import net.minecraft.client.render.*;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.effect.StatusEffects;
+import net.minecraft.particle.SimpleParticleType;
 import net.minecraft.registry.Registries;
+import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.tag.TagKey;
@@ -54,11 +59,16 @@ import java.util.Map;
 public class Vibrancy implements ClientModInitializer {
     public static final String MOD_ID = "vibrancy";
 
-    public static final Identifier LOGO_TEXTURE = Identifier.of(MOD_ID, "textures/gui/title/vibrancy.png");
+    public static Identifier id(String path) {
+        return Identifier.of(MOD_ID, path);
+    }
+
+    public static final Identifier LOGO_TEXTURE = id("textures/gui/title/vibrancy.png");
     public static final SimpleOption<Boolean> DYNAMIC_LIGHTMAP = SimpleOption.ofBoolean("options.vibrancy.dynamic_lightmap", value -> Tooltip.of(Text.translatable("options.vibrancy.dynamic_lightmap.tooltip")), true);
     public static final SimpleOption<Boolean> TRANSPARENCY_TEST = SimpleOption.ofBoolean("options.vibrancy.transparency_test", value -> Tooltip.of(Text.translatable("options.vibrancy.transparency_test.tooltip")), true);
-    public static final SimpleOption<Boolean> BETTER_SKY = SimpleOption.ofBoolean("options.vibrancy.better_sky", value -> Tooltip.of(Text.translatable("options.vibrancy.better_sky.tooltip")), true);
+    //public static final SimpleOption<Boolean> BETTER_SKY = SimpleOption.ofBoolean("options.vibrancy.better_sky", value -> Tooltip.of(Text.translatable("options.vibrancy.better_sky.tooltip")), true);
     public static final SimpleOption<Boolean> BETTER_FOG = SimpleOption.ofBoolean("options.vibrancy.better_fog", value -> Tooltip.of(Text.translatable("options.vibrancy.better_fog.tooltip")), true);
+    public static final SimpleOption<Boolean> ELYTRA_TRAILS = SimpleOption.ofBoolean("options.vibrancy.elytra_trails", value -> Tooltip.of(Text.translatable("options.vibrancy.elytra_trails.tooltip")), true);
     public static final SimpleOption<Integer> RAYTRACE_DISTANCE = new SimpleOption<>(
             "options.vibrancy.raytrace_distance",
             value -> Tooltip.of(Text.translatable("options.vibrancy.raytrace_distance.tooltip")),
@@ -105,6 +115,7 @@ public class Vibrancy implements ClientModInitializer {
             GLFW.GLFW_KEY_F9,
             "key.categories.misc"
     ));
+    public static final SimpleParticleType STEAM = Registry.register(Registries.PARTICLE_TYPE, id("steam"), new SimpleParticleType(false) {});
     public static final Map<RegistryKey<Block>, BlockStateFunction<Boolean>> EMISSIVE_OVERRIDES = new LinkedHashMap<>();
     public static VertexBuffer SCREEN_VBO;
     public static final Map<BlockPos, RaytracedPointBlockLight> BLOCK_LIGHTS = new LinkedHashMap<>();
@@ -178,6 +189,12 @@ public class Vibrancy implements ClientModInitializer {
         };
     }
 
+    public static void elytraTrail(LivingEntity entity) {
+        if (Math.random() < (entity.getVelocity().length() - 0.75)) {
+            entity.getWorld().addParticle(STEAM, entity.getX(), entity.getY(), entity.getZ(), 0, 0, 0);
+        }
+    }
+
     public static void renderLights() {
         BLOCK_LIGHTS.values().removeIf(light -> light == null || light.remove);
         int[] cap = {0};
@@ -208,9 +225,9 @@ public class Vibrancy implements ClientModInitializer {
         MatrixStack stack = new MatrixStack();
         Tessellator tessellator = Tessellator.getInstance();
         stack.multiplyPositionMatrix(viewMat);
-        Vec3d skyColor = client.world.getSkyColor(client.gameRenderer.getCamera().getPos(), tickDelta);
-        VeilRenderSystem.setShader(Identifier.of(MOD_ID, "sky"));
+        VeilRenderSystem.setShader(id("sky"));
         ShaderProgram shader = RenderSystem.getShader();
+        Vec3d skyColor = client.world.getSkyColor(client.gameRenderer.getCamera().getPos(), tickDelta);
         shader.getUniformOrDefault("SkyColor").set((float) skyColor.x, (float) skyColor.y, (float) skyColor.z);
         RenderSystem.depthMask(false);
 
@@ -274,17 +291,33 @@ public class Vibrancy implements ClientModInitializer {
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, i);
         stack.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-90.0F));
         stack.multiply(RotationAxis.POSITIVE_X.rotationDegrees(renderer.world.getSkyAngle(tickDelta) * 360.0F));
-        Matrix4f matrix4f3 = stack.peek().getPositionMatrix();
+        Matrix4f matrix = stack.peek().getPositionMatrix();
         float k = 30.0F;
+
+        BufferBuilder bufferBuilder = tessellator.begin(VertexFormat.DrawMode.TRIANGLE_FAN, VertexFormats.POSITION_TEXTURE);
+        bufferBuilder.vertex(matrix, 0.0F, 100.0F, 0.0F).texture(0, 0);
+
+        for (int n = 0; n <= 16; n++) {
+            float o = n * (float) (Math.PI * 2) / 16.0F;
+            float p = MathHelper.sin(o);
+            float q = MathHelper.cos(o);
+            bufferBuilder.vertex(matrix, p * 120, 100, q * -120).texture(p, q);
+        }
+
+        VeilRenderSystem.setShader(id("sun"));
+        BufferRenderer.drawWithGlobalProgram(bufferBuilder.end());
+
         RenderSystem.setShader(GameRenderer::getPositionTexProgram);
         RenderSystem.setShaderTexture(0, Identifier.ofVanilla("textures/environment/sun.png"));
-        BufferBuilder bufferBuilder2 = tessellator.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_TEXTURE);
-        bufferBuilder2.vertex(matrix4f3, -k, 100.0F, -k).texture(0.0F, 0.0F);
-        bufferBuilder2.vertex(matrix4f3, k, 100.0F, -k).texture(1.0F, 0.0F);
-        bufferBuilder2.vertex(matrix4f3, k, 100.0F, k).texture(1.0F, 1.0F);
-        bufferBuilder2.vertex(matrix4f3, -k, 100.0F, k).texture(0.0F, 1.0F);
-        BufferRenderer.drawWithGlobalProgram(bufferBuilder2.end());
+        BufferBuilder builder = tessellator.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_TEXTURE);
+        builder.vertex(matrix, -k, 100.0F, -k).texture(0.0F, 0.0F);
+        builder.vertex(matrix, k, 100.0F, -k).texture(1.0F, 0.0F);
+        builder.vertex(matrix, k, 100.0F, k).texture(1.0F, 1.0F);
+        builder.vertex(matrix, -k, 100.0F, k).texture(0.0F, 1.0F);
+        BufferRenderer.drawWithGlobalProgram(builder.end());
         k = 20.0F;
+
+        RenderSystem.setShader(GameRenderer::getPositionTexProgram);
         RenderSystem.setShaderTexture(0, Identifier.ofVanilla("textures/environment/moon_phases.png"));
         int r = renderer.world.getMoonPhase();
         int s = r % 4;
@@ -293,12 +326,12 @@ public class Vibrancy implements ClientModInitializer {
         float o = (m) / 2.0F;
         float p = (s + 1) / 4.0F;
         float q = (m + 1) / 2.0F;
-        bufferBuilder2 = tessellator.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_TEXTURE);
-        bufferBuilder2.vertex(matrix4f3, -k, -100.0F, k).texture(p, q);
-        bufferBuilder2.vertex(matrix4f3, k, -100.0F, k).texture(t, q);
-        bufferBuilder2.vertex(matrix4f3, k, -100.0F, -k).texture(t, o);
-        bufferBuilder2.vertex(matrix4f3, -k, -100.0F, -k).texture(p, o);
-        BufferRenderer.drawWithGlobalProgram(bufferBuilder2.end());
+        builder = tessellator.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_TEXTURE);
+        builder.vertex(matrix, -k, -100.0F, k).texture(p, q);
+        builder.vertex(matrix, k, -100.0F, k).texture(t, q);
+        builder.vertex(matrix, k, -100.0F, -k).texture(t, o);
+        builder.vertex(matrix, -k, -100.0F, -k).texture(p, o);
+        BufferRenderer.drawWithGlobalProgram(builder.end());
         float u = renderer.world.getStarBrightness(tickDelta) * i;
 
         if (u > 0.0F) {
@@ -314,89 +347,6 @@ public class Vibrancy implements ClientModInitializer {
         RenderSystem.defaultBlendFunc();
         RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         RenderSystem.depthMask(true);
-    }
-
-    @Override
-    public void onInitializeClient() {
-        WorldRenderEvents.LAST.register(worldRenderContext -> {
-            NUM_LIGHT_TASKS = 0;
-            Identifier id = Identifier.of(Vibrancy.MOD_ID, "ray_light");
-
-            if (VeilRenderSystem.renderer().enableBuffers(id, DynamicBufferType.NORMAL)) {
-                renderLights();
-
-                VeilRenderSystem.renderer().disableBuffers(id, DynamicBufferType.NORMAL);
-            }
-        });
-        ClientChunkEvents.CHUNK_UNLOAD.register((world, chunk) -> {
-            BLOCK_LIGHTS.values().removeIf(light -> {
-                boolean b = new ChunkPos(light.blockPos).equals(chunk.getPos());
-
-                if (b) {
-                    light.free();
-                }
-
-                return b;
-            });
-            ENTITY_LIGHTS.values().removeIf(light -> {
-                boolean b = light.entity.getChunkPos().equals(chunk.getPos());
-
-                if (b) {
-                    light.free();
-                }
-
-                return b;
-            });
-        });
-        ClientWorldEvents.AFTER_CLIENT_WORLD_CHANGE.register((client, world) -> {
-            BLOCK_LIGHTS.values().forEach(RaytracedPointBlockLight::free);
-            BLOCK_LIGHTS.clear();
-            ENTITY_LIGHTS.values().forEach(RaytracedPointEntityLight::free);
-            ENTITY_LIGHTS.clear();
-        });
-        ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(new SimpleSynchronousResourceReloadListener() {
-            @Override
-            public Identifier getFabricId() {
-                return Identifier.of(Vibrancy.MOD_ID, "dynamic_lights");
-            }
-
-            @Override
-            public void reload(ResourceManager manager) {
-                DynamicLightInfo.MAP.clear();
-
-                for (Resource resource : manager.getAllResources(Identifier.of(Vibrancy.MOD_ID, "dynamic_lights.json"))) {
-                    try (BufferedReader reader = resource.getReader()) {
-                        JsonParser.parseReader(reader).getAsJsonObject().asMap().forEach((key, value) -> {
-                            if (key.startsWith("#")) {
-                                TagKey<Block> tagKey = TagKey.of(RegistryKeys.BLOCK, Identifier.of(key.substring(1)));
-                                DynamicLightInfo.MAP.put(state -> state.isIn(tagKey), Util.memoize(state -> new DynamicLightInfo.Builder().load(state.getRegistryEntry().value(), value).build()));
-                            } else {
-                                RegistryKey<Block> regKey = RegistryKey.of(RegistryKeys.BLOCK, Identifier.of(key));
-                                DynamicLightInfo info = new DynamicLightInfo.Builder().load(Registries.BLOCK.get(regKey), value).build();
-                                DynamicLightInfo.MAP.put(state -> state.matchesKey(regKey), state -> info);
-                            }
-                        });
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-
-                EMISSIVE_OVERRIDES.clear();
-
-                for (Resource resource : manager.getAllResources(Identifier.of(Vibrancy.MOD_ID, "emissive_blocks.json"))) {
-                    try (BufferedReader reader = resource.getReader()) {
-                        JsonParser.parseReader(reader).getAsJsonObject().asMap().forEach((key, value) -> {
-                            RegistryKey<Block> regKey = RegistryKey.of(RegistryKeys.BLOCK, Identifier.of(key));
-                            EMISSIVE_OVERRIDES.put(regKey, BlockStateFunction.parseJson(Registries.BLOCK.get(regKey), value, JsonElement::getAsBoolean, () -> false));
-                        });
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            }
-        });
-        ResourceManagerHelper.registerBuiltinResourcePack(Identifier.of(Vibrancy.MOD_ID, "vibrant_textures"), FabricLoader.getInstance().getModContainer(Vibrancy.MOD_ID).orElseThrow(), Text.translatable("pack.name.vibrancy.textures"), ResourcePackActivationType.NORMAL);
-        ResourceManagerHelper.registerBuiltinResourcePack(Identifier.of(Vibrancy.MOD_ID, "ripple"), FabricLoader.getInstance().getModContainer(Vibrancy.MOD_ID).orElseThrow(), Text.translatable("pack.name.vibrancy.ripple"), ResourcePackActivationType.DEFAULT_ENABLED);
     }
 
     public static float[] getTempTint(DimensionLightInfo dimLight, float temp) {
@@ -469,5 +419,90 @@ public class Vibrancy implements ClientModInitializer {
                 image.setColor(block, sky, 0xFF000000 | ((int) MathHelper.clamp(blue * 255, 0, 255) << 16) | ((int) MathHelper.clamp(green * 255, 0, 255) << 8) | (int) MathHelper.clamp(red * 255, 0, 255));
             }
         }
+    }
+
+    @Override
+    public void onInitializeClient() {
+        ParticleFactoryRegistry.getInstance().register(STEAM, CampfireSmokeParticle.SignalSmokeFactory::new);
+        WorldRenderEvents.LAST.register(worldRenderContext -> {
+            NUM_LIGHT_TASKS = 0;
+            Identifier id = id("ray_light");
+
+            if (VeilRenderSystem.renderer().enableBuffers(id, DynamicBufferType.NORMAL)) {
+                renderLights();
+
+                VeilRenderSystem.renderer().disableBuffers(id, DynamicBufferType.NORMAL);
+            }
+        });
+        ClientChunkEvents.CHUNK_UNLOAD.register((world, chunk) -> {
+            BLOCK_LIGHTS.values().removeIf(light -> {
+                boolean b = new ChunkPos(light.blockPos).equals(chunk.getPos());
+
+                if (b) {
+                    light.free();
+                }
+
+                return b;
+            });
+            ENTITY_LIGHTS.values().removeIf(light -> {
+                boolean b = light.entity.getChunkPos().equals(chunk.getPos());
+
+                if (b) {
+                    light.free();
+                }
+
+                return b;
+            });
+        });
+        ClientWorldEvents.AFTER_CLIENT_WORLD_CHANGE.register((client, world) -> {
+            BLOCK_LIGHTS.values().forEach(RaytracedPointBlockLight::free);
+            BLOCK_LIGHTS.clear();
+            ENTITY_LIGHTS.values().forEach(RaytracedPointEntityLight::free);
+            ENTITY_LIGHTS.clear();
+        });
+        ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(new SimpleSynchronousResourceReloadListener() {
+            @Override
+            public Identifier getFabricId() {
+                return id("dynamic_lights");
+            }
+
+            @Override
+            public void reload(ResourceManager manager) {
+                DynamicLightInfo.MAP.clear();
+
+                for (Resource resource : manager.getAllResources(id("dynamic_lights.json"))) {
+                    try (BufferedReader reader = resource.getReader()) {
+                        JsonParser.parseReader(reader).getAsJsonObject().asMap().forEach((key, value) -> {
+                            if (key.startsWith("#")) {
+                                TagKey<Block> tagKey = TagKey.of(RegistryKeys.BLOCK, Identifier.of(key.substring(1)));
+                                DynamicLightInfo.MAP.put(state -> state.isIn(tagKey), Util.memoize(state -> new DynamicLightInfo.Builder().load(state.getRegistryEntry().value(), value).build()));
+                            } else {
+                                RegistryKey<Block> regKey = RegistryKey.of(RegistryKeys.BLOCK, Identifier.of(key));
+                                DynamicLightInfo info = new DynamicLightInfo.Builder().load(Registries.BLOCK.get(regKey), value).build();
+                                DynamicLightInfo.MAP.put(state -> state.matchesKey(regKey), state -> info);
+                            }
+                        });
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+
+                EMISSIVE_OVERRIDES.clear();
+
+                for (Resource resource : manager.getAllResources(id("emissive_blocks.json"))) {
+                    try (BufferedReader reader = resource.getReader()) {
+                        JsonParser.parseReader(reader).getAsJsonObject().asMap().forEach((key, value) -> {
+                            RegistryKey<Block> regKey = RegistryKey.of(RegistryKeys.BLOCK, Identifier.of(key));
+                            EMISSIVE_OVERRIDES.put(regKey, BlockStateFunction.parseJson(Registries.BLOCK.get(regKey), value, JsonElement::getAsBoolean, () -> false));
+                        });
+                    } catch (IOException e) {
+                        throw new RuntimeException(e);
+                    }
+                }
+            }
+        });
+        ModContainer mod = FabricLoader.getInstance().getModContainer(MOD_ID).orElseThrow();
+        ResourceManagerHelper.registerBuiltinResourcePack(id("vibrant_textures"), mod, Text.translatable("pack.name.vibrancy.textures"), ResourcePackActivationType.NORMAL);
+        ResourceManagerHelper.registerBuiltinResourcePack(id("ripple"), mod, Text.translatable("pack.name.vibrancy.ripple"), ResourcePackActivationType.DEFAULT_ENABLED);
     }
 }

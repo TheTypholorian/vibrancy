@@ -28,17 +28,25 @@ public final class SodiumCompat {
                         .setControl(TickBoxControl::new)
                         .setBinding((opts, value) -> Vibrancy.DYNAMIC_LIGHTMAP.setValue(value), opts -> Vibrancy.DYNAMIC_LIGHTMAP.getValue())
                         .build())
+                /*
                 .add(OptionImpl.createBuilder(boolean.class, vanillaOpts)
                         .setName(Text.translatable("options.vibrancy.better_sky"))
                         .setTooltip(Text.translatable("options.vibrancy.better_sky.tooltip"))
                         .setControl(TickBoxControl::new)
                         .setBinding((opts, value) -> Vibrancy.BETTER_SKY.setValue(value), opts -> Vibrancy.BETTER_SKY.getValue())
                         .build())
+                 */
                 .add(OptionImpl.createBuilder(boolean.class, vanillaOpts)
                         .setName(Text.translatable("options.vibrancy.better_fog"))
                         .setTooltip(Text.translatable("options.vibrancy.better_fog.tooltip"))
                         .setControl(TickBoxControl::new)
                         .setBinding((opts, value) -> Vibrancy.BETTER_FOG.setValue(value), opts -> Vibrancy.BETTER_FOG.getValue())
+                        .build())
+                .add(OptionImpl.createBuilder(boolean.class, vanillaOpts)
+                        .setName(Text.translatable("options.vibrancy.elytra_trails"))
+                        .setTooltip(Text.translatable("options.vibrancy.elytra_trails.tooltip"))
+                        .setControl(TickBoxControl::new)
+                        .setBinding((opts, value) -> Vibrancy.ELYTRA_TRAILS.setValue(value), opts -> Vibrancy.ELYTRA_TRAILS.getValue())
                         .build())
                 .build());
 

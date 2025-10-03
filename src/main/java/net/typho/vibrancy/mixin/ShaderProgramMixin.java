@@ -59,7 +59,7 @@ public abstract class ShaderProgramMixin {
         }
 
         if (skyAngle != null) {
-            skyAngle.set(MinecraftClient.getInstance().world.getSkyAngle(MinecraftClient.getInstance().getRenderTickCounter().getTickDelta(false)));
+            skyAngle.set(MinecraftClient.getInstance().world.getSkyAngleRadians(MinecraftClient.getInstance().getRenderTickCounter().getTickDelta(false)));
         }
 
         DynamicBufferManger bufferManger = VeilRenderSystem.renderer().getDynamicBufferManger();

@@ -179,7 +179,7 @@ public class RaytracedPointEntityLight extends PointLight implements RaytracedLi
                 ShaderProgram shader;
 
                 if (anyShadows && raytrace) {
-                    VeilRenderSystem.setShader(Identifier.of(Vibrancy.MOD_ID, "light/ray/mask"));
+                    VeilRenderSystem.setShader(Vibrancy.id("light/ray/mask"));
                     shader = Objects.requireNonNull(RenderSystem.getShader());
 
                     shader.getUniformOrDefault("LightPos").set(lightPos.x, lightPos.y, lightPos.z);
@@ -195,7 +195,7 @@ public class RaytracedPointEntityLight extends PointLight implements RaytracedLi
 
                     glCullFace(GL_FRONT);
                     glDepthFunc(GL_GEQUAL);
-                    renderMask(Identifier.of(Vibrancy.MOD_ID, "shadow_mask"), view);
+                    renderMask(Vibrancy.id("shadow_mask"), view);
 
                     glCullFace(GL_BACK);
                     glDepthFunc(GL_LEQUAL);
@@ -203,13 +203,13 @@ public class RaytracedPointEntityLight extends PointLight implements RaytracedLi
                     RenderSystem.enableBlend();
                     glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
                 } else {
-                    Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(Identifier.of(Vibrancy.MOD_ID, "shadow_mask"))).bind(false);
+                    Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(Vibrancy.id("shadow_mask"))).bind(false);
                     glClearColor(0f, 0f, 0f, 0f);
                     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
                 }
 
-                Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(Identifier.of(Vibrancy.MOD_ID, "ray_light"))).bind(true);
-                VeilRenderSystem.setShader(Identifier.of(Vibrancy.MOD_ID, "light/ray/point"));
+                Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(Vibrancy.id("ray_light"))).bind(true);
+                VeilRenderSystem.setShader(Vibrancy.id("light/ray/point"));
                 shader = Objects.requireNonNull(RenderSystem.getShader());
 
                 float time = (float) GLFW.glfwGetTime();
