@@ -8,11 +8,11 @@
   "wall_torch": {
     "copy": "torch",
     "offset": {
-      "facing=east": [0.25, 0.9375, 0.5],
-      "facing=west": [0.75, 0.9375, 0.5],
-      "facing=south": [0.5, 0.9375, 0.25],
-      "facing=north": [0.5, 0.9375, 0.75],
-      "default": [0.5, 0.9375, 0.5]
+      "facing=east": [0.25, 0.8125, 0.5],
+      "facing=west": [0.75, 0.8125, 0.5],
+      "facing=south": [0.5, 0.8125, 0.25],
+      "facing=north": [0.5, 0.8125, 0.75],
+      "default": [0.5, 0.8125, 0.5]
     }
   },
   "lantern": "torch",
@@ -29,11 +29,11 @@
   "soul_wall_torch": {
     "copy": "soul_torch",
     "offset": {
-      "facing=east": [0.5, 0.9375, 0.25],
-      "facing=north": [0.25, 0.9375, 0.5],
-      "facing=south": [0.75, 0.9375, 0.5],
-      "facing=west": [0.5, 0.9375, 0.75],
-      "default": [0.5, 0.9375, 0.5]
+      "facing=east": [0.5, 0.8125, 0.25],
+      "facing=north": [0.25, 0.8125, 0.5],
+      "facing=south": [0.75, 0.8125, 0.5],
+      "facing=west": [0.5, 0.8125, 0.75],
+      "default": [0.5, 0.8125, 0.5]
     }
   },
   "soul_lantern": "soul_torch",
@@ -49,11 +49,11 @@
   "redstone_wall_torch": {
     "copy": "redstone_torch",
     "offset": {
-      "facing=east": [0.5, 0.9375, 0.25],
-      "facing=north": [0.25, 0.9375, 0.5],
-      "facing=south": [0.75, 0.9375, 0.5],
-      "facing=west": [0.5, 0.9375, 0.75],
-      "default": [0.5, 0.9375, 0.5]
+      "facing=east": [0.5, 0.8125, 0.25],
+      "facing=north": [0.25, 0.8125, 0.5],
+      "facing=south": [0.75, 0.8125, 0.5],
+      "facing=west": [0.5, 0.8125, 0.75],
+      "default": [0.5, 0.8125, 0.5]
     }
   },
   "end_rod": {

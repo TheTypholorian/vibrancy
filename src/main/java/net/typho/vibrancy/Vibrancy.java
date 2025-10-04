@@ -18,6 +18,7 @@ import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
 import net.fabricmc.loader.api.FabricLoader;
 import net.fabricmc.loader.api.ModContainer;
 import net.minecraft.block.Block;
+import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.ShaderProgram;
 import net.minecraft.client.gl.VertexBuffer;
@@ -46,6 +47,7 @@ import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.*;
+import net.minecraft.world.chunk.ChunkSection;
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFW;
@@ -451,10 +453,32 @@ public class Vibrancy implements ClientModInitializer {
                 VeilRenderSystem.renderer().disableBuffers(id, DynamicBufferType.NORMAL);
             }
         });
-        ClientChunkEvents.CHUNK_LOAD.register((world, chunk) -> chunk.forEachBlockMatchingPredicate(
-                state -> DynamicLightInfo.get(state) != null,
-                (pos, state) -> MinecraftClient.getInstance().execute(() -> DynamicLightInfo.get(state).addBlockLight(pos, state))
-        ));
+        ClientChunkEvents.CHUNK_LOAD.register((world, chunk) -> {
+            BlockPos.Mutable mutable = new BlockPos.Mutable();
+
+            for (int i = chunk.getBottomSectionCoord(); i < chunk.getTopSectionCoord(); i++) {
+                ChunkSection section = chunk.getSection(chunk.sectionCoordToIndex(i));
+
+                if (section.hasAny(state -> DynamicLightInfo.MAP.keySet()
+                        .stream()
+                        .anyMatch(p -> p.test(state)))) {
+                    BlockPos minPos = ChunkSectionPos.from(chunk.getPos(), i).getMinPos();
+
+                    for (int x = 0; x < 16; x++) {
+                        for (int y = 0; y < 16; y++) {
+                            for (int z = 0; z < 16; z++) {
+                                BlockState state = section.getBlockState(x, y, z);
+                                DynamicLightInfo info = DynamicLightInfo.get(state);
+
+                                if (info != null) {
+                                    info.addBlockLight(mutable.set(minPos, x, y, z), state);
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        });
         ClientChunkEvents.CHUNK_UNLOAD.register((world, chunk) -> {
             BLOCK_LIGHTS.values().removeIf(light -> {
                 boolean b = new ChunkPos(light.blockPos).equals(chunk.getPos());

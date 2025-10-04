@@ -21,7 +21,6 @@ void main() {
     // 10%
     if (Detailed) {
         vec3 Pos = viewToWorldSpace(viewPosFromDepth(texelFetch(DiffuseDepthSampler, ivec2(gl_FragCoord.xy), 0).r, gl_FragCoord.xy / ScreenSize));
-        float depth = texelFetch(DiffuseDepthSampler, ivec2(gl_FragCoord.xy), 0).r;
 
         vec3 delta = Pos - LightPos;
         float len = length(delta);

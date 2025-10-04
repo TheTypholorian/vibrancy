@@ -49,9 +49,9 @@ public interface RaytracedLight extends NativeResource {
             Vector2f[] uvs = new Vector2f[4];
 
             int[] data = quad.getVertexData();
-            int stride = data.length / 4;
+            int len = data.length / 8;
 
-            for (int i = 0, j = 0; i < 4; i++, j += stride) {
+            for (int i = 0, j = 0; i < len; i++, j += 8) {
                 positions[i] = new Vector3f(
                         Float.intBitsToFloat(data[j]) + pos.getX(),
                         Float.intBitsToFloat(data[j + 1]) + pos.getY(),
@@ -75,8 +75,6 @@ public interface RaytracedLight extends NativeResource {
                     uvs[3],
                     layer.isTranslucent() || layer != RenderLayer.getSolid()
             ));
-
-            break;
         }
     }
 
@@ -94,7 +92,7 @@ public interface RaytracedLight extends NativeResource {
         Random random = Random.create(lightBlockPos.hashCode());
 
         for (Direction direction : Direction.values()) {
-            if (Block.shouldDrawSide(state, world, pos, direction, pos.offset(direction))) {
+            if (Block.shouldDrawSide(state, world, pos, direction, pos.offset(direction)) || sqDist <= 1) {
                 //if (!normalTest || (sqDist == 1 || Vibrancy.pointsToward(pos, direction, lightBlockPos))) {
                 getQuads(model.getQuads(state, direction, random), pos, out, layer);
                 //}
