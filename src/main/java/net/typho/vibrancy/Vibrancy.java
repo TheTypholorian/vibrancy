@@ -150,7 +150,8 @@ public class Vibrancy implements ClientModInitializer {
     }
 
     public static boolean shouldRenderLight(RaytracedLight light) {
-        boolean b = light.lazyDistance(MinecraftClient.getInstance().gameRenderer.getCamera().getPos()) / 16 < Vibrancy.LIGHT_CULL_DISTANCE.getValue() * Vibrancy.LIGHT_CULL_DISTANCE.getValue();
+        Vec3d cam = MinecraftClient.getInstance().gameRenderer.getCamera().getPos();
+        boolean b = light.getPosition().distanceSquared(cam.x, cam.y, cam.z) / 16 < Vibrancy.LIGHT_CULL_DISTANCE.getValue() * Vibrancy.LIGHT_CULL_DISTANCE.getValue();
 
         if (b) {
             NUM_VISIBLE_LIGHTS++;
@@ -160,7 +161,8 @@ public class Vibrancy implements ClientModInitializer {
     }
 
     public static double getLightDistance(RaytracedLight light) {
-        return light.lazyDistance(MinecraftClient.getInstance().gameRenderer.getCamera().getPos());
+        Vec3d cam = MinecraftClient.getInstance().gameRenderer.getCamera().getPos();
+        return light.getPosition().distanceSquared(cam.x, cam.y, cam.z);
     }
 
     public static void renderLight(RaytracedLight light, int[] cap) {
@@ -175,17 +177,27 @@ public class Vibrancy implements ClientModInitializer {
         }
     }
 
+    public static void renderLightDebug(RaytracedLight light, VertexConsumer consumer) {
+        Vec3d camera = MinecraftClient.getInstance().gameRenderer.getCamera().getPos();
+        WorldRenderer.drawBox(
+                consumer,
+                light.getPosition().x - 0.3 - camera.getX(), light.getPosition().y - 0.3 - camera.getY(), light.getPosition().z - 0.3 - camera.getZ(),
+                light.getPosition().x + 0.3 - camera.getX(), light.getPosition().y + 0.3 - camera.getY(), light.getPosition().z + 0.3 - camera.getZ(),
+                1, 1, 1, 1
+        );
+    }
+
     public static boolean pointsToward(BlockPos from, Direction dir, BlockPos to) {
         return switch (dir.getAxis()) {
             case X -> dir.getDirection() == Direction.AxisDirection.POSITIVE
-                    ? from.getX() < to.getX()
-                    : from.getX() > to.getX();
+                    ? from.getX() <= to.getX()
+                    : from.getX() >= to.getX();
             case Y -> dir.getDirection() == Direction.AxisDirection.POSITIVE
-                    ? from.getY() < to.getY()
-                    : from.getY() > to.getY();
+                    ? from.getY() <= to.getY()
+                    : from.getY() >= to.getY();
             case Z -> dir.getDirection() == Direction.AxisDirection.POSITIVE
-                    ? from.getZ() < to.getZ()
-                    : from.getZ() > to.getZ();
+                    ? from.getZ() <= to.getZ()
+                    : from.getZ() >= to.getZ();
         };
     }
 
@@ -424,7 +436,12 @@ public class Vibrancy implements ClientModInitializer {
     @Override
     public void onInitializeClient() {
         ParticleFactoryRegistry.getInstance().register(STEAM, CampfireSmokeParticle.SignalSmokeFactory::new);
-        WorldRenderEvents.LAST.register(worldRenderContext -> {
+        WorldRenderEvents.LAST.register(context -> {
+            if (MinecraftClient.getInstance().getDebugHud().shouldShowDebugHud() && FabricLoader.getInstance().isDevelopmentEnvironment()) {
+                ENTITY_LIGHTS.values().forEach(light -> renderLightDebug(light, context.consumers().getBuffer(RenderLayer.getLines())));
+                BLOCK_LIGHTS.values().forEach(light -> renderLightDebug(light, context.consumers().getBuffer(RenderLayer.getLines())));
+            }
+
             NUM_LIGHT_TASKS = 0;
             Identifier id = id("ray_light");
 
@@ -434,6 +451,10 @@ public class Vibrancy implements ClientModInitializer {
                 VeilRenderSystem.renderer().disableBuffers(id, DynamicBufferType.NORMAL);
             }
         });
+        ClientChunkEvents.CHUNK_LOAD.register((world, chunk) -> chunk.forEachBlockMatchingPredicate(
+                state -> DynamicLightInfo.get(state) != null,
+                (pos, state) -> MinecraftClient.getInstance().execute(() -> DynamicLightInfo.get(state).addBlockLight(pos, state))
+        ));
         ClientChunkEvents.CHUNK_UNLOAD.register((world, chunk) -> {
             BLOCK_LIGHTS.values().removeIf(light -> {
                 boolean b = new ChunkPos(light.blockPos).equals(chunk.getPos());

@@ -48,11 +48,6 @@ public class RaytracedPointEntityLight extends PointLight implements RaytracedLi
     }
 
     @Override
-    public double lazyDistance(Vec3d vec) {
-        return getPosition().distanceSquared(vec.x, vec.y, vec.z);
-    }
-
-    @Override
     public void updateDirty(Iterable<BlockPos> it) {
         BlockPos lightBlockPos = new BlockPos((int) Math.floor(getPosition().x), (int) Math.floor(getPosition().y), (int) Math.floor(getPosition().z));
         int blockRadius = Vibrancy.capShadowDistance((int) Math.ceil(radius) - 2);

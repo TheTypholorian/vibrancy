@@ -7,7 +7,6 @@
     "AbstractBlockStateMixin",
     "BackgroundRendererMixin",
     "BlockModelRendererMixin",
-    "ClientPlayNetworkHandlerMixin",
     "GameOptionsMixin",
     "GlDebugMixin",
     "LightingProviderMixin",

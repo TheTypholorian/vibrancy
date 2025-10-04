@@ -1,5 +1,6 @@
 package net.typho.vibrancy;
 
+import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.VertexBuffer;
@@ -12,9 +13,9 @@ import net.minecraft.client.render.model.BakedQuad;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.random.Random;
 import org.joml.Vector2f;
+import org.joml.Vector3d;
 import org.joml.Vector3f;
 import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.system.NativeResource;
@@ -40,7 +41,7 @@ public interface RaytracedLight extends NativeResource {
 
     boolean render(boolean raytrace);
 
-    double lazyDistance(Vec3d vec);
+    Vector3d getPosition();
 
     default void getQuads(Iterable<BakedQuad> bakedQuads, BlockPos pos, Consumer<Quad> out, RenderLayer layer) {
         for (BakedQuad quad : bakedQuads) {
@@ -93,9 +94,11 @@ public interface RaytracedLight extends NativeResource {
         Random random = Random.create(lightBlockPos.hashCode());
 
         for (Direction direction : Direction.values()) {
-            //if (!normalTest || (sqDist == 1 || Vibrancy.pointsToward(pos, direction, lightBlockPos))) {
+            if (Block.shouldDrawSide(state, world, pos, direction, pos.offset(direction))) {
+                //if (!normalTest || (sqDist == 1 || Vibrancy.pointsToward(pos, direction, lightBlockPos))) {
                 getQuads(model.getQuads(state, direction, random), pos, out, layer);
-            //}
+                //}
+            }
         }
 
         getQuads(model.getQuads(state, null, random), pos, out, layer);
@@ -111,6 +114,8 @@ public interface RaytracedLight extends NativeResource {
         VertexBuffer.unbind();
 
         ByteBuffer buf = MemoryUtil.memAlloc(volumes.size() * Quad.BYTES);
+
+        System.out.println(volumes.size());
 
         for (ShadowVolume v : volumes) {
             v.caster().put(buf);

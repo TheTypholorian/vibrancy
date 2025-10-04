@@ -11,7 +11,10 @@ import net.minecraft.client.gl.VertexBuffer;
 import net.minecraft.client.render.*;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.math.*;
+import net.minecraft.util.math.BlockBox;
+import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.MathHelper;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -47,11 +50,6 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
         this.flicker = flicker;
         markDirty();
         return this;
-    }
-
-    @Override
-    public double lazyDistance(Vec3d vec) {
-        return getPosition().distanceSquared(vec.x, vec.y, vec.z);
     }
 
     public void upload(BufferBuilder builder, Collection<ShadowVolume> volumes) {
@@ -109,6 +107,8 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
                         }
                     }
                 }
+
+                dirty.clear();
 
                 BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION);
 
