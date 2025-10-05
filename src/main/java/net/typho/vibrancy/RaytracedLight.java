@@ -113,8 +113,6 @@ public interface RaytracedLight extends NativeResource {
 
         ByteBuffer buf = MemoryUtil.memAlloc(volumes.size() * Quad.BYTES);
 
-        System.out.println(volumes.size());
-
         for (ShadowVolume v : volumes) {
             v.caster().put(buf);
         }

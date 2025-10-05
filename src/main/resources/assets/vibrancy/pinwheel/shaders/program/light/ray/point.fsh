@@ -27,22 +27,9 @@ void applyShadowColor(vec4 color) {
 }
 
 void main() {
-    vec2 screenUv = gl_FragCoord.xy / ScreenSize;
+    vec3 pos = viewToWorldSpace(viewPosFromDepth(texelFetch(DiffuseDepthSampler, ivec2(gl_FragCoord.xy), 0).r, gl_FragCoord.xy / ScreenSize));
 
-    float depth = texelFetch(DiffuseDepthSampler, ivec2(gl_FragCoord.xy), 0).r;
-    vec3 pos = viewToWorldSpace(viewPosFromDepth(depth, screenUv));
-
-    vec3 offset = LightPos - pos;
-
-    vec3 normalVS = texelFetch(VeilDynamicNormalSampler, ivec2(gl_FragCoord.xy), 0).xyz;
-    vec3 lightDirection = normalize((VeilCamera.ViewMat * vec4(offset, 0.0)).xyz);
-    float diffuse = 1;//clamp(0.0, 1.0, dot(normalVS, lightDirection));
-    diffuse = (diffuse + MINECRAFT_AMBIENT_LIGHT) / (1.0 + MINECRAFT_AMBIENT_LIGHT);
-    diffuse *= attenuate_no_cusp(length(offset), LightRadius);
-
-    float reflectivity = 0.05;
-    vec3 diffuseColor = diffuse * LightColor;
-    fragColor = vec4(diffuseColor * (1.0 - reflectivity) + diffuseColor * reflectivity, 1.0);
+    fragColor = vec4(clamp(dot(normalize(texelFetch(VeilDynamicNormalSampler, ivec2(gl_FragCoord.xy), 0).xyz), normalize((VeilCamera.ViewMat * vec4(LightPos - pos, 0.0)).xyz)), 0, 1) * attenuate_no_cusp(length(LightPos - pos), LightRadius) * LightColor, 1);
 
     if (AnyShadows) {
         applyShadowColor(texelFetch(ShadowMaskSampler, ivec2(gl_FragCoord.xy), 0));

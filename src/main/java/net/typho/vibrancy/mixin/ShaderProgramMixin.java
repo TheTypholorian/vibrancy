@@ -25,7 +25,8 @@ public abstract class ShaderProgramMixin {
     @Shadow
     public abstract @Nullable GlUniform getUniform(String name);
 
-    @Shadow public abstract void addSampler(String name, Object sampler);
+    @Shadow
+    public abstract void addSampler(String name, Object sampler);
 
     @Unique
     private GlUniform camPos;

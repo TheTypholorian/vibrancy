@@ -15,8 +15,8 @@
       "name": "vibrancy:shadow_mask:depth"
     },
     "VeilDynamicNormalSampler": {
-      "type": "framebuffer",
-      "name": "veil:dynamic_buffer/normal"
+      "type": "location",
+      "location": "veil:dynamic_buffer/normal"
     }
   }
 }

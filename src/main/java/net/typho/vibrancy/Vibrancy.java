@@ -6,6 +6,8 @@ import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import foundry.veil.api.client.render.VeilRenderSystem;
 import foundry.veil.api.client.render.dynamicbuffer.DynamicBufferType;
+import foundry.veil.fabric.event.FabricVeilRendererAvailableEvent;
+import foundry.veil.platform.VeilEventPlatform;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientWorldEvents;
@@ -437,6 +439,7 @@ public class Vibrancy implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
+        VeilEventPlatform.INSTANCE.onVeilRendererAvailable((FabricVeilRendererAvailableEvent) renderer -> VeilRenderSystem.renderer().getPostProcessingManager().add(id("ray_light")));
         ParticleFactoryRegistry.getInstance().register(STEAM, CampfireSmokeParticle.SignalSmokeFactory::new);
         WorldRenderEvents.LAST.register(context -> {
             if (MinecraftClient.getInstance().getDebugHud().shouldShowDebugHud() && FabricLoader.getInstance().isDevelopmentEnvironment()) {
@@ -447,11 +450,9 @@ public class Vibrancy implements ClientModInitializer {
             NUM_LIGHT_TASKS = 0;
             Identifier id = id("ray_light");
 
-            if (VeilRenderSystem.renderer().enableBuffers(id, DynamicBufferType.NORMAL)) {
-                renderLights();
+            VeilRenderSystem.renderer().enableBuffers(id, DynamicBufferType.NORMAL, DynamicBufferType.ALBEDO);
 
-                VeilRenderSystem.renderer().disableBuffers(id, DynamicBufferType.NORMAL);
-            }
+            renderLights();
         });
         ClientChunkEvents.CHUNK_LOAD.register((world, chunk) -> {
             BlockPos.Mutable mutable = new BlockPos.Mutable();
