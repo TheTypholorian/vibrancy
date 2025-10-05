@@ -12,6 +12,7 @@ import net.minecraft.client.render.model.BakedModel;
 import net.minecraft.client.render.model.BakedQuad;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.random.Random;
 import org.joml.Vector2f;
@@ -42,6 +43,8 @@ public interface RaytracedLight extends NativeResource {
     boolean render(boolean raytrace);
 
     Vector3d getPosition();
+
+    Box getFrustumBox();
 
     default void getQuads(Iterable<BakedQuad> bakedQuads, BlockPos pos, Consumer<Quad> out, RenderLayer layer) {
         for (BakedQuad quad : bakedQuads) {
@@ -92,10 +95,8 @@ public interface RaytracedLight extends NativeResource {
         Random random = Random.create(lightBlockPos.hashCode());
 
         for (Direction direction : Direction.values()) {
-            if (Block.shouldDrawSide(state, world, pos, direction, pos.offset(direction)) || sqDist <= 1) {
-                //if (!normalTest || (sqDist == 1 || Vibrancy.pointsToward(pos, direction, lightBlockPos))) {
+            if (sqDist <= 1 || (Block.shouldDrawSide(state, world, pos, direction, pos.offset(direction)) && Vibrancy.pointsToward(pos, direction, lightBlockPos))) {
                 getQuads(model.getQuads(state, direction, random), pos, out, layer);
-                //}
             }
         }
 

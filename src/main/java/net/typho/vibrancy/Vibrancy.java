@@ -2,7 +2,6 @@ package net.typho.vibrancy;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
-import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import foundry.veil.api.client.render.VeilRenderSystem;
 import foundry.veil.api.client.render.dynamicbuffer.DynamicBufferType;
@@ -22,7 +21,6 @@ import net.fabricmc.loader.api.ModContainer;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gl.ShaderProgram;
 import net.minecraft.client.gl.VertexBuffer;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.network.ClientPlayerEntity;
@@ -32,7 +30,6 @@ import net.minecraft.client.option.SimpleOption;
 import net.minecraft.client.particle.CampfireSmokeParticle;
 import net.minecraft.client.render.*;
 import net.minecraft.client.texture.NativeImage;
-import net.minecraft.client.util.math.MatrixStack;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.entity.effect.StatusEffects;
@@ -50,8 +47,6 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.*;
 import net.minecraft.world.chunk.ChunkSection;
-import org.joml.Matrix4f;
-import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFW;
 
 import java.io.BufferedReader;
@@ -155,7 +150,7 @@ public class Vibrancy implements ClientModInitializer {
 
     public static boolean shouldRenderLight(RaytracedLight light) {
         Vec3d cam = MinecraftClient.getInstance().gameRenderer.getCamera().getPos();
-        boolean b = light.getPosition().distanceSquared(cam.x, cam.y, cam.z) / 16 < Vibrancy.LIGHT_CULL_DISTANCE.getValue() * Vibrancy.LIGHT_CULL_DISTANCE.getValue();
+        boolean b = light.getPosition().distanceSquared(cam.x, cam.y, cam.z) / 16 < Vibrancy.LIGHT_CULL_DISTANCE.getValue() * Vibrancy.LIGHT_CULL_DISTANCE.getValue() && VeilRenderSystem.getCullingFrustum().testAab(light.getFrustumBox());
 
         if (b) {
             NUM_VISIBLE_LIGHTS++;
@@ -243,134 +238,6 @@ public class Vibrancy implements ClientModInitializer {
                 .forEachOrdered(light -> renderLight(light, cap));
 
         RaytracedLight.DIRTY.clear();
-    }
-
-    public static void renderSky(Matrix4f viewMat, Matrix4f projMat, float tickDelta, Camera camera, boolean thickFog, MinecraftClient client, WorldRenderer renderer) {
-        MatrixStack stack = new MatrixStack();
-        Tessellator tessellator = Tessellator.getInstance();
-        stack.multiplyPositionMatrix(viewMat);
-        VeilRenderSystem.setShader(id("sky"));
-        ShaderProgram shader = RenderSystem.getShader();
-        Vec3d skyColor = client.world.getSkyColor(client.gameRenderer.getCamera().getPos(), tickDelta);
-        shader.getUniformOrDefault("SkyColor").set((float) skyColor.x, (float) skyColor.y, (float) skyColor.z);
-        RenderSystem.depthMask(false);
-
-        if (SKY_BUFFER == null) {
-            SKY_BUFFER = new VertexBuffer(VertexBuffer.Usage.STATIC);
-            SKY_BUFFER.bind();
-
-            BufferBuilder builder = tessellator.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION);
-            Vector3f[] vertices = {
-                    new Vector3f(1, 1, 1),
-                    new Vector3f(1, 1, -1),
-                    new Vector3f(1, -1, -1),
-                    new Vector3f(1, -1, 1),
-                    new Vector3f(-1, 1, 1),
-                    new Vector3f(-1, 1, -1),
-                    new Vector3f(-1, -1, -1),
-                    new Vector3f(-1, -1, 1),
-            };
-
-            builder.vertex(vertices[0])
-                    .vertex(vertices[1])
-                    .vertex(vertices[2])
-                    .vertex(vertices[3]);
-
-            builder.vertex(vertices[1])
-                    .vertex(vertices[5])
-                    .vertex(vertices[6])
-                    .vertex(vertices[2]);
-
-            builder.vertex(vertices[5])
-                    .vertex(vertices[4])
-                    .vertex(vertices[7])
-                    .vertex(vertices[6]);
-
-            builder.vertex(vertices[4])
-                    .vertex(vertices[0])
-                    .vertex(vertices[3])
-                    .vertex(vertices[7]);
-
-            builder.vertex(vertices[1])
-                    .vertex(vertices[0])
-                    .vertex(vertices[4])
-                    .vertex(vertices[5]);
-
-            builder.vertex(vertices[3])
-                    .vertex(vertices[2])
-                    .vertex(vertices[6])
-                    .vertex(vertices[7]);
-
-            SKY_BUFFER.upload(builder.end());
-        } else {
-            SKY_BUFFER.bind();
-        }
-
-        SKY_BUFFER.draw(stack.peek().getPositionMatrix(), projMat, shader);
-        VertexBuffer.unbind();
-        RenderSystem.enableBlend();
-        RenderSystem.blendFuncSeparate(GlStateManager.SrcFactor.SRC_ALPHA, GlStateManager.DstFactor.ONE, GlStateManager.SrcFactor.ONE, GlStateManager.DstFactor.ZERO);
-        stack.push();
-        float i = 1.0F - renderer.world.getRainGradient(tickDelta);
-        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, i);
-        stack.multiply(RotationAxis.POSITIVE_Y.rotationDegrees(-90.0F));
-        stack.multiply(RotationAxis.POSITIVE_X.rotationDegrees(renderer.world.getSkyAngle(tickDelta) * 360.0F));
-        Matrix4f matrix = stack.peek().getPositionMatrix();
-        float k = 30.0F;
-
-        BufferBuilder bufferBuilder = tessellator.begin(VertexFormat.DrawMode.TRIANGLE_FAN, VertexFormats.POSITION_TEXTURE);
-        bufferBuilder.vertex(matrix, 0.0F, 100.0F, 0.0F).texture(0, 0);
-
-        for (int n = 0; n <= 16; n++) {
-            float o = n * (float) (Math.PI * 2) / 16.0F;
-            float p = MathHelper.sin(o);
-            float q = MathHelper.cos(o);
-            bufferBuilder.vertex(matrix, p * 120, 100, q * -120).texture(p, q);
-        }
-
-        VeilRenderSystem.setShader(id("sun"));
-        BufferRenderer.drawWithGlobalProgram(bufferBuilder.end());
-
-        RenderSystem.setShader(GameRenderer::getPositionTexProgram);
-        RenderSystem.setShaderTexture(0, Identifier.ofVanilla("textures/environment/sun.png"));
-        BufferBuilder builder = tessellator.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_TEXTURE);
-        builder.vertex(matrix, -k, 100.0F, -k).texture(0.0F, 0.0F);
-        builder.vertex(matrix, k, 100.0F, -k).texture(1.0F, 0.0F);
-        builder.vertex(matrix, k, 100.0F, k).texture(1.0F, 1.0F);
-        builder.vertex(matrix, -k, 100.0F, k).texture(0.0F, 1.0F);
-        BufferRenderer.drawWithGlobalProgram(builder.end());
-        k = 20.0F;
-
-        RenderSystem.setShader(GameRenderer::getPositionTexProgram);
-        RenderSystem.setShaderTexture(0, Identifier.ofVanilla("textures/environment/moon_phases.png"));
-        int r = renderer.world.getMoonPhase();
-        int s = r % 4;
-        int m = r / 4 % 2;
-        float t = (s) / 4.0F;
-        float o = (m) / 2.0F;
-        float p = (s + 1) / 4.0F;
-        float q = (m + 1) / 2.0F;
-        builder = tessellator.begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION_TEXTURE);
-        builder.vertex(matrix, -k, -100.0F, k).texture(p, q);
-        builder.vertex(matrix, k, -100.0F, k).texture(t, q);
-        builder.vertex(matrix, k, -100.0F, -k).texture(t, o);
-        builder.vertex(matrix, -k, -100.0F, -k).texture(p, o);
-        BufferRenderer.drawWithGlobalProgram(builder.end());
-        float u = renderer.world.getStarBrightness(tickDelta) * i;
-
-        if (u > 0.0F) {
-            RenderSystem.setShaderColor(u, u, u, u);
-            BackgroundRenderer.clearFog();
-            renderer.starsBuffer.bind();
-            renderer.starsBuffer.draw(stack.peek().getPositionMatrix(), projMat, GameRenderer.getPositionProgram());
-            VertexBuffer.unbind();
-        }
-
-        stack.pop();
-        RenderSystem.disableBlend();
-        RenderSystem.defaultBlendFunc();
-        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
-        RenderSystem.depthMask(true);
     }
 
     public static float[] getTempTint(DimensionLightInfo dimLight, float temp) {
