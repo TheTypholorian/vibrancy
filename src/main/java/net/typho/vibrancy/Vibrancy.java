@@ -150,7 +150,7 @@ public class Vibrancy implements ClientModInitializer {
 
     public static boolean shouldRenderLight(RaytracedLight light) {
         Vec3d cam = MinecraftClient.getInstance().gameRenderer.getCamera().getPos();
-        boolean b = light.getPosition().distanceSquared(cam.x, cam.y, cam.z) / 16 < Vibrancy.LIGHT_CULL_DISTANCE.getValue() * Vibrancy.LIGHT_CULL_DISTANCE.getValue() && VeilRenderSystem.getCullingFrustum().testAab(light.getFrustumBox());
+        boolean b = light.getPosition().distanceSquared(cam.x, cam.y, cam.z) / 16 < Vibrancy.LIGHT_CULL_DISTANCE.getValue() * Vibrancy.LIGHT_CULL_DISTANCE.getValue() && (VeilRenderSystem.getCullingFrustum().testAab(light.getFrustumBox()) || (light instanceof RaytracedPointEntityLight entity && entity.entity == MinecraftClient.getInstance().cameraEntity));
 
         if (b) {
             NUM_VISIBLE_LIGHTS++;

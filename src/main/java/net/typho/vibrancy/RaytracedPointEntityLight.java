@@ -171,7 +171,9 @@ public class RaytracedPointEntityLight extends AbstractRaytracedLight {
 
     @Override
     public Vector3d getPosition() {
-        Vec3d pos = entity.getEyePos();
+        float tickDelta = MinecraftClient.getInstance().getRenderTickCounter().getTickDelta(true);
+        Vec3d pos = entity.getCameraPosVec(tickDelta)
+                .add(entity.getRotationVec(tickDelta).multiply(0.5));
         return new Vector3d(pos.x, pos.y, pos.z);
     }
 
