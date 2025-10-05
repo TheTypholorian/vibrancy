@@ -12,7 +12,7 @@ import java.util.Map;
 public record DimensionLightInfo(float[] block, float[] nightSky, float[] minTemp, float[] maxTemp, float[] minHumid, float[] maxHumid, float[] skyScale, boolean hasDay) {
     public static final Map<Identifier, DimensionLightInfo> MAP = new LinkedHashMap<>();
     public static final DimensionLightInfo OVERWORLD = new DimensionLightInfo(
-            new float[]{1f, 0.95f, 0.9f}, new float[]{0.3f, 0.3f, 0.5f},
+            new float[]{1f, 0.95f, 0.9f}, new float[]{0.15f, 0.15f, 0.25f},
             new float[]{0.75f, 0.9f, 1f}, new float[]{1f, 1f, 0.9f},
             null, null,
             null,
@@ -29,7 +29,7 @@ public record DimensionLightInfo(float[] block, float[] nightSky, float[] minTem
             OVERWORLD.block, null,
             null, null,
             null, null,
-            new float[]{0.6f, 0.55f, 0.6f},
+            new float[]{0.2f, 0.15f, 0.2f},
             false
     );
 

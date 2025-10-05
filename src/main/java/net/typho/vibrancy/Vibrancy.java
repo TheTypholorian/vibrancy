@@ -294,18 +294,22 @@ public class Vibrancy implements ClientModInitializer {
                 fSky = (float) Math.pow(fSky, brightness);
             }
 
-            float[] skyTint = dimLight.hasDay() && dimLight.nightSky() != null ? new float[]{
+            float[] skyTint = dimLight.nightSky() != null ? new float[]{
                     fSky * fSky * MathHelper.lerp(day, dimLight.nightSky()[0], tempTint[0]),
                     fSky * fSky * MathHelper.lerp(day, dimLight.nightSky()[1], tempTint[1]),
                     fSky * fSky * MathHelper.lerp(day, dimLight.nightSky()[2], tempTint[2])
-            } : tempTint;
+            } : new float[]{
+                tempTint[0] * fSky * fSky,
+                tempTint[1] * fSky * fSky,
+                tempTint[2] * fSky * fSky
+            };
 
             for (int block = 0; block < image.getWidth(); block++) {
                 float fBlock = (float) Math.pow((float) block / (image.getWidth() - 1), brightness);
 
-                float red = fBlock * dimLight.block()[0] + skyTint[0];
-                float green = fBlock * dimLight.block()[1] + skyTint[1];
-                float blue = fBlock * dimLight.block()[2] + skyTint[2];
+                float red = fBlock * dimLight.block()[0] / 4 + skyTint[0];
+                float green = fBlock * dimLight.block()[1] / 4 + skyTint[1];
+                float blue = fBlock * dimLight.block()[2] / 4 + skyTint[2];
 
                 image.setColor(block, sky, 0xFF000000 | ((int) MathHelper.clamp(blue * 255, 0, 255) << 16) | ((int) MathHelper.clamp(green * 255, 0, 255) << 8) | (int) MathHelper.clamp(red * 255, 0, 255));
             }

@@ -2,7 +2,7 @@
   "torch": {
     "color": [1, 1, 0.59],
     "offset": [0.5, 0.5625, 0.5],
-    "brightness": 0.3,
+    "brightness": 0.5,
     "flicker": 0.03
   },
   "wall_torch": {
@@ -23,7 +23,7 @@
   "soul_torch": {
     "color": [0.48, 1, 1],
     "offset": [0.5, 0.5625, 0.5],
-    "brightness": 0.2,
+    "brightness": 0.3,
     "flicker": 0.03
   },
   "soul_wall_torch": {
@@ -44,7 +44,7 @@
   "redstone_torch": {
     "color": [1, 0.48, 0.48],
     "offset": [0.5, 0.5625, 0.5],
-    "brightness": 0.2
+    "brightness": 0.3
   },
   "redstone_wall_torch": {
     "copy": "redstone_torch",
@@ -59,12 +59,12 @@
   "end_rod": {
     "color": [0.96, 0.88, 0.8],
     "offset": [0.5, 0.5625, 0.5],
-    "brightness": 0.2
+    "brightness": 0.4
   },
   "copper_bulb": {
     "color": [1, 0.86, 0.6],
     "brightness": {
-      "lit=true": 0.5,
+      "lit=true": 0.6,
       "lit=false": 0
     }
   },
@@ -85,24 +85,24 @@
   },
   "sea_lantern": {
     "color": [0.79, 0.89, 0.86],
-    "brightness": 0.2
+    "brightness": 0.3
   },
   "conduit": "sea_lantern",
   "shroomlight": {
     "color": [1, 0.77, 0.49],
-    "brightness": 0.3
+    "brightness": 0.5
   },
   "ochre_froglight": {
     "color": [0.98, 0.93, 0.69],
-    "brightness": 0.3
+    "brightness": 0.5
   },
   "verdant_froglight": {
     "color": [0.84, 0.93, 0.83],
-    "brightness": 0.3
+    "brightness": 0.5
   },
   "pearlescent_froglight": {
     "color": [0.93, 0.9, 0.88],
-    "brightness": 0.3
+    "brightness": 0.5
   },
   "#candles": {
     "color": [1, 1, 0.59],
@@ -139,6 +139,6 @@
   "end_gateway": "end_portal",
   "jack_o_lantern": {
     "color": [1, 1, 0.63],
-    "brightness": 0.2
+    "brightness": 0.3
   }
 }

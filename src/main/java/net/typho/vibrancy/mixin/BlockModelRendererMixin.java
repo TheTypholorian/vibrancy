@@ -19,4 +19,14 @@ public class BlockModelRendererMixin {
     private Random blockRandom(Random value, @Local(argsOnly = true) BlockPos pos) {
         return Random.create(pos.hashCode());
     }
+
+    @ModifyVariable(
+            method = "render(Lnet/minecraft/world/BlockRenderView;Lnet/minecraft/client/render/model/BakedModel;Lnet/minecraft/block/BlockState;Lnet/minecraft/util/math/BlockPos;Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumer;ZLnet/minecraft/util/math/random/Random;JI)V",
+            at = @At("HEAD"),
+            index = 9,
+            argsOnly = true
+    )
+    private long blockRandomSeed(long value, @Local(argsOnly = true) BlockPos pos) {
+        return pos.hashCode();
+    }
 }

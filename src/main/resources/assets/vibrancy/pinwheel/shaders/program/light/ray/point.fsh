@@ -17,21 +17,16 @@ uniform bool AnyShadows;
 
 out vec4 fragColor;
 
-void applyShadowColor(vec4 color) {
-    if (color.a == 1) {
-        discard;
-    } else {
-        // wip code for blocks tinting light
-        //fragColor = vec4(fragColor.rgb * mix(color.rgb, vec3(0), color.a), fragColor.a);
-    }
-}
-
 void main() {
     vec3 pos = viewToWorldSpace(viewPosFromDepth(texelFetch(DiffuseDepthSampler, ivec2(gl_FragCoord.xy), 0).r, gl_FragCoord.xy / ScreenSize));
 
-    fragColor = vec4(clamp(dot(normalize(texelFetch(VeilDynamicNormalSampler, ivec2(gl_FragCoord.xy), 0).xyz), normalize((VeilCamera.ViewMat * vec4(LightPos - pos, 0.0)).xyz)), 0, 1) * attenuate_no_cusp(length(LightPos - pos), LightRadius) * LightColor, 1);
-
     if (AnyShadows) {
-        applyShadowColor(texelFetch(ShadowMaskSampler, ivec2(gl_FragCoord.xy), 0));
+        vec4 color = texelFetch(ShadowMaskSampler, ivec2(gl_FragCoord.xy), 0);
+
+        if (color.a == 1) {
+            discard;
+        }
     }
+
+    fragColor = vec4(clamp(dot(normalize(texelFetch(VeilDynamicNormalSampler, ivec2(gl_FragCoord.xy), 0).xyz), normalize((VeilCamera.ViewMat * vec4(LightPos - pos, 0.0)).xyz)), 0, 1) * attenuate_no_cusp(length(LightPos - pos), LightRadius) * LightColor, 1);
 }

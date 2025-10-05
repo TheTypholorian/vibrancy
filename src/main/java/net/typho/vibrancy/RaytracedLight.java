@@ -14,6 +14,7 @@ import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.random.Random;
 import org.joml.Vector2f;
 import org.joml.Vector3d;
@@ -46,7 +47,7 @@ public interface RaytracedLight extends NativeResource {
 
     Box getFrustumBox();
 
-    default void getQuads(Iterable<BakedQuad> bakedQuads, BlockPos pos, Consumer<Quad> out, RenderLayer layer) {
+    default void getQuads(Iterable<BakedQuad> bakedQuads, BlockPos pos, Consumer<Quad> out, RenderLayer layer, Vec3d offset) {
         for (BakedQuad quad : bakedQuads) {
             Vector3f[] positions = new Vector3f[4];
             Vector2f[] uvs = new Vector2f[4];
@@ -56,9 +57,9 @@ public interface RaytracedLight extends NativeResource {
 
             for (int i = 0, j = 0; i < len; i++, j += 8) {
                 positions[i] = new Vector3f(
-                        Float.intBitsToFloat(data[j]) + pos.getX(),
-                        Float.intBitsToFloat(data[j + 1]) + pos.getY(),
-                        Float.intBitsToFloat(data[j + 2]) + pos.getZ()
+                        Float.intBitsToFloat(data[j]) + pos.getX() + (float) offset.x,
+                        Float.intBitsToFloat(data[j + 1]) + pos.getY() + (float) offset.y,
+                        Float.intBitsToFloat(data[j + 2]) + pos.getZ() + (float) offset.z
                 );
                 uvs[i] = new Vector2f(
                         Float.intBitsToFloat(data[j + 4]),
@@ -88,19 +89,21 @@ public interface RaytracedLight extends NativeResource {
             return;
         }
 
-        //List<Quad> quads = new LinkedList<>();
-
         RenderLayer layer = RenderLayers.getBlockLayer(state);
         BakedModel model = MinecraftClient.getInstance().getBlockRenderManager().getModel(state);
-        Random random = Random.create(lightBlockPos.hashCode());
+        long seed = lightBlockPos.hashCode();
+        Random random = Random.create();
+        Vec3d offset = state.getModelOffset(world, pos);
 
         for (Direction direction : Direction.values()) {
-            if (sqDist <= 1 || (Block.shouldDrawSide(state, world, pos, direction, pos.offset(direction)) && Vibrancy.pointsToward(pos, direction, lightBlockPos))) {
-                getQuads(model.getQuads(state, direction, random), pos, out, layer);
+            if (sqDist <= 1 || (Block.shouldDrawSide(state, world, pos, direction, pos.offset(direction)) && (!normalTest || Vibrancy.pointsToward(pos, direction, lightBlockPos)))) {
+                random.setSeed(seed);
+                getQuads(model.getQuads(state, direction, random), pos, out, layer, offset);
             }
         }
 
-        getQuads(model.getQuads(state, null, random), pos, out, layer);
+        random.setSeed(seed);
+        getQuads(model.getQuads(state, null, random), pos, out, layer, offset);
     }
 
     default void getVolumes(ClientWorld world, BlockPos pos, Consumer<ShadowVolume> out, double sqDist, BlockPos lightBlockPos, Vector3f lightPos, float radius, boolean normalTest) {
