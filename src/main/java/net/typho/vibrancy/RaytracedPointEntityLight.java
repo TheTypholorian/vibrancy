@@ -47,8 +47,7 @@ public class RaytracedPointEntityLight extends PointLight implements RaytracedLi
         this.entity = entity;
     }
 
-    @Override
-    public void updateDirty(Iterable<BlockPos> it) {
+    public BlockBox getBox() {
         BlockPos lightBlockPos = new BlockPos((int) Math.floor(getPosition().x), (int) Math.floor(getPosition().y), (int) Math.floor(getPosition().z));
         int blockRadius = Vibrancy.capShadowDistance((int) Math.ceil(radius) - 2);
         BlockBox box = new BlockBox(lightBlockPos);
@@ -56,6 +55,13 @@ public class RaytracedPointEntityLight extends PointLight implements RaytracedLi
         if (blockRadius > 1) {
             box = box.expand(blockRadius);
         }
+
+        return box;
+    }
+
+    @Override
+    public void updateDirty(Iterable<BlockPos> it) {
+        BlockBox box = getBox();
 
         for (BlockPos pos : it) {
             if (box.contains(pos)) {
@@ -84,7 +90,6 @@ public class RaytracedPointEntityLight extends PointLight implements RaytracedLi
 
     public void regenAll(ClientWorld world, BlockBox box, BlockPos lightBlockPos, Vector3f lightPos) {
         fullRebuildTask = CompletableFuture.supplyAsync(() -> {
-            System.out.println("start rebuild");
             List<Quad> quads = new LinkedList<>();
 
             for (int x = box.getMinX(); x <= box.getMaxX(); x++) {
@@ -123,11 +128,7 @@ public class RaytracedPointEntityLight extends PointLight implements RaytracedLi
             BlockPos lightBlockPos = new BlockPos((int) Math.floor(getPosition().x), (int) Math.floor(getPosition().y), (int) Math.floor(getPosition().z));
             Vector3f lightPos = new Vector3f((float) getPosition().x, (float) getPosition().y, (float) getPosition().z);
             int blockRadius = Vibrancy.capShadowDistance((int) Math.ceil(radius) - 2);
-            BlockBox box = new BlockBox(lightBlockPos);
-
-            if (blockRadius > 1) {
-                box = box.expand(blockRadius);
-            }
+            BlockBox box = getBox();
 
             List<ShadowVolume> volumes = new LinkedList<>();
             BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION);
@@ -135,7 +136,6 @@ public class RaytracedPointEntityLight extends PointLight implements RaytracedLi
             if (isVisible()) {
                 if (fullRebuildTask != null && fullRebuildTask.isDone()) {
                     try {
-                        System.out.println("done rebuild");
                         quads = fullRebuildTask.get();
                         fullRebuildTask = null;
                     } catch (InterruptedException | ExecutionException e) {
@@ -145,7 +145,7 @@ public class RaytracedPointEntityLight extends PointLight implements RaytracedLi
                     if (quadBox == null || !quadBox.contains(entity.getBlockPos())) {
                         dirty.clear();
                         quadBox = box;
-                        regenAll(world, box.expand(blockRadius), lightBlockPos, lightPos);
+                        regenAll(world, blockRadius > 1 ? box.expand(blockRadius) : box, lightBlockPos, lightPos);
                     } else if (!dirty.isEmpty()) {
                         for (BlockPos pos : dirty) {
                             regenQuadsSync(world, pos, quads::add, lightBlockPos, lightPos);

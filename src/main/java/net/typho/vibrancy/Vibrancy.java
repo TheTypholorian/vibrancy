@@ -206,13 +206,21 @@ public class Vibrancy implements ClientModInitializer {
     }
 
     public static void elytraTrail(LivingEntity entity) {
-        if (Math.random() < (entity.getVelocity().length() - 0.75)) {
+        if (Math.random() < Math.min(entity.getVelocity().length() - 0.75, (entity.getY() - 80) / 40)) {
             entity.getWorld().addParticle(STEAM, entity.getX(), entity.getY(), entity.getZ(), 0, 0, 0);
         }
     }
 
     public static void renderLights() {
-        BLOCK_LIGHTS.values().removeIf(light -> light == null || light.remove);
+        BLOCK_LIGHTS.values().removeIf(light -> {
+            boolean b = light == null || light.remove;
+
+            if (b && light != null) {
+                light.free();
+            }
+
+            return b;
+        });
         int[] cap = {0};
         NUM_RAYTRACED_LIGHTS = 0;
         NUM_VISIBLE_LIGHTS = 0;
@@ -455,8 +463,6 @@ public class Vibrancy implements ClientModInitializer {
             renderLights();
         });
         ClientChunkEvents.CHUNK_LOAD.register((world, chunk) -> {
-            BlockPos.Mutable mutable = new BlockPos.Mutable();
-
             for (int i = chunk.getBottomSectionCoord(); i < chunk.getTopSectionCoord(); i++) {
                 ChunkSection section = chunk.getSection(chunk.sectionCoordToIndex(i));
 
@@ -472,7 +478,7 @@ public class Vibrancy implements ClientModInitializer {
                                 DynamicLightInfo info = DynamicLightInfo.get(state);
 
                                 if (info != null) {
-                                    info.addBlockLight(mutable.set(minPos, x, y, z), state);
+                                    info.addBlockLight(new BlockPos(x + minPos.getX(), y + minPos.getY(), z + minPos.getZ()), state);
                                 }
                             }
                         }

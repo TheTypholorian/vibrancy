@@ -52,6 +52,18 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
         return this;
     }
 
+    public BlockBox getBox() {
+        BlockPos lightBlockPos = new BlockPos((int) Math.floor(getPosition().x), (int) Math.floor(getPosition().y), (int) Math.floor(getPosition().z));
+        int blockRadius = Vibrancy.capShadowDistance((int) Math.ceil(radius) - 2);
+        BlockBox box = new BlockBox(lightBlockPos);
+
+        if (blockRadius > 1) {
+            box = box.expand(blockRadius);
+        }
+
+        return box;
+    }
+
     public void upload(BufferBuilder builder, Collection<ShadowVolume> volumes) {
         if (volumes.isEmpty()) {
             anyShadows = false;
@@ -68,9 +80,7 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
 
     @Override
     public void updateDirty(Iterable<BlockPos> it) {
-        BlockPos lightBlockPos = new BlockPos((int) Math.floor(getPosition().x), (int) Math.floor(getPosition().y), (int) Math.floor(getPosition().z));
-        int blockRadius = Vibrancy.capShadowDistance((int) Math.ceil(radius) - 2);
-        BlockBox box = new BlockBox(lightBlockPos).expand(blockRadius);
+        BlockBox box = getBox();
 
         for (BlockPos pos : it) {
             if (box.contains(pos)) {
@@ -87,7 +97,7 @@ public class RaytracedPointLight extends PointLight implements RaytracedLight {
             BlockPos lightBlockPos = new BlockPos((int) Math.floor(getPosition().x), (int) Math.floor(getPosition().y), (int) Math.floor(getPosition().z));
             Vector3f lightPos = new Vector3f((float) getPosition().x, (float) getPosition().y, (float) getPosition().z);
             int blockRadius = Vibrancy.capShadowDistance((int) Math.ceil(radius) - 2);
-            BlockBox box = new BlockBox(lightBlockPos).expand(blockRadius);
+            BlockBox box = getBox();
 
             if (fullRebuildTask != null) {
                 Vibrancy.NUM_LIGHT_TASKS++;
