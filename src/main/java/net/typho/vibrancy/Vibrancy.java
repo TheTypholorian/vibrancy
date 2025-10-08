@@ -6,8 +6,6 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import foundry.veil.api.client.render.VeilRenderSystem;
 import foundry.veil.api.client.render.dynamicbuffer.DynamicBufferType;
 import foundry.veil.api.client.render.framebuffer.AdvancedFbo;
-import foundry.veil.fabric.event.FabricVeilRendererAvailableEvent;
-import foundry.veil.platform.VeilEventPlatform;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientWorldEvents;
@@ -319,7 +317,6 @@ public class Vibrancy implements ClientModInitializer {
 
     @Override
     public void onInitializeClient() {
-        VeilEventPlatform.INSTANCE.onVeilRendererAvailable((FabricVeilRendererAvailableEvent) renderer -> VeilRenderSystem.renderer().getPostProcessingManager().add(id("ray_light")));
         ParticleFactoryRegistry.getInstance().register(STEAM, CampfireSmokeParticle.SignalSmokeFactory::new);
         WorldRenderEvents.LAST.register(context -> {
             if (MinecraftClient.getInstance().getDebugHud().shouldShowDebugHud() && FabricLoader.getInstance().isDevelopmentEnvironment()) {

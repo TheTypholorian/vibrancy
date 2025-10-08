@@ -1,9 +1,0 @@
-{
-  "stages": [
-    {
-      "type": "veil:blit",
-      "shader": "vibrancy:ray_light",
-      "in": "minecraft:main"
-    }
-  ]
-}

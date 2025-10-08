@@ -1,6 +1,6 @@
 {
   "vertex": "veil:blit_screen",
-  "fragment": "vibrancy:ray_light",
+  "fragment": "veil:core/composite",
   "textures": {
     "LightSampler": {
       "type": "framebuffer",
