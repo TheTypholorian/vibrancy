@@ -45,7 +45,7 @@ public interface RaytracedLight extends NativeResource {
 
     Vector3d getPosition();
 
-    Box getFrustumBox();
+    Box getBoundingBox();
 
     default void getQuads(Iterable<BakedQuad> bakedQuads, BlockPos pos, Consumer<Quad> out, RenderLayer layer, Vec3d offset) {
         for (BakedQuad quad : bakedQuads) {

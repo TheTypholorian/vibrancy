@@ -9,6 +9,8 @@ import net.minecraft.client.gl.ShaderProgram;
 import net.minecraft.client.gl.VertexBuffer;
 import net.minecraft.client.render.BufferBuilder;
 import net.minecraft.client.render.Camera;
+import net.minecraft.client.render.VertexFormat;
+import net.minecraft.client.render.VertexFormats;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.BlockPos;
@@ -27,7 +29,7 @@ import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER;
 
 public abstract class AbstractRaytracedLight extends PointLight implements RaytracedLight {
-    protected final VertexBuffer geomVBO = new VertexBuffer(VertexBuffer.Usage.DYNAMIC);
+    protected final VertexBuffer geomVBO = new VertexBuffer(VertexBuffer.Usage.DYNAMIC), boxVBO = new VertexBuffer(VertexBuffer.Usage.DYNAMIC);
     protected final int quadsSSBO = glGenBuffers();
     protected boolean anyShadows = false;
     protected float flicker = 0, flickerMin, flickerMax, flickerStart = (float) GLFW.glfwGetTime();
@@ -138,13 +140,63 @@ public abstract class AbstractRaytracedLight extends PointLight implements Raytr
         shader.getUniformOrDefault("LightRadius").set(radius);
         shader.getUniformOrDefault("AnyShadows").set(anyShadows ? 1 : 0);
 
-        Vibrancy.SCREEN_VBO.bind();
-        Vibrancy.SCREEN_VBO.draw(view, RenderSystem.getProjectionMatrix(), shader);
+        BufferBuilder builder = RenderSystem.renderThreadTesselator().begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION);
+        Box box = getBoundingBox();
+        Vector3f[] vertices = {
+                new Vector3f((float) box.maxX, (float) box.maxY, (float) box.maxZ),
+                new Vector3f((float) box.minX, (float) box.maxY, (float) box.maxZ),
+                new Vector3f((float) box.minX, (float) box.minY, (float) box.maxZ),
+                new Vector3f((float) box.maxX, (float) box.minY, (float) box.maxZ),
+                new Vector3f((float) box.maxX, (float) box.maxY, (float) box.minZ),
+                new Vector3f((float) box.minX, (float) box.maxY, (float) box.minZ),
+                new Vector3f((float) box.minX, (float) box.minY, (float) box.minZ),
+                new Vector3f((float) box.maxX, (float) box.minY, (float) box.minZ),
+        };
+
+        builder.vertex(vertices[0])
+                .vertex(vertices[1])
+                .vertex(vertices[2])
+                .vertex(vertices[3]);
+
+        builder.vertex(vertices[1])
+                .vertex(vertices[5])
+                .vertex(vertices[6])
+                .vertex(vertices[2]);
+
+        builder.vertex(vertices[5])
+                .vertex(vertices[4])
+                .vertex(vertices[7])
+                .vertex(vertices[6]);
+
+        builder.vertex(vertices[4])
+                .vertex(vertices[0])
+                .vertex(vertices[3])
+                .vertex(vertices[7]);
+
+        builder.vertex(vertices[1])
+                .vertex(vertices[0])
+                .vertex(vertices[4])
+                .vertex(vertices[5]);
+
+        builder.vertex(vertices[3])
+                .vertex(vertices[2])
+                .vertex(vertices[6])
+                .vertex(vertices[7]);
+
+        RenderSystem.disableDepthTest();
+        glCullFace(GL_FRONT);
+        RenderSystem.enableCull();
+
+        boxVBO.bind();
+        boxVBO.upload(builder.end());
+        boxVBO.draw(view, RenderSystem.getProjectionMatrix(), shader);
         VertexBuffer.unbind();
+
+        glCullFace(GL_BACK);
     }
 
     @Override
-    public Box getFrustumBox() {
+    public Box getBoundingBox() {
         int rad = Math.max(Vibrancy.capShadowDistance((int) Math.ceil(radius) - 2), 0);
         Vector3d pos = getPosition();
         return new Box(pos.x - rad, pos.y - rad, pos.z - rad, pos.x + rad, pos.y + rad, pos.z + rad);

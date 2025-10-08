@@ -18,7 +18,19 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 @Mixin(HeldItemFeatureRenderer.class)
-public class HeldItemFeatureRendererMixin {
+public class HeldItemFeatureRendererMixin<T extends LivingEntity> {
+    @Inject(
+            method = "render(Lnet/minecraft/client/util/math/MatrixStack;Lnet/minecraft/client/render/VertexConsumerProvider;ILnet/minecraft/entity/LivingEntity;FFFFFF)V",
+            at = @At("HEAD")
+    )
+    private void render(MatrixStack matrixStack, VertexConsumerProvider vertexConsumerProvider, int i, T entity, float f, float g, float h, float j, float k, float l, CallbackInfo ci) {
+        RaytracedPointEntityLight eLight = Vibrancy.ENTITY_LIGHTS.get(entity);
+
+        if (eLight != null) {
+            eLight.render = false;
+        }
+    }
+
     @Inject(
             method = "renderItem",
             at = @At(

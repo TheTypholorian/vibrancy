@@ -80,7 +80,7 @@ public class Vibrancy implements ClientModInitializer {
             value -> Tooltip.of(Text.translatable("options.vibrancy.light_cull_distance.tooltip")),
             (text, value) -> GameOptions.getGenericValueText(text, Text.translatable("options.chunks", value)),
             new SimpleOption.ValidatingIntSliderCallbacks(1, 16, false),
-            8,
+            16,
             value -> {}
     );
     public static final SimpleOption<Integer> MAX_RAYTRACED_LIGHTS = new SimpleOption<>(
@@ -88,7 +88,7 @@ public class Vibrancy implements ClientModInitializer {
             value -> Tooltip.of(Text.translatable("options.vibrancy.max_raytraced_lights.tooltip")),
             (text, value) -> GameOptions.getGenericValueText(text, value > 100 ? Text.translatable("options.vibrancy.max_raytraced_lights.max") : Text.translatable("options.vibrancy.max_raytraced_lights.value", value)),
             new SimpleOption.ValidatingIntSliderCallbacks(5, 105, false),
-            50,
+            30,
             value -> {}
     );
     public static final SimpleOption<Integer> MAX_SHADOW_DISTANCE = new SimpleOption<>(
@@ -119,13 +119,12 @@ public class Vibrancy implements ClientModInitializer {
     public static final Map<BlockPos, RaytracedPointBlockLight> BLOCK_LIGHTS = new LinkedHashMap<>();
     public static final Map<LivingEntity, RaytracedPointEntityLight> ENTITY_LIGHTS = new LinkedHashMap<>();
     public static int NUM_LIGHT_TASKS = 0, NUM_RAYTRACED_LIGHTS = 0, NUM_VISIBLE_LIGHTS = 0;
-    public static VertexBuffer SKY_BUFFER;
 
     static {
         RenderSystem.recordRenderCall(() -> {
             SCREEN_VBO = new VertexBuffer(VertexBuffer.Usage.STATIC);
 
-            BufferBuilder builder = RenderSystem.renderThreadTesselator().begin(VertexFormat.DrawMode.TRIANGLE_STRIP, VertexFormats.POSITION);
+            BufferBuilder builder = RenderSystem.renderThreadTesselator().begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION);
             builder.vertex(-1, 1, 0);
             builder.vertex(-1, -1, 0);
             builder.vertex(1, 1, 0);
@@ -149,7 +148,7 @@ public class Vibrancy implements ClientModInitializer {
 
     public static boolean shouldRenderLight(RaytracedLight light) {
         Vec3d cam = MinecraftClient.getInstance().gameRenderer.getCamera().getPos();
-        boolean b = light.getPosition().distanceSquared(cam.x, cam.y, cam.z) / 16 < Vibrancy.LIGHT_CULL_DISTANCE.getValue() * Vibrancy.LIGHT_CULL_DISTANCE.getValue() && (VeilRenderSystem.getCullingFrustum().testAab(light.getFrustumBox()) || (light instanceof RaytracedPointEntityLight entity && entity.entity == MinecraftClient.getInstance().cameraEntity));
+        boolean b = light.getPosition().distanceSquared(cam.x, cam.y, cam.z) / 16 < Vibrancy.LIGHT_CULL_DISTANCE.getValue() * Vibrancy.LIGHT_CULL_DISTANCE.getValue() && (VeilRenderSystem.getCullingFrustum().testAab(light.getBoundingBox()) || (light instanceof RaytracedPointEntityLight entity && entity.entity == MinecraftClient.getInstance().cameraEntity));
 
         if (b) {
             NUM_VISIBLE_LIGHTS++;
