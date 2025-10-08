@@ -5,6 +5,7 @@ import com.google.gson.JsonParser;
 import com.mojang.blaze3d.systems.RenderSystem;
 import foundry.veil.api.client.render.VeilRenderSystem;
 import foundry.veil.api.client.render.dynamicbuffer.DynamicBufferType;
+import foundry.veil.api.client.render.framebuffer.AdvancedFbo;
 import foundry.veil.fabric.event.FabricVeilRendererAvailableEvent;
 import foundry.veil.platform.VeilEventPlatform;
 import net.fabricmc.api.ClientModInitializer;
@@ -307,9 +308,9 @@ public class Vibrancy implements ClientModInitializer {
             for (int block = 0; block < image.getWidth(); block++) {
                 float fBlock = (float) Math.pow((float) block / (image.getWidth() - 1), brightness);
 
-                float red = fBlock * dimLight.block()[0] / 4 + skyTint[0];
-                float green = fBlock * dimLight.block()[1] / 4 + skyTint[1];
-                float blue = fBlock * dimLight.block()[2] / 4 + skyTint[2];
+                float red = fBlock * dimLight.block()[0] / 2 + skyTint[0];
+                float green = fBlock * dimLight.block()[1] / 2 + skyTint[1];
+                float blue = fBlock * dimLight.block()[2] / 2 + skyTint[2];
 
                 image.setColor(block, sky, 0xFF000000 | ((int) MathHelper.clamp(blue * 255, 0, 255) << 16) | ((int) MathHelper.clamp(green * 255, 0, 255) << 8) | (int) MathHelper.clamp(red * 255, 0, 255));
             }
@@ -322,6 +323,9 @@ public class Vibrancy implements ClientModInitializer {
         ParticleFactoryRegistry.getInstance().register(STEAM, CampfireSmokeParticle.SignalSmokeFactory::new);
         WorldRenderEvents.LAST.register(context -> {
             if (MinecraftClient.getInstance().getDebugHud().shouldShowDebugHud() && FabricLoader.getInstance().isDevelopmentEnvironment()) {
+                RenderSystem.disableBlend();
+                RenderSystem.disableDepthTest();
+                AdvancedFbo.unbind();
                 ENTITY_LIGHTS.values().forEach(light -> renderLightDebug(light, context.consumers().getBuffer(RenderLayer.getLines())));
                 BLOCK_LIGHTS.values().forEach(light -> renderLightDebug(light, context.consumers().getBuffer(RenderLayer.getLines())));
             }

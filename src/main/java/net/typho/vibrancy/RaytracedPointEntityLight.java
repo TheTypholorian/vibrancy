@@ -1,19 +1,19 @@
 package net.typho.vibrancy;
 
-import foundry.veil.api.client.render.light.PointLight;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.*;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.BlockItem;
+import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
-import org.joml.*;
+import org.joml.Matrix4f;
+import org.joml.Quaternionf;
+import org.joml.Vector3f;
 
-import java.lang.Math;
 import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
@@ -81,21 +81,24 @@ public class RaytracedPointEntityLight extends AbstractRaytracedLight {
         });
     }
 
-    @Override
-    public boolean render(boolean raytrace) {
-        hasLight = false;
-
-        if (entity.getMainHandStack().getItem() instanceof BlockItem block) {
+    public boolean init(ItemStack stack) {
+        if (stack.getItem() instanceof BlockItem block) {
             BlockState state = block.getBlock().getDefaultState();
             DynamicLightInfo info = DynamicLightInfo.get(state);
 
-            if (info == null) {
-                return false;
-            } else {
+            if (info != null) {
                 info.initLight(this, state);
                 hasLight = true;
+                return true;
             }
-        } else {
+        }
+
+        return false;
+    }
+
+    @Override
+    public boolean render(boolean raytrace) {
+        if (!hasLight) {
             return false;
         }
 
@@ -156,25 +159,9 @@ public class RaytracedPointEntityLight extends AbstractRaytracedLight {
             }
         }
 
+        hasLight = false;
+
         return false;
-    }
-
-    @Override
-    public final PointLight setPosition(Vector3dc position) {
-        throw new UnsupportedOperationException("Can't move an entity light");
-    }
-
-    @Override
-    public final PointLight setPosition(double x, double y, double z) {
-        throw new UnsupportedOperationException("Can't move an entity light");
-    }
-
-    @Override
-    public Vector3d getPosition() {
-        float tickDelta = MinecraftClient.getInstance().getRenderTickCounter().getTickDelta(true);
-        Vec3d pos = entity.getCameraPosVec(tickDelta)
-                .add(entity.getRotationVec(tickDelta).multiply(0.5));
-        return new Vector3d(pos.x, pos.y, pos.z);
     }
 
     @Override

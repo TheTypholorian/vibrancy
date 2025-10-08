@@ -9,6 +9,7 @@
     "BlockModelRendererMixin",
     "GameOptionsMixin",
     "GlDebugMixin",
+    "HeldItemFeatureRendererMixin",
     "LightingProviderMixin",
     "LightmapTextureManagerMixin",
     "LightRendererMixin",
