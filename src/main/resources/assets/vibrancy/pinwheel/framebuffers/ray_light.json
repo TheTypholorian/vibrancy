@@ -1,4 +1,5 @@
 {
   "depth": false,
-  "format": "RGB16F"
+  "format": "RGB16F",
+  "autoClear": false
 }

@@ -54,6 +54,9 @@ import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
+import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
+import static org.lwjgl.opengl.GL11.glClear;
+
 public class Vibrancy implements ClientModInitializer {
     public static final String MOD_ID = "vibrancy";
 
@@ -205,6 +208,10 @@ public class Vibrancy implements ClientModInitializer {
     }
 
     public static void renderLights() {
+        VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(id("ray_light")).bind(true);
+        RenderSystem.clearColor(0, 0, 0, 0);
+        glClear(GL_COLOR_BUFFER_BIT);
+
         BLOCK_LIGHTS.values().removeIf(light -> {
             boolean b = light == null || light.remove;
 
