@@ -7,6 +7,7 @@ uniform sampler2D BlockAtlasSampler;
 uniform sampler2D WorldPosSampler;
 uniform sampler2D DiffuseDepthSampler;
 uniform vec3 LightPos;
+uniform float LightRadius;
 uniform vec2 ScreenSize;
 
 uniform bool Detailed = false;
@@ -24,16 +25,21 @@ void main() {
 
         vec3 delta = Pos - LightPos;
         float len = length(delta);
-        vec3 dir = delta / len;
 
-        vec2 uv;
-
-        if (raycastQuad(LightPos, dir, len, q, uv)) {
-            if (q.doSample == 1) {
-                fragColor = texture(BlockAtlasSampler, uv);
-            }
-        } else {
+        if (len > LightRadius) {
             fragColor = vec4(0);
+        } else {
+            vec3 dir = delta / len;
+
+            vec2 uv;
+
+            if (raycastQuad(LightPos, dir, len, q, uv)) {
+                if (q.doSample == 1) {
+                    fragColor = texture(BlockAtlasSampler, uv);
+                }
+            } else {
+                fragColor = vec4(0);
+            }
         }
     }
 }

@@ -94,6 +94,7 @@ public abstract class AbstractRaytracedLight extends PointLight implements Raytr
             ShaderProgram shader = Objects.requireNonNull(RenderSystem.getShader());
 
             shader.getUniformOrDefault("LightPos").set(lightPos.x, lightPos.y, lightPos.z);
+            shader.getUniformOrDefault("LightRadius").set(radius);
             shader.getUniformOrDefault("Detailed").set(getPosition().distanceSquared(camera.getPos().x, camera.getPos().y, camera.getPos().z) < MathHelper.square(Vibrancy.RAYTRACE_DISTANCE.getValue() * 16) ? 1 : 0);
 
             RenderSystem.depthMask(true);

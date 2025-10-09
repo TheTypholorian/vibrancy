@@ -161,7 +161,7 @@ public class RaytracedPointEntityLight extends AbstractRaytracedLight {
                 quads.forEach((pos, list) -> {
                     if (box.contains(pos)) {
                         for (Quad quad : list) {
-                            ShadowVolume volume = quad.toVolume(lightPos, radius * 2);
+                            ShadowVolume volume = quad.toVolume(lightPos, radius);
                             volume.render(builder);
                             volumes.add(volume);
                         }

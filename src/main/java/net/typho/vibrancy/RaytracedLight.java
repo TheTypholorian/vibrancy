@@ -96,7 +96,7 @@ public interface RaytracedLight extends NativeResource {
         Vec3d offset = state.getModelOffset(world, pos);
 
         for (Direction direction : Direction.values()) {
-            if (sqDist <= 1 || (Block.shouldDrawSide(state, world, pos, direction, pos.offset(direction)) && (!normalTest || Vibrancy.pointsToward(pos, direction, lightBlockPos)))) {
+            if (sqDist <= 4 || (Block.shouldDrawSide(state, world, pos, direction, pos.offset(direction)) && (!normalTest || Vibrancy.pointsToward(pos, direction, lightBlockPos)))) {
                 random.setSeed(seed);
                 getQuads(model.getQuads(state, direction, random), pos, out, layer, offset);
             }
@@ -107,7 +107,7 @@ public interface RaytracedLight extends NativeResource {
     }
 
     default void getVolumes(ClientWorld world, BlockPos pos, Consumer<ShadowVolume> out, double sqDist, BlockPos lightBlockPos, Vector3f lightPos, float radius, boolean normalTest) {
-        getQuads(world, pos, quad -> out.accept(quad.toVolume(lightPos, radius * 2)), sqDist, lightBlockPos, lightPos, normalTest);
+        getQuads(world, pos, quad -> out.accept(quad.toVolume(lightPos, radius)), sqDist, lightBlockPos, lightPos, normalTest);
     }
 
     default void upload(BufferBuilder builder, Collection<ShadowVolume> volumes, VertexBuffer geomVBO, int quadsSSBO, int usage) {
@@ -179,13 +179,16 @@ public interface RaytracedLight extends NativeResource {
             buf.putFloat(inv11).putFloat(inv12).putFloat(inv21).putFloat(inv22);
         }
 
-        public ShadowVolume toVolume(Vector3f origin, float distance) {
+        public ShadowVolume toVolume(Vector3f origin, float radius) {
+            float d0 = n.dot(v1.sub(origin, new Vector3f()));
+            float t = radius - d0;
+
             Vector3f[] vertices = {v1, v2, v3, v4, null, null, null, null};
 
             for (int i = 0; i < 4; i++) {
                 Vector3f vertex = new Vector3f(vertices[i]);
                 Vector3f off = vertex.sub(origin, new Vector3f());
-                vertices[i + 4] = vertex.add(off.normalize(distance));
+                vertices[i + 4] = vertex.add(off.normalize(t));
             }
 
             return new ShadowVolume(

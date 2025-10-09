@@ -70,7 +70,7 @@ public class Vibrancy implements ClientModInitializer {
     public static final SimpleOption<Integer> RAYTRACE_DISTANCE = new SimpleOption<>(
             "options.vibrancy.raytrace_distance",
             value -> Tooltip.of(Text.translatable("options.vibrancy.raytrace_distance.tooltip")),
-            (text, value) -> GameOptions.getGenericValueText(text, Text.translatable("options.chunks", value)),
+            (text, value) -> GameOptions.getGenericValueText(text, Text.translatable("options.vibrancy.raytrace_distance.value", value * 16)),
             new SimpleOption.ValidatingIntSliderCallbacks(1, 16, false),
             4,
             value -> {}
@@ -78,9 +78,9 @@ public class Vibrancy implements ClientModInitializer {
     public static final SimpleOption<Integer> LIGHT_CULL_DISTANCE = new SimpleOption<>(
             "options.vibrancy.light_cull_distance",
             value -> Tooltip.of(Text.translatable("options.vibrancy.light_cull_distance.tooltip")),
-            (text, value) -> GameOptions.getGenericValueText(text, Text.translatable("options.chunks", value)),
+            (text, value) -> GameOptions.getGenericValueText(text, Text.translatable("options.vibrancy.light_cull_distance.value", value * 16)),
             new SimpleOption.ValidatingIntSliderCallbacks(1, 16, false),
-            16,
+            12,
             value -> {}
     );
     public static final SimpleOption<Integer> MAX_RAYTRACED_LIGHTS = new SimpleOption<>(
