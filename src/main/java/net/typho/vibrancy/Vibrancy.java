@@ -387,7 +387,6 @@ public class Vibrancy implements ClientModInitializer {
             ENTITY_LIGHTS.clear();
 
             for (AbstractClientPlayerEntity player : world.getPlayers()) {
-                System.out.println(player);
                 ENTITY_LIGHTS.put(player, new RaytracedPointEntityLight(player));
             }
         });

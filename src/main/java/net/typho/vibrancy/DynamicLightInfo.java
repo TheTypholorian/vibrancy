@@ -43,8 +43,6 @@ public record DynamicLightInfo(Vector3f color, BlockStateFunction<Optional<Float
 
         if (old == null) {
             Vibrancy.BLOCK_LIGHTS.put(pos, createBlockLight(pos, state));
-        } else {
-            System.out.println("not putting " + pos + " " + old);
         }
     }
 

@@ -26,7 +26,6 @@ public abstract class PlayerEntityMixin extends LivingEntity {
     )
     private void onEquipStack(World world, BlockPos pos, float yaw, GameProfile gameProfile, CallbackInfo ci) {
         if (world.isClient) {
-            System.out.println(this);
             RenderSystem.recordRenderCall(() -> Vibrancy.ENTITY_LIGHTS.computeIfAbsent(this, RaytracedPointEntityLight::new));
         }
     }

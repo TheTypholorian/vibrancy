@@ -25,7 +25,6 @@ public abstract class ClientPlayNetworkHandlerMixin extends ClientCommonNetworkH
             at = @At("TAIL")
     )
     private void onGameJoin(GameJoinS2CPacket packet, CallbackInfo ci) {
-        System.out.println(client.player);
         Vibrancy.ENTITY_LIGHTS.computeIfAbsent(client.player, RaytracedPointEntityLight::new);
     }
 
@@ -34,7 +33,6 @@ public abstract class ClientPlayNetworkHandlerMixin extends ClientCommonNetworkH
             at = @At("TAIL")
     )
     private void onPlayerRespawn(PlayerRespawnS2CPacket packet, CallbackInfo ci) {
-        System.out.println(client.player);
         Vibrancy.ENTITY_LIGHTS.computeIfAbsent(client.player, RaytracedPointEntityLight::new);
     }
 }
