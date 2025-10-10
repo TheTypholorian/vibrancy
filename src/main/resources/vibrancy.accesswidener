@@ -13,3 +13,4 @@ accessible class net/minecraft/client/option/GameOptions$Visitor
 accessible field net/minecraft/client/render/WorldRenderer lightSkyBuffer Lnet/minecraft/client/gl/VertexBuffer;
 accessible field net/minecraft/client/render/WorldRenderer starsBuffer Lnet/minecraft/client/gl/VertexBuffer;
 accessible field net/minecraft/client/render/WorldRenderer world Lnet/minecraft/client/world/ClientWorld;
+accessible class net/minecraft/client/render/BackgroundRenderer$StatusEffectFogModifier

@@ -96,10 +96,6 @@
     "brightness": 0.3
   },
   "conduit": "sea_lantern",
-  "shroomlight": {
-    "color": [1, 0.77, 0.49],
-    "brightness": 0.5
-  },
   "ochre_froglight": {
     "color": [0.98, 0.93, 0.69],
     "brightness": 0.5

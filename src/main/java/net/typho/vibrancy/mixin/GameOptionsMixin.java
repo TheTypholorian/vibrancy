@@ -14,7 +14,7 @@ public class GameOptionsMixin {
             at = @At("TAIL")
     )
     private void acceptProfiledOptions(GameOptions.OptionVisitor visitor, CallbackInfo ci) {
-        visitor.accept("vibrancy/dynamic_lightmap", Vibrancy.DYNAMIC_LIGHTMAP);
+        //visitor.accept("vibrancy/dynamic_lightmap", Vibrancy.DYNAMIC_LIGHTMAP);
         visitor.accept("vibrancy/transparency_test", Vibrancy.TRANSPARENCY_TEST);
         //visitor.accept("vibrancy/better_sky", Vibrancy.BETTER_SKY);
         visitor.accept("vibrancy/better_fog", Vibrancy.BETTER_FOG);

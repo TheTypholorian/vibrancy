@@ -21,13 +21,13 @@ public final class SodiumCompat {
         List<OptionGroup> groups = new LinkedList<>();
 
         groups.add(OptionGroup.createBuilder()
+                /*
                 .add(OptionImpl.createBuilder(boolean.class, vanillaOpts)
                         .setName(Text.translatable("options.vibrancy.dynamic_lightmap"))
                         .setTooltip(Text.translatable("options.vibrancy.dynamic_lightmap.tooltip"))
                         .setControl(TickBoxControl::new)
                         .setBinding((opts, value) -> Vibrancy.DYNAMIC_LIGHTMAP.setValue(value), opts -> Vibrancy.DYNAMIC_LIGHTMAP.getValue())
                         .build())
-                /*
                 .add(OptionImpl.createBuilder(boolean.class, vanillaOpts)
                         .setName(Text.translatable("options.vibrancy.better_sky"))
                         .setTooltip(Text.translatable("options.vibrancy.better_sky.tooltip"))

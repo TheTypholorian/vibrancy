@@ -1,22 +1,13 @@
 package net.typho.vibrancy.mixin;
 
-import com.llamalad7.mixinextras.injector.wrapmethod.WrapMethod;
-import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.render.LightmapTextureManager;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.texture.NativeImageBackedTexture;
-import net.minecraft.text.Text;
-import net.minecraft.util.math.MathHelper;
-import net.minecraft.world.biome.Biome;
-import net.typho.vibrancy.Vibrancy;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
-
-import java.io.File;
-import java.io.IOException;
 
 @Mixin(LightmapTextureManager.class)
 public class LightmapTextureManagerMixin {
@@ -38,6 +29,7 @@ public class LightmapTextureManagerMixin {
     @Unique
     private float temp, humid;
 
+        /*
     @WrapMethod(
             method = "update"
     )
@@ -85,4 +77,5 @@ public class LightmapTextureManagerMixin {
             }
         }
     }
+         */
 }

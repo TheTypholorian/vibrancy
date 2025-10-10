@@ -66,7 +66,7 @@ public class Vibrancy implements ClientModInitializer {
     }
 
     public static final Identifier LOGO_TEXTURE = id("textures/gui/title/vibrancy.png");
-    public static final SimpleOption<Boolean> DYNAMIC_LIGHTMAP = SimpleOption.ofBoolean("options.vibrancy.dynamic_lightmap", value -> Tooltip.of(Text.translatable("options.vibrancy.dynamic_lightmap.tooltip")), true);
+    //public static final SimpleOption<Boolean> DYNAMIC_LIGHTMAP = SimpleOption.ofBoolean("options.vibrancy.dynamic_lightmap", value -> Tooltip.of(Text.translatable("options.vibrancy.dynamic_lightmap.tooltip")), true);
     public static final SimpleOption<Boolean> TRANSPARENCY_TEST = SimpleOption.ofBoolean("options.vibrancy.transparency_test", value -> Tooltip.of(Text.translatable("options.vibrancy.transparency_test.tooltip")), true);
     //public static final SimpleOption<Boolean> BETTER_SKY = SimpleOption.ofBoolean("options.vibrancy.better_sky", value -> Tooltip.of(Text.translatable("options.vibrancy.better_sky.tooltip")), true);
     public static final SimpleOption<Boolean> BETTER_FOG = SimpleOption.ofBoolean("options.vibrancy.better_fog", value -> Tooltip.of(Text.translatable("options.vibrancy.better_fog.tooltip")), true);
