@@ -5,7 +5,6 @@ import net.caffeinemc.mods.sodium.client.gui.options.OptionGroup;
 import net.caffeinemc.mods.sodium.client.gui.options.OptionImpact;
 import net.caffeinemc.mods.sodium.client.gui.options.OptionImpl;
 import net.caffeinemc.mods.sodium.client.gui.options.OptionPage;
-import net.caffeinemc.mods.sodium.client.gui.options.control.ControlValueFormatter;
 import net.caffeinemc.mods.sodium.client.gui.options.control.SliderControl;
 import net.caffeinemc.mods.sodium.client.gui.options.control.TickBoxControl;
 import net.caffeinemc.mods.sodium.client.gui.options.storage.MinecraftOptionsStorage;
@@ -60,14 +59,14 @@ public final class SodiumCompat {
                 .add(OptionImpl.createBuilder(int.class, vanillaOpts)
                         .setName(Text.translatable("options.vibrancy.raytrace_distance"))
                         .setTooltip(Text.translatable("options.vibrancy.raytrace_distance.tooltip"))
-                        .setControl(option -> new SliderControl(option, 1, 16, 1, ControlValueFormatter.translateVariable("options.chunks")))
+                        .setControl(option -> new SliderControl(option, 1, 32, 1, v -> Text.translatable("options.vibrancy.light_cull_distance.value", v * 16)))
                         .setBinding((opts, value) -> Vibrancy.RAYTRACE_DISTANCE.setValue(value), opts -> Vibrancy.RAYTRACE_DISTANCE.getValue())
                         .setImpact(OptionImpact.HIGH)
                         .build())
                 .add(OptionImpl.createBuilder(int.class, vanillaOpts)
                         .setName(Text.translatable("options.vibrancy.light_cull_distance"))
                         .setTooltip(Text.translatable("options.vibrancy.light_cull_distance.tooltip"))
-                        .setControl(option -> new SliderControl(option, 1, 16, 1, ControlValueFormatter.translateVariable("options.chunks")))
+                        .setControl(option -> new SliderControl(option, 1, 32, 1, v -> Text.translatable("options.vibrancy.light_cull_distance.value", v * 16)))
                         .setBinding((opts, value) -> Vibrancy.LIGHT_CULL_DISTANCE.setValue(value), opts -> Vibrancy.LIGHT_CULL_DISTANCE.getValue())
                         .setImpact(OptionImpact.HIGH)
                         .build())
@@ -90,6 +89,13 @@ public final class SodiumCompat {
                         .setTooltip(Text.translatable("options.vibrancy.max_light_radius.tooltip"))
                         .setControl(option -> new SliderControl(option, 1, 16, 1, v -> v > 15 ? Text.translatable("options.vibrancy.max_light_radius.max") : Text.translatable("options.vibrancy.max_light_radius.value", v)))
                         .setBinding((opts, value) -> Vibrancy.MAX_LIGHT_RADIUS.setValue(value), opts -> Vibrancy.MAX_LIGHT_RADIUS.getValue())
+                        .setImpact(OptionImpact.HIGH)
+                        .build())
+                .add(OptionImpl.createBuilder(int.class, vanillaOpts)
+                        .setName(Text.translatable("options.vibrancy.block_light_multiplier"))
+                        .setTooltip(Text.translatable("options.vibrancy.block_light_multiplier.tooltip"))
+                        .setControl(option -> new SliderControl(option, 0, 100, 10, v -> Text.translatable("options.vibrancy.block_light_multiplier.value", v)))
+                        .setBinding((opts, value) -> Vibrancy.BLOCK_LIGHT_MULTIPLIER.setValue(value.doubleValue() / 100), opts -> (int) (Vibrancy.BLOCK_LIGHT_MULTIPLIER.getValue() * 100))
                         .setImpact(OptionImpact.HIGH)
                         .build())
                 .build());

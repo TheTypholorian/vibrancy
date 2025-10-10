@@ -22,6 +22,7 @@ import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gl.VertexBuffer;
 import net.minecraft.client.gui.tooltip.Tooltip;
+import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.option.GameOptions;
 import net.minecraft.client.option.KeyBinding;
@@ -74,7 +75,7 @@ public class Vibrancy implements ClientModInitializer {
             "options.vibrancy.raytrace_distance",
             value -> Tooltip.of(Text.translatable("options.vibrancy.raytrace_distance.tooltip")),
             (text, value) -> GameOptions.getGenericValueText(text, Text.translatable("options.vibrancy.raytrace_distance.value", value * 16)),
-            new SimpleOption.ValidatingIntSliderCallbacks(1, 16, false),
+            new SimpleOption.ValidatingIntSliderCallbacks(1, 32, false),
             4,
             value -> {}
     );
@@ -82,7 +83,7 @@ public class Vibrancy implements ClientModInitializer {
             "options.vibrancy.light_cull_distance",
             value -> Tooltip.of(Text.translatable("options.vibrancy.light_cull_distance.tooltip")),
             (text, value) -> GameOptions.getGenericValueText(text, Text.translatable("options.vibrancy.light_cull_distance.value", value * 16)),
-            new SimpleOption.ValidatingIntSliderCallbacks(1, 16, false),
+            new SimpleOption.ValidatingIntSliderCallbacks(1, 32, false),
             12,
             value -> {}
     );
@@ -108,6 +109,14 @@ public class Vibrancy implements ClientModInitializer {
             (text, value) -> GameOptions.getGenericValueText(text, value > 15 ? Text.translatable("options.vibrancy.max_light_radius.max") : Text.translatable("options.vibrancy.max_light_radius.value", value)),
             new SimpleOption.ValidatingIntSliderCallbacks(1, 16, false),
             15,
+            value -> {}
+    );
+    public static final SimpleOption<Double> BLOCK_LIGHT_MULTIPLIER = new SimpleOption<>(
+            "options.vibrancy.block_light_multiplier",
+            value -> Tooltip.of(Text.translatable("options.vibrancy.block_light_multiplier.tooltip")),
+            (text, value) -> GameOptions.getGenericValueText(text, Text.translatable("options.vibrancy.block_light_multiplier.value", (int) (value * 100))),
+            SimpleOption.DoubleSliderCallbacks.INSTANCE,
+            0.5,
             value -> {}
     );
     public static boolean SEEN_ALPHA_TEXT = false;
@@ -151,7 +160,8 @@ public class Vibrancy implements ClientModInitializer {
 
     public static boolean shouldRenderLight(RaytracedLight light) {
         Vec3d cam = MinecraftClient.getInstance().gameRenderer.getCamera().getPos();
-        boolean b = light.getPosition().distanceSquared(cam.x, cam.y, cam.z) / 16 < Vibrancy.LIGHT_CULL_DISTANCE.getValue() * Vibrancy.LIGHT_CULL_DISTANCE.getValue() && (VeilRenderSystem.getCullingFrustum().testAab(light.getBoundingBox()) || (light instanceof RaytracedPointEntityLight entity && entity.entity == MinecraftClient.getInstance().cameraEntity));
+        boolean b = light.getPosition().distanceSquared(cam.x, cam.y, cam.z) / 16 < Vibrancy.LIGHT_CULL_DISTANCE.getValue() * Vibrancy.LIGHT_CULL_DISTANCE.getValue() &&
+                (VeilRenderSystem.getCullingFrustum().testAab(light.getBoundingBox()) || (light instanceof RaytracedPointEntityLight entity && entity.entity == MinecraftClient.getInstance().cameraEntity));
 
         if (b) {
             NUM_VISIBLE_LIGHTS++;
@@ -227,10 +237,12 @@ public class Vibrancy implements ClientModInitializer {
 
         for (RaytracedPointBlockLight light : BLOCK_LIGHTS.values()) {
             light.updateDirty(RaytracedLight.DIRTY);
+            light.init();
         }
 
         for (RaytracedPointEntityLight light : ENTITY_LIGHTS.values()) {
             light.updateDirty(RaytracedLight.DIRTY);
+            light.init();
         }
 
         ENTITY_LIGHTS.values().stream()
@@ -310,14 +322,22 @@ public class Vibrancy implements ClientModInitializer {
             };
 
             for (int block = 0; block < image.getWidth(); block++) {
-                float fBlock = (float) Math.pow((float) block / (image.getWidth() - 1), brightness);
+                float fBlock = (float) Math.pow((float) block / (image.getWidth() - 1), brightness) * BLOCK_LIGHT_MULTIPLIER.getValue().floatValue();
 
-                float red = fBlock * dimLight.block()[0] / 2 + skyTint[0];
-                float green = fBlock * dimLight.block()[1] / 2 + skyTint[1];
-                float blue = fBlock * dimLight.block()[2] / 2 + skyTint[2];
+                float red = fBlock * dimLight.block()[0] + skyTint[0];
+                float green = fBlock * dimLight.block()[1] + skyTint[1];
+                float blue = fBlock * dimLight.block()[2] + skyTint[2];
 
                 image.setColor(block, sky, 0xFF000000 | ((int) MathHelper.clamp(blue * 255, 0, 255) << 16) | ((int) MathHelper.clamp(green * 255, 0, 255) << 8) | (int) MathHelper.clamp(red * 255, 0, 255));
             }
+        }
+    }
+
+    public static void updateBlock(BlockPos pos, BlockState oldBlock, BlockState newBlock) {
+        DynamicLightInfo info = DynamicLightInfo.get(newBlock);
+
+        if (info != null) {
+            info.addBlockLight(pos, newBlock);
         }
     }
 
@@ -389,6 +409,11 @@ public class Vibrancy implements ClientModInitializer {
             BLOCK_LIGHTS.clear();
             ENTITY_LIGHTS.values().forEach(RaytracedPointEntityLight::free);
             ENTITY_LIGHTS.clear();
+
+            for (AbstractClientPlayerEntity player : world.getPlayers()) {
+                System.out.println(player);
+                ENTITY_LIGHTS.put(player, new RaytracedPointEntityLight(player));
+            }
         });
         ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(new SimpleSynchronousResourceReloadListener() {
             @Override

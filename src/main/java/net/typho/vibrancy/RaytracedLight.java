@@ -41,6 +41,8 @@ public interface RaytracedLight extends NativeResource {
 
     void updateDirty(Iterable<BlockPos> it);
 
+    void init();
+
     boolean render(boolean raytrace);
 
     Vector3d getPosition();

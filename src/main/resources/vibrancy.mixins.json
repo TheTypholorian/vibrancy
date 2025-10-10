@@ -7,10 +7,9 @@
     "AbstractBlockStateMixin",
     "BackgroundRendererMixin",
     "BlockModelRendererMixin",
+    "ClientPlayNetworkHandlerMixin",
     "GameOptionsMixin",
     "GlDebugMixin",
-    "HeldItemFeatureRendererMixin",
-    "LightingProviderMixin",
     "LightmapTextureManagerMixin",
     "LightRendererMixin",
     "MinecraftClientMixin",
@@ -23,6 +22,7 @@
     "VanillaShaderCompilerMixin",
     "VideoOptionsScreenMixin",
     "WorldChunkMixin",
+    "WorldMixin",
     "WorldRendererMixin"
   ],
   "injectors": {

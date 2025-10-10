@@ -18,6 +18,10 @@
   "lantern": "torch",
   "campfire": {
     "copy": "torch",
+    "brightness": {
+      "lit=true": 0.6,
+      "default": 0
+    },
     "offset": null
   },
   "soul_torch": {
@@ -39,6 +43,10 @@
   "soul_lantern": "soul_torch",
   "soul_campfire": {
     "copy": "soul_torch",
+    "brightness": {
+      "lit=true": 0.4,
+      "default": 0
+    },
     "offset": null
   },
   "redstone_torch": {

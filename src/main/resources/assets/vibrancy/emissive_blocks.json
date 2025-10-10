@@ -2,5 +2,42 @@
   "soul_fire": true,
   "fire": true,
   "lava": true,
-  "beacon": true
+  "beacon": true,
+  "end_rod": true,
+  "copper_bulb": {
+    "lit=true": true,
+    "default": false
+  },
+  "exposed_copper_bulb": {
+    "lit=true": true,
+    "default": false
+  },
+  "weathered_copper_bulb": {
+    "lit=true": true,
+    "default": false
+  },
+  "oxidized_copper_bulb": {
+    "lit=true": true,
+    "default": false
+  },
+  "waxed_copper_bulb": {
+    "lit=true": true,
+    "default": false
+  },
+  "waxed_exposed_copper_bulb": {
+    "lit=true": true,
+    "default": false
+  },
+  "waxed_weathered_copper_bulb": {
+    "lit=true": true,
+    "default": false
+  },
+  "waxed_oxidized_copper_bulb": {
+    "lit=true": true,
+    "default": false
+  },
+  "redstone_lamp": {
+    "lit=true": true,
+    "default": false
+  }
 }

@@ -19,6 +19,11 @@ import java.util.function.Predicate;
 public record DynamicLightInfo(Vector3f color, BlockStateFunction<Optional<Float>> radius, BlockStateFunction<Optional<Float>> brightness, BlockStateFunction<Optional<Float>> flicker, BlockStateFunction<Optional<Vec3d>> offset) {
     public static final Map<Predicate<BlockState>, Function<BlockState, DynamicLightInfo>> MAP = new LinkedHashMap<>();
 
+    public static boolean has(BlockState state) {
+        return MAP.entrySet().stream()
+                .anyMatch(entry -> entry.getKey().test(state));
+    }
+
     public static DynamicLightInfo get(BlockState state) {
         return MAP.entrySet().stream()
                 .filter(entry -> entry.getKey().test(state))
@@ -28,30 +33,18 @@ public record DynamicLightInfo(Vector3f color, BlockStateFunction<Optional<Float
     }
 
     public RaytracedPointBlockLight createBlockLight(BlockPos pos, BlockState state) {
-        float brightness = brightness().apply(state).orElse(1f);
-        float radius = radius().apply(state).orElse((float) state.getLuminance());
-
-        if (brightness <= 0 || radius <= 0) {
-            return null;
-        }
-
         return (RaytracedPointBlockLight) initLight(new RaytracedPointBlockLight(
-                pos,
-                state.getBlock(),
-                this,
-                offset().apply(state).orElse(new Vec3d(0.5, 0.5, 0.5))
+                pos
         ).setFlicker(flicker().apply(state).orElse(0f)), state);
     }
 
     public void addBlockLight(BlockPos pos, BlockState state) {
-        RaytracedPointBlockLight light = createBlockLight(pos, state);
+        RaytracedPointBlockLight old = Vibrancy.BLOCK_LIGHTS.get(pos);
 
-        if (light != null) {
-            RaytracedPointBlockLight old = Vibrancy.BLOCK_LIGHTS.put(pos, light);
-
-            if (old != null) {
-                old.free();
-            }
+        if (old == null) {
+            Vibrancy.BLOCK_LIGHTS.put(pos, createBlockLight(pos, state));
+        } else {
+            System.out.println("not putting " + pos + " " + old);
         }
     }
 

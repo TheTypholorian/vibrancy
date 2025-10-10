@@ -24,6 +24,7 @@ public class GameOptionsMixin {
         visitor.accept("vibrancy/max_raytraced_lights", Vibrancy.MAX_RAYTRACED_LIGHTS);
         visitor.accept("vibrancy/max_shadow_distance", Vibrancy.MAX_SHADOW_DISTANCE);
         visitor.accept("vibrancy/max_light_radius", Vibrancy.MAX_LIGHT_RADIUS);
+        visitor.accept("vibrancy/block_light_multiplier", Vibrancy.BLOCK_LIGHT_MULTIPLIER);
     }
 
     @Inject(

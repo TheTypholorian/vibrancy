@@ -39,6 +39,10 @@ public class RaytracedPointLight extends AbstractRaytracedLight {
     }
 
     @Override
+    public void init() {
+    }
+
+    @Override
     public boolean render(boolean raytrace) {
         ClientWorld world = MinecraftClient.getInstance().world;
 

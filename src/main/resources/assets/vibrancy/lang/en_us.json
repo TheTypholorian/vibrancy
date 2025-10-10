@@ -38,5 +38,8 @@
   "options.vibrancy.max_light_radius.tooltip": "Maximum blocks a dynamic light can extend (from center)",
   "options.vibrancy.max_light_radius.value": "%s blocks",
   "options.vibrancy.max_light_radius.max": "Unlimited",
+  "options.vibrancy.block_light_multiplier": "Block Light Multiplier",
+  "options.vibrancy.block_light_multiplier.tooltip": "Multiplies the vanilla block light system. High values will display vanilla more, and lower values will hide vanilla's system and the raytraced shadows will have sharp edges",
+  "options.vibrancy.block_light_multiplier.value": "%s%%",
   "screen.vibrancy.alpha.title": "Thank you for using Vibrancy!\n\nThis mod is still a work-in-progress, and the raytraced shadows §emay flicker§r a little in certain cases. Expect lag. Some quality was sacrificed for this to be playable, and the shadows §emight not always look correct§r. These are §eknown issues§r, so please don't waste time reporting them. Any suggestions from fellow coders on how to optimize the raytracing will be greatly appreciated. You can tweak cap values for lights in the video options, they are currently set to what worked best on my computer."
 }

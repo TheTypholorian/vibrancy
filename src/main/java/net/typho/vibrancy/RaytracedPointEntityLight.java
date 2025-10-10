@@ -10,7 +10,7 @@ import net.minecraft.item.ItemStack;
 import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Direction;
-import org.jetbrains.annotations.ApiStatus;
+import net.minecraft.util.math.Vec3d;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -25,8 +25,6 @@ import static org.lwjgl.opengl.GL30.GL_STREAM_DRAW;
 public class RaytracedPointEntityLight extends AbstractRaytracedLight {
     public final LivingEntity entity;
     protected boolean hasLight = false;
-    @ApiStatus.Internal
-    public boolean render = false;
     protected Map<BlockPos, List<Quad>> quads = new LinkedHashMap<>();
     protected final List<BlockPos> dirty = new LinkedList<>();
     protected BlockBox quadBox;
@@ -102,7 +100,6 @@ public class RaytracedPointEntityLight extends AbstractRaytracedLight {
             if (info != null) {
                 info.initLight(this, state);
                 hasLight = true;
-                render = true;
                 return true;
             }
         }
@@ -111,8 +108,16 @@ public class RaytracedPointEntityLight extends AbstractRaytracedLight {
     }
 
     @Override
+    public void init() {
+        float tickDelta = MinecraftClient.getInstance().getRenderTickCounter().getTickDelta(true);
+        Vec3d entityPos = entity.getCameraPosVec(tickDelta)
+                .add(entity.getRotationVec(tickDelta));
+        setPosition(entityPos.x, entityPos.y, entityPos.z);
+    }
+
+    @Override
     public boolean render(boolean raytrace) {
-        if (!render) {
+        if (!(init(entity.getMainHandStack()) || init(entity.getOffHandStack()))) {
             return false;
         }
 

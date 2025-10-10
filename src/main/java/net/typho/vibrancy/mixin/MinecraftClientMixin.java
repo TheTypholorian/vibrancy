@@ -2,9 +2,13 @@ package net.typho.vibrancy.mixin;
 
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.screen.Screen;
+import net.minecraft.client.network.ClientPlayerEntity;
 import net.typho.vibrancy.AlphaWarningScreen;
+import net.typho.vibrancy.RaytracedPointEntityLight;
 import net.typho.vibrancy.Vibrancy;
+import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Mixin;
+import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -14,6 +18,8 @@ import java.util.function.Function;
 
 @Mixin(MinecraftClient.class)
 public class MinecraftClientMixin {
+    @Shadow @Nullable public ClientPlayerEntity player;
+
     @Inject(
             method = "createInitScreens",
             at = @At("TAIL")
@@ -21,6 +27,30 @@ public class MinecraftClientMixin {
     private void createInitScreens(List<Function<Runnable, Screen>> list, CallbackInfo ci) {
         if (!Vibrancy.SEEN_ALPHA_TEXT) {
             list.add(AlphaWarningScreen::new);
+        }
+    }
+
+    @Inject(
+            method = "disconnect(Lnet/minecraft/client/gui/screen/Screen;Z)V",
+            at = @At("HEAD")
+    )
+    private void disconnect(Screen disconnectionScreen, boolean transferring, CallbackInfo ci) {
+        RaytracedPointEntityLight light = Vibrancy.ENTITY_LIGHTS.get(player);
+
+        if (light != null) {
+            light.free();
+        }
+    }
+
+    @Inject(
+            method = "enterReconfiguration",
+            at = @At("HEAD")
+    )
+    private void enterReconfiguration(Screen reconfigurationScreen, CallbackInfo ci) {
+        RaytracedPointEntityLight light = Vibrancy.ENTITY_LIGHTS.get(player);
+
+        if (light != null) {
+            light.free();
         }
     }
 }
