@@ -3,7 +3,6 @@ package net.typho.vibrancy;
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
 import foundry.veil.api.client.render.VeilRenderSystem;
-import foundry.veil.api.client.render.framebuffer.AdvancedFbo;
 import foundry.veil.api.client.render.light.PointLight;
 import net.minecraft.client.gl.ShaderProgram;
 import net.minecraft.client.gl.VertexBuffer;
@@ -25,7 +24,7 @@ import java.util.Collection;
 import java.util.Objects;
 
 import static org.lwjgl.opengl.GL15.*;
-import static org.lwjgl.opengl.GL30.*;
+import static org.lwjgl.opengl.GL30.glBindBufferBase;
 import static org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER;
 
 public abstract class AbstractRaytracedLight extends PointLight implements RaytracedLight {
@@ -67,19 +66,7 @@ public abstract class AbstractRaytracedLight extends PointLight implements Raytr
     }
 
     protected void renderMask(Identifier fbo, Matrix4f view) {
-        AdvancedFbo main = Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(Identifier.of("main")));
-        AdvancedFbo to = Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(fbo));
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, main.getId());
-        glBindFramebuffer(GL_DRAW_FRAMEBUFFER, to.getId());
-
-        glBlitFramebuffer(
-                0, 0, main.getWidth(), main.getHeight(),
-                0, 0, to.getWidth(), to.getHeight(),
-                GL_DEPTH_BUFFER_BIT,
-                GL_NEAREST
-        );
-
-        to.bind(true);
+        Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(fbo)).bind(true);
         glClearColor(0f, 0f, 0f, 0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -95,7 +82,7 @@ public abstract class AbstractRaytracedLight extends PointLight implements Raytr
 
             shader.getUniformOrDefault("LightPos").set(lightPos.x, lightPos.y, lightPos.z);
             shader.getUniformOrDefault("LightRadius").set(radius);
-            shader.getUniformOrDefault("Detailed").set(getPosition().distanceSquared(camera.getPos().x, camera.getPos().y, camera.getPos().z) < MathHelper.square(Vibrancy.RAYTRACE_DISTANCE.getValue() * 16) ? 1 : 0);
+            shader.getUniformOrDefault("Detailed").set(1);
 
             RenderSystem.depthMask(false);
             RenderSystem.disableDepthTest();
@@ -110,7 +97,7 @@ public abstract class AbstractRaytracedLight extends PointLight implements Raytr
 
             RenderSystem.enableCull();
             RenderSystem.depthMask(true);
-            RenderSystem.enableBlend();
+            RenderSystem.disableBlend();
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
         } else {
             Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(Vibrancy.id("shadow_mask"))).bind(false);
@@ -185,6 +172,9 @@ public abstract class AbstractRaytracedLight extends PointLight implements Raytr
         RenderSystem.disableDepthTest();
         glCullFace(GL_FRONT);
         RenderSystem.enableCull();
+        RenderSystem.enableBlend();
+        RenderSystem.blendFunc(GlStateManager.SrcFactor.ONE, GlStateManager.DstFactor.ONE);
+        RenderSystem.blendEquation(GL_FUNC_ADD);
 
         boxVBO.bind();
         boxVBO.upload(builder.end());
@@ -192,6 +182,7 @@ public abstract class AbstractRaytracedLight extends PointLight implements Raytr
         VertexBuffer.unbind();
 
         glCullFace(GL_BACK);
+        RenderSystem.disableBlend();
     }
 
     @Override

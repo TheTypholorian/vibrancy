@@ -9,7 +9,6 @@ import foundry.veil.api.client.render.framebuffer.AdvancedFbo;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientWorldEvents;
-import net.fabricmc.fabric.api.client.keybinding.v1.KeyBindingHelper;
 import net.fabricmc.fabric.api.client.particle.v1.ParticleFactoryRegistry;
 import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
@@ -20,15 +19,15 @@ import net.fabricmc.loader.api.ModContainer;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gl.VertexBuffer;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
 import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.option.GameOptions;
-import net.minecraft.client.option.KeyBinding;
 import net.minecraft.client.option.SimpleOption;
 import net.minecraft.client.particle.CampfireSmokeParticle;
-import net.minecraft.client.render.*;
+import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.render.VertexConsumer;
+import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.LivingEntity;
@@ -47,7 +46,6 @@ import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.*;
 import net.minecraft.world.chunk.ChunkSection;
-import org.lwjgl.glfw.GLFW;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -120,33 +118,11 @@ public class Vibrancy implements ClientModInitializer {
             value -> {}
     );
     public static boolean SEEN_ALPHA_TEXT = false;
-    public static final KeyBinding SAVE_LIGHTMAP = !FabricLoader.getInstance().isDevelopmentEnvironment() ? null : KeyBindingHelper.registerKeyBinding(new KeyBinding(
-            "key.vibrancy.debug.save_lightmap",
-            GLFW.GLFW_KEY_F9,
-            "key.categories.misc"
-    ));
     public static final SimpleParticleType STEAM = Registry.register(Registries.PARTICLE_TYPE, id("steam"), new SimpleParticleType(false) {});
     public static final Map<RegistryKey<Block>, BlockStateFunction<Boolean>> EMISSIVE_OVERRIDES = new LinkedHashMap<>();
-    public static VertexBuffer SCREEN_VBO;
     public static final Map<BlockPos, RaytracedPointBlockLight> BLOCK_LIGHTS = new LinkedHashMap<>();
     public static final Map<LivingEntity, RaytracedPointEntityLight> ENTITY_LIGHTS = new LinkedHashMap<>();
     public static int NUM_LIGHT_TASKS = 0, NUM_RAYTRACED_LIGHTS = 0, NUM_VISIBLE_LIGHTS = 0;
-
-    static {
-        RenderSystem.recordRenderCall(() -> {
-            SCREEN_VBO = new VertexBuffer(VertexBuffer.Usage.STATIC);
-
-            BufferBuilder builder = RenderSystem.renderThreadTesselator().begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION);
-            builder.vertex(-1, 1, 0);
-            builder.vertex(-1, -1, 0);
-            builder.vertex(1, 1, 0);
-            builder.vertex(1, -1, 0);
-
-            SCREEN_VBO.bind();
-            SCREEN_VBO.upload(builder.end());
-            VertexBuffer.unbind();
-        });
-    }
 
     public static int maxLights() {
         int v = MAX_RAYTRACED_LIGHTS.getValue();

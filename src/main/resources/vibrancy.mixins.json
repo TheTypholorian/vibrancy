@@ -10,6 +10,7 @@
     "ClientPlayNetworkHandlerMixin",
     "GameOptionsMixin",
     "GlDebugMixin",
+    "LightmapTextureManagerMixin",
     "LightRendererMixin",
     "MinecraftClientMixin",
     "PlayerEntityMixin",
