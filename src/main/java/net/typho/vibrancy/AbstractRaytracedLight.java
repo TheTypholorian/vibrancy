@@ -97,21 +97,19 @@ public abstract class AbstractRaytracedLight extends PointLight implements Raytr
             shader.getUniformOrDefault("LightRadius").set(radius);
             shader.getUniformOrDefault("Detailed").set(getPosition().distanceSquared(camera.getPos().x, camera.getPos().y, camera.getPos().z) < MathHelper.square(Vibrancy.RAYTRACE_DISTANCE.getValue() * 16) ? 1 : 0);
 
-            RenderSystem.depthMask(true);
+            RenderSystem.depthMask(false);
             RenderSystem.disableDepthTest();
             RenderSystem.enableBlend();
             RenderSystem.blendFunc(GlStateManager.SrcFactor.ONE, GlStateManager.DstFactor.ONE);
             RenderSystem.blendEquation(GL_FUNC_ADD);
+            RenderSystem.disableCull();
 
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, quadsSSBO);
 
-            glCullFace(GL_FRONT);
-            glDepthFunc(GL_GEQUAL);
             renderMask(Vibrancy.id("shadow_mask"), view);
 
-            glCullFace(GL_BACK);
-            glDepthFunc(GL_LEQUAL);
-            RenderSystem.depthMask(false);
+            RenderSystem.enableCull();
+            RenderSystem.depthMask(true);
             RenderSystem.enableBlend();
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
         } else {
