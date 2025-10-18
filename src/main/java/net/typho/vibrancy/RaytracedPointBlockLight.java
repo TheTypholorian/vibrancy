@@ -1,12 +1,10 @@
 package net.typho.vibrancy;
 
-import foundry.veil.api.client.render.light.PointLight;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Vec3d;
-import org.joml.Vector3dc;
 
 public class RaytracedPointBlockLight extends RaytracedPointLight {
     public final BlockPos blockPos;
@@ -28,7 +26,7 @@ public class RaytracedPointBlockLight extends RaytracedPointLight {
 
             if (info != null) {
                 Vec3d offset = info.offset().apply(state).orElse(new Vec3d(0.5, 0.5, 0.5));
-                super.setPosition(blockPos.getX() + offset.x, blockPos.getY() + offset.y, blockPos.getZ() + offset.z);
+                setPosition(blockPos.getX() + offset.x, blockPos.getY() + offset.y, blockPos.getZ() + offset.z);
                 info.initLight(this, state);
                 render = true;
             }
@@ -42,16 +40,6 @@ public class RaytracedPointBlockLight extends RaytracedPointLight {
         }
 
         return super.render(raytrace);
-    }
-
-    @Override
-    public final PointLight setPosition(Vector3dc position) {
-        throw new UnsupportedOperationException("Can't move a block light");
-    }
-
-    @Override
-    public final PointLight setPosition(double x, double y, double z) {
-        throw new UnsupportedOperationException("Can't move a block light");
     }
 
     @Override

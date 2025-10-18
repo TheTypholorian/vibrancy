@@ -1,7 +1,6 @@
 package net.typho.vibrancy;
 
 import com.google.gson.*;
-import foundry.veil.api.client.render.light.PointLight;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.registry.Registries;
@@ -46,9 +45,9 @@ public record DynamicLightInfo(Vector3f color, BlockStateFunction<Optional<Float
         }
     }
 
-    public <L extends PointLight> L initLight(L light, BlockState state) {
+    public <L extends AbstractRaytracedLight> L initLight(L light, BlockState state) {
         light.setBrightness(brightness.apply(state).orElse(1f))
-                .setColor(color().x, color().y, color().z)
+                .setColor(color())
                 .setRadius(radius.apply(state).orElse((float) state.getLuminance()));
         return light;
     }

@@ -2,7 +2,7 @@ package net.typho.vibrancy;
 
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.render.*;
+import net.minecraft.client.render.Camera;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.LivingEntity;
 import net.minecraft.item.BlockItem;
@@ -29,6 +29,7 @@ public class RaytracedPointEntityLight extends AbstractRaytracedLight {
     protected final List<BlockPos> dirty = new LinkedList<>();
     protected BlockBox quadBox;
     protected CompletableFuture<Map<BlockPos, List<Quad>>> fullRebuildTask;
+    protected Vec3d pos;
 
     public RaytracedPointEntityLight(LivingEntity entity) {
         this.entity = entity;
@@ -46,25 +47,25 @@ public class RaytracedPointEntityLight extends AbstractRaytracedLight {
     }
 
     @Override
-    public void upload(BufferBuilder builder, Collection<ShadowVolume> volumes) {
+    public void upload(Collection<Vector3f> vertices, Collection<ShadowVolume> volumes) {
         if (volumes.isEmpty()) {
             anyShadows = false;
         } else {
             anyShadows = true;
-            upload(builder, volumes, geomVBO, quadsSSBO, GL_STREAM_DRAW);
+            numVertices = upload(vertices, volumes, geomVBO, quadsSSBO, GL_STREAM_DRAW);
         }
     }
 
-    public void regenQuadsSync(ClientWorld world, BlockPos pos, Consumer<Quad> out, BlockPos lightBlockPos, Vector3f lightPos) {
+    public void regenQuadsSync(ClientWorld world, BlockPos pos, Consumer<Quad> out, BlockPos lightBlockPos) {
         quads.remove(pos);
-        regenQuadsAsync(world, pos, out, lightBlockPos, lightPos);
+        regenQuadsAsync(world, pos, out, lightBlockPos);
     }
 
-    public void regenQuadsAsync(ClientWorld world, BlockPos pos, Consumer<Quad> out, BlockPos lightBlockPos, Vector3f lightPos) {
-        getQuads(world, pos, out, pos.getSquaredDistance(lightBlockPos), lightBlockPos, lightPos, false);
+    public void regenQuadsAsync(ClientWorld world, BlockPos pos, Consumer<Quad> out, BlockPos lightBlockPos) {
+        getQuads(world, pos, out, pos.getSquaredDistance(lightBlockPos), lightBlockPos, false);
     }
 
-    public void regenAll(ClientWorld world, BlockBox box, BlockPos lightBlockPos, Vector3f lightPos) {
+    public void regenAll(ClientWorld world, BlockBox box, BlockPos lightBlockPos) {
         fullRebuildTask = CompletableFuture.supplyAsync(() -> {
             Map<BlockPos, List<Quad>> quads = new LinkedHashMap<>();
 
@@ -78,7 +79,7 @@ public class RaytracedPointEntityLight extends AbstractRaytracedLight {
                             quads.put(pos, existing);
                         } else {
                             List<Quad> list = new LinkedList<>();
-                            regenQuadsAsync(world, pos, list::add, lightBlockPos, lightPos);
+                            regenQuadsAsync(world, pos, list::add, lightBlockPos);
 
                             if (!list.isEmpty()) {
                                 quads.put(pos, list);
@@ -109,10 +110,9 @@ public class RaytracedPointEntityLight extends AbstractRaytracedLight {
 
     @Override
     public void init() {
-        float tickDelta = MinecraftClient.getInstance().getRenderTickCounter().getTickDelta(true);
-        Vec3d entityPos = entity.getCameraPosVec(tickDelta)
+        float tickDelta = MinecraftClient.getInstance().getRenderTickCounter().getTickProgress(true);
+        pos = entity.getCameraPosVec(tickDelta)
                 .add(entity.getRotationVec(tickDelta));
-        setPosition(entityPos.x, entityPos.y, entityPos.z);
     }
 
     @Override
@@ -130,7 +130,7 @@ public class RaytracedPointEntityLight extends AbstractRaytracedLight {
             BlockBox box = getBox();
 
             List<ShadowVolume> volumes = new LinkedList<>();
-            BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.QUADS, VertexFormats.POSITION);
+            List<Vector3f> vertices = new LinkedList<>();
 
             if (isVisible()) {
                 if (fullRebuildTask != null && fullRebuildTask.isDone()) {
@@ -167,13 +167,13 @@ public class RaytracedPointEntityLight extends AbstractRaytracedLight {
                     if (box.contains(pos)) {
                         for (Quad quad : list) {
                             ShadowVolume volume = quad.toVolume(lightPos, radius);
-                            volume.render(builder);
+                            volume.render(vertices::add);
                             volumes.add(volume);
                         }
                     }
                 });
 
-                upload(builder, volumes);
+                upload(vertices, volumes);
 
                 Camera camera = MinecraftClient.getInstance().gameRenderer.getCamera();
                 Matrix4f view = new Matrix4f()

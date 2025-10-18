@@ -2,15 +2,13 @@ package net.typho.vibrancy;
 
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import foundry.veil.api.client.render.VeilRenderSystem;
-import foundry.veil.api.client.render.light.PointLight;
 import net.minecraft.client.gl.ShaderProgram;
 import net.minecraft.client.gl.VertexBuffer;
 import net.minecraft.client.render.BufferBuilder;
 import net.minecraft.client.render.Camera;
-import net.minecraft.client.render.VertexFormat;
 import net.minecraft.client.render.VertexFormats;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockBox;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
@@ -24,14 +22,24 @@ import java.util.Collection;
 import java.util.Objects;
 
 import static org.lwjgl.opengl.GL15.*;
-import static org.lwjgl.opengl.GL30.glBindBufferBase;
+import static org.lwjgl.opengl.GL30.*;
 import static org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER;
 
-public abstract class AbstractRaytracedLight extends PointLight implements RaytracedLight {
-    protected final VertexBuffer geomVBO = new VertexBuffer(VertexBuffer.Usage.DYNAMIC), boxVBO = new VertexBuffer(VertexBuffer.Usage.DYNAMIC);
-    protected final int quadsSSBO = glGenBuffers();
-    protected boolean anyShadows = false;
+public abstract class AbstractRaytracedLight implements RaytracedLight {
+    protected final int geomVAO = glGenVertexArrays(), geomVBO = glGenBuffers(), boxVBO = glGenBuffers(), quadsSSBO = glGenBuffers();
+    protected int numVertices = 0;
+    protected boolean anyShadows = false, dirty = false;
     protected float flicker = 0, flickerMin, flickerMax, flickerStart = (float) GLFW.glfwGetTime();
+    protected Vector3f position = new Vector3f(), color = new Vector3f();
+    protected float brightness = 1, radius = 1;
+
+    public void markDirty() {
+        dirty = true;
+    }
+
+    public void clean() {
+        dirty = false;
+    }
 
     public float getFlicker() {
         return flicker;
@@ -43,17 +51,74 @@ public abstract class AbstractRaytracedLight extends PointLight implements Raytr
         return this;
     }
 
-    public void upload(BufferBuilder builder, Collection<ShadowVolume> volumes) {
+    @Override
+    public Vector3f getPosition() {
+        return position;
+    }
+
+    public AbstractRaytracedLight setPosition(Vector3f position) {
+        this.position = new Vector3f(position);
+        return this;
+    }
+
+    public AbstractRaytracedLight setPosition(Vector3d position) {
+        this.position = position.get(new Vector3f());
+        return this;
+    }
+
+    public AbstractRaytracedLight setPosition(double x, double y, double z) {
+        this.position = new Vector3f((float) x, (float) y, (float) z);
+        return this;
+    }
+
+    public Vector3f getColor() {
+        return color;
+    }
+
+    public AbstractRaytracedLight setColor(Vector3f color) {
+        this.color = new Vector3f(color);
+        return this;
+    }
+
+    public AbstractRaytracedLight setColor(Vector3d position) {
+        this.color = position.get(new Vector3f());
+        return this;
+    }
+
+    public AbstractRaytracedLight setColor(double r, double g, double b) {
+        this.color = new Vector3f((float) r, (float) g, (float) b);
+        return this;
+    }
+
+    public float getBrightness() {
+        return brightness;
+    }
+
+    public AbstractRaytracedLight setBrightness(float brightness) {
+        this.brightness = brightness;
+        return this;
+    }
+
+    public float getRadius() {
+        return radius;
+    }
+
+    public AbstractRaytracedLight setRadius(float radius) {
+        this.radius = radius;
+        return this;
+    }
+
+    public void upload(Collection<Vector3f> vertices, Collection<ShadowVolume> volumes) {
         if (volumes.isEmpty()) {
             anyShadows = false;
         } else {
             anyShadows = true;
-            upload(builder, volumes, geomVBO, quadsSSBO, GL_DYNAMIC_DRAW);
+            numVertices = upload(vertices, volumes, geomVBO, quadsSSBO, GL_DYNAMIC_DRAW);
         }
     }
 
     public BlockBox getBox() {
-        Vector3d pos = getPosition();
+        Vector3f pos = getPosition();
         BlockPos lightBlockPos = new BlockPos((int) Math.floor(pos.x), (int) Math.floor(pos.y), (int) Math.floor(pos.z));
         int blockRadius = Vibrancy.capShadowDistance((int) Math.ceil(radius) - 2);
         BlockBox box = new BlockBox(lightBlockPos);
@@ -65,12 +130,13 @@ public abstract class AbstractRaytracedLight extends PointLight implements Raytr
         return box;
     }
 
-    protected void renderMask(Identifier fbo, Matrix4f view) {
-        Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(fbo)).bind(true);
+    protected void renderMask(int fbo, Matrix4f view) {
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
         glClearColor(0f, 0f, 0f, 0f);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        geomVBO.bind();
+        glBindVertexArray(geomVAO);
+        glDrawArrays(GL_QUADS, 0, numVertices);
         geomVBO.draw(view, RenderSystem.getProjectionMatrix(), RenderSystem.getShader());
         VertexBuffer.unbind();
     }

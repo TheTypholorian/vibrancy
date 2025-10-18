@@ -5,11 +5,9 @@
   "compatibilityLevel": "JAVA_21",
   "client": [
     "AbstractBlockStateMixin",
-    "BackgroundRendererMixin",
     "BlockModelRendererMixin",
     "ClientPlayNetworkHandlerMixin",
     "GameOptionsMixin",
-    "GlDebugMixin",
     "LightmapTextureManagerMixin",
     "LightRendererMixin",
     "MinecraftClientMixin",

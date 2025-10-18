@@ -3,14 +3,10 @@ package net.typho.vibrancy;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.mojang.blaze3d.systems.RenderSystem;
-import foundry.veil.api.client.render.VeilRenderSystem;
-import foundry.veil.api.client.render.dynamicbuffer.DynamicBufferType;
-import foundry.veil.api.client.render.framebuffer.AdvancedFbo;
 import net.fabricmc.api.ClientModInitializer;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents;
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientWorldEvents;
 import net.fabricmc.fabric.api.client.particle.v1.ParticleFactoryRegistry;
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
 import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
 import net.fabricmc.fabric.api.resource.ResourcePackActivationType;
 import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
@@ -26,8 +22,6 @@ import net.minecraft.client.option.GameOptions;
 import net.minecraft.client.option.SimpleOption;
 import net.minecraft.client.particle.CampfireSmokeParticle;
 import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.render.WorldRenderer;
 import net.minecraft.client.texture.NativeImage;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.LivingEntity;
@@ -52,9 +46,10 @@ import java.io.IOException;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.Consumer;
 
-import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
-import static org.lwjgl.opengl.GL11.glClear;
+import static org.lwjgl.opengl.GL11.*;
+import static org.lwjgl.opengl.GL30.*;
 
 public class Vibrancy implements ClientModInitializer {
     public static final String MOD_ID = "vibrancy";
@@ -67,7 +62,6 @@ public class Vibrancy implements ClientModInitializer {
     //public static final SimpleOption<Boolean> DYNAMIC_LIGHTMAP = SimpleOption.ofBoolean("options.vibrancy.dynamic_lightmap", value -> Tooltip.of(Text.translatable("options.vibrancy.dynamic_lightmap.tooltip")), true);
     public static final SimpleOption<Boolean> TRANSPARENCY_TEST = SimpleOption.ofBoolean("options.vibrancy.transparency_test", value -> Tooltip.of(Text.translatable("options.vibrancy.transparency_test.tooltip")), true);
     //public static final SimpleOption<Boolean> BETTER_SKY = SimpleOption.ofBoolean("options.vibrancy.better_sky", value -> Tooltip.of(Text.translatable("options.vibrancy.better_sky.tooltip")), true);
-    public static final SimpleOption<Boolean> BETTER_FOG = SimpleOption.ofBoolean("options.vibrancy.better_fog", value -> Tooltip.of(Text.translatable("options.vibrancy.better_fog.tooltip")), true);
     public static final SimpleOption<Boolean> ELYTRA_TRAILS = SimpleOption.ofBoolean("options.vibrancy.elytra_trails", value -> Tooltip.of(Text.translatable("options.vibrancy.elytra_trails.tooltip")), true);
     public static final SimpleOption<Integer> RAYTRACE_DISTANCE = new SimpleOption<>(
             "options.vibrancy.raytrace_distance",
@@ -123,6 +117,54 @@ public class Vibrancy implements ClientModInitializer {
     public static final Map<BlockPos, RaytracedPointBlockLight> BLOCK_LIGHTS = new LinkedHashMap<>();
     public static final Map<LivingEntity, RaytracedPointEntityLight> ENTITY_LIGHTS = new LinkedHashMap<>();
     public static int NUM_LIGHT_TASKS = 0, NUM_RAYTRACED_LIGHTS = 0, NUM_VISIBLE_LIGHTS = 0;
+    public static int RAY_LIGHT_FBO, RAY_LIGHT_TEX, SHADOW_MASK_FBO, SHADOW_MASK_TEX;
+
+    static {
+        MinecraftClient.getInstance().execute(() -> {
+            genFramebuffer(GL_RGB16F, GL_RGB, GL_FLOAT, i -> RAY_LIGHT_FBO = i, i -> RAY_LIGHT_TEX = i);
+            genFramebuffer(GL_RGBA8, GL_RGBA, GL_UNSIGNED_BYTE, i -> SHADOW_MASK_FBO = i, i -> SHADOW_MASK_TEX = i);
+        });
+    }
+
+    public static void genFramebuffer(int internalFormat, int format, int type, Consumer<Integer> fboOut, Consumer<Integer> texOut) {
+        int fbo = glGenFramebuffers();
+        glBindFramebuffer(GL_FRAMEBUFFER, fbo);
+
+        int tex = glGenTextures();
+        glBindTexture(GL_TEXTURE_2D, tex);
+        glTexImage2D(
+                GL_TEXTURE_2D,
+                0,
+                internalFormat,
+                1, 1,
+                0,
+                format,
+                type,
+                0
+        );
+
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+
+        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, tex, 0);
+
+        glDrawBuffer(GL_COLOR_ATTACHMENT0);
+        glReadBuffer(GL_COLOR_ATTACHMENT0);
+
+        int status = glCheckFramebufferStatus(GL_FRAMEBUFFER);
+
+        if (status != GL_FRAMEBUFFER_COMPLETE) {
+            throw new IllegalStateException("Incomplete framebuffer, status: 0x" + Integer.toHexString(status));
+        }
+
+        glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        glBindTexture(GL_TEXTURE_2D, 0);
+
+        fboOut.accept(fbo);
+        texOut.accept(tex);
+    }
 
     public static int maxLights() {
         int v = MAX_RAYTRACED_LIGHTS.getValue();
@@ -137,7 +179,7 @@ public class Vibrancy implements ClientModInitializer {
     public static boolean shouldRenderLight(RaytracedLight light) {
         Vec3d cam = MinecraftClient.getInstance().gameRenderer.getCamera().getPos();
         boolean b = light.getPosition().distanceSquared(cam.x, cam.y, cam.z) / 16 < Vibrancy.LIGHT_CULL_DISTANCE.getValue() * Vibrancy.LIGHT_CULL_DISTANCE.getValue() &&
-                (VeilRenderSystem.getCullingFrustum().testAab(light.getBoundingBox()) || (light instanceof RaytracedPointEntityLight entity && entity.entity == MinecraftClient.getInstance().cameraEntity));
+                (VeilRenderSystem.getCullingFrustum().testAab(light.getBoundingBox()) || (light instanceof RaytracedPointEntityLight entity && entity.entity == MinecraftClient.getInstance().getCameraEntity()));
 
         if (b) {
             NUM_VISIBLE_LIGHTS++;
@@ -163,16 +205,6 @@ public class Vibrancy implements ClientModInitializer {
         }
     }
 
-    public static void renderLightDebug(RaytracedLight light, VertexConsumer consumer) {
-        Vec3d camera = MinecraftClient.getInstance().gameRenderer.getCamera().getPos();
-        WorldRenderer.drawBox(
-                consumer,
-                light.getPosition().x - 0.3 - camera.getX(), light.getPosition().y - 0.3 - camera.getY(), light.getPosition().z - 0.3 - camera.getZ(),
-                light.getPosition().x + 0.3 - camera.getX(), light.getPosition().y + 0.3 - camera.getY(), light.getPosition().z + 0.3 - camera.getZ(),
-                1, 1, 1, 1
-        );
-    }
-
     public static boolean pointsToward(BlockPos from, Direction dir, BlockPos to) {
         return switch (dir.getAxis()) {
             case X -> dir.getDirection() == Direction.AxisDirection.POSITIVE
@@ -189,13 +221,13 @@ public class Vibrancy implements ClientModInitializer {
 
     public static void elytraTrail(LivingEntity entity) {
         if (Math.random() < Math.min(entity.getVelocity().length() - 0.75, (entity.getY() - 80) / 40)) {
-            entity.getWorld().addParticle(STEAM, entity.getX(), entity.getY(), entity.getZ(), 0, 0, 0);
+            entity.getEntityWorld().addParticleClient(STEAM, entity.getX(), entity.getY(), entity.getZ(), 0, 0, 0);
         }
     }
 
     public static void renderLights() {
         VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(id("ray_light")).bind(true);
-        RenderSystem.clearColor(0, 0, 0, 0);
+        glClearColor(0, 0, 0, 0);
         glClear(GL_COLOR_BUFFER_BIT);
 
         BLOCK_LIGHTS.values().removeIf(light -> {

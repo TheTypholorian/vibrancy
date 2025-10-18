@@ -3,13 +3,11 @@ package net.typho.vibrancy;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
-import net.minecraft.client.gl.VertexBuffer;
-import net.minecraft.client.render.BufferBuilder;
-import net.minecraft.client.render.RenderLayer;
+import net.minecraft.client.render.BlockRenderLayer;
 import net.minecraft.client.render.RenderLayers;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.render.model.BakedModel;
 import net.minecraft.client.render.model.BakedQuad;
+import net.minecraft.client.render.model.BlockModelPart;
+import net.minecraft.client.render.model.BlockStateModel;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
@@ -17,7 +15,6 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.random.Random;
 import org.joml.Vector2f;
-import org.joml.Vector3d;
 import org.joml.Vector3f;
 import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.system.NativeResource;
@@ -25,11 +22,11 @@ import org.lwjgl.system.NativeResource;
 import java.nio.ByteBuffer;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 import java.util.function.Consumer;
 
-import static org.lwjgl.opengl.GL15.glBindBuffer;
-import static org.lwjgl.opengl.GL15.glBufferData;
+import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER;
 
 public interface RaytracedLight extends NativeResource {
@@ -45,16 +42,34 @@ public interface RaytracedLight extends NativeResource {
 
     boolean render(boolean raytrace);
 
-    Vector3d getPosition();
+    Vector3f getPosition();
 
     Box getBoundingBox();
 
-    default void getQuads(Iterable<BakedQuad> bakedQuads, BlockPos pos, Consumer<Quad> out, RenderLayer layer, Vec3d offset) {
-        for (BakedQuad quad : bakedQuads) {
+    default int upload(int vbo, Collection<Vector3f> vertices, int usage) {
+        glBindBuffer(GL_ARRAY_BUFFER, vbo);
+
+        ByteBuffer vertexBuf = MemoryUtil.memAlloc(vertices.size() * Float.BYTES * 3);
+        int i = 0;
+
+        for (Vector3f vertex : vertices) {
+            vertex.get(vertexBuf);
+            i += Float.BYTES * 3;
+            vertexBuf.position(i);
+        }
+
+        glBufferData(GL_ARRAY_BUFFER, vertexBuf.flip(), usage);
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+
+        return vertices.size();
+    }
+
+    default void getQuads(Iterable<BakedQuad> quads, BlockPos pos, Consumer<Quad> out, BlockRenderLayer layer, Vec3d offset) {
+        for (BakedQuad quad : quads) {
             Vector3f[] positions = new Vector3f[4];
             Vector2f[] uvs = new Vector2f[4];
 
-            int[] data = quad.getVertexData();
+            int[] data = quad.vertexData();
             int len = data.length / 8;
 
             for (int i = 0, j = 0; i < len; i++, j += 8) {
@@ -79,43 +94,41 @@ public interface RaytracedLight extends NativeResource {
                     uvs[1],
                     uvs[2],
                     uvs[3],
-                    layer.isTranslucent() || layer != RenderLayer.getSolid()
+                    layer != BlockRenderLayer.SOLID
             ));
         }
     }
 
-    default void getQuads(ClientWorld world, BlockPos pos, Consumer<Quad> out, double sqDist, BlockPos lightBlockPos, Vector3f lightPos, boolean normalTest) {
+    default void getQuads(ClientWorld world, BlockPos pos, Consumer<Quad> out, double sqDist, BlockPos lightBlockPos, boolean normalTest) {
         BlockState state = world.getBlockState(pos);
 
-        if (!Vibrancy.TRANSPARENCY_TEST.getValue() && state.isTransparent(world, pos)) {
+        if (!Vibrancy.TRANSPARENCY_TEST.getValue() && state.isTransparent()) {
             return;
         }
 
-        RenderLayer layer = RenderLayers.getBlockLayer(state);
-        BakedModel model = MinecraftClient.getInstance().getBlockRenderManager().getModel(state);
-        long seed = lightBlockPos.hashCode();
+        BlockRenderLayer layer = RenderLayers.getBlockLayer(state);
+        BlockStateModel model = MinecraftClient.getInstance().getBlockRenderManager().getModel(state);
         Random random = Random.create();
-        Vec3d offset = state.getModelOffset(world, pos);
+        Vec3d offset = state.getModelOffset(pos);
+        List<BlockModelPart> parts = model.getParts(random);
 
-        for (Direction direction : Direction.values()) {
-            if (sqDist <= 4 || (Block.shouldDrawSide(state, world, pos, direction, pos.offset(direction)) && (!normalTest || Vibrancy.pointsToward(pos, direction, lightBlockPos)))) {
-                random.setSeed(seed);
-                getQuads(model.getQuads(state, direction, random), pos, out, layer, offset);
+        for (BlockModelPart part : parts) {
+            for (Direction direction : Direction.values()) {
+                if (sqDist <= 4 || (Block.shouldDrawSide(state, world.getBlockState(pos.offset(direction)), direction) && (!normalTest || Vibrancy.pointsToward(pos, direction, lightBlockPos)))) {
+                    getQuads(part.getQuads(direction), pos, out, layer, offset);
+                }
             }
-        }
 
-        random.setSeed(seed);
-        getQuads(model.getQuads(state, null, random), pos, out, layer, offset);
+            getQuads(part.getQuads(null), pos, out, layer, offset);
+        }
     }
 
     default void getVolumes(ClientWorld world, BlockPos pos, Consumer<ShadowVolume> out, double sqDist, BlockPos lightBlockPos, Vector3f lightPos, float radius, boolean normalTest) {
-        getQuads(world, pos, quad -> out.accept(quad.toVolume(lightPos, radius)), sqDist, lightBlockPos, lightPos, normalTest);
+        getQuads(world, pos, quad -> out.accept(quad.toVolume(lightPos, radius)), sqDist, lightBlockPos, normalTest);
     }
 
-    default void upload(BufferBuilder builder, Collection<ShadowVolume> volumes, VertexBuffer geomVBO, int quadsSSBO, int usage) {
-        geomVBO.bind();
-        geomVBO.upload(builder.end());
-        VertexBuffer.unbind();
+    default int upload(Collection<Vector3f> vertices, Collection<ShadowVolume> volumes, int geomVBO, int quadsSSBO, int usage) {
+        int i = upload(geomVBO, vertices, usage);
 
         ByteBuffer buf = MemoryUtil.memAlloc(volumes.size() * Quad.BYTES);
 
@@ -128,6 +141,7 @@ public interface RaytracedLight extends NativeResource {
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0);
 
         MemoryUtil.memFree(buf);
+        return i;
     }
 
     record Quad(
@@ -201,36 +215,36 @@ public interface RaytracedLight extends NativeResource {
     }
 
     record ShadowVolume(Quad caster, Vector3f[] vertices) {
-        public void render(VertexConsumer consumer) {
-            consumer.vertex(vertices()[0])
-                    .vertex(vertices()[1])
-                    .vertex(vertices()[2])
-                    .vertex(vertices()[3]);
+        public void render(Consumer<Vector3f> consumer) {
+            consumer.accept(vertices()[0]);
+            consumer.accept(vertices()[1]);
+            consumer.accept(vertices()[2]);
+            consumer.accept(vertices()[3]);
 
-            consumer.vertex(vertices()[1])
-                    .vertex(vertices()[5])
-                    .vertex(vertices()[6])
-                    .vertex(vertices()[2]);
+            consumer.accept(vertices()[1]);
+            consumer.accept(vertices()[5]);
+            consumer.accept(vertices()[6]);
+            consumer.accept(vertices()[2]);
 
-            consumer.vertex(vertices()[5])
-                    .vertex(vertices()[4])
-                    .vertex(vertices()[7])
-                    .vertex(vertices()[6]);
+            consumer.accept(vertices()[5]);
+            consumer.accept(vertices()[4]);
+            consumer.accept(vertices()[7]);
+            consumer.accept(vertices()[6]);
 
-            consumer.vertex(vertices()[4])
-                    .vertex(vertices()[0])
-                    .vertex(vertices()[3])
-                    .vertex(vertices()[7]);
+            consumer.accept(vertices()[4]);
+            consumer.accept(vertices()[0]);
+            consumer.accept(vertices()[3]);
+            consumer.accept(vertices()[7]);
 
-            consumer.vertex(vertices()[1])
-                    .vertex(vertices()[0])
-                    .vertex(vertices()[4])
-                    .vertex(vertices()[5]);
+            consumer.accept(vertices()[1]);
+            consumer.accept(vertices()[0]);
+            consumer.accept(vertices()[4]);
+            consumer.accept(vertices()[5]);
 
-            consumer.vertex(vertices()[3])
-                    .vertex(vertices()[2])
-                    .vertex(vertices()[6])
-                    .vertex(vertices()[7]);
+            consumer.accept(vertices()[3]);
+            consumer.accept(vertices()[2]);
+            consumer.accept(vertices()[6]);
+            consumer.accept(vertices()[7]);
         }
     }
 }

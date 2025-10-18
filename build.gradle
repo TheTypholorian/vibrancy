@@ -1,5 +1,5 @@
 plugins {
-    id 'fabric-loom' version '1.10.5'
+    id 'fabric-loom' version '1.11-SNAPSHOT'
     id 'maven-publish'
 }
 
@@ -40,12 +40,6 @@ dependencies {
     modImplementation "net.fabricmc.fabric-api:fabric-api:${project.fabric_version}"
 
     modImplementation("maven.modrinth:sodium:${project.sodium_version}")
-    modImplementation("maven.modrinth:continuity:${project.continuity_version}")
-
-    include modImplementation("foundry.veil:veil-fabric-${project.minecraft_version}:${project.veil_version}") {
-        exclude group: "maven.modrinth"
-        exclude group: "me.fallenbreath"
-    }
 }
 
 processResources {
