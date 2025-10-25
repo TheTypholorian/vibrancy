@@ -5,6 +5,8 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [],
   "client": [
+    "NeoForgeClientChunkCacheMixin",
+    "OptionsMixin"
   ],
   "server": [],
   "injectors": {

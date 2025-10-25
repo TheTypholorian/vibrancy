@@ -29,7 +29,7 @@ dependencies {
     compileOnly group: 'io.github.llamalad7', name: 'mixinextras-common', version: '0.3.5'
     annotationProcessor group: 'io.github.llamalad7', name: 'mixinextras-common', version: '0.3.5'
 
-    implementation("foundry.veil:veil-common-${minecraft_version}:${veil_version}") {
+    implementation("foundry.veil:veil-common-1.21.1:${veil_version}") {
         exclude group: "maven.modrinth"
     }
     implementation("maven.modrinth:sodium:${sodium_version}-neoforge")

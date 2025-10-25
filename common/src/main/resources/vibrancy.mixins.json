@@ -26,8 +26,5 @@
   },
   "overwrites": {
     "requireAnnotations": true
-  },
-  "mixins": [
-    "ResourceKeyMixin"
-  ]
+  }
 }

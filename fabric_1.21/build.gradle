@@ -3,6 +3,8 @@ plugins {
     id 'fabric-loom'
 }
 
+ext.minecraft_version = "1.21.1"
+
 repositories {
     maven {
         name = 'Modrinth'

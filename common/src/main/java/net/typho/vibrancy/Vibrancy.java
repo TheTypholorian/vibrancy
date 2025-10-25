@@ -14,7 +14,6 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
-import net.minecraft.core.Registry;
 import net.minecraft.core.SectionPos;
 import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -42,6 +41,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.BiFunction;
 import java.util.function.Predicate;
+import java.util.function.Supplier;
 
 import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.glClear;
@@ -108,7 +108,7 @@ public class Vibrancy {
             value -> {}
     );
     public static boolean SEEN_ALPHA_TEXT = false;
-    public static final SimpleParticleType STEAM = Registry.register(BuiltInRegistries.PARTICLE_TYPE, id("steam"), new SimpleParticleType(false) {});
+    public static Supplier<SimpleParticleType> STEAM;
     public static final Map<ResourceKey<Block>, BlockStateFunction<Boolean>> EMISSIVE_OVERRIDES = new LinkedHashMap<>();
     public static final Map<BlockPos, RaytracedPointBlockLight> BLOCK_LIGHTS = new LinkedHashMap<>();
     public static final Map<LivingEntity, RaytracedPointEntityLight> ENTITY_LIGHTS = new LinkedHashMap<>();
@@ -172,7 +172,7 @@ public class Vibrancy {
 
     public static void elytraTrail(LivingEntity entity) {
         if (Math.random() < Math.min(entity.getDeltaMovement().length() - 0.75, (entity.getY() - 80) / 40)) {
-            entity.level().addParticle(STEAM, entity.getX(), entity.getY(), entity.getZ(), 0, 0, 0);
+            entity.level().addParticle(STEAM.get(), entity.getX(), entity.getY(), entity.getZ(), 0, 0, 0);
         }
     }
 
