@@ -1,0 +1,5 @@
+accessWidener v2 named
+
+accessible class net/minecraft/client/Options$OptionAccess
+accessible class net/minecraft/client/Options$FieldAccess
+accessible method net/minecraft/client/resources/model/BlockStateModelLoader predicate (Lnet/minecraft/world/level/block/state/StateDefinition;Ljava/lang/String;)Ljava/util/function/Predicate;

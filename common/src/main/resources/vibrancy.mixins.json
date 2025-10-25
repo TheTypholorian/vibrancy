@@ -1,0 +1,34 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "net.typho.vibrancy.mixin",
+  "compatibilityLevel": "JAVA_21",
+  "client": [
+    "AbstractBlockStateMixin",
+    "BlockModelRendererMixin",
+    "ClientChunkCacheMixin",
+    "ClientPlayNetworkHandlerMixin",
+    "GlDebugMixin",
+    "LightmapTextureManagerMixin",
+    "LightRendererMixin",
+    "MinecraftClientMixin",
+    "ParticleManagerMixin",
+    "PlayerEntityMixin",
+    "RegistryKeyMixin",
+    "ShaderImportProcessorMixin",
+    "ShaderProgramMixin",
+    "SodiumGameOptionsPagesAccessor",
+    "SodiumOptionsGUIMixin",
+    "VanillaShaderCompilerMixin",
+    "VideoOptionsScreenMixin",
+    "WorldChunkMixin",
+    "WorldMixin",
+    "WorldRendererMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  },
+  "overwrites": {
+    "requireAnnotations": true
+  }
+}
