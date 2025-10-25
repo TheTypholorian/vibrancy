@@ -14,6 +14,7 @@ public class RaytracedPointBlockLight extends RaytracedPointLight {
 
     public RaytracedPointBlockLight(BlockPos blockPos) {
         this.blockPos = blockPos;
+        markDirty();
     }
 
     @Override
@@ -36,9 +37,7 @@ public class RaytracedPointBlockLight extends RaytracedPointLight {
             }
         }
 
-        if (dirty) {
-            markDirty();
-        } else {
+        if (!dirty) {
             clean();
         }
     }

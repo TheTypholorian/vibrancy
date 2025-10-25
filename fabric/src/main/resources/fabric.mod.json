@@ -17,10 +17,11 @@
     ]
   },
   "mixins": [
-    "vibrancy.fabric.mixins.json"
+    "${mod_id}.mixins.json",
+    "${mod_id}.fabric.mixins.json"
   ],
   "depends": {
-    "fabricloader": ">=${loader_version}",
+    "fabricloader": ">=${fabric_loader_version}",
     "minecraft": "${minecraft_version}",
     "sodium": "*"
   },

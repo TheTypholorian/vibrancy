@@ -20,7 +20,7 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
-public class RaytracedPointLight extends AbstractRaytracedLight {
+public class RaytracedPointLight extends AbstractRaytracedPointLight {
     protected final List<BlockPos> dirty = new LinkedList<>();
     protected boolean remove = false;
     protected List<ShadowVolume> volumes = new LinkedList<>();

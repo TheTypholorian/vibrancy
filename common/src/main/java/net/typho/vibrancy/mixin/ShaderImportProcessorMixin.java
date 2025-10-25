@@ -5,7 +5,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 
-@Mixin(ShaderImportProcessor.class)
+@Mixin(value = ShaderImportProcessor.class, remap = false)
 public class ShaderImportProcessorMixin {
     @ModifyArg(
             method = "modify",
@@ -15,6 +15,8 @@ public class ShaderImportProcessorMixin {
             )
     )
     private String modify(String s) {
+        s = s.trim();
+
         if (s.startsWith("\"") && s.endsWith("\"")) {
             return s.substring(1, s.length() - 1);
         }
@@ -22,4 +24,3 @@ public class ShaderImportProcessorMixin {
         return s;
     }
 }
-

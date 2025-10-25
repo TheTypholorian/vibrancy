@@ -26,7 +26,7 @@ import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL30.glBindBufferBase;
 import static org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER;
 
-public abstract class AbstractRaytracedLight extends PointLight implements RaytracedLight {
+public abstract class AbstractRaytracedPointLight extends PointLight implements RaytracedLight {
     protected final VertexBuffer geomVBO = new VertexBuffer(VertexBuffer.Usage.DYNAMIC), boxVBO = new VertexBuffer(VertexBuffer.Usage.DYNAMIC);
     protected final int quadsSSBO = glGenBuffers();
     protected boolean anyShadows = false;
@@ -36,7 +36,7 @@ public abstract class AbstractRaytracedLight extends PointLight implements Raytr
         return flicker;
     }
 
-    public AbstractRaytracedLight setFlicker(float flicker) {
+    public AbstractRaytracedPointLight setFlicker(float flicker) {
         this.flicker = flicker;
         markDirty();
         return this;
@@ -60,7 +60,7 @@ public abstract class AbstractRaytracedLight extends PointLight implements Raytr
         if (blockRadius > 1) {
             box = new BlockBox(
                     new BlockPos(box.min().getX() - blockRadius, box.min().getY() - blockRadius, box.min().getZ() - blockRadius),
-                    new BlockPos(box.max().getX() - blockRadius, box.max().getY() - blockRadius, box.max().getZ() - blockRadius)
+                    new BlockPos(box.max().getX() + blockRadius, box.max().getY() + blockRadius, box.max().getZ() + blockRadius)
             );
         }
 

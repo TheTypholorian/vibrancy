@@ -21,7 +21,7 @@ import java.util.function.Consumer;
 
 import static org.lwjgl.opengl.GL15.GL_STREAM_DRAW;
 
-public abstract class AbstractMovingRaytracedLight extends AbstractRaytracedLight {
+public abstract class AbstractMovingRaytracedPointLight extends AbstractRaytracedPointLight {
     protected boolean hasLight = false;
     protected Map<BlockPos, List<Quad>> quads = new LinkedHashMap<>();
     protected final List<BlockPos> dirty = new LinkedList<>();
@@ -118,7 +118,7 @@ public abstract class AbstractMovingRaytracedLight extends AbstractRaytracedLigh
                         dirty.clear();
                         regenAll(world, blockRadius > 1 ? new BlockBox(
                                 new BlockPos(box.min().getX() - blockRadius, box.min().getY() - blockRadius, box.min().getZ() - blockRadius),
-                                new BlockPos(box.max().getX() - blockRadius, box.max().getY() - blockRadius, box.max().getZ() - blockRadius)
+                                new BlockPos(box.max().getX() + blockRadius, box.max().getY() + blockRadius, box.max().getZ() + blockRadius)
                         ) : box, lightBlockPos, lightPos);
                         quadBox = box;
                     } else if (!dirty.isEmpty()) {

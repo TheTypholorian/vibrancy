@@ -7,7 +7,7 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 
-public class RaytracedPointEntityLight extends AbstractMovingRaytracedLight {
+public class RaytracedPointEntityLight extends AbstractMovingRaytracedPointLight {
     public final LivingEntity entity;
 
     public RaytracedPointEntityLight(net.minecraft.world.entity.LivingEntity entity) {
