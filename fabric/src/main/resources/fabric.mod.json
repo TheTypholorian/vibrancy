@@ -17,7 +17,7 @@
     ]
   },
   "mixins": [
-    "vibrancy.mixins.json"
+    "vibrancy.fabric.mixins.json"
   ],
   "depends": {
     "fabricloader": ">=${loader_version}",
