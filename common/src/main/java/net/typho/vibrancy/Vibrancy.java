@@ -10,10 +10,12 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.OptionInstance;
 import net.minecraft.client.Options;
 import net.minecraft.client.gui.components.Tooltip;
-import net.minecraft.client.particle.CampfireSmokeParticle;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.Registry;
+import net.minecraft.core.SectionPos;
 import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -28,7 +30,9 @@ import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.phys.Vec3;
 
 import java.io.BufferedReader;
@@ -36,6 +40,8 @@ import java.io.IOException;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.function.BiFunction;
+import java.util.function.Predicate;
 
 import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.glClear;
@@ -102,11 +108,14 @@ public class Vibrancy {
             value -> {}
     );
     public static boolean SEEN_ALPHA_TEXT = false;
-    public static final SimpleParticleType STEAM = Registry.register(Registries.PARTICLE_TYPE, id("steam"), new SimpleParticleType(false) {});
+    public static final SimpleParticleType STEAM = Registry.register(BuiltInRegistries.PARTICLE_TYPE, id("steam"), new SimpleParticleType(false) {});
     public static final Map<ResourceKey<Block>, BlockStateFunction<Boolean>> EMISSIVE_OVERRIDES = new LinkedHashMap<>();
     public static final Map<BlockPos, RaytracedPointBlockLight> BLOCK_LIGHTS = new LinkedHashMap<>();
     public static final Map<LivingEntity, RaytracedPointEntityLight> ENTITY_LIGHTS = new LinkedHashMap<>();
     public static int NUM_LIGHT_TASKS = 0, NUM_RAYTRACED_LIGHTS = 0, NUM_VISIBLE_LIGHTS = 0;
+    public static BiFunction<StateDefinition<Block, BlockState>, String, Predicate<BlockState>> BLOCK_STATE_PREDICATE = (def, properties) -> {
+        throw new IllegalStateException();
+    };
 
     public static int maxLights() {
         int v = MAX_RAYTRACED_LIGHTS.get();
@@ -131,7 +140,7 @@ public class Vibrancy {
     }
 
     public static double getLightDistance(RaytracedLight light) {
-        Vec3 cam = Minecraft.getInstance().gameRenderer.getMainCamera().getPos();
+        Vec3 cam = Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
         return light.getPosition().distanceSquared(cam.x, cam.y, cam.z);
     }
 
@@ -175,6 +184,7 @@ public class Vibrancy {
         }
     }
 
+    @SuppressWarnings("deprecation")
     public static void registerReloadListeners(ReloadableResourceManager resourceManager) {
         resourceManager.registerReloadListener((ResourceManagerReloadListener) manager -> {
             DynamicLightInfo.MAP.clear();
@@ -184,11 +194,11 @@ public class Vibrancy {
                     JsonParser.parseReader(reader).getAsJsonObject().asMap().forEach((key, value) -> {
                         if (key.startsWith("#")) {
                             TagKey<Block> tagKey = TagKey.create(Registries.BLOCK, ResourceLocation.parse(key.substring(1)));
-                            DynamicLightInfo.MAP.put(state -> state.isIn(tagKey), Util.memoize(state -> new DynamicLightInfo.Builder().load(state.getRegistryEntry().value(), value).build()));
+                            DynamicLightInfo.MAP.put(state -> state.is(tagKey), Util.memoize(state -> new DynamicLightInfo.Builder().load(state.getBlock().builtInRegistryHolder().value(), value).build()));
                         } else {
-                            ResourceKey<Block> regKey = ResourceKey.of(ResourceKeys.BLOCK, ResourceLocation.parse(key));
-                            DynamicLightInfo info = new DynamicLightInfo.Builder().load(Registries.BLOCK.get(regKey), value).build();
-                            DynamicLightInfo.MAP.put(state -> state.matchesKey(regKey), state -> info);
+                            ResourceKey<Block> regKey = ResourceKey.create(Registries.BLOCK, ResourceLocation.parse(key));
+                            DynamicLightInfo info = new DynamicLightInfo.Builder().load(BuiltInRegistries.BLOCK.get(regKey), value).build();
+                            DynamicLightInfo.MAP.put(state -> state.is(regKey), state -> info);
                         }
                     });
                 } catch (IOException e) {
@@ -214,13 +224,13 @@ public class Vibrancy {
     public static void onChunkLoad(LevelChunk chunk) {
         onChunkUnload(chunk);
 
-        for (int i = chunk.getBottomSectionCoord(); i < chunk.getTopSectionCoord(); i++) {
-            ChunkSection section = chunk.getSection(chunk.sectionCoordToIndex(i));
+        for(int i = chunk.getMinSection(); i < chunk.getMaxSection(); i++) {
+            LevelChunkSection section = chunk.getSection(chunk.getSectionIndexFromSectionY(i));
 
-            if (section.hasAny(state -> DynamicLightInfo.MAP.keySet()
+            if (section.maybeHas(state -> DynamicLightInfo.MAP.keySet()
                     .stream()
                     .anyMatch(p -> p.test(state)))) {
-                BlockPos minPos = ChunkSectionPos.from(chunk.getPos(), i).getMinPos();
+                BlockPos minPos = SectionPos.of(chunk.getPos(), i).origin();
 
                 for (int x = 0; x < 16; x++) {
                     for (int y = 0; y < 16; y++) {
@@ -238,7 +248,7 @@ public class Vibrancy {
         }
     }
 
-    public static void onChunkUnload(WorldChunk chunk) {
+    public static void onChunkUnload(LevelChunk chunk) {
         BLOCK_LIGHTS.values().removeIf(light -> {
             boolean b = new ChunkPos(light.blockPos).equals(chunk.getPos());
 
@@ -295,19 +305,15 @@ public class Vibrancy {
         RaytracedLight.DIRTY.clear();
     }
 
-    public static void afterClientWorldChange(ClientWorld world) {
+    public static void afterClientLevelChange(ClientLevel world) {
         BLOCK_LIGHTS.values().forEach(RaytracedPointBlockLight::free);
         BLOCK_LIGHTS.clear();
         ENTITY_LIGHTS.values().forEach(RaytracedPointEntityLight::free);
         ENTITY_LIGHTS.clear();
 
-        for (AbstractClientPlayerEntity player : world.getPlayers()) {
+        for (AbstractClientPlayer player : world.players()) {
             ENTITY_LIGHTS.put(player, new RaytracedPointEntityLight(player));
         }
-    }
-
-    public static void registerParticles(ParticleManager manager) {
-        manager.registerFactory(STEAM, CampfireSmokeParticle.SignalSmokeFactory::new);
     }
 
     public static void init() {

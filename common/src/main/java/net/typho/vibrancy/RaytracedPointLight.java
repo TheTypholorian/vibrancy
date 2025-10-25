@@ -2,11 +2,14 @@ package net.typho.vibrancy;
 
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.Tesselator;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockBox;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -45,7 +48,7 @@ public class RaytracedPointLight extends AbstractRaytracedLight {
 
     @Override
     public boolean render(boolean raytrace) {
-        ClientWorld world = Minecraft.getInstance().level;
+        ClientLevel world = Minecraft.getInstance().level;
 
         if (world != null) {
             BlockPos lightBlockPos = new BlockPos((int) Math.floor(getPosition().x), (int) Math.floor(getPosition().y), (int) Math.floor(getPosition().z));
@@ -64,7 +67,7 @@ public class RaytracedPointLight extends AbstractRaytracedLight {
                     }
 
                     for (Direction dir : Direction.values()) {
-                        BlockPos pos1 = pos.offset(dir);
+                        BlockPos pos1 = pos.relative(dir);
 
                         if (!pos1.equals(lightBlockPos)) {
                             regenQuads(world, pos1, volumes::add, lightBlockPos, lightPos);
@@ -74,7 +77,7 @@ public class RaytracedPointLight extends AbstractRaytracedLight {
 
                 dirty.clear();
 
-                BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.QUADS, DefaultVertexFormat.POSITION);
+                BufferBuilder builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION);
 
                 for (ShadowVolume volume : volumes) {
                     volume.render(builder);
@@ -87,7 +90,7 @@ public class RaytracedPointLight extends AbstractRaytracedLight {
                 try {
                     volumes = fullRebuildTask.get();
                     fullRebuildTask = null;
-                    BufferBuilder builder = Tessellator.getInstance().begin(VertexFormat.DrawMode.QUADS, DefaultVertexFormat.POSITION);
+                    BufferBuilder builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION);
 
                     for (ShadowVolume volume : volumes) {
                         volume.render(builder);
@@ -106,13 +109,13 @@ public class RaytracedPointLight extends AbstractRaytracedLight {
                         fullRebuildTask = CompletableFuture.supplyAsync(() -> {
                             List<ShadowVolume> volumes = new LinkedList<>();
 
-                            for (int x = box.getMinX(); x <= box.getMaxX(); x++) {
-                                for (int y = box.getMinY(); y <= box.getMaxY(); y++) {
-                                    for (int z = box.getMinZ(); z <= box.getMaxZ(); z++) {
+                            for (int x = box.min().getX(); x <= box.max().getX(); x++) {
+                                for (int y = box.min().getY(); y <= box.max().getY(); y++) {
+                                    for (int z = box.min().getZ(); z <= box.max().getZ(); z++) {
                                         BlockPos pos = new BlockPos(x, y, z);
 
                                         if (!pos.equals(lightBlockPos)) {
-                                            double sqDist = pos.getSquaredDistance(lightBlockPos);
+                                            double sqDist = pos.distSqr(lightBlockPos);
 
                                             if (sqDist != 0 && sqDist < blockRadius * blockRadius) {
                                                 getVolumes(world, pos, volumes::add, sqDist, lightBlockPos, lightPos, radius, true);
@@ -129,10 +132,10 @@ public class RaytracedPointLight extends AbstractRaytracedLight {
             }
 
             if (isVisible()) {
-                Camera camera = Minecraft.getInstance().gameRenderer.getCamera();
+                Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
                 Matrix4f view = new Matrix4f()
-                        .rotate(camera.getRotation().invert(new Quaternionf()))
-                        .translate((float) -camera.getPos().x, (float) -camera.getPos().y, (float) -camera.getPos().z);
+                        .rotate(camera.rotation().invert(new Quaternionf()))
+                        .translate((float) -camera.getPosition().x, (float) -camera.getPosition().y, (float) -camera.getPosition().z);
 
                 renderMask(raytrace, lightPos, camera, view);
                 renderLight(lightPos, view);

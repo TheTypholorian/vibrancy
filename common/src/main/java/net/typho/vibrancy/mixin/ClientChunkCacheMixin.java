@@ -30,7 +30,7 @@ public class ClientChunkCacheMixin {
             method = "replaceWithPacketData",
             at = @At(
                     value = "NEW",
-                    target = "net/minecraft/world/chunk/WorldChunk",
+                    target = "net/minecraft/world/level/chunk/LevelChunk",
                     shift = At.Shift.BEFORE
             )
     )
@@ -41,26 +41,13 @@ public class ClientChunkCacheMixin {
     }
 
     @Inject(
-            method = "unload",
+            method = "drop",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/client/world/ClientChunkManager$ClientChunkMap;compareAndSet(ILnet/minecraft/world/chunk/WorldChunk;Lnet/minecraft/world/chunk/WorldChunk;)Lnet/minecraft/world/chunk/WorldChunk;"
+                    target = "Lnet/minecraft/client/multiplayer/ClientChunkCache$Storage;replace(ILnet/minecraft/world/level/chunk/LevelChunk;Lnet/minecraft/world/level/chunk/LevelChunk;)Lnet/minecraft/world/level/chunk/LevelChunk;"
             )
     )
-    private void onChunkUnload(ChunkPos pos, CallbackInfo ci, @Local WorldChunk chunk) {
+    private void onChunkUnload(ChunkPos pos, CallbackInfo ci, @Local LevelChunk chunk) {
         Vibrancy.onChunkUnload(chunk);
-    }
-
-    @Inject(
-            method = "updateLoadDistance",
-            at = @At(
-                    value = "INVOKE",
-                    target = "net/minecraft/client/world/ClientChunkManager$ClientChunkMap.isInRadius(II)Z"
-            )
-    )
-    private void onUpdateLoadDistance(int loadDistance, CallbackInfo ci, @Local ClientChunkManager.ClientChunkMap clientChunkMap, @Local WorldChunk chunk, @Local ChunkPos chunkPos) {
-        if (!clientChunkMap.isInRadius(chunkPos.x, chunkPos.z)) {
-            Vibrancy.onChunkUnload(chunk);
-        }
     }
 }

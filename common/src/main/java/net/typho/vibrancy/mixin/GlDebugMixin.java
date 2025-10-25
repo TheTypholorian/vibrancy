@@ -1,6 +1,6 @@
 package net.typho.vibrancy.mixin;
 
-import net.minecraft.client.gl.GlDebug;
+import com.mojang.blaze3d.platform.GlDebug;
 import org.slf4j.Logger;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -16,10 +16,10 @@ public class GlDebugMixin {
     private static Logger LOGGER;
 
     @Inject(
-            method = "info",
+            method = "printDebugLog",
             at = @At("TAIL")
     )
-    private static void info(int source, int type, int id, int severity, int messageLength, long message, long l, CallbackInfo ci) {
+    private static void printDebugLog(int source, int type, int id, int severity, int messageLength, long message, long l, CallbackInfo ci) {
         for (StackTraceElement ste : Thread.currentThread().getStackTrace()) {
             if (ste.getClassName().startsWith("java") || ste.getClassName().startsWith("lwjgl") || ste.getClassName().startsWith("net.minecraft.client.gl")) {
                 continue;

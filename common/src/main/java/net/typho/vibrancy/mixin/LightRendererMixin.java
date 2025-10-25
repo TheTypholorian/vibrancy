@@ -18,10 +18,10 @@ public class LightRendererMixin {
     private void addDebugInfo(Consumer<String> consumer, CallbackInfo ci) {
         consumer.accept("Dynamic Lights: " + Vibrancy.NUM_VISIBLE_LIGHTS + " / " + (Vibrancy.BLOCK_LIGHTS.size() + Vibrancy.ENTITY_LIGHTS.size()));
 
-        if (Vibrancy.MAX_RAYTRACED_LIGHTS.getValue() > 100) {
+        if (Vibrancy.MAX_RAYTRACED_LIGHTS.get() > 100) {
             consumer.accept("Raytraced: " + Vibrancy.NUM_RAYTRACED_LIGHTS);
         } else {
-            consumer.accept("Raytraced: " + Vibrancy.NUM_RAYTRACED_LIGHTS + " / " + Vibrancy.MAX_RAYTRACED_LIGHTS.getValue());
+            consumer.accept("Raytraced: " + Vibrancy.NUM_RAYTRACED_LIGHTS + " / " + Vibrancy.MAX_RAYTRACED_LIGHTS.get());
         }
 
         consumer.accept("Async tasks: " + Vibrancy.NUM_LIGHT_TASKS);

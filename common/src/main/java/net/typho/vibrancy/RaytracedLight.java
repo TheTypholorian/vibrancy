@@ -10,7 +10,11 @@ import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.Direction;
+import net.minecraft.util.RandomSource;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
 import org.joml.Vector2f;
 import org.joml.Vector3d;
@@ -43,7 +47,7 @@ public interface RaytracedLight extends NativeResource {
 
     Vector3d getPosition();
 
-    Box getBoundingBox();
+    AABB getBoundingBox();
 
     default void getQuads(Iterable<BakedQuad> bakedQuads, BlockPos pos, Consumer<Quad> out, RenderType layer, Vec3 offset) {
         for (BakedQuad quad : bakedQuads) {
@@ -83,18 +87,18 @@ public interface RaytracedLight extends NativeResource {
     default void getQuads(ClientLevel world, BlockPos pos, Consumer<Quad> out, double sqDist, BlockPos lightBlockPos, Vector3f lightPos, boolean normalTest) {
         BlockState state = world.getBlockState(pos);
 
-        if (!Vibrancy.TRANSPARENCY_TEST.getValue() && state.isTransparent(world, pos)) {
+        if (!Vibrancy.TRANSPARENCY_TEST.get() && state.propagatesSkylightDown(world, pos)) {
             return;
         }
 
         RenderType layer = ItemBlockRenderTypes.getChunkRenderType(state);
-        BakedModel model = Minecraft.getInstance().getBlockRenderManager().getModel(state);
+        BakedModel model = Minecraft.getInstance().getBlockRenderer().getBlockModel(state);
         long seed = lightBlockPos.hashCode();
-        Random random = Random.create();
-        Vec3 offset = state.getModelOffset(world, pos);
+        RandomSource random = RandomSource.create();
+        Vec3 offset = state.getOffset(world, pos);
 
         for (Direction direction : Direction.values()) {
-            if (sqDist <= 4 || (Block.shouldDrawSide(state, world, pos, direction, pos.offset(direction)) && (!normalTest || Vibrancy.pointsToward(pos, direction, lightBlockPos)))) {
+            if (sqDist <= 4 || (Block.shouldRenderFace(state, world, pos, direction, pos.relative(direction)) && (!normalTest || Vibrancy.pointsToward(pos, direction, lightBlockPos)))) {
                 random.setSeed(seed);
                 getQuads(model.getQuads(state, direction, random), pos, out, layer, offset);
             }
@@ -104,13 +108,13 @@ public interface RaytracedLight extends NativeResource {
         getQuads(model.getQuads(state, null, random), pos, out, layer, offset);
     }
 
-    default void getVolumes(ClientWorld world, BlockPos pos, Consumer<ShadowVolume> out, double sqDist, BlockPos lightBlockPos, Vector3f lightPos, float radius, boolean normalTest) {
+    default void getVolumes(ClientLevel world, BlockPos pos, Consumer<ShadowVolume> out, double sqDist, BlockPos lightBlockPos, Vector3f lightPos, float radius, boolean normalTest) {
         getQuads(world, pos, quad -> out.accept(quad.toVolume(lightPos, radius)), sqDist, lightBlockPos, lightPos, normalTest);
     }
 
     default void upload(BufferBuilder builder, Collection<ShadowVolume> volumes, VertexBuffer geomVBO, int quadsSSBO, int usage) {
         geomVBO.bind();
-        geomVBO.upload(builder.end());
+        geomVBO.upload(builder.build());
         VertexBuffer.unbind();
 
         ByteBuffer buf = MemoryUtil.memAlloc(volumes.size() * Quad.BYTES);
@@ -198,35 +202,35 @@ public interface RaytracedLight extends NativeResource {
 
     record ShadowVolume(Quad caster, Vector3f[] vertices) {
         public void render(VertexConsumer consumer) {
-            consumer.vertex(vertices()[0])
-                    .vertex(vertices()[1])
-                    .vertex(vertices()[2])
-                    .vertex(vertices()[3]);
+            consumer.addVertex(vertices()[0])
+                    .addVertex(vertices()[1])
+                    .addVertex(vertices()[2])
+                    .addVertex(vertices()[3]);
 
-            consumer.vertex(vertices()[1])
-                    .vertex(vertices()[5])
-                    .vertex(vertices()[6])
-                    .vertex(vertices()[2]);
+            consumer.addVertex(vertices()[1])
+                    .addVertex(vertices()[5])
+                    .addVertex(vertices()[6])
+                    .addVertex(vertices()[2]);
 
-            consumer.vertex(vertices()[5])
-                    .vertex(vertices()[4])
-                    .vertex(vertices()[7])
-                    .vertex(vertices()[6]);
+            consumer.addVertex(vertices()[5])
+                    .addVertex(vertices()[4])
+                    .addVertex(vertices()[7])
+                    .addVertex(vertices()[6]);
 
-            consumer.vertex(vertices()[4])
-                    .vertex(vertices()[0])
-                    .vertex(vertices()[3])
-                    .vertex(vertices()[7]);
+            consumer.addVertex(vertices()[4])
+                    .addVertex(vertices()[0])
+                    .addVertex(vertices()[3])
+                    .addVertex(vertices()[7]);
 
-            consumer.vertex(vertices()[1])
-                    .vertex(vertices()[0])
-                    .vertex(vertices()[4])
-                    .vertex(vertices()[5]);
+            consumer.addVertex(vertices()[1])
+                    .addVertex(vertices()[0])
+                    .addVertex(vertices()[4])
+                    .addVertex(vertices()[5]);
 
-            consumer.vertex(vertices()[3])
-                    .vertex(vertices()[2])
-                    .vertex(vertices()[6])
-                    .vertex(vertices()[7]);
+            consumer.addVertex(vertices()[3])
+                    .addVertex(vertices()[2])
+                    .addVertex(vertices()[6])
+                    .addVertex(vertices()[7]);
         }
     }
 }

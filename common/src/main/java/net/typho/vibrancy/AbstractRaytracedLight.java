@@ -13,6 +13,7 @@ import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.core.BlockBox;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
+import net.minecraft.world.phys.AABB;
 import org.joml.Matrix4f;
 import org.joml.Vector3d;
 import org.joml.Vector3f;
@@ -54,7 +55,7 @@ public abstract class AbstractRaytracedLight extends PointLight implements Raytr
         Vector3d pos = getPosition();
         BlockPos lightBlockPos = new BlockPos((int) Math.floor(pos.x), (int) Math.floor(pos.y), (int) Math.floor(pos.z));
         int blockRadius = Vibrancy.capShadowDistance((int) Math.ceil(radius) - 2);
-        BlockBox box = new BlockBox(lightBlockPos);
+        BlockBox box = BlockBox.of(lightBlockPos);
 
         if (blockRadius > 1) {
             box = new BlockBox(
@@ -120,7 +121,7 @@ public abstract class AbstractRaytracedLight extends PointLight implements Raytr
         shader.safeGetUniform("AnyShadows").set(anyShadows ? 1 : 0);
 
         BufferBuilder builder = RenderSystem.renderThreadTesselator().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION);
-        Box box = getBoundingBox();
+        AABB box = getBoundingBox();
         Vector3f[] vertices = {
                 new Vector3f((float) box.maxX, (float) box.maxY, (float) box.maxZ),
                 new Vector3f((float) box.minX, (float) box.maxY, (float) box.maxZ),
@@ -179,9 +180,9 @@ public abstract class AbstractRaytracedLight extends PointLight implements Raytr
     }
 
     @Override
-    public Box getBoundingBox() {
+    public AABB getBoundingBox() {
         Vector3d pos = getPosition();
-        return new Box(pos.x - radius, pos.y - radius, pos.z - radius, pos.x + radius, pos.y + radius, pos.z + radius);
+        return new AABB(pos.x - radius, pos.y - radius, pos.z - radius, pos.x + radius, pos.y + radius, pos.z + radius);
     }
 
     @Override

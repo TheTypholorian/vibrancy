@@ -2,10 +2,9 @@ package net.typho.vibrancy;
 
 import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
-import net.minecraft.client.resources.model.BlockStateModelLoader;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
-import org.apache.commons.lang3.tuple.Pair;
+import org.apache.commons.lang3.tuple.ImmutablePair;
 
 import java.util.HashMap;
 import java.util.LinkedHashMap;
@@ -16,17 +15,6 @@ import java.util.function.Supplier;
 
 public interface BlockStateFunction<T> {
     T apply(BlockState state);
-
-    static <T> BlockStateFunction<T> parse(Block block, String key, Supplier<T> success, Supplier<T> fail) {
-        Predicate<BlockState> predicate = BlockStatesLoader.toStatePredicate(block.getStateManager(), key);
-        return state -> {
-            if (predicate.test(state)) {
-                return success.get();
-            } else {
-                return fail.get();
-            }
-        };
-    }
 
     static <T> BlockStateFunction<T> parse(Map<Predicate<BlockState>, Supplier<T>> map, Supplier<T> def) {
         return state -> map.entrySet().stream()
@@ -52,7 +40,7 @@ public interface BlockStateFunction<T> {
                             .filter(entry -> !entry.getKey().equals("default"))
                             .map(entry -> {
                                 T value = toT.apply(entry.getValue());
-                                return new Pair<Predicate<BlockState>, Supplier<T>>(BlockStateModelLoader.predicate(block.getStateDefinition(), entry.getKey()), () -> value);
+                                return new ImmutablePair<Predicate<BlockState>, Supplier<T>>(Vibrancy.BLOCK_STATE_PREDICATE.apply(block.getStateDefinition(), entry.getKey()), () -> value);
                             })
                             .collect(
                                     LinkedHashMap::new,

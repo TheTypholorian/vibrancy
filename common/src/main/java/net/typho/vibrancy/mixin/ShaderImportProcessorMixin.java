@@ -11,7 +11,7 @@ public class ShaderImportProcessorMixin {
             method = "modify",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/minecraft/util/ResourceLocation;of(Ljava/lang/String;)Lnet/minecraft/util/ResourceLocation;"
+                    target = "Lnet/minecraft/resources/ResourceLocation;parse(Ljava/lang/String;)Lnet/minecraft/resources/ResourceLocation;"
             )
     )
     private String modify(String s) {

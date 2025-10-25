@@ -49,7 +49,7 @@ public record DynamicLightInfo(Vector3f color, BlockStateFunction<Optional<Float
     public <L extends PointLight> L initLight(L light, BlockState state) {
         light.setBrightness(brightness.apply(state).orElse(1f))
                 .setColor(color().x, color().y, color().z)
-                .setRadius(radius.apply(state).orElse((float) state.getLuminance()));
+                .setRadius(radius.apply(state).orElse((float) state.getLightEmission()));
         return light;
     }
 

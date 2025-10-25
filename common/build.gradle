@@ -16,18 +16,23 @@ neoForge {
     }
 }
 
+repositories {
+    maven {
+        name = 'Modrinth'
+        url = "https://api.modrinth.com/maven"
+    }
+}
+
 dependencies {
     compileOnly group: 'org.spongepowered', name: 'mixin', version: '0.8.5'
     // fabric and neoforge both bundle mixinextras, so it is safe to use it in common
     compileOnly group: 'io.github.llamalad7', name: 'mixinextras-common', version: '0.3.5'
     annotationProcessor group: 'io.github.llamalad7', name: 'mixinextras-common', version: '0.3.5'
 
-    //modImplementation("maven.modrinth:sodium:${project.sodium_version}")
-
-    //include modImplementation("foundry.veil:veil-fabric-${project.minecraft_version}:${project.veil_version}") {
-    //    exclude group: "maven.modrinth"
-    //    exclude group: "me.fallenbreath"
-    //}
+    implementation("foundry.veil:veil-common-${minecraft_version}:${veil_version}") {
+        exclude group: "maven.modrinth"
+    }
+    implementation("maven.modrinth:sodium:${sodium_version}-neoforge")
 }
 
 configurations {

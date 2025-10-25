@@ -1,25 +1,23 @@
 package net.typho.vibrancy;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-import net.fabricmc.api.EnvType;
-import net.fabricmc.api.Environment;
-import net.minecraft.client.gui.DrawContext;
-import net.minecraft.client.gui.screen.Screen;
-import net.minecraft.client.gui.widget.ButtonWidget;
-import net.minecraft.client.gui.widget.DirectionalLayoutWidget;
-import net.minecraft.client.gui.widget.NarratedMultilineTextWidget;
-import net.minecraft.client.gui.widget.ThreePartsLayoutWidget;
-import net.minecraft.screen.ScreenTexts;
-import net.minecraft.text.Text;
+import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.components.Button;
+import net.minecraft.client.gui.components.FocusableTextWidget;
+import net.minecraft.client.gui.layouts.HeaderAndFooterLayout;
+import net.minecraft.client.gui.layouts.LinearLayout;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.CommonComponents;
+import net.minecraft.network.chat.Component;
+import org.jetbrains.annotations.NotNull;
 import org.jetbrains.annotations.Nullable;
 
-@Environment(EnvType.CLIENT)
 public class AlphaWarningScreen extends Screen {
-	private static final Text TITLE_TEXT = Text.translatable("screen.vibrancy.alpha.title");
+	private static final Component TITLE_TEXT = Component.translatable("screen.vibrancy.alpha.title");
 	private final Runnable onClose;
 	@Nullable
-	private NarratedMultilineTextWidget textWidget;
-	private final ThreePartsLayoutWidget layout = new ThreePartsLayoutWidget(this, 90, 33);
+	private FocusableTextWidget textWidget;
+	private final HeaderAndFooterLayout layout = new HeaderAndFooterLayout(this, 90, 33);
 
 	public AlphaWarningScreen(Runnable onClose) {
 		super(TITLE_TEXT);
@@ -28,37 +26,37 @@ public class AlphaWarningScreen extends Screen {
 
 	@Override
 	public void init() {
-		DirectionalLayoutWidget layoutWidget = layout.addBody(DirectionalLayoutWidget.vertical());
-		layoutWidget.getMainPositioner().alignHorizontalCenter().margin(4);
-		textWidget = layoutWidget.add(new NarratedMultilineTextWidget(width, title, textRenderer), positioner -> positioner.margin(8));
+		LinearLayout layoutWidget = layout.addToContents(LinearLayout.vertical());
+		layoutWidget.defaultCellSetting().alignHorizontallyCenter().padding(4);
+		textWidget = layoutWidget.addChild(new FocusableTextWidget(width, title, font), positioner -> positioner.padding(8));
 
-		layout.addFooter(ButtonWidget.builder(ScreenTexts.CONTINUE, button -> close()).build());
-		layout.forEachChild(this::addDrawableChild);
-		initTabNavigation();
+		layout.addToFooter(Button.builder(CommonComponents.GUI_CONTINUE, button -> onClose()).build());
+		layout.visitWidgets(this::addRenderableWidget);
+		repositionElements();
 	}
 
 	@Override
-	protected void initTabNavigation() {
+	protected void repositionElements() {
 		if (textWidget != null) {
-			textWidget.initMaxWidth(width);
+			textWidget.containWithin(width);
 		}
 
-		layout.refreshPositions();
+		layout.arrangeElements();
 	}
 
 	@Override
-	public void close() {
+	public void onClose() {
 		Vibrancy.SEEN_ALPHA_TEXT = true;
 		onClose.run();
 	}
 
 	@Override
-	public void render(DrawContext context, int mouseX, int mouseY, float delta) {
-		super.render(context, mouseX, mouseY, delta);
+	public void render(@NotNull GuiGraphics graphics, int mouseX, int mouseY, float delta) {
+		super.render(graphics, mouseX, mouseY, delta);
 
-		context.setShaderColor(1, 1, 1, 1);
+		graphics.setColor(1, 1, 1, 1);
 		RenderSystem.enableBlend();
-        context.drawTexture(Vibrancy.LOGO_TEXTURE, width / 2 - 128, 30, 0.0F, 0.0F, 256, 42, 256, 42);
+        graphics.blit(Vibrancy.LOGO_TEXTURE, width / 2 - 128, 30, 0.0F, 0.0F, 256, 42, 256, 42);
 		RenderSystem.disableBlend();
 	}
 }
