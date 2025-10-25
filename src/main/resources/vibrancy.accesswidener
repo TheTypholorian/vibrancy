@@ -15,3 +15,7 @@ accessible field net/minecraft/client/render/WorldRenderer starsBuffer Lnet/mine
 accessible field net/minecraft/client/render/WorldRenderer world Lnet/minecraft/client/world/ClientWorld;
 accessible class net/minecraft/client/render/BackgroundRenderer$StatusEffectFogModifier
 accessible field net/minecraft/client/render/LightmapTextureManager image Lnet/minecraft/client/texture/NativeImage;
+accessible method net/minecraft/client/particle/ParticleManager registerFactory (Lnet/minecraft/particle/ParticleType;Lnet/minecraft/client/particle/ParticleManager$SpriteAwareFactory;)V
+accessible class net/minecraft/client/particle/ParticleManager$SpriteAwareFactory
+accessible class net/minecraft/client/world/ClientChunkManager$ClientChunkMap
+accessible method net/minecraft/client/world/ClientChunkManager$ClientChunkMap isInRadius (II)Z

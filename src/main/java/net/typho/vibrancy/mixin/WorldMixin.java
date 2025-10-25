@@ -16,6 +16,6 @@ public class WorldMixin {
             at = @At("TAIL")
     )
     private void onBlockChanged(BlockPos pos, BlockState oldBlock, BlockState newBlock, CallbackInfo ci) {
-        Vibrancy.updateBlock(pos, oldBlock, newBlock);
+        Vibrancy.updateBlock(pos, newBlock);
     }
 }

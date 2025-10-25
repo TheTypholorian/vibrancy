@@ -5,47 +5,33 @@ import com.google.gson.JsonParser;
 import com.mojang.blaze3d.systems.RenderSystem;
 import foundry.veil.api.client.render.VeilRenderSystem;
 import foundry.veil.api.client.render.dynamicbuffer.DynamicBufferType;
-import foundry.veil.api.client.render.framebuffer.AdvancedFbo;
 import net.fabricmc.api.ClientModInitializer;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientChunkEvents;
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientWorldEvents;
-import net.fabricmc.fabric.api.client.particle.v1.ParticleFactoryRegistry;
-import net.fabricmc.fabric.api.client.rendering.v1.WorldRenderEvents;
-import net.fabricmc.fabric.api.resource.ResourceManagerHelper;
-import net.fabricmc.fabric.api.resource.ResourcePackActivationType;
-import net.fabricmc.fabric.api.resource.SimpleSynchronousResourceReloadListener;
-import net.fabricmc.loader.api.FabricLoader;
-import net.fabricmc.loader.api.ModContainer;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.gui.tooltip.Tooltip;
 import net.minecraft.client.network.AbstractClientPlayerEntity;
-import net.minecraft.client.network.ClientPlayerEntity;
 import net.minecraft.client.option.GameOptions;
 import net.minecraft.client.option.SimpleOption;
 import net.minecraft.client.particle.CampfireSmokeParticle;
-import net.minecraft.client.render.RenderLayer;
-import net.minecraft.client.render.VertexConsumer;
-import net.minecraft.client.render.WorldRenderer;
-import net.minecraft.client.texture.NativeImage;
+import net.minecraft.client.particle.ParticleManager;
 import net.minecraft.client.world.ClientWorld;
 import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.particle.SimpleParticleType;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
 import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.tag.TagKey;
+import net.minecraft.resource.ReloadableResourceManagerImpl;
 import net.minecraft.resource.Resource;
-import net.minecraft.resource.ResourceManager;
-import net.minecraft.resource.ResourceType;
+import net.minecraft.resource.SynchronousResourceReloader;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.Util;
 import net.minecraft.util.math.*;
 import net.minecraft.world.chunk.ChunkSection;
+import net.minecraft.world.chunk.WorldChunk;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -163,16 +149,6 @@ public class Vibrancy implements ClientModInitializer {
         }
     }
 
-    public static void renderLightDebug(RaytracedLight light, VertexConsumer consumer) {
-        Vec3d camera = MinecraftClient.getInstance().gameRenderer.getCamera().getPos();
-        WorldRenderer.drawBox(
-                consumer,
-                light.getPosition().x - 0.3 - camera.getX(), light.getPosition().y - 0.3 - camera.getY(), light.getPosition().z - 0.3 - camera.getZ(),
-                light.getPosition().x + 0.3 - camera.getX(), light.getPosition().y + 0.3 - camera.getY(), light.getPosition().z + 0.3 - camera.getZ(),
-                1, 1, 1, 1
-        );
-    }
-
     public static boolean pointsToward(BlockPos from, Direction dir, BlockPos to) {
         return switch (dir.getAxis()) {
             case X -> dir.getDirection() == Direction.AxisDirection.POSITIVE
@@ -193,8 +169,96 @@ public class Vibrancy implements ClientModInitializer {
         }
     }
 
-    public static void renderLights() {
-        VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(id("ray_light")).bind(true);
+    public static void updateBlock(BlockPos pos, BlockState state) {
+        DynamicLightInfo info = DynamicLightInfo.get(state);
+
+        if (info != null) {
+            info.addBlockLight(pos, state);
+        }
+    }
+
+    public static void registerReloadListeners(ReloadableResourceManagerImpl resourceManager) {
+        resourceManager.registerReloader((SynchronousResourceReloader) manager -> {
+            DynamicLightInfo.MAP.clear();
+
+            for (Resource resource : manager.getAllResources(id("dynamic_lights.json"))) {
+                try (BufferedReader reader = resource.getReader()) {
+                    JsonParser.parseReader(reader).getAsJsonObject().asMap().forEach((key, value) -> {
+                        if (key.startsWith("#")) {
+                            TagKey<Block> tagKey = TagKey.of(RegistryKeys.BLOCK, Identifier.of(key.substring(1)));
+                            DynamicLightInfo.MAP.put(state -> state.isIn(tagKey), Util.memoize(state -> new DynamicLightInfo.Builder().load(state.getRegistryEntry().value(), value).build()));
+                        } else {
+                            RegistryKey<Block> regKey = RegistryKey.of(RegistryKeys.BLOCK, Identifier.of(key));
+                            DynamicLightInfo info = new DynamicLightInfo.Builder().load(Registries.BLOCK.get(regKey), value).build();
+                            DynamicLightInfo.MAP.put(state -> state.matchesKey(regKey), state -> info);
+                        }
+                    });
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+
+            EMISSIVE_OVERRIDES.clear();
+
+            for (Resource resource : manager.getAllResources(id("emissive_blocks.json"))) {
+                try (BufferedReader reader = resource.getReader()) {
+                    JsonParser.parseReader(reader).getAsJsonObject().asMap().forEach((key, value) -> {
+                        RegistryKey<Block> regKey = RegistryKey.of(RegistryKeys.BLOCK, Identifier.of(key));
+                        EMISSIVE_OVERRIDES.put(regKey, BlockStateFunction.parseJson(Registries.BLOCK.get(regKey), value, JsonElement::getAsBoolean, () -> false));
+                    });
+                } catch (IOException e) {
+                    throw new RuntimeException(e);
+                }
+            }
+        });
+    }
+
+    public static void onChunkLoad(WorldChunk chunk) {
+        onChunkUnload(chunk);
+
+        for (int i = chunk.getBottomSectionCoord(); i < chunk.getTopSectionCoord(); i++) {
+            ChunkSection section = chunk.getSection(chunk.sectionCoordToIndex(i));
+
+            if (section.hasAny(state -> DynamicLightInfo.MAP.keySet()
+                    .stream()
+                    .anyMatch(p -> p.test(state)))) {
+                BlockPos minPos = ChunkSectionPos.from(chunk.getPos(), i).getMinPos();
+
+                for (int x = 0; x < 16; x++) {
+                    for (int y = 0; y < 16; y++) {
+                        for (int z = 0; z < 16; z++) {
+                            BlockState state = section.getBlockState(x, y, z);
+                            DynamicLightInfo info = DynamicLightInfo.get(state);
+
+                            if (info != null) {
+                                info.addBlockLight(new BlockPos(x + minPos.getX(), y + minPos.getY(), z + minPos.getZ()), state);
+                            }
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    public static void onChunkUnload(WorldChunk chunk) {
+        BLOCK_LIGHTS.values().removeIf(light -> {
+            boolean b = new ChunkPos(light.blockPos).equals(chunk.getPos());
+
+            if (b) {
+                light.free();
+            }
+
+            return b;
+        });
+    }
+
+    public static void render() {
+        NUM_LIGHT_TASKS = 0;
+        Identifier id = id("ray_light");
+
+        VeilRenderSystem.renderer().enableBuffers(id, DynamicBufferType.NORMAL, DynamicBufferType.ALBEDO);
+
+        VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(id).bind(true);
         RenderSystem.clearColor(0, 0, 0, 0);
         glClear(GL_COLOR_BUFFER_BIT);
 
@@ -233,206 +297,22 @@ public class Vibrancy implements ClientModInitializer {
         RaytracedLight.DIRTY.clear();
     }
 
-    public static float[] getTempTint(DimensionLightInfo dimLight, float temp) {
-        float[] skyScales = new float[]{1, 1, 1};
+    public static void afterClientWorldChange(ClientWorld world) {
+        BLOCK_LIGHTS.values().forEach(RaytracedPointBlockLight::free);
+        BLOCK_LIGHTS.clear();
+        ENTITY_LIGHTS.values().forEach(RaytracedPointEntityLight::free);
+        ENTITY_LIGHTS.clear();
 
-        if (dimLight.minTemp() == null || dimLight.maxTemp() == null) {
-            return new float[]{1, 1, 1};
-        } else {
-            if (temp > 0.8f) {
-                float blend = MathHelper.clamp(temp - 0.8f, 0, 1);
-                skyScales = new float[]{
-                        MathHelper.lerp(blend, skyScales[0], dimLight.maxTemp()[0]),
-                        MathHelper.lerp(blend, skyScales[1], dimLight.maxTemp()[1]),
-                        MathHelper.lerp(blend, skyScales[2], dimLight.maxTemp()[2])
-                };
-            } else {
-                float blend = MathHelper.clamp(0.8f - temp, 0, 1);
-                skyScales = new float[]{
-                        MathHelper.lerp(blend, skyScales[0], dimLight.minTemp()[0]),
-                        MathHelper.lerp(blend, skyScales[1], dimLight.minTemp()[1]),
-                        MathHelper.lerp(blend, skyScales[2], dimLight.minTemp()[2])
-                };
-            }
-        }
-
-        if (dimLight.skyScale() == null) {
-            return skyScales;
-        } else {
-            return new float[]{
-                    skyScales[0] * dimLight.skyScale()[0],
-                    skyScales[1] * dimLight.skyScale()[1],
-                    skyScales[2] * dimLight.skyScale()[2]
-            };
+        for (AbstractClientPlayerEntity player : world.getPlayers()) {
+            ENTITY_LIGHTS.put(player, new RaytracedPointEntityLight(player));
         }
     }
 
-    public static float getDay(ClientWorld world, float delta) {
-        return world.getSkyBrightness(delta);
-    }
-
-    public static void createLightmap(ClientWorld world, ClientPlayerEntity player, GameOptions options, NativeImage image, float temp, float humid, float delta) {
-        DimensionLightInfo dimLight = DimensionLightInfo.get(world);
-        float day = getDay(world, delta);
-        float brightness = MathHelper.clamp(2 - options.getGamma().getValue().floatValue(), 1, 2);
-        float[] tempTint = getTempTint(dimLight, temp);
-
-        for (int sky = 0; sky < image.getHeight(); sky++) {
-            float fSky = (float) sky / (image.getHeight() - 1);
-
-            if (player.hasStatusEffect(StatusEffects.NIGHT_VISION)) {
-                fSky = 1;
-                day = 1;
-            } else {
-                fSky = (float) Math.pow(fSky, brightness);
-            }
-
-            float[] skyTint = dimLight.nightSky() != null ? new float[]{
-                    fSky * fSky * MathHelper.lerp(day, dimLight.nightSky()[0], tempTint[0]),
-                    fSky * fSky * MathHelper.lerp(day, dimLight.nightSky()[1], tempTint[1]),
-                    fSky * fSky * MathHelper.lerp(day, dimLight.nightSky()[2], tempTint[2])
-            } : new float[]{
-                tempTint[0] * fSky * fSky,
-                tempTint[1] * fSky * fSky,
-                tempTint[2] * fSky * fSky
-            };
-
-            for (int block = 0; block < image.getWidth(); block++) {
-                float fBlock = (float) Math.pow((float) block / (image.getWidth() - 1), brightness) * BLOCK_LIGHT_MULTIPLIER.getValue().floatValue();
-
-                float red = fBlock * dimLight.block()[0] + skyTint[0];
-                float green = fBlock * dimLight.block()[1] + skyTint[1];
-                float blue = fBlock * dimLight.block()[2] + skyTint[2];
-
-                image.setColor(block, sky, 0xFF000000 | ((int) MathHelper.clamp(blue * 255, 0, 255) << 16) | ((int) MathHelper.clamp(green * 255, 0, 255) << 8) | (int) MathHelper.clamp(red * 255, 0, 255));
-            }
-        }
-    }
-
-    public static void updateBlock(BlockPos pos, BlockState oldBlock, BlockState newBlock) {
-        DynamicLightInfo info = DynamicLightInfo.get(newBlock);
-
-        if (info != null) {
-            info.addBlockLight(pos, newBlock);
-        }
+    public static void registerParticles(ParticleManager manager) {
+        manager.registerFactory(STEAM, CampfireSmokeParticle.SignalSmokeFactory::new);
     }
 
     @Override
     public void onInitializeClient() {
-        ParticleFactoryRegistry.getInstance().register(STEAM, CampfireSmokeParticle.SignalSmokeFactory::new);
-        WorldRenderEvents.LAST.register(context -> {
-            if (MinecraftClient.getInstance().getDebugHud().shouldShowDebugHud() && FabricLoader.getInstance().isDevelopmentEnvironment()) {
-                RenderSystem.disableBlend();
-                RenderSystem.disableDepthTest();
-                AdvancedFbo.unbind();
-                ENTITY_LIGHTS.values().forEach(light -> renderLightDebug(light, context.consumers().getBuffer(RenderLayer.getLines())));
-                BLOCK_LIGHTS.values().forEach(light -> renderLightDebug(light, context.consumers().getBuffer(RenderLayer.getLines())));
-            }
-
-            NUM_LIGHT_TASKS = 0;
-            Identifier id = id("ray_light");
-
-            VeilRenderSystem.renderer().enableBuffers(id, DynamicBufferType.NORMAL, DynamicBufferType.ALBEDO);
-
-            renderLights();
-        });
-        ClientChunkEvents.CHUNK_LOAD.register((world, chunk) -> {
-            for (int i = chunk.getBottomSectionCoord(); i < chunk.getTopSectionCoord(); i++) {
-                ChunkSection section = chunk.getSection(chunk.sectionCoordToIndex(i));
-
-                if (section.hasAny(state -> DynamicLightInfo.MAP.keySet()
-                        .stream()
-                        .anyMatch(p -> p.test(state)))) {
-                    BlockPos minPos = ChunkSectionPos.from(chunk.getPos(), i).getMinPos();
-
-                    for (int x = 0; x < 16; x++) {
-                        for (int y = 0; y < 16; y++) {
-                            for (int z = 0; z < 16; z++) {
-                                BlockState state = section.getBlockState(x, y, z);
-                                DynamicLightInfo info = DynamicLightInfo.get(state);
-
-                                if (info != null) {
-                                    info.addBlockLight(new BlockPos(x + minPos.getX(), y + minPos.getY(), z + minPos.getZ()), state);
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        });
-        ClientChunkEvents.CHUNK_UNLOAD.register((world, chunk) -> {
-            BLOCK_LIGHTS.values().removeIf(light -> {
-                boolean b = new ChunkPos(light.blockPos).equals(chunk.getPos());
-
-                if (b) {
-                    light.free();
-                }
-
-                return b;
-            });
-            ENTITY_LIGHTS.values().removeIf(light -> {
-                boolean b = light.entity.getChunkPos().equals(chunk.getPos());
-
-                if (b) {
-                    light.free();
-                }
-
-                return b;
-            });
-        });
-        ClientWorldEvents.AFTER_CLIENT_WORLD_CHANGE.register((client, world) -> {
-            BLOCK_LIGHTS.values().forEach(RaytracedPointBlockLight::free);
-            BLOCK_LIGHTS.clear();
-            ENTITY_LIGHTS.values().forEach(RaytracedPointEntityLight::free);
-            ENTITY_LIGHTS.clear();
-
-            for (AbstractClientPlayerEntity player : world.getPlayers()) {
-                ENTITY_LIGHTS.put(player, new RaytracedPointEntityLight(player));
-            }
-        });
-        ResourceManagerHelper.get(ResourceType.CLIENT_RESOURCES).registerReloadListener(new SimpleSynchronousResourceReloadListener() {
-            @Override
-            public Identifier getFabricId() {
-                return id("dynamic_lights");
-            }
-
-            @Override
-            public void reload(ResourceManager manager) {
-                DynamicLightInfo.MAP.clear();
-
-                for (Resource resource : manager.getAllResources(id("dynamic_lights.json"))) {
-                    try (BufferedReader reader = resource.getReader()) {
-                        JsonParser.parseReader(reader).getAsJsonObject().asMap().forEach((key, value) -> {
-                            if (key.startsWith("#")) {
-                                TagKey<Block> tagKey = TagKey.of(RegistryKeys.BLOCK, Identifier.of(key.substring(1)));
-                                DynamicLightInfo.MAP.put(state -> state.isIn(tagKey), Util.memoize(state -> new DynamicLightInfo.Builder().load(state.getRegistryEntry().value(), value).build()));
-                            } else {
-                                RegistryKey<Block> regKey = RegistryKey.of(RegistryKeys.BLOCK, Identifier.of(key));
-                                DynamicLightInfo info = new DynamicLightInfo.Builder().load(Registries.BLOCK.get(regKey), value).build();
-                                DynamicLightInfo.MAP.put(state -> state.matchesKey(regKey), state -> info);
-                            }
-                        });
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-
-                EMISSIVE_OVERRIDES.clear();
-
-                for (Resource resource : manager.getAllResources(id("emissive_blocks.json"))) {
-                    try (BufferedReader reader = resource.getReader()) {
-                        JsonParser.parseReader(reader).getAsJsonObject().asMap().forEach((key, value) -> {
-                            RegistryKey<Block> regKey = RegistryKey.of(RegistryKeys.BLOCK, Identifier.of(key));
-                            EMISSIVE_OVERRIDES.put(regKey, BlockStateFunction.parseJson(Registries.BLOCK.get(regKey), value, JsonElement::getAsBoolean, () -> false));
-                        });
-                    } catch (IOException e) {
-                        throw new RuntimeException(e);
-                    }
-                }
-            }
-        });
-        ModContainer mod = FabricLoader.getInstance().getModContainer(MOD_ID).orElseThrow();
-        ResourceManagerHelper.registerBuiltinResourcePack(id("vibrant_textures"), mod, Text.translatable("pack.name.vibrancy.textures"), ResourcePackActivationType.NORMAL);
-        ResourceManagerHelper.registerBuiltinResourcePack(id("ripple"), mod, Text.translatable("pack.name.vibrancy.ripple"), ResourcePackActivationType.DEFAULT_ENABLED);
     }
 }
