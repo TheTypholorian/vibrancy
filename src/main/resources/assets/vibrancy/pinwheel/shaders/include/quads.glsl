@@ -19,7 +19,7 @@ bool raycastQuad(vec3 origin, vec3 dir, float len, Quad q, out vec2 uv) {
     if (denom >= 0.0) return false;
 
     float tt = (q.d - dot(origin, q.n)) / denom;
-    if (tt < 1e-1 || tt > len - 1e-1) return false;
+    if (tt < 1e-3 || tt > len - 1e-3) return false;
 
     vec3 p = origin + tt * dir;
     vec3 vp = p - q.v1;

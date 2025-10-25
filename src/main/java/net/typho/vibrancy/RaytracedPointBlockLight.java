@@ -20,6 +20,8 @@ public class RaytracedPointBlockLight extends RaytracedPointLight {
     public void init() {
         render = false;
 
+        boolean dirty = isDirty();
+
         ClientWorld world = MinecraftClient.getInstance().world;
 
         if (world != null) {
@@ -28,10 +30,16 @@ public class RaytracedPointBlockLight extends RaytracedPointLight {
 
             if (info != null) {
                 Vec3d offset = info.offset().apply(state).orElse(new Vec3d(0.5, 0.5, 0.5));
-                super.setPosition(blockPos.getX() + offset.x, blockPos.getY() + offset.y, blockPos.getZ() + offset.z);
+                position.set(blockPos.getX() + offset.x, blockPos.getY() + offset.y, blockPos.getZ() + offset.z);
                 info.initLight(this, state);
                 render = true;
             }
+        }
+
+        if (dirty) {
+            markDirty();
+        } else {
+            clean();
         }
     }
 
