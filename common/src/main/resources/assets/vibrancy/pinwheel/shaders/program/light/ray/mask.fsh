@@ -20,7 +20,6 @@ out vec4 fragColor;
 void main() {
     fragColor = vec4(1);
 
-    /*
     vec3 Pos = viewToWorldSpace(viewPosFromDepth(texelFetch(DiffuseDepthSampler, ivec2(gl_FragCoord.xy), 0).r, gl_FragCoord.xy / ScreenSize));
 
     vec3 delta = Pos - LightPos;
@@ -39,5 +38,4 @@ void main() {
     } else {
         discard;
     }
-    */
 }

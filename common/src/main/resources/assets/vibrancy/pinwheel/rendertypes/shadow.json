@@ -10,7 +10,7 @@
     },
     {
       "type": "minecraft:depth_test",
-      "mode": "always"
+      "mode": "greater"
     },
     {
       "type": "minecraft:cull",

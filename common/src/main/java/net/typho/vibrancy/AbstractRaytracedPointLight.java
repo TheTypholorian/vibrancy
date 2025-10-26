@@ -92,7 +92,7 @@ public abstract class AbstractRaytracedPointLight extends PointLight implements 
             shader.safeGetUniform("LightRadius").set(radius);
 
             Vibrancy.SCREEN_VBO.bind();
-            Vibrancy.SCREEN_VBO.drawWithShader(RenderSystem.getModelViewMatrix(), RenderSystem.getProjectionMatrix(), RenderSystem.getShader());
+            Vibrancy.SCREEN_VBO.drawWithShader(view, RenderSystem.getProjectionMatrix(), RenderSystem.getShader());
             VertexBuffer.unbind();
 
             stencilType.clearRenderState();
@@ -101,7 +101,7 @@ public abstract class AbstractRaytracedPointLight extends PointLight implements 
             type.setupRenderState();
 
             glEnable(GL_STENCIL_TEST);
-            glStencilMask(0x00);
+            glStencilMask(0xFF);
             glStencilFunc(GL_EQUAL, 1, 0xFF);
             glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
 
