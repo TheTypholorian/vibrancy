@@ -1,25 +1,25 @@
 package net.typho.vibrancy.mixin;
 
-import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
-import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.client.renderer.LightTexture;
-import net.minecraft.world.level.dimension.DimensionType;
 import net.typho.vibrancy.Vibrancy;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.ModifyVariable;
 
 @Mixin(LightTexture.class)
-public class LightmapTextureManagerMixin {
-    @WrapOperation(
+public class LightTextureMixin {
+    @ModifyVariable(
             method = "updateLightTexture",
             at = @At(
                     value = "INVOKE",
                     target = "Lnet/minecraft/client/renderer/LightTexture;getBrightness(Lnet/minecraft/world/level/dimension/DimensionType;I)F",
-                    ordinal = 0
-            )
+                    ordinal = 1
+            ),
+            print = true,
+            ordinal = 0
     )
-    private float getBrightness(DimensionType type, int lightLevel, Operation<Float> original) {
-        return original.call(type, lightLevel) * Vibrancy.BLOCK_LIGHT_MULTIPLIER.get().floatValue();
+    private float getBrightness(float value) {
+        return value * Vibrancy.BLOCK_LIGHT_MULTIPLIER.get().floatValue();
     }
 
     /*

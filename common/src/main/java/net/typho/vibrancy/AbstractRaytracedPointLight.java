@@ -7,10 +7,9 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexBuffer;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import foundry.veil.api.client.render.VeilRenderSystem;
-import foundry.veil.api.client.render.light.PointLight;
+import foundry.veil.api.client.render.deferred.light.PointLight;
 import net.minecraft.client.Camera;
 import net.minecraft.client.renderer.ShaderInstance;
-import net.minecraft.core.BlockBox;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.phys.AABB;
@@ -120,7 +119,8 @@ public abstract class AbstractRaytracedPointLight extends PointLight implements 
         shader.safeGetUniform("LightRadius").set(radius);
         shader.safeGetUniform("AnyShadows").set(anyShadows ? 1 : 0);
 
-        BufferBuilder builder = RenderSystem.renderThreadTesselator().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION);
+        BufferBuilder builder = RenderSystem.renderThreadTesselator().getBuilder();
+        builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION);
         AABB box = getBoundingBox();
         Vector3f[] vertices = {
                 new Vector3f((float) box.maxX, (float) box.maxY, (float) box.maxZ),
@@ -133,35 +133,35 @@ public abstract class AbstractRaytracedPointLight extends PointLight implements 
                 new Vector3f((float) box.maxX, (float) box.minY, (float) box.minZ),
         };
 
-        builder.addVertex(vertices[0])
-                .addVertex(vertices[1])
-                .addVertex(vertices[2])
-                .addVertex(vertices[3]);
+        builder.vertex(vertices[0].x, vertices[0].y, vertices[0].z)
+                .vertex(vertices[1].x, vertices[0].y, vertices[0].z)
+                .vertex(vertices[2].x, vertices[0].y, vertices[0].z)
+                .vertex(vertices[3].x, vertices[0].y, vertices[0].z);
 
-        builder.addVertex(vertices[1])
-                .addVertex(vertices[5])
-                .addVertex(vertices[6])
-                .addVertex(vertices[2]);
+        builder.vertex(vertices[1].x, vertices[1].y, vertices[1].z)
+                .vertex(vertices[5].x, vertices[5].y, vertices[5].z)
+                .vertex(vertices[6].x, vertices[6].y, vertices[6].z)
+                .vertex(vertices[2].x, vertices[2].y, vertices[2].z);
 
-        builder.addVertex(vertices[5])
-                .addVertex(vertices[4])
-                .addVertex(vertices[7])
-                .addVertex(vertices[6]);
+        builder.vertex(vertices[5].x, vertices[5].y, vertices[5].z)
+                .vertex(vertices[4].x, vertices[4].y, vertices[4].z)
+                .vertex(vertices[7].x, vertices[7].y, vertices[7].z)
+                .vertex(vertices[6].x, vertices[6].y, vertices[6].z);
 
-        builder.addVertex(vertices[4])
-                .addVertex(vertices[0])
-                .addVertex(vertices[3])
-                .addVertex(vertices[7]);
+        builder.vertex(vertices[4].x, vertices[4].y, vertices[4].z)
+                .vertex(vertices[0].x, vertices[0].y, vertices[0].z)
+                .vertex(vertices[3].x, vertices[3].y, vertices[3].z)
+                .vertex(vertices[7].x, vertices[7].y, vertices[7].z);
 
-        builder.addVertex(vertices[1])
-                .addVertex(vertices[0])
-                .addVertex(vertices[4])
-                .addVertex(vertices[5]);
+        builder.vertex(vertices[1].x, vertices[1].y, vertices[1].z)
+                .vertex(vertices[0].x, vertices[0].y, vertices[0].z)
+                .vertex(vertices[4].x, vertices[4].y, vertices[4].z)
+                .vertex(vertices[5].x, vertices[5].y, vertices[5].z);
 
-        builder.addVertex(vertices[3])
-                .addVertex(vertices[2])
-                .addVertex(vertices[6])
-                .addVertex(vertices[7]);
+        builder.vertex(vertices[3].x, vertices[3].y, vertices[3].z)
+                .vertex(vertices[2].x, vertices[2].y, vertices[2].z)
+                .vertex(vertices[6].x, vertices[6].y, vertices[6].z)
+                .vertex(vertices[7].x, vertices[7].y, vertices[7].z);
 
         RenderSystem.disableDepthTest();
         glCullFace(GL_FRONT);
@@ -171,7 +171,7 @@ public abstract class AbstractRaytracedPointLight extends PointLight implements 
         RenderSystem.blendEquation(GL_FUNC_ADD);
 
         boxVBO.bind();
-        boxVBO.upload(builder.build());
+        boxVBO.upload(builder.end());
         boxVBO.drawWithShader(view, RenderSystem.getProjectionMatrix(), shader);
         VertexBuffer.unbind();
 

@@ -1,7 +1,7 @@
 package net.typho.vibrancy;
 
 import com.google.gson.*;
-import foundry.veil.api.client.render.light.PointLight;
+import foundry.veil.api.client.render.deferred.light.PointLight;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
@@ -209,7 +209,7 @@ public record DynamicLightInfo(Vector3f color, BlockStateFunction<Optional<Float
                                 throw new IllegalArgumentException("Can't copy the dynamic light info of a tag (for technical reasons)");
                             }
 
-                            copy(get(BuiltInRegistries.BLOCK.get(ResourceLocation.parse(s)).defaultBlockState()));
+                            copy(get(BuiltInRegistries.BLOCK.get(new ResourceLocation(s)).defaultBlockState()));
                         } else {
                             throw new JsonParseException("Expected a string for copy while parsing dynamic light info for \"" + block + "\", got " + primitive);
                         }
@@ -230,7 +230,7 @@ public record DynamicLightInfo(Vector3f color, BlockStateFunction<Optional<Float
                         throw new IllegalArgumentException("Can't copy the dynamic light info of a tag (for technical reasons)");
                     }
 
-                    return copy(get(BuiltInRegistries.BLOCK.get(ResourceLocation.parse(s)).defaultBlockState()));
+                    return copy(get(BuiltInRegistries.BLOCK.get(new ResourceLocation(s)).defaultBlockState()));
                 }
             }
 

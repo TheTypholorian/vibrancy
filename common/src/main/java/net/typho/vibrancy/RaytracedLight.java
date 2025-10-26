@@ -78,8 +78,7 @@ public interface RaytracedLight extends NativeResource {
                     uvs[0],
                     uvs[1],
                     uvs[2],
-                    uvs[3],
-                    layer.sortOnUpload() || layer != RenderType.solid()
+                    uvs[3]
             ));
         }
     }
@@ -114,7 +113,7 @@ public interface RaytracedLight extends NativeResource {
 
     default void upload(BufferBuilder builder, Collection<ShadowVolume> volumes, VertexBuffer geomVBO, int quadsSSBO, int usage) {
         geomVBO.bind();
-        geomVBO.upload(builder.build());
+        geomVBO.upload(builder.end());
         VertexBuffer.unbind();
 
         ByteBuffer buf = MemoryUtil.memAlloc(volumes.size() * Quad.BYTES);
@@ -135,26 +134,24 @@ public interface RaytracedLight extends NativeResource {
             Vector3f v1, Vector3f v2, Vector3f v3, Vector3f v4,
             Vector2f uv1, Vector2f uv2, Vector2f uv3, Vector2f uv4,
             Vector3f n, float d,
-            Vector3f e1, Vector3f e2,
-            boolean sample
+            Vector3f e1, Vector3f e2
     ) {
         public static final int BYTES = 40 * Float.BYTES;
 
         public Quad(BlockPos blockPos, Vector3f v1, Vector3f v2, Vector3f v3, Vector3f v4,
-                    Vector2f uv1, Vector2f uv2, Vector2f uv3, Vector2f uv4, boolean sample) {
+                    Vector2f uv1, Vector2f uv2, Vector2f uv3, Vector2f uv4) {
             this(
                     blockPos,
                     v1, v2, v3, v4, uv1, uv2, uv3, uv4,
                     new Vector3f(v2).sub(v1).cross(new Vector3f(v4).sub(v1)).normalize(),
                     new Vector3f(v2).sub(v1).cross(new Vector3f(v4).sub(v1)).normalize().dot(v1),
                     new Vector3f(v2).sub(v1),
-                    new Vector3f(v4).sub(v1),
-                    sample
+                    new Vector3f(v4).sub(v1)
             );
         }
 
         public void put(ByteBuffer buf) {
-            buf.putFloat(v1.x).putFloat(v1.y).putFloat(v1.z).putInt(sample ? 1 : 0);
+            buf.putFloat(v1.x).putFloat(v1.y).putFloat(v1.z).putFloat(0);
             buf.putFloat(v2.x).putFloat(v2.y).putFloat(v2.z).putFloat(0);
             buf.putFloat(v3.x).putFloat(v3.y).putFloat(v3.z).putFloat(0);
             buf.putFloat(v4.x).putFloat(v4.y).putFloat(v4.z).putFloat(0);
@@ -202,35 +199,35 @@ public interface RaytracedLight extends NativeResource {
 
     record ShadowVolume(Quad caster, Vector3f[] vertices) {
         public void render(VertexConsumer consumer) {
-            consumer.addVertex(vertices()[0])
-                    .addVertex(vertices()[1])
-                    .addVertex(vertices()[2])
-                    .addVertex(vertices()[3]);
+            consumer.vertex(vertices()[0].x, vertices()[0].y, vertices()[0].z)
+                    .vertex(vertices()[1].x, vertices()[1].y, vertices()[1].z)
+                    .vertex(vertices()[2].x, vertices()[2].y, vertices()[2].z)
+                    .vertex(vertices()[3].x, vertices()[3].y, vertices()[3].z);
 
-            consumer.addVertex(vertices()[1])
-                    .addVertex(vertices()[5])
-                    .addVertex(vertices()[6])
-                    .addVertex(vertices()[2]);
+            consumer.vertex(vertices()[1].x, vertices()[1].y, vertices()[1].z)
+                    .vertex(vertices()[5].x, vertices()[5].y, vertices()[5].z)
+                    .vertex(vertices()[6].x, vertices()[6].y, vertices()[6].z)
+                    .vertex(vertices()[2].x, vertices()[2].y, vertices()[2].z);
 
-            consumer.addVertex(vertices()[5])
-                    .addVertex(vertices()[4])
-                    .addVertex(vertices()[7])
-                    .addVertex(vertices()[6]);
+            consumer.vertex(vertices()[5].x, vertices()[5].y, vertices()[5].z)
+                    .vertex(vertices()[4].x, vertices()[4].y, vertices()[4].z)
+                    .vertex(vertices()[7].x, vertices()[7].y, vertices()[7].z)
+                    .vertex(vertices()[6].x, vertices()[6].y, vertices()[6].z);
 
-            consumer.addVertex(vertices()[4])
-                    .addVertex(vertices()[0])
-                    .addVertex(vertices()[3])
-                    .addVertex(vertices()[7]);
+            consumer.vertex(vertices()[4].x, vertices()[4].y, vertices()[4].z)
+                    .vertex(vertices()[0].x, vertices()[0].y, vertices()[0].z)
+                    .vertex(vertices()[3].x, vertices()[3].y, vertices()[3].z)
+                    .vertex(vertices()[7].x, vertices()[7].y, vertices()[7].z);
 
-            consumer.addVertex(vertices()[1])
-                    .addVertex(vertices()[0])
-                    .addVertex(vertices()[4])
-                    .addVertex(vertices()[5]);
+            consumer.vertex(vertices()[1].x, vertices()[1].y, vertices()[1].z)
+                    .vertex(vertices()[0].x, vertices()[0].y, vertices()[0].z)
+                    .vertex(vertices()[4].x, vertices()[4].y, vertices()[4].z)
+                    .vertex(vertices()[5].x, vertices()[5].y, vertices()[5].z);
 
-            consumer.addVertex(vertices()[3])
-                    .addVertex(vertices()[2])
-                    .addVertex(vertices()[6])
-                    .addVertex(vertices()[7]);
+            consumer.vertex(vertices()[3].x, vertices()[3].y, vertices()[3].z)
+                    .vertex(vertices()[2].x, vertices()[2].y, vertices()[2].z)
+                    .vertex(vertices()[6].x, vertices()[6].y, vertices()[6].z)
+                    .vertex(vertices()[7].x, vertices()[7].y, vertices()[7].z);
         }
     }
 }

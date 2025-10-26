@@ -32,12 +32,10 @@ void main() {
         vec2 uv;
 
         if (raycastQuad(LightPos, dir, len, q, uv)) {
-            if (q.doSample == 1) {
-                fragColor = texture(BlockAtlasSampler, uv);
+            fragColor = texture(BlockAtlasSampler, uv);
 
-                if (fragColor.a == 0) {
-                    discard;
-                }
+            if (fragColor.a == 0) {
+                discard;
             }
         } else {
             discard;

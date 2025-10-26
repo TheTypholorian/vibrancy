@@ -1,19 +1,23 @@
 package net.typho.vibrancy.mixin;
 
-import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import net.minecraft.client.OptionInstance;
-import net.minecraft.client.gui.screens.options.VideoSettingsScreen;
+import net.minecraft.client.Options;
+import net.minecraft.client.gui.screens.VideoSettingsScreen;
 import net.typho.vibrancy.Vibrancy;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 @Mixin(VideoSettingsScreen.class)
 public class VideoSettingsScreenMixin {
-    @ModifyReturnValue(
+    @Inject(
             method = "options",
-            at = @At("RETURN")
+            at = @At("RETURN"),
+            cancellable = true
     )
-    private static OptionInstance<?>[] getOptions(OptionInstance<?>[] original) {
+    private static void getOptions(Options options, CallbackInfoReturnable<OptionInstance<?>[]> cir) {
+        OptionInstance<?>[] original = cir.getReturnValue();
         OptionInstance<?>[] arr = new OptionInstance[original.length + 9];
         System.arraycopy(original, 0, arr, 0, original.length);
         //arr[original.length - 8] = Vibrancy.BETTER_SKY;
@@ -27,6 +31,6 @@ public class VideoSettingsScreenMixin {
         arr[original.length - 2] = Vibrancy.MAX_SHADOW_DISTANCE;
         arr[original.length - 1] = Vibrancy.MAX_LIGHT_RADIUS;
         arr[original.length] = Vibrancy.BLOCK_LIGHT_MULTIPLIER;
-        return arr;
+        cir.setReturnValue(arr);
     }
 }

@@ -2,6 +2,7 @@ plugins {
     id 'multiloader-loader'
     id 'fabric-loom'
 }
+
 dependencies {
     minecraft "com.mojang:minecraft:${minecraft_version}"
     mappings loom.layered {
@@ -12,6 +13,11 @@ dependencies {
     modImplementation "net.fabricmc.fabric-api:fabric-api:${fabric_version}"
     implementation group: 'com.google.code.findbugs', name: 'jsr305', version: '3.0.1'
     implementation project(":common")
+
+    implementation("foundry.veil:Veil-fabric-${minecraft_version}:${veil_version}") {
+        exclude group: "maven.modrinth"
+        exclude group: "com.github.LlamaLad7"
+    }
 }
 
 loom {

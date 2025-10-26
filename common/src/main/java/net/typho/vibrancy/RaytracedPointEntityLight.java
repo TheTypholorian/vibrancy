@@ -16,7 +16,7 @@ public class RaytracedPointEntityLight extends AbstractMovingRaytracedPointLight
 
     @Override
     public void init() {
-        float tickDelta = Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(true);
+        float tickDelta = Minecraft.getInstance().getDeltaFrameTime();
         Vec3 entityPos = entity.getEyePosition(tickDelta)
                 .add(entity.getViewVector(tickDelta));
         setPosition(entityPos.x, entityPos.y, entityPos.z);

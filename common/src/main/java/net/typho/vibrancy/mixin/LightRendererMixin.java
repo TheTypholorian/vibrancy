@@ -1,6 +1,6 @@
 package net.typho.vibrancy.mixin;
 
-import foundry.veil.api.client.render.light.renderer.LightRenderer;
+import foundry.veil.api.client.render.deferred.light.LightRenderer;
 import net.typho.vibrancy.Vibrancy;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;

@@ -4,7 +4,6 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.mojang.blaze3d.systems.RenderSystem;
 import foundry.veil.api.client.render.VeilRenderSystem;
-import foundry.veil.api.client.render.dynamicbuffer.DynamicBufferType;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.OptionInstance;
@@ -50,7 +49,7 @@ public class Vibrancy {
     public static final String MOD_ID = "vibrancy";
 
     public static ResourceLocation id(String path) {
-        return ResourceLocation.fromNamespaceAndPath(MOD_ID, path);
+        return new ResourceLocation(MOD_ID, path);
     }
 
     public static final ResourceLocation LOGO_TEXTURE = id("textures/gui/title/vibrancy.png");
@@ -63,7 +62,7 @@ public class Vibrancy {
             "options.vibrancy.raytrace_distance",
             value -> Tooltip.create(Component.translatable("options.vibrancy.raytrace_distance.tooltip")),
             (text, value) -> Options.genericValueLabel(text, Component.translatable("options.vibrancy.raytrace_distance.value", value * 16)),
-            new OptionInstance.IntRange(1, 32, false),
+            new OptionInstance.IntRange(1, 32),
             4,
             value -> {}
     );
@@ -71,7 +70,7 @@ public class Vibrancy {
             "options.vibrancy.light_cull_distance",
             value -> Tooltip.create(Component.translatable("options.vibrancy.light_cull_distance.tooltip")),
             (text, value) -> Options.genericValueLabel(text, Component.translatable("options.vibrancy.light_cull_distance.value", value * 16)),
-            new OptionInstance.IntRange(1, 32, false),
+            new OptionInstance.IntRange(1, 32),
             12,
             value -> {}
     );
@@ -79,7 +78,7 @@ public class Vibrancy {
             "options.vibrancy.max_raytraced_lights",
             value -> Tooltip.create(Component.translatable("options.vibrancy.max_raytraced_lights.tooltip")),
             (text, value) -> Options.genericValueLabel(text, value > 100 ? Component.translatable("options.vibrancy.max_raytraced_lights.max") : Component.translatable("options.vibrancy.max_raytraced_lights.value", value)),
-            new OptionInstance.IntRange(5, 105, false),
+            new OptionInstance.IntRange(5, 105),
             30,
             value -> {}
     );
@@ -87,7 +86,7 @@ public class Vibrancy {
             "options.vibrancy.max_shadow_distance",
             value -> Tooltip.create(Component.translatable("options.vibrancy.max_shadow_distance.tooltip")),
             (text, value) -> Options.genericValueLabel(text, value > 15 ? Component.translatable("options.vibrancy.max_shadow_distance.max") : Component.translatable("options.vibrancy.max_shadow_distance.value", value)),
-            new OptionInstance.IntRange(1, 16, false),
+            new OptionInstance.IntRange(1, 16),
             8,
             value -> {}
     );
@@ -95,7 +94,7 @@ public class Vibrancy {
             "options.vibrancy.max_light_radius",
             value -> Tooltip.create(Component.translatable("options.vibrancy.max_light_radius.tooltip")),
             (text, value) -> Options.genericValueLabel(text, value > 15 ? Component.translatable("options.vibrancy.max_light_radius.max") : Component.translatable("options.vibrancy.max_light_radius.value", value)),
-            new OptionInstance.IntRange(1, 16, false),
+            new OptionInstance.IntRange(1, 16),
             15,
             value -> {}
     );
@@ -107,7 +106,6 @@ public class Vibrancy {
             0.5,
             value -> {}
     );
-    public static boolean SEEN_ALPHA_TEXT = false;
     public static Supplier<SimpleParticleType> STEAM;
     public static final Map<ResourceKey<Block>, BlockStateFunction<Boolean>> EMISSIVE_OVERRIDES = new LinkedHashMap<>();
     public static final Map<BlockPos, RaytracedPointBlockLight> BLOCK_LIGHTS = new LinkedHashMap<>();
@@ -129,8 +127,7 @@ public class Vibrancy {
 
     public static boolean shouldRenderLight(RaytracedLight light) {
         Vec3 cam = Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
-        boolean b = light.getPosition().distanceSquared(cam.x, cam.y, cam.z) / 16 < Vibrancy.LIGHT_CULL_DISTANCE.get() * Vibrancy.LIGHT_CULL_DISTANCE.get() &&
-                (VeilRenderSystem.getCullingFrustum().testAab(light.getBoundingBox()) || (light instanceof RaytracedPointEntityLight entity && entity.entity == Minecraft.getInstance().cameraEntity));
+        boolean b = light.getPosition().distanceSquared(cam.x, cam.y, cam.z) / 16 < Vibrancy.LIGHT_CULL_DISTANCE.get() * Vibrancy.LIGHT_CULL_DISTANCE.get();
 
         if (b) {
             NUM_VISIBLE_LIGHTS++;
@@ -193,12 +190,12 @@ public class Vibrancy {
                 try (BufferedReader reader = resource.openAsReader()) {
                     JsonParser.parseReader(reader).getAsJsonObject().asMap().forEach((key, value) -> {
                         if (key.startsWith("#")) {
-                            TagKey<Block> tagKey = TagKey.create(Registries.BLOCK, ResourceLocation.parse(key.substring(1)));
+                            TagKey<Block> tagKey = TagKey.create(Registries.BLOCK, new ResourceLocation(key.substring(1)));
                             DynamicLightInfo.MAP.put(state -> state.is(tagKey), Util.memoize(state -> new DynamicLightInfo.Builder().load(state.getBlock().builtInRegistryHolder().value(), value).build()));
                         } else {
-                            ResourceKey<Block> regKey = ResourceKey.create(Registries.BLOCK, ResourceLocation.parse(key));
+                            ResourceKey<Block> regKey = ResourceKey.create(Registries.BLOCK, new ResourceLocation(key));
                             DynamicLightInfo info = new DynamicLightInfo.Builder().load(BuiltInRegistries.BLOCK.get(regKey), value).build();
-                            DynamicLightInfo.MAP.put(state -> state.is(regKey), state -> info);
+                            DynamicLightInfo.MAP.put(state -> state.getBlock().builtInRegistryHolder().is(regKey), state -> info);
                         }
                     });
                 } catch (IOException e) {
@@ -211,7 +208,7 @@ public class Vibrancy {
             for (Resource resource : manager.getResourceStack(id("emissive_blocks.json"))) {
                 try (BufferedReader reader = resource.openAsReader()) {
                     JsonParser.parseReader(reader).getAsJsonObject().asMap().forEach((key, value) -> {
-                        ResourceKey<Block> regKey = ResourceKey.create(Registries.BLOCK, ResourceLocation.parse(key));
+                        ResourceKey<Block> regKey = ResourceKey.create(Registries.BLOCK, new ResourceLocation(key));
                         EMISSIVE_OVERRIDES.put(regKey, BlockStateFunction.parseJson(BuiltInRegistries.BLOCK.get(regKey), value, JsonElement::getAsBoolean, () -> false));
                     });
                 } catch (IOException e) {
@@ -264,7 +261,7 @@ public class Vibrancy {
         NUM_LIGHT_TASKS = 0;
         ResourceLocation id = id("ray_light");
 
-        VeilRenderSystem.renderer().enableBuffers(id, DynamicBufferType.NORMAL, DynamicBufferType.ALBEDO);
+        //VeilRenderSystem.renderer().enableBuffers(id, DynamicBufferType.NORMAL, DynamicBufferType.ALBEDO);
 
         VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(id).bind(true);
         RenderSystem.clearColor(0, 0, 0, 0);

@@ -7,7 +7,6 @@ import com.mojang.blaze3d.vertex.VertexFormat;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.core.BlockBox;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import org.joml.Matrix4f;
@@ -103,7 +102,8 @@ public abstract class AbstractMovingRaytracedPointLight extends AbstractRaytrace
             BlockBox box = getBox();
 
             List<ShadowVolume> volumes = new LinkedList<>();
-            BufferBuilder builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION);
+            BufferBuilder builder = Tesselator.getInstance().getBuilder();
+            builder.begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION);
 
             if (isVisible()) {
                 if (fullRebuildTask != null && fullRebuildTask.isDone()) {

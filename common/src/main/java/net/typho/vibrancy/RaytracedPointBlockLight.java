@@ -1,6 +1,6 @@
 package net.typho.vibrancy;
 
-import foundry.veil.api.client.render.light.PointLight;
+import foundry.veil.api.client.render.deferred.light.PointLight;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;

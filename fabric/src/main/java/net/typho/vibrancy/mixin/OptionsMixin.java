@@ -10,10 +10,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(Options.class)
 public class OptionsMixin {
     @Inject(
-            method = "processDumpedOptions",
+            method = "processOptions",
             at = @At("TAIL")
     )
-    private void acceptProfiledOptions(Options.OptionAccess access, CallbackInfo ci) {
+    private void accept(Options.FieldAccess access, CallbackInfo ci) {
         //access.accept("vibrancy/dynamic_lightmap", Vibrancy.DYNAMIC_LIGHTMAP);
         access.process("vibrancy/transparency_test", Vibrancy.TRANSPARENCY_TEST);
         //access.accept("vibrancy/better_sky", Vibrancy.BETTER_SKY);
@@ -25,13 +25,5 @@ public class OptionsMixin {
         access.process("vibrancy/max_shadow_distance", Vibrancy.MAX_SHADOW_DISTANCE);
         access.process("vibrancy/max_light_radius", Vibrancy.MAX_LIGHT_RADIUS);
         access.process("vibrancy/block_light_multiplier", Vibrancy.BLOCK_LIGHT_MULTIPLIER);
-    }
-
-    @Inject(
-            method = "processOptions",
-            at = @At("TAIL")
-    )
-    private void accept(Options.FieldAccess access, CallbackInfo ci) {
-        Vibrancy.SEEN_ALPHA_TEXT = access.process("vibrancy/seen_alpha_text", Vibrancy.SEEN_ALPHA_TEXT);
     }
 }
