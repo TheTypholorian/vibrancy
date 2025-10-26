@@ -42,3 +42,13 @@ loom {
         }
     }
 }
+
+import net.fabricmc.loom.task.RemapJarTask
+
+tasks.register("remapVeilToMojang", RemapJarTask) {
+    dependsOn configurations.compileClasspath
+    inputFile.set(file("libs/veil-fabric-1.20.1-1.0.0.85.jar"))
+    archiveFileName.set("Veil-fabric-1.20.1-mojmap.jar")
+    targetNamespace.set("official")
+    addNestedDependencies.set(true)
+}

@@ -1,6 +1,5 @@
 package net.typho.vibrancy;
 
-import foundry.veil.api.client.render.deferred.light.PointLight;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockPos;
@@ -52,12 +51,12 @@ public class RaytracedPointBlockLight extends RaytracedPointLight {
     }
 
     @Override
-    public final PointLight setPosition(Vector3dc position) {
+    public final AbstractPointLight setPosition(Vector3dc position) {
         throw new UnsupportedOperationException("Can't move a block light");
     }
 
     @Override
-    public final PointLight setPosition(double x, double y, double z) {
+    public final AbstractPointLight setPosition(double x, double y, double z) {
         throw new UnsupportedOperationException("Can't move a block light");
     }
 

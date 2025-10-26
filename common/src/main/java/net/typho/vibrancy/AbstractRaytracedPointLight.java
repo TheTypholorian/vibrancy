@@ -7,7 +7,6 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexBuffer;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import foundry.veil.api.client.render.VeilRenderSystem;
-import foundry.veil.api.client.render.deferred.light.PointLight;
 import net.minecraft.client.Camera;
 import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.core.BlockPos;
@@ -25,7 +24,7 @@ import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL30.glBindBufferBase;
 import static org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER;
 
-public abstract class AbstractRaytracedPointLight extends PointLight implements RaytracedLight {
+public abstract class AbstractRaytracedPointLight extends AbstractPointLight implements RaytracedLight {
     protected final VertexBuffer geomVBO = new VertexBuffer(VertexBuffer.Usage.DYNAMIC), boxVBO = new VertexBuffer(VertexBuffer.Usage.DYNAMIC);
     protected final int quadsSSBO = glGenBuffers();
     protected boolean anyShadows = false;
