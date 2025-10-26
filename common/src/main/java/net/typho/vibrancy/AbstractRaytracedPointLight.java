@@ -74,18 +74,41 @@ public abstract class AbstractRaytracedPointLight extends PointLight implements 
         AdvancedFbo fbo = Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(Vibrancy.id("shadow_mask")));
         fbo.bind(true);
         glClearColor(0f, 0f, 0f, 0f);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+        glClearStencil(0);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
         if (anyShadows && raytrace) {
-            VeilRenderSystem.setShader(Vibrancy.id("light/ray/mask"));
+            glEnable(GL_STENCIL_TEST);
+            glStencilMask(0xFF);
+            glStencilFunc(GL_ALWAYS, 1, 0xFF);
+            glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
+            RenderType stencilType = VeilRenderType.get(Vibrancy.id("shadow_stencil"));
+            stencilType.setupRenderState();
+
             ShaderInstance shader = Objects.requireNonNull(RenderSystem.getShader());
 
             shader.safeGetUniform("LightPos").set(lightPos.x, lightPos.y, lightPos.z);
             shader.safeGetUniform("LightRadius").set(radius);
-            shader.safeGetUniform("Detailed").set(1);
+
+            Vibrancy.SCREEN_VBO.bind();
+            Vibrancy.SCREEN_VBO.drawWithShader(RenderSystem.getModelViewMatrix(), RenderSystem.getProjectionMatrix(), RenderSystem.getShader());
+            VertexBuffer.unbind();
+
+            stencilType.clearRenderState();
 
             RenderType type = VeilRenderType.get(Vibrancy.id("shadow"));
             type.setupRenderState();
+
+            glEnable(GL_STENCIL_TEST);
+            glStencilMask(0x00);
+            glStencilFunc(GL_EQUAL, 1, 0xFF);
+            glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+
+            shader = Objects.requireNonNull(RenderSystem.getShader());
+
+            shader.safeGetUniform("LightPos").set(lightPos.x, lightPos.y, lightPos.z);
+            shader.safeGetUniform("LightRadius").set(radius);
 
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, quadsSSBO);
 
@@ -96,6 +119,7 @@ public abstract class AbstractRaytracedPointLight extends PointLight implements 
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
 
             type.clearRenderState();
+            glDisable(GL_STENCIL_TEST);
 
             Vibrancy.SHADOW_COUNT += shadowCount;
         }

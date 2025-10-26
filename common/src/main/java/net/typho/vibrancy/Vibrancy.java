@@ -3,6 +3,10 @@ package net.typho.vibrancy;
 import com.google.gson.JsonElement;
 import com.google.gson.JsonParser;
 import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.DefaultVertexFormat;
+import com.mojang.blaze3d.vertex.VertexBuffer;
+import com.mojang.blaze3d.vertex.VertexFormat;
 import foundry.veil.api.client.render.VeilRenderSystem;
 import foundry.veil.api.client.render.dynamicbuffer.DynamicBufferType;
 import net.minecraft.Util;
@@ -116,6 +120,22 @@ public class Vibrancy {
     public static BiFunction<StateDefinition<Block, BlockState>, String, Predicate<BlockState>> BLOCK_STATE_PREDICATE = (def, properties) -> {
         throw new IllegalStateException();
     };
+    public static VertexBuffer SCREEN_VBO;
+
+    static {
+        RenderSystem.recordRenderCall(() -> {
+            BufferBuilder builder = RenderSystem.renderThreadTesselator().begin(VertexFormat.Mode.TRIANGLE_STRIP, DefaultVertexFormat.POSITION);
+            builder.addVertex(-1, 1, 0);
+            builder.addVertex(-1, -1, 0);
+            builder.addVertex(1, 1, 0);
+            builder.addVertex(1, -1, 0);
+
+            SCREEN_VBO = new VertexBuffer(VertexBuffer.Usage.STATIC);
+            SCREEN_VBO.bind();
+            SCREEN_VBO.upload(builder.buildOrThrow());
+            VertexBuffer.unbind();
+        });
+    }
 
     public static int maxLights() {
         int v = MAX_RAYTRACED_LIGHTS.get();

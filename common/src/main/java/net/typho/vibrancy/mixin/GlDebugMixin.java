@@ -21,7 +21,7 @@ public class GlDebugMixin {
     )
     private static void printDebugLog(int source, int type, int id, int severity, int messageLength, long message, long l, CallbackInfo ci) {
         for (StackTraceElement ste : Thread.currentThread().getStackTrace()) {
-            if (ste.getClassName().startsWith("java") || ste.getClassName().startsWith("lwjgl") || ste.getClassName().startsWith("net.minecraft.client.gl")) {
+            if (ste.getClassName().startsWith("java") || ste.getClassName().startsWith("org.lwjgl") || ste.getClassName().startsWith("lwjgl") || ste.getClassName().startsWith("com.mojang.blaze3d.platform.GlDebug")) {
                 continue;
             }
 

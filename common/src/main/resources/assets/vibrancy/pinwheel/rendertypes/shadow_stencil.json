@@ -6,7 +6,7 @@
   "layers": [
     {
       "type": "veil:shader",
-      "name": "vibrancy:light/ray/mask"
+      "name": "vibrancy:light/ray/mask_stencil"
     },
     {
       "type": "minecraft:depth_test",
@@ -14,7 +14,7 @@
     },
     {
       "type": "minecraft:cull",
-      "face": "front"
+      "face": "none"
     },
     {
       "type": "minecraft:write_mask",
