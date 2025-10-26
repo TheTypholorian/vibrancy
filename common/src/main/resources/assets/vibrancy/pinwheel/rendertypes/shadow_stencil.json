@@ -9,6 +9,10 @@
       "name": "vibrancy:light/ray/mask_stencil"
     },
     {
+      "type": "minecraft:depth_test",
+      "mode": "always"
+    },
+    {
       "type": "minecraft:cull",
       "face": "none"
     },
