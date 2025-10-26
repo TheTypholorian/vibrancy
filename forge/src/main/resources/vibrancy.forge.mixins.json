@@ -2,9 +2,11 @@
   "required": true,
   "minVersion": "0.8",
   "package": "net.typho.vibrancy.mixin",
-  "compatibilityLevel": "JAVA_18",
+  "compatibilityLevel": "JAVA_21",
   "mixins": [],
   "client": [
+    "ForgeClientChunkCacheMixin",
+    "OptionsMixin"
   ],
   "server": [],
   "injectors": {
