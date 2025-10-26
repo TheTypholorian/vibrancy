@@ -8,6 +8,7 @@ layout(early_fragment_tests) in;
 uniform sampler2D BlockAtlasSampler;
 uniform sampler2D WorldPosSampler;
 uniform sampler2D DiffuseDepthSampler;
+uniform sampler2D VeilDynamicNormalSampler;
 uniform vec3 LightPos;
 uniform float LightRadius;
 uniform vec2 ScreenSize;
@@ -21,6 +22,12 @@ void main() {
 
     vec3 Pos = viewToWorldSpace(viewPosFromDepth(texelFetch(DiffuseDepthSampler, ivec2(gl_FragCoord.xy), 0).r, gl_FragCoord.xy / ScreenSize));
 
+    float d = dot(normalize(texelFetch(VeilDynamicNormalSampler, ivec2(gl_FragCoord.xy), 0).xyz), normalize((VeilCamera.ViewMat * vec4(LightPos - Pos, 0.0)).xyz));
+
+    if (d < 0) {
+        discard;
+    }
+
     vec3 delta = Pos - LightPos;
     float len = length(delta);
 
@@ -32,12 +39,10 @@ void main() {
         vec2 uv;
 
         if (raycastQuad(LightPos, dir, len, q, uv)) {
-            if (q.doSample == 1) {
-                fragColor = texture(BlockAtlasSampler, uv);
+            fragColor = texture(BlockAtlasSampler, uv);
 
-                if (fragColor.a == 0) {
-                    discard;
-                }
+            if (fragColor.a == 0) {
+                discard;
             }
         } else {
             discard;

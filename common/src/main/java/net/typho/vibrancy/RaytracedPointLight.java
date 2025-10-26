@@ -84,6 +84,8 @@ public class RaytracedPointLight extends AbstractRaytracedPointLight {
                 }
 
                 upload(builder, volumes);
+
+                shadowCount = volumes.size();
             }
 
             if (fullRebuildTask != null && fullRebuildTask.isDone()) {
@@ -97,6 +99,8 @@ public class RaytracedPointLight extends AbstractRaytracedPointLight {
                     }
 
                     upload(builder, volumes);
+
+                    shadowCount = volumes.size();
                 } catch (InterruptedException | ExecutionException e) {
                     throw new RuntimeException(e);
                 }
@@ -137,7 +141,7 @@ public class RaytracedPointLight extends AbstractRaytracedPointLight {
                         .rotate(camera.rotation().invert(new Quaternionf()))
                         .translate((float) -camera.getPosition().x, (float) -camera.getPosition().y, (float) -camera.getPosition().z);
 
-                renderMask(raytrace, lightPos, camera, view);
+                renderMask(raytrace, lightPos, view);
                 renderLight(lightPos, view);
 
                 return true;

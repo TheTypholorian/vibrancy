@@ -25,5 +25,6 @@ public class LightRendererMixin {
         }
 
         consumer.accept("Async tasks: " + Vibrancy.NUM_LIGHT_TASKS);
+        consumer.accept("Number of shadows: " + Vibrancy.SHADOW_COUNT);
     }
 }

@@ -7,8 +7,10 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.VertexBuffer;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import foundry.veil.api.client.render.VeilRenderSystem;
+import foundry.veil.api.client.render.framebuffer.AdvancedFbo;
 import foundry.veil.api.client.render.light.PointLight;
-import net.minecraft.client.Camera;
+import foundry.veil.api.client.render.rendertype.VeilRenderType;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.core.BlockBox;
 import net.minecraft.core.BlockPos;
@@ -29,6 +31,7 @@ import static org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER;
 public abstract class AbstractRaytracedPointLight extends PointLight implements RaytracedLight {
     protected final VertexBuffer geomVBO = new VertexBuffer(VertexBuffer.Usage.DYNAMIC), boxVBO = new VertexBuffer(VertexBuffer.Usage.DYNAMIC);
     protected final int quadsSSBO = glGenBuffers();
+    protected int shadowCount = 0;
     protected boolean anyShadows = false;
     protected float flicker = 0, flickerMin, flickerMax, flickerStart = (float) GLFW.glfwGetTime();
 
@@ -67,10 +70,11 @@ public abstract class AbstractRaytracedPointLight extends PointLight implements 
         return box;
     }
 
-    protected void renderMask(boolean raytrace, Vector3f lightPos, Camera camera, Matrix4f view) {
-        Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(Vibrancy.id("shadow_mask"))).bind(true);
+    protected void renderMask(boolean raytrace, Vector3f lightPos, Matrix4f view) {
+        AdvancedFbo fbo = Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(Vibrancy.id("shadow_mask")));
+        fbo.bind(true);
         glClearColor(0f, 0f, 0f, 0f);
-        glClear(GL_COLOR_BUFFER_BIT);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         if (anyShadows && raytrace) {
             VeilRenderSystem.setShader(Vibrancy.id("light/ray/mask"));
@@ -80,12 +84,8 @@ public abstract class AbstractRaytracedPointLight extends PointLight implements 
             shader.safeGetUniform("LightRadius").set(radius);
             shader.safeGetUniform("Detailed").set(1);
 
-            RenderSystem.depthMask(false);
-            RenderSystem.disableDepthTest();
-            RenderSystem.enableBlend();
-            RenderSystem.blendFunc(GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ONE);
-            RenderSystem.blendEquation(GL_FUNC_ADD);
-            RenderSystem.disableCull();
+            RenderType type = VeilRenderType.get(Vibrancy.id("shadow"));
+            type.setupRenderState();
 
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, quadsSSBO);
 
@@ -93,10 +93,11 @@ public abstract class AbstractRaytracedPointLight extends PointLight implements 
             geomVBO.drawWithShader(view, RenderSystem.getProjectionMatrix(), RenderSystem.getShader());
             VertexBuffer.unbind();
 
-            RenderSystem.enableCull();
-            RenderSystem.depthMask(true);
-            RenderSystem.disableBlend();
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
+
+            type.clearRenderState();
+
+            Vibrancy.SHADOW_COUNT += shadowCount;
         }
     }
 

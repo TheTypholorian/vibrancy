@@ -49,16 +49,16 @@ public abstract class AbstractMovingRaytracedPointLight extends AbstractRaytrace
         }
     }
 
-    public void regenQuadsSync(ClientLevel world, BlockPos pos, Consumer<Quad> out, BlockPos lightBlockPos, Vector3f lightPos) {
+    public void regenQuadsSync(ClientLevel world, BlockPos pos, Consumer<Quad> out, BlockPos lightBlockPos) {
         quads.remove(pos);
-        regenQuadsAsync(world, pos, out, lightBlockPos, lightPos);
+        regenQuadsAsync(world, pos, out, lightBlockPos);
     }
 
-    public void regenQuadsAsync(ClientLevel world, BlockPos pos, Consumer<Quad> out, BlockPos lightBlockPos, Vector3f lightPos) {
-        getQuads(world, pos, out, pos.distSqr(lightBlockPos), lightBlockPos, lightPos, false);
+    public void regenQuadsAsync(ClientLevel world, BlockPos pos, Consumer<Quad> out, BlockPos lightBlockPos) {
+        getQuads(world, pos, out, pos.distSqr(lightBlockPos), lightBlockPos, false);
     }
 
-    public void regenAll(ClientLevel world, BlockBox box, BlockPos lightBlockPos, Vector3f lightPos) {
+    public void regenAll(ClientLevel world, BlockBox box, BlockPos lightBlockPos) {
         fullRebuildTask = CompletableFuture.supplyAsync(() -> {
             Map<BlockPos, List<Quad>> quads = new LinkedHashMap<>();
 
@@ -72,7 +72,7 @@ public abstract class AbstractMovingRaytracedPointLight extends AbstractRaytrace
                             quads.put(pos, existing);
                         } else {
                             List<Quad> list = new LinkedList<>();
-                            regenQuadsAsync(world, pos, list::add, lightBlockPos, lightPos);
+                            regenQuadsAsync(world, pos, list::add, lightBlockPos);
 
                             if (!list.isEmpty()) {
                                 quads.put(pos, list);
@@ -119,15 +119,15 @@ public abstract class AbstractMovingRaytracedPointLight extends AbstractRaytrace
                         regenAll(world, blockRadius > 1 ? new BlockBox(
                                 new BlockPos(box.min().getX() - blockRadius, box.min().getY() - blockRadius, box.min().getZ() - blockRadius),
                                 new BlockPos(box.max().getX() + blockRadius, box.max().getY() + blockRadius, box.max().getZ() + blockRadius)
-                        ) : box, lightBlockPos, lightPos);
+                        ) : box, lightBlockPos);
                         quadBox = box;
                     } else if (!dirty.isEmpty()) {
                         for (BlockPos pos : dirty) {
                             List<Quad> list = new LinkedList<>();
-                            regenQuadsSync(world, pos, list::add, lightBlockPos, lightPos);
+                            regenQuadsSync(world, pos, list::add, lightBlockPos);
 
                             for (Direction dir : Direction.values()) {
-                                regenQuadsSync(world, pos.relative(dir), list::add, lightBlockPos, lightPos);
+                                regenQuadsSync(world, pos.relative(dir), list::add, lightBlockPos);
                             }
 
                             if (!list.isEmpty()) {
@@ -151,12 +151,14 @@ public abstract class AbstractMovingRaytracedPointLight extends AbstractRaytrace
 
                 upload(builder, volumes);
 
+                shadowCount = volumes.size();
+
                 Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
                 Matrix4f view = new Matrix4f()
                         .rotate(camera.rotation().invert(new Quaternionf()))
                         .translate((float) -camera.getPosition().x, (float) -camera.getPosition().y, (float) -camera.getPosition().z);
 
-                renderMask(raytrace, lightPos, camera, view);
+                renderMask(raytrace, lightPos, view);
                 renderLight(lightPos, view);
 
                 return true;

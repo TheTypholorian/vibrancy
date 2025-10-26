@@ -6,20 +6,24 @@
   "layers": [
     {
       "type": "veil:shader",
-      "name": "vibrancy:sky"
+      "name": "vibrancy:light/ray/mask"
     },
     {
       "type": "minecraft:depth_test",
-      "mode": "never"
+      "mode": "less"
     },
     {
       "type": "minecraft:cull",
-      "mode": "none"
+      "face": "front"
     },
     {
       "type": "minecraft:write_mask",
       "color": true,
       "depth": false
+    },
+    {
+      "type": "minecraft:output",
+      "framebuffer": "vibrancy:shadow_mask"
     }
   ]
 }

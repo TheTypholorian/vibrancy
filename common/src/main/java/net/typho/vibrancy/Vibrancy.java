@@ -64,7 +64,7 @@ public class Vibrancy {
             value -> Tooltip.create(Component.translatable("options.vibrancy.raytrace_distance.tooltip")),
             (text, value) -> Options.genericValueLabel(text, Component.translatable("options.vibrancy.raytrace_distance.value", value * 16)),
             new OptionInstance.IntRange(1, 32, false),
-            4,
+            16,
             value -> {}
     );
     public static final OptionInstance<Integer> LIGHT_CULL_DISTANCE = new OptionInstance<>(
@@ -72,7 +72,7 @@ public class Vibrancy {
             value -> Tooltip.create(Component.translatable("options.vibrancy.light_cull_distance.tooltip")),
             (text, value) -> Options.genericValueLabel(text, Component.translatable("options.vibrancy.light_cull_distance.value", value * 16)),
             new OptionInstance.IntRange(1, 32, false),
-            12,
+            32,
             value -> {}
     );
     public static final OptionInstance<Integer> MAX_RAYTRACED_LIGHTS = new OptionInstance<>(
@@ -80,7 +80,7 @@ public class Vibrancy {
             value -> Tooltip.create(Component.translatable("options.vibrancy.max_raytraced_lights.tooltip")),
             (text, value) -> Options.genericValueLabel(text, value > 100 ? Component.translatable("options.vibrancy.max_raytraced_lights.max") : Component.translatable("options.vibrancy.max_raytraced_lights.value", value)),
             new OptionInstance.IntRange(5, 105, false),
-            30,
+            60,
             value -> {}
     );
     public static final OptionInstance<Integer> MAX_SHADOW_DISTANCE = new OptionInstance<>(
@@ -88,7 +88,7 @@ public class Vibrancy {
             value -> Tooltip.create(Component.translatable("options.vibrancy.max_shadow_distance.tooltip")),
             (text, value) -> Options.genericValueLabel(text, value > 15 ? Component.translatable("options.vibrancy.max_shadow_distance.max") : Component.translatable("options.vibrancy.max_shadow_distance.value", value)),
             new OptionInstance.IntRange(1, 16, false),
-            8,
+            6,
             value -> {}
     );
     public static final OptionInstance<Integer> MAX_LIGHT_RADIUS = new OptionInstance<>(
@@ -112,7 +112,7 @@ public class Vibrancy {
     public static final Map<ResourceKey<Block>, BlockStateFunction<Boolean>> EMISSIVE_OVERRIDES = new LinkedHashMap<>();
     public static final Map<BlockPos, RaytracedPointBlockLight> BLOCK_LIGHTS = new LinkedHashMap<>();
     public static final Map<LivingEntity, RaytracedPointEntityLight> ENTITY_LIGHTS = new LinkedHashMap<>();
-    public static int NUM_LIGHT_TASKS = 0, NUM_RAYTRACED_LIGHTS = 0, NUM_VISIBLE_LIGHTS = 0;
+    public static int NUM_LIGHT_TASKS = 0, NUM_RAYTRACED_LIGHTS = 0, NUM_VISIBLE_LIGHTS = 0, SHADOW_COUNT = 0;
     public static BiFunction<StateDefinition<Block, BlockState>, String, Predicate<BlockState>> BLOCK_STATE_PREDICATE = (def, properties) -> {
         throw new IllegalStateException();
     };
@@ -282,6 +282,7 @@ public class Vibrancy {
         int[] cap = {0};
         NUM_RAYTRACED_LIGHTS = 0;
         NUM_VISIBLE_LIGHTS = 0;
+        SHADOW_COUNT = 0;
 
         for (RaytracedPointBlockLight light : BLOCK_LIGHTS.values()) {
             light.updateDirty(RaytracedLight.DIRTY);

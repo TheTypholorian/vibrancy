@@ -5,8 +5,6 @@ import com.mojang.blaze3d.vertex.VertexBuffer;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
-import net.minecraft.client.renderer.ItemBlockRenderTypes;
-import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.block.model.BakedQuad;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.core.BlockPos;
@@ -49,7 +47,7 @@ public interface RaytracedLight extends NativeResource {
 
     AABB getBoundingBox();
 
-    default void getQuads(Iterable<BakedQuad> bakedQuads, BlockPos pos, Consumer<Quad> out, RenderType layer, Vec3 offset) {
+    default void getQuads(Iterable<BakedQuad> bakedQuads, BlockPos pos, Consumer<Quad> out, Vec3 offset) {
         for (BakedQuad quad : bakedQuads) {
             Vector3f[] positions = new Vector3f[4];
             Vector2f[] uvs = new Vector2f[4];
@@ -78,38 +76,33 @@ public interface RaytracedLight extends NativeResource {
                     uvs[0],
                     uvs[1],
                     uvs[2],
-                    uvs[3],
-                    layer.sortOnUpload() || layer != RenderType.solid()
+                    uvs[3]
             ));
         }
     }
 
-    default void getQuads(ClientLevel world, BlockPos pos, Consumer<Quad> out, double sqDist, BlockPos lightBlockPos, Vector3f lightPos, boolean normalTest) {
+    default void getQuads(ClientLevel world, BlockPos pos, Consumer<Quad> out, double sqDist, BlockPos lightBlockPos, boolean normalTest) {
         BlockState state = world.getBlockState(pos);
 
         if (!Vibrancy.TRANSPARENCY_TEST.get() && state.propagatesSkylightDown(world, pos)) {
             return;
         }
 
-        RenderType layer = ItemBlockRenderTypes.getChunkRenderType(state);
         BakedModel model = Minecraft.getInstance().getBlockRenderer().getBlockModel(state);
-        long seed = lightBlockPos.hashCode();
         RandomSource random = RandomSource.create();
         Vec3 offset = state.getOffset(world, pos);
 
         for (Direction direction : Direction.values()) {
             if (sqDist <= 4 || (Block.shouldRenderFace(state, world, pos, direction, pos.relative(direction)) && (!normalTest || Vibrancy.pointsToward(pos, direction, lightBlockPos)))) {
-                random.setSeed(seed);
-                getQuads(model.getQuads(state, direction, random), pos, out, layer, offset);
+                getQuads(model.getQuads(state, direction, random), pos, out, offset);
             }
         }
 
-        random.setSeed(seed);
-        getQuads(model.getQuads(state, null, random), pos, out, layer, offset);
+        getQuads(model.getQuads(state, null, random), pos, out, offset);
     }
 
     default void getVolumes(ClientLevel world, BlockPos pos, Consumer<ShadowVolume> out, double sqDist, BlockPos lightBlockPos, Vector3f lightPos, float radius, boolean normalTest) {
-        getQuads(world, pos, quad -> out.accept(quad.toVolume(lightPos, radius)), sqDist, lightBlockPos, lightPos, normalTest);
+        getQuads(world, pos, quad -> out.accept(quad.toVolume(lightPos, radius)), sqDist, lightBlockPos, normalTest);
     }
 
     default void upload(BufferBuilder builder, Collection<ShadowVolume> volumes, VertexBuffer geomVBO, int quadsSSBO, int usage) {
@@ -135,26 +128,24 @@ public interface RaytracedLight extends NativeResource {
             Vector3f v1, Vector3f v2, Vector3f v3, Vector3f v4,
             Vector2f uv1, Vector2f uv2, Vector2f uv3, Vector2f uv4,
             Vector3f n, float d,
-            Vector3f e1, Vector3f e2,
-            boolean sample
+            Vector3f e1, Vector3f e2
     ) {
         public static final int BYTES = 40 * Float.BYTES;
 
         public Quad(BlockPos blockPos, Vector3f v1, Vector3f v2, Vector3f v3, Vector3f v4,
-                    Vector2f uv1, Vector2f uv2, Vector2f uv3, Vector2f uv4, boolean sample) {
+                    Vector2f uv1, Vector2f uv2, Vector2f uv3, Vector2f uv4) {
             this(
                     blockPos,
                     v1, v2, v3, v4, uv1, uv2, uv3, uv4,
                     new Vector3f(v2).sub(v1).cross(new Vector3f(v4).sub(v1)).normalize(),
                     new Vector3f(v2).sub(v1).cross(new Vector3f(v4).sub(v1)).normalize().dot(v1),
                     new Vector3f(v2).sub(v1),
-                    new Vector3f(v4).sub(v1),
-                    sample
+                    new Vector3f(v4).sub(v1)
             );
         }
 
         public void put(ByteBuffer buf) {
-            buf.putFloat(v1.x).putFloat(v1.y).putFloat(v1.z).putInt(sample ? 1 : 0);
+            buf.putFloat(v1.x).putFloat(v1.y).putFloat(v1.z).putFloat(0);
             buf.putFloat(v2.x).putFloat(v2.y).putFloat(v2.z).putFloat(0);
             buf.putFloat(v3.x).putFloat(v3.y).putFloat(v3.z).putFloat(0);
             buf.putFloat(v4.x).putFloat(v4.y).putFloat(v4.z).putFloat(0);
