@@ -5,7 +5,7 @@ layout(early_fragment_tests) in;
 #include "veil:deferred_utils"
 #include "vibrancy:quads"
 
-uniform sampler2D BlockAtlasSampler;
+uniform sampler2D AtlasSampler;
 uniform sampler2D WorldPosSampler;
 uniform sampler2D DiffuseDepthSampler;
 uniform sampler2D VeilDynamicNormalSampler;
@@ -30,7 +30,7 @@ void main() {
     vec2 uv;
 
     if (raycastQuad(LightPos, dir, len, q, uv)) {
-        fragColor = texture(BlockAtlasSampler, uv);
+        fragColor = texture(AtlasSampler, uv);
 
         if (fragColor.a == 0) {
             discard;

@@ -10,7 +10,6 @@
       "type": "framebuffer",
       "name": "vibrancy:view_pos"
     },
-    "BlockAtlasSampler": "minecraft:textures/atlas/blocks.png",
     "VeilDynamicNormalSampler": {
       "type": "location",
       "location": "veil:dynamic_buffer/normal"

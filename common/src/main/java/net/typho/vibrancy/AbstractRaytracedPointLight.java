@@ -2,19 +2,20 @@ package net.typho.vibrancy;
 
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.BufferBuilder;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.VertexBuffer;
-import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.blaze3d.vertex.*;
 import foundry.veil.api.client.render.VeilRenderSystem;
 import foundry.veil.api.client.render.framebuffer.AdvancedFbo;
 import foundry.veil.api.client.render.light.PointLight;
 import foundry.veil.api.client.render.rendertype.VeilRenderType;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.core.BlockBox;
 import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
+import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.phys.AABB;
 import org.joml.Matrix4f;
 import org.joml.Vector3d;
@@ -22,6 +23,8 @@ import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFW;
 
 import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Objects;
 
 import static org.lwjgl.opengl.GL15.*;
@@ -29,7 +32,7 @@ import static org.lwjgl.opengl.GL30.glBindBufferBase;
 import static org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER;
 
 public abstract class AbstractRaytracedPointLight extends PointLight implements RaytracedLight {
-    protected final VertexBuffer geomVBO = new VertexBuffer(VertexBuffer.Usage.DYNAMIC), boxVBO = new VertexBuffer(VertexBuffer.Usage.DYNAMIC);
+    protected final VertexBuffer geomVBO = new VertexBuffer(VertexBuffer.Usage.STATIC), entitiesVBO = new VertexBuffer(VertexBuffer.Usage.DYNAMIC), boxVBO = new VertexBuffer(VertexBuffer.Usage.STATIC);
     protected final int quadsSSBO = glGenBuffers();
     protected int shadowCount = 0;
     protected boolean anyShadows = false;
@@ -50,7 +53,7 @@ public abstract class AbstractRaytracedPointLight extends PointLight implements 
             anyShadows = false;
         } else {
             anyShadows = true;
-            upload(builder, volumes, geomVBO, quadsSSBO, GL_DYNAMIC_DRAW);
+            upload(builder, volumes, geomVBO, quadsSSBO, GL_STATIC_DRAW);
         }
     }
 
@@ -68,6 +71,60 @@ public abstract class AbstractRaytracedPointLight extends PointLight implements 
         }
 
         return box;
+    }
+
+    protected void renderEntities(RenderType shadowType, Matrix4f view, ShaderInstance shader) {
+        ClientLevel world = Minecraft.getInstance().level;
+
+        if (world != null) {
+            Vector3d lightPos = getPosition();
+            BlockPos lightBlockPos = new BlockPos((int) Math.floor(lightPos.x), (int) Math.floor(lightPos.y), (int) Math.floor(lightPos.z));
+            int blockRadius = Vibrancy.capShadowDistance((int) Math.ceil(radius) - 2);
+            PoseStack stack = new PoseStack();
+            stack.setIdentity();
+            stack.mulPose(view);
+
+            Map<RenderType, BufferBuilder> builders = new LinkedHashMap<>();
+
+            world.entitiesForRendering().forEach(entity -> {
+                double sqDist = entity.position().distanceToSqr(lightBlockPos.getX(), lightBlockPos.getY(), lightBlockPos.getZ());
+
+                if (sqDist != 0 && sqDist < blockRadius * blockRadius) {
+                    System.out.println(entity);
+                    Minecraft.getInstance().getEntityRenderDispatcher().getRenderer(entity).render(
+                            entity,
+                            0,
+                            Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(true),
+                            stack,
+                            type -> builders.computeIfAbsent(type, k -> Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION)),
+                            LightTexture.FULL_BRIGHT
+                    );
+                }
+            });
+
+            builders.forEach((type, builder) -> {
+                MeshData mesh = builder.build();
+
+                if (mesh == null) {
+                    return;
+                }
+
+                shadowType.clearRenderState();
+                type.setupRenderState();
+                int tex = RenderSystem.getShaderTexture(0);
+                type.clearRenderState();
+                shadowType.setupRenderState();
+
+                shader.setSampler("AtlasSampler", tex);
+
+                System.out.println("render");
+
+                entitiesVBO.bind();
+                entitiesVBO.upload(mesh);
+                entitiesVBO.drawWithShader(view, RenderSystem.getProjectionMatrix(), shader);
+                VertexBuffer.unbind();
+            });
+        }
     }
 
     protected void renderMask(boolean raytrace, Vector3f lightPos, Matrix4f view) {
@@ -112,9 +169,13 @@ public abstract class AbstractRaytracedPointLight extends PointLight implements 
 
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, quadsSSBO);
 
+            shader.setSampler("AtlasSampler", Minecraft.getInstance().getModelManager().getAtlas(InventoryMenu.BLOCK_ATLAS));
+
             geomVBO.bind();
             geomVBO.drawWithShader(view, RenderSystem.getProjectionMatrix(), RenderSystem.getShader());
             VertexBuffer.unbind();
+
+            renderEntities(type, view, shader);
 
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
 
