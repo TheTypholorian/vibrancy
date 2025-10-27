@@ -1,6 +1,6 @@
 #version 430
 
-#include "veil:deferred_utils"
+#include veil:deferred_utils
 
 uniform sampler2D WorldPosSampler;
 uniform sampler2D DiffuseDepthSampler;

@@ -1,9 +1,9 @@
 #version 430
 
-#include "veil:common"
-#include "veil:deferred_utils"
-#include "veil:color_utilities"
-#include "veil:light"
+#include veil:common
+#include veil:deferred_utils
+#include veil:color_utilities
+#include veil:light
 
 uniform sampler2D DiffuseDepthSampler;
 uniform sampler2D ShadowMaskSampler;

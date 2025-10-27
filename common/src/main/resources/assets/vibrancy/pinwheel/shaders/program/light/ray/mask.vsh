@@ -1,6 +1,6 @@
 #version 430
 
-#include "vibrancy:quads"
+#include vibrancy:quads
 
 layout(std430, binding = 0) buffer Quads {
     Quad quads[];

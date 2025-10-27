@@ -2,8 +2,8 @@
 
 layout(early_fragment_tests) in;
 
-#include "veil:deferred_utils"
-#include "vibrancy:quads"
+#include veil:deferred_utils
+#include vibrancy:quads
 
 uniform sampler2D AtlasSampler;
 uniform sampler2D WorldPosSampler;

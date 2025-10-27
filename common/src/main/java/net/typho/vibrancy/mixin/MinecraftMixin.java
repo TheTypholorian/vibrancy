@@ -7,7 +7,6 @@ import net.minecraft.client.main.GameConfig;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.server.packs.resources.ReloadableResourceManager;
-import net.typho.vibrancy.AlphaWarningScreen;
 import net.typho.vibrancy.RaytracedPointEntityLight;
 import net.typho.vibrancy.Vibrancy;
 import org.jetbrains.annotations.Nullable;
@@ -18,9 +17,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.List;
-import java.util.function.Function;
-
 @Mixin(Minecraft.class)
 public class MinecraftMixin {
     @Shadow
@@ -30,16 +26,6 @@ public class MinecraftMixin {
     @Shadow
     @Final
     private ReloadableResourceManager resourceManager;
-
-    @Inject(
-            method = "addInitialScreens",
-            at = @At("TAIL")
-    )
-    private void addInitialScreens(List<Function<Runnable, Screen>> list, CallbackInfo ci) {
-        if (!Vibrancy.SEEN_ALPHA_TEXT) {
-            list.add(AlphaWarningScreen::new);
-        }
-    }
 
     @Inject(
             method = "disconnect(Lnet/minecraft/client/gui/screens/Screen;Z)V",

@@ -2,7 +2,7 @@
   "required": true,
   "minVersion": "0.8",
   "package": "net.typho.vibrancy.mixin",
-  "compatibilityLevel": "JAVA_21",
+  "compatibilityLevel": "JAVA_18",
   "client": [
     "BlockStateBaseMixin",
     "ClientChunkCacheMixin",
@@ -14,7 +14,6 @@
     "LightRendererMixin",
     "MinecraftMixin",
     "PlayerMixin",
-    "ShaderImportProcessorMixin",
     "ShaderProgramMixin",
     "SodiumGameOptionsPagesAccessor",
     "SodiumOptionsGUIMixin",
@@ -29,5 +28,6 @@
   },
   "mixins": [
     "AdvancedFboBuilderMixin"
-  ]
+  ],
+  "refmap": "vibrancy.refmap.json"
 }
