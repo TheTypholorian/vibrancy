@@ -7,8 +7,8 @@ import net.minecraft.client.main.GameConfig;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.LocalPlayer;
 import net.minecraft.server.packs.resources.ReloadableResourceManager;
-import net.typho.vibrancy.RaytracedPointEntityLight;
 import net.typho.vibrancy.Vibrancy;
+import net.typho.vibrancy.light.EntityPointLight;
 import org.jetbrains.annotations.Nullable;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -32,7 +32,7 @@ public class MinecraftMixin {
             at = @At("HEAD")
     )
     private void disconnect(Screen disconnectionScreen, boolean transferring, CallbackInfo ci) {
-        RaytracedPointEntityLight light = Vibrancy.ENTITY_LIGHTS.get(player);
+        EntityPointLight light = Vibrancy.ENTITY_LIGHTS.get(player);
 
         if (light != null) {
             light.free();
@@ -44,7 +44,7 @@ public class MinecraftMixin {
             at = @At("HEAD")
     )
     private void clearClientLevel(Screen nextScreen, CallbackInfo ci) {
-        RaytracedPointEntityLight light = Vibrancy.ENTITY_LIGHTS.get(player);
+        EntityPointLight light = Vibrancy.ENTITY_LIGHTS.get(player);
 
         if (light != null) {
             light.free();

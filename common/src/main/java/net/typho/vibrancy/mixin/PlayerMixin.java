@@ -7,8 +7,8 @@ import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.entity.player.Player;
 import net.minecraft.world.level.Level;
-import net.typho.vibrancy.RaytracedPointEntityLight;
 import net.typho.vibrancy.Vibrancy;
+import net.typho.vibrancy.light.EntityPointLight;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -26,7 +26,7 @@ public abstract class PlayerMixin extends LivingEntity {
     )
     private void onEquipStack(Level level, BlockPos pos, float yRot, GameProfile gameProfile, CallbackInfo ci) {
         if (level.isClientSide) {
-            RenderSystem.recordRenderCall(() -> Vibrancy.ENTITY_LIGHTS.computeIfAbsent(this, RaytracedPointEntityLight::new));
+            RenderSystem.recordRenderCall(() -> Vibrancy.ENTITY_LIGHTS.computeIfAbsent(this, EntityPointLight::new));
         }
     }
 

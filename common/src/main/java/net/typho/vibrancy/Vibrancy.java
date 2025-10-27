@@ -37,6 +37,10 @@ import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.phys.Vec3;
+import net.typho.vibrancy.light.BlockPointLight;
+import net.typho.vibrancy.light.EntityPointLight;
+import net.typho.vibrancy.light.RaytracedLight;
+import net.typho.vibrancy.light.SkyLight;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -114,8 +118,8 @@ public class Vibrancy {
     public static boolean SEEN_ALPHA_TEXT = false;
     public static Supplier<SimpleParticleType> STEAM;
     public static final Map<ResourceKey<Block>, BlockStateFunction<Boolean>> EMISSIVE_OVERRIDES = new LinkedHashMap<>();
-    public static final Map<BlockPos, RaytracedPointBlockLight> BLOCK_LIGHTS = new LinkedHashMap<>();
-    public static final Map<LivingEntity, RaytracedPointEntityLight> ENTITY_LIGHTS = new LinkedHashMap<>();
+    public static final Map<BlockPos, BlockPointLight> BLOCK_LIGHTS = new LinkedHashMap<>();
+    public static final Map<LivingEntity, EntityPointLight> ENTITY_LIGHTS = new LinkedHashMap<>();
     public static int NUM_LIGHT_TASKS = 0, NUM_RAYTRACED_LIGHTS = 0, NUM_VISIBLE_LIGHTS = 0, SHADOW_COUNT = 0;
     public static BiFunction<StateDefinition<Block, BlockState>, String, Predicate<BlockState>> BLOCK_STATE_PREDICATE = (def, properties) -> {
         throw new IllegalStateException();
@@ -149,8 +153,7 @@ public class Vibrancy {
 
     public static boolean shouldRenderLight(RaytracedLight light) {
         Vec3 cam = Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
-        boolean b = light.getPosition().distanceSquared(cam.x, cam.y, cam.z) / 16 < Vibrancy.LIGHT_CULL_DISTANCE.get() * Vibrancy.LIGHT_CULL_DISTANCE.get() &&
-                (VeilRenderSystem.getCullingFrustum().testAab(light.getBoundingBox()) || (light instanceof RaytracedPointEntityLight entity && entity.entity == Minecraft.getInstance().cameraEntity));
+        boolean b = light.getPosition().distanceSquared(cam.x, cam.y, cam.z) / 16 < Vibrancy.LIGHT_CULL_DISTANCE.get() * Vibrancy.LIGHT_CULL_DISTANCE.get() && light.shouldRender();
 
         if (b) {
             NUM_VISIBLE_LIGHTS++;
@@ -280,6 +283,17 @@ public class Vibrancy {
         });
     }
 
+    public static void afterClientLevelChange(ClientLevel world) {
+        BLOCK_LIGHTS.values().forEach(BlockPointLight::free);
+        BLOCK_LIGHTS.clear();
+        ENTITY_LIGHTS.values().forEach(EntityPointLight::free);
+        ENTITY_LIGHTS.clear();
+
+        for (AbstractClientPlayer player : world.players()) {
+            ENTITY_LIGHTS.put(player, new EntityPointLight(player));
+        }
+    }
+
     public static void render() {
         NUM_LIGHT_TASKS = 0;
         ResourceLocation id = id("ray_light");
@@ -291,7 +305,7 @@ public class Vibrancy {
         glClear(GL_COLOR_BUFFER_BIT);
 
         BLOCK_LIGHTS.values().removeIf(light -> {
-            boolean b = light == null || light.remove;
+            boolean b = light == null || light.shouldRemove();
 
             if (b && light != null) {
                 light.free();
@@ -304,14 +318,23 @@ public class Vibrancy {
         NUM_VISIBLE_LIGHTS = 0;
         SHADOW_COUNT = 0;
 
-        for (RaytracedPointBlockLight light : BLOCK_LIGHTS.values()) {
+        if (SkyLight.INSTANCE != null) {
+            SkyLight.INSTANCE.updateDirty(RaytracedLight.DIRTY);
+            SkyLight.INSTANCE.init();
+        }
+
+        for (BlockPointLight light : BLOCK_LIGHTS.values()) {
             light.updateDirty(RaytracedLight.DIRTY);
             light.init();
         }
 
-        for (RaytracedPointEntityLight light : ENTITY_LIGHTS.values()) {
+        for (EntityPointLight light : ENTITY_LIGHTS.values()) {
             light.updateDirty(RaytracedLight.DIRTY);
             light.init();
+        }
+
+        if (SkyLight.INSTANCE != null) {
+            renderLight(SkyLight.INSTANCE, cap);
         }
 
         ENTITY_LIGHTS.values().stream()
@@ -324,17 +347,6 @@ public class Vibrancy {
                 .forEachOrdered(light -> renderLight(light, cap));
 
         RaytracedLight.DIRTY.clear();
-    }
-
-    public static void afterClientLevelChange(ClientLevel world) {
-        BLOCK_LIGHTS.values().forEach(RaytracedPointBlockLight::free);
-        BLOCK_LIGHTS.clear();
-        ENTITY_LIGHTS.values().forEach(RaytracedPointEntityLight::free);
-        ENTITY_LIGHTS.clear();
-
-        for (AbstractClientPlayer player : world.players()) {
-            ENTITY_LIGHTS.put(player, new RaytracedPointEntityLight(player));
-        }
     }
 
     public static void init() {

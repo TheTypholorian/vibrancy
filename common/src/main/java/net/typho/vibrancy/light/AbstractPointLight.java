@@ -1,4 +1,4 @@
-package net.typho.vibrancy;
+package net.typho.vibrancy.light;
 
 import com.mojang.blaze3d.platform.GlStateManager;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -18,6 +18,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.util.Mth;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.phys.AABB;
+import net.typho.vibrancy.Vibrancy;
+import org.jetbrains.annotations.NotNull;
 import org.joml.Matrix4f;
 import org.joml.Vector3d;
 import org.joml.Vector3f;
@@ -30,7 +32,7 @@ import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL30.glBindBufferBase;
 import static org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER;
 
-public abstract class AbstractRaytracedPointLight extends PointLight implements RaytracedLight {
+public abstract class AbstractPointLight extends PointLight implements RaytracedLight {
     protected final VertexBuffer geomVBO = new VertexBuffer(VertexBuffer.Usage.STATIC), entitiesVBO = new VertexBuffer(VertexBuffer.Usage.DYNAMIC), boxVBO = new VertexBuffer(VertexBuffer.Usage.STATIC);
     protected final int quadsSSBO = glGenBuffers();
     protected int shadowCount = 0;
@@ -41,7 +43,7 @@ public abstract class AbstractRaytracedPointLight extends PointLight implements 
         return flicker;
     }
 
-    public AbstractRaytracedPointLight setFlicker(float flicker) {
+    public AbstractPointLight setFlicker(float flicker) {
         this.flicker = flicker;
         markDirty();
         return this;
@@ -209,7 +211,7 @@ public abstract class AbstractRaytracedPointLight extends PointLight implements 
     }
 
     @Override
-    public AABB getBoundingBox() {
+    public @NotNull AABB getBoundingBox() {
         Vector3d pos = getPosition();
         return new AABB(pos.x - radius, pos.y - radius, pos.z - radius, pos.x + radius, pos.y + radius, pos.z + radius);
     }

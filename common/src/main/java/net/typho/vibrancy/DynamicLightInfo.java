@@ -8,6 +8,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
+import net.typho.vibrancy.light.BlockPointLight;
 import org.joml.Vector3f;
 
 import java.util.LinkedHashMap;
@@ -19,11 +20,6 @@ import java.util.function.Predicate;
 public record DynamicLightInfo(Vector3f color, BlockStateFunction<Optional<Float>> radius, BlockStateFunction<Optional<Float>> brightness, BlockStateFunction<Optional<Float>> flicker, BlockStateFunction<Optional<Vec3>> offset) {
     public static final Map<Predicate<BlockState>, Function<BlockState, DynamicLightInfo>> MAP = new LinkedHashMap<>();
 
-    public static boolean has(BlockState state) {
-        return MAP.entrySet().stream()
-                .anyMatch(entry -> entry.getKey().test(state));
-    }
-
     public static DynamicLightInfo get(BlockState state) {
         return MAP.entrySet().stream()
                 .filter(entry -> entry.getKey().test(state))
@@ -32,14 +28,14 @@ public record DynamicLightInfo(Vector3f color, BlockStateFunction<Optional<Float
                 .orElse(null);
     }
 
-    public RaytracedPointBlockLight createBlockLight(BlockPos pos, BlockState state) {
-        return (RaytracedPointBlockLight) initLight(new RaytracedPointBlockLight(
+    public BlockPointLight createBlockLight(BlockPos pos, BlockState state) {
+        return (BlockPointLight) initLight(new BlockPointLight(
                 pos
         ).setFlicker(flicker().apply(state).orElse(0f)), state);
     }
 
     public void addBlockLight(BlockPos pos, BlockState state) {
-        RaytracedPointBlockLight old = Vibrancy.BLOCK_LIGHTS.get(pos);
+        BlockPointLight old = Vibrancy.BLOCK_LIGHTS.get(pos);
 
         if (old == null) {
             Vibrancy.BLOCK_LIGHTS.put(pos, createBlockLight(pos, state));

@@ -1,4 +1,4 @@
-package net.typho.vibrancy;
+package net.typho.vibrancy.light;
 
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
@@ -13,6 +13,8 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
+import net.typho.vibrancy.DynamicLightInfo;
+import net.typho.vibrancy.Vibrancy;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3dc;
@@ -24,15 +26,14 @@ import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
-public class RaytracedPointBlockLight extends AbstractRaytracedPointLight {
+public class BlockPointLight extends AbstractPointLight {
     protected final List<BlockPos> dirty = new LinkedList<>();
-    protected boolean remove = false;
     protected List<ShadowVolume> volumes = new LinkedList<>();
     protected CompletableFuture<List<ShadowVolume>> fullRebuildTask;
     public final BlockPos blockPos;
     protected boolean render = false;
 
-    public RaytracedPointBlockLight(BlockPos blockPos) {
+    public BlockPointLight(BlockPos blockPos) {
         this.blockPos = blockPos;
         markDirty();
     }

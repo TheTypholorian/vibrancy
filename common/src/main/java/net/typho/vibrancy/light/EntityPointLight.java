@@ -1,4 +1,4 @@
-package net.typho.vibrancy;
+package net.typho.vibrancy.light;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.LivingEntity;
@@ -6,12 +6,23 @@ import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
+import net.typho.vibrancy.DynamicLightInfo;
 
-public class RaytracedPointEntityLight extends AbstractMovingRaytracedPointLight {
+public class EntityPointLight extends AbstractMovingPointLight {
     public final LivingEntity entity;
 
-    public RaytracedPointEntityLight(net.minecraft.world.entity.LivingEntity entity) {
+    public EntityPointLight(net.minecraft.world.entity.LivingEntity entity) {
         this.entity = entity;
+    }
+
+    @Override
+    public boolean shouldRemove() {
+        return entity.isRemoved();
+    }
+
+    @Override
+    public boolean shouldRender() {
+        return super.shouldRender() || entity == Minecraft.getInstance().cameraEntity;
     }
 
     @Override

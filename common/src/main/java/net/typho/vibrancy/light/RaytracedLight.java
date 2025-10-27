@@ -1,8 +1,9 @@
-package net.typho.vibrancy;
+package net.typho.vibrancy.light;
 
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.VertexBuffer;
 import com.mojang.blaze3d.vertex.VertexConsumer;
+import foundry.veil.api.client.render.VeilRenderSystem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.block.model.BakedQuad;
@@ -14,6 +15,8 @@ import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
+import net.typho.vibrancy.Vibrancy;
+import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2f;
 import org.joml.Vector3d;
 import org.joml.Vector3f;
@@ -45,7 +48,23 @@ public interface RaytracedLight extends NativeResource {
 
     Vector3d getPosition();
 
-    AABB getBoundingBox();
+    default boolean shouldRemove() {
+        return false;
+    }
+
+    default boolean shouldRender() {
+        AABB box = getBoundingBox();
+
+        if (box == null) {
+            return true;
+        }
+
+        return VeilRenderSystem.getCullingFrustum().testAab(box);
+    }
+
+    default @Nullable AABB getBoundingBox() {
+        return null;
+    }
 
     default void getQuads(Iterable<BakedQuad> bakedQuads, BlockPos pos, Consumer<Quad> out, Vec3 offset) {
         for (BakedQuad quad : bakedQuads) {

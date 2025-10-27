@@ -1,4 +1,4 @@
-package net.typho.vibrancy;
+package net.typho.vibrancy.light;
 
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
@@ -10,6 +10,7 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockBox;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.typho.vibrancy.Vibrancy;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
@@ -21,7 +22,7 @@ import java.util.function.Consumer;
 
 import static org.lwjgl.opengl.GL15.GL_STREAM_DRAW;
 
-public abstract class AbstractMovingRaytracedPointLight extends AbstractRaytracedPointLight {
+public abstract class AbstractMovingPointLight extends AbstractPointLight {
     protected boolean hasLight = false;
     protected Map<BlockPos, List<Quad>> quads = new LinkedHashMap<>();
     protected final List<BlockPos> dirty = new LinkedList<>();

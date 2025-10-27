@@ -7,8 +7,8 @@ import net.minecraft.client.multiplayer.CommonListenerCookie;
 import net.minecraft.network.Connection;
 import net.minecraft.network.protocol.game.ClientboundLoginPacket;
 import net.minecraft.network.protocol.game.ClientboundRespawnPacket;
-import net.typho.vibrancy.RaytracedPointEntityLight;
 import net.typho.vibrancy.Vibrancy;
+import net.typho.vibrancy.light.EntityPointLight;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -25,7 +25,7 @@ public abstract class ClientPacketListenerMixin extends ClientCommonPacketListen
             at = @At("TAIL")
     )
     private void onGameJoin(ClientboundLoginPacket packet, CallbackInfo ci) {
-        Vibrancy.ENTITY_LIGHTS.computeIfAbsent(minecraft.player, RaytracedPointEntityLight::new);
+        Vibrancy.ENTITY_LIGHTS.computeIfAbsent(minecraft.player, EntityPointLight::new);
     }
 
     @Inject(
@@ -33,6 +33,6 @@ public abstract class ClientPacketListenerMixin extends ClientCommonPacketListen
             at = @At("TAIL")
     )
     private void onPlayerRespawn(ClientboundRespawnPacket packet, CallbackInfo ci) {
-        Vibrancy.ENTITY_LIGHTS.computeIfAbsent(minecraft.player, RaytracedPointEntityLight::new);
+        Vibrancy.ENTITY_LIGHTS.computeIfAbsent(minecraft.player, EntityPointLight::new);
     }
 }
