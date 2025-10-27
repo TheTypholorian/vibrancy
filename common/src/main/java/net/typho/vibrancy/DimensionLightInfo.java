@@ -21,9 +21,9 @@ public record DimensionLightInfo(Vector3f color, Optional<Float> brightness, Opt
 
     public SkyLight createSkyLight() {
         SkyLight light = new SkyLight();
-        light.setFlicker(flicker().orElse(0f));
-        light.setBrightness(brightness.orElse(1f));
-        light.setColor(color().x, color().y, color().z);
+        //light.setFlicker(flicker().orElse(0f));
+        //light.setBrightness(brightness.orElse(1f));
+        //light.setColor(color().x, color().y, color().z);
         return light;
     }
 

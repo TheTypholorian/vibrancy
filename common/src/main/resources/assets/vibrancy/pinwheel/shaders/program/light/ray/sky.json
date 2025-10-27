@@ -1,0 +1,26 @@
+{
+  "vertex": "vibrancy:light/ray/sky",
+  "fragment": "vibrancy:light/ray/sky",
+  "textures": {
+    "DiffuseDepthSampler": {
+      "type": "framebuffer",
+      "name": "minecraft:main:depth"
+    },
+    "ShadowMaskSampler": {
+      "type": "framebuffer",
+      "name": "vibrancy:shadow_mask"
+    },
+    "ShadowMaskDepthSampler": {
+      "type": "framebuffer",
+      "name": "vibrancy:shadow_mask:depth"
+    },
+    "VeilDynamicNormalSampler": {
+      "type": "location",
+      "location": "veil:dynamic_buffer/normal"
+    },
+    "VeilDynamicUVSampler": {
+      "type": "location",
+      "location": "veil:dynamic_buffer/light_uv"
+    }
+  }
+}
