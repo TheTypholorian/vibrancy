@@ -11,6 +11,7 @@ import foundry.veil.api.client.render.framebuffer.AdvancedFbo;
 import foundry.veil.api.client.render.light.PointLight;
 import foundry.veil.api.client.render.rendertype.VeilRenderType;
 import net.minecraft.client.Minecraft;
+import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.ShaderInstance;
 import net.minecraft.core.BlockBox;
@@ -27,13 +28,14 @@ import org.lwjgl.glfw.GLFW;
 
 import java.util.Collection;
 import java.util.Objects;
+import java.util.function.Consumer;
 
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL30.glBindBufferBase;
 import static org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER;
 
 public abstract class AbstractPointLight extends PointLight implements RaytracedLight {
-    protected final VertexBuffer geomVBO = new VertexBuffer(VertexBuffer.Usage.STATIC), entitiesVBO = new VertexBuffer(VertexBuffer.Usage.DYNAMIC), boxVBO = new VertexBuffer(VertexBuffer.Usage.STATIC);
+    protected final VertexBuffer geomVBO = new VertexBuffer(VertexBuffer.Usage.STATIC), boxVBO = new VertexBuffer(VertexBuffer.Usage.STATIC);
     protected final int quadsSSBO = glGenBuffers();
     protected int shadowCount = 0;
     protected boolean anyShadows = false;
@@ -49,7 +51,11 @@ public abstract class AbstractPointLight extends PointLight implements Raytraced
         return this;
     }
 
-    public void upload(BufferBuilder builder, Collection<ShadowVolume> volumes) {
+    protected void getVolumes(ClientLevel world, BlockPos pos, Consumer<ShadowVolume> out, double sqDist, BlockPos lightBlockPos, Vector3f lightPos, float radius, boolean normalTest) {
+        getQuads(world, pos, quad -> out.accept(quad.toVolumeSphere(lightPos, radius)), sqDist <= 4, lightBlockPos, normalTest);
+    }
+
+    protected void upload(BufferBuilder builder, Collection<? extends IQuad> volumes) {
         if (volumes.isEmpty()) {
             anyShadows = false;
         } else {
@@ -87,7 +93,7 @@ public abstract class AbstractPointLight extends PointLight implements Raytraced
             glStencilFunc(GL_ALWAYS, 1, 0xFF);
             glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
-            RenderType stencilType = VeilRenderType.get(Vibrancy.id("shadow_stencil"));
+            RenderType stencilType = VeilRenderType.get(Vibrancy.id("point_stencil"));
             stencilType.setupRenderState();
 
             ShaderInstance shader = Objects.requireNonNull(RenderSystem.getShader());
@@ -208,6 +214,11 @@ public abstract class AbstractPointLight extends PointLight implements Raytraced
 
         glCullFace(GL_BACK);
         RenderSystem.disableBlend();
+    }
+
+    @Override
+    public @NotNull Vector3d getPosition() {
+        return super.getPosition();
     }
 
     @Override

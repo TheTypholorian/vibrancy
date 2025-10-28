@@ -1,6 +1,6 @@
 {
-  "vertex": "vibrancy:light/ray/mask_stencil",
-  "fragment": "vibrancy:light/ray/mask_stencil",
+  "vertex": "vibrancy:light/ray/point_stencil",
+  "fragment": "vibrancy:light/ray/point_stencil",
   "textures": {
     "DiffuseDepthSampler": {
       "type": "framebuffer",

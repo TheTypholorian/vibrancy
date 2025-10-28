@@ -1,6 +1,7 @@
 package net.typho.vibrancy.light;
 
 import com.mojang.blaze3d.vertex.BufferBuilder;
+import com.mojang.blaze3d.vertex.MeshData;
 import com.mojang.blaze3d.vertex.VertexBuffer;
 import com.mojang.blaze3d.vertex.VertexConsumer;
 import foundry.veil.api.client.render.VeilRenderSystem;
@@ -46,7 +47,7 @@ public interface RaytracedLight extends NativeResource {
 
     boolean render(boolean raytrace);
 
-    Vector3d getPosition();
+    @Nullable Vector3d getPosition();
 
     default boolean shouldRemove() {
         return false;
@@ -100,7 +101,11 @@ public interface RaytracedLight extends NativeResource {
         }
     }
 
-    default void getQuads(ClientLevel world, BlockPos pos, Consumer<Quad> out, double sqDist, BlockPos lightBlockPos, boolean normalTest) {
+    default void getQuads(ClientLevel world, BlockPos pos, Consumer<Quad> out, boolean close, BlockPos blockPos, boolean normalTest) {
+        getQuads(world, pos, out, close, new Vector3f(blockPos.getX() - pos.getX(), blockPos.getY() - pos.getY(), blockPos.getZ() - pos.getZ()), normalTest);
+    }
+
+    default void getQuads(ClientLevel world, BlockPos pos, Consumer<Quad> out, boolean close, Vector3f lightDirection, boolean normalTest) {
         BlockState state = world.getBlockState(pos);
 
         if (!Vibrancy.TRANSPARENCY_TEST.get() && state.propagatesSkylightDown(world, pos)) {
@@ -112,7 +117,7 @@ public interface RaytracedLight extends NativeResource {
         Vec3 offset = state.getOffset(world, pos);
 
         for (Direction direction : Direction.values()) {
-            if (sqDist <= 4 || (Block.shouldRenderFace(state, world, pos, direction, pos.relative(direction)) && (!normalTest || Vibrancy.pointsToward(pos, direction, lightBlockPos)))) {
+            if (close || (Block.shouldRenderFace(state, world, pos, direction, pos.relative(direction)) && (!normalTest || Vibrancy.pointsToward(direction, lightDirection)))) {
                 getQuads(model.getQuads(state, direction, random), pos, out, offset);
             }
         }
@@ -120,19 +125,21 @@ public interface RaytracedLight extends NativeResource {
         getQuads(model.getQuads(state, null, random), pos, out, offset);
     }
 
-    default void getVolumes(ClientLevel world, BlockPos pos, Consumer<ShadowVolume> out, double sqDist, BlockPos lightBlockPos, Vector3f lightPos, float radius, boolean normalTest) {
-        getQuads(world, pos, quad -> out.accept(quad.toVolume(lightPos, radius)), sqDist, lightBlockPos, normalTest);
-    }
+    default void upload(BufferBuilder builder, Collection<? extends IQuad> quads, VertexBuffer geomVBO, int quadsSSBO, int usage) {
+        MeshData mesh = builder.build();
 
-    default void upload(BufferBuilder builder, Collection<ShadowVolume> volumes, VertexBuffer geomVBO, int quadsSSBO, int usage) {
+        if (mesh == null) {
+            return;
+        }
+
         geomVBO.bind();
-        geomVBO.upload(builder.build());
+        geomVBO.upload(mesh);
         VertexBuffer.unbind();
 
-        ByteBuffer buf = MemoryUtil.memAlloc(volumes.size() * Quad.BYTES);
+        ByteBuffer buf = MemoryUtil.memAlloc(quads.size() * Quad.BYTES);
 
-        for (ShadowVolume v : volumes) {
-            v.caster().put(buf);
+        for (IQuad quad : quads) {
+            quad.toQuad().put(buf);
         }
 
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, quadsSSBO);
@@ -142,13 +149,17 @@ public interface RaytracedLight extends NativeResource {
         MemoryUtil.memFree(buf);
     }
 
+    interface IQuad {
+        Quad toQuad();
+    }
+
     record Quad(
             BlockPos blockPos,
             Vector3f v1, Vector3f v2, Vector3f v3, Vector3f v4,
             Vector2f uv1, Vector2f uv2, Vector2f uv3, Vector2f uv4,
             Vector3f n, float d,
             Vector3f e1, Vector3f e2
-    ) {
+    ) implements IQuad {
         public static final int BYTES = 40 * Float.BYTES;
 
         public Quad(BlockPos blockPos, Vector3f v1, Vector3f v2, Vector3f v3, Vector3f v4,
@@ -161,6 +172,11 @@ public interface RaytracedLight extends NativeResource {
                     new Vector3f(v2).sub(v1),
                     new Vector3f(v4).sub(v1)
             );
+        }
+
+        @Override
+        public Quad toQuad() {
+            return this;
         }
 
         public void put(ByteBuffer buf) {
@@ -191,7 +207,7 @@ public interface RaytracedLight extends NativeResource {
             buf.putFloat(inv11).putFloat(inv12).putFloat(inv21).putFloat(inv22);
         }
 
-        public ShadowVolume toVolume(Vector3f origin, float radius) {
+        public ShadowVolume toVolumeSphere(Vector3f origin, float radius) {
             float d0 = n.dot(v1.sub(origin, new Vector3f()));
             float t = radius - d0;
 
@@ -208,9 +224,28 @@ public interface RaytracedLight extends NativeResource {
                     vertices
             );
         }
+
+        public ShadowVolume toVolumeSky(Vector3f direction, float distance) {
+            Vector3f add = direction.mul(-distance, new Vector3f());
+            Vector3f[] vertices = {v1, v2, v3, v4, null, null, null, null};
+
+            for (int i = 0; i < 4; i++) {
+                vertices[i + 4] = new Vector3f(vertices[i]).add(add);
+            }
+
+            return new ShadowVolume(
+                    this,
+                    vertices
+            );
+        }
     }
 
-    record ShadowVolume(Quad caster, Vector3f[] vertices) {
+    record ShadowVolume(Quad caster, Vector3f[] vertices) implements IQuad {
+        @Override
+        public Quad toQuad() {
+            return caster;
+        }
+
         public void render(VertexConsumer consumer) {
             consumer.addVertex(vertices()[0])
                     .addVertex(vertices()[1])

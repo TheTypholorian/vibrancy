@@ -19,6 +19,7 @@ import net.minecraft.client.player.AbstractClientPlayer;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.SectionPos;
+import net.minecraft.core.Vec3i;
 import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
@@ -41,6 +42,7 @@ import net.typho.vibrancy.light.BlockPointLight;
 import net.typho.vibrancy.light.EntityPointLight;
 import net.typho.vibrancy.light.RaytracedLight;
 import net.typho.vibrancy.light.SkyLight;
+import org.joml.Vector3f;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -179,18 +181,9 @@ public class Vibrancy {
         }
     }
 
-    public static boolean pointsToward(BlockPos from, Direction dir, BlockPos to) {
-        return switch (dir.getAxis()) {
-            case X -> dir.getAxisDirection() == Direction.AxisDirection.POSITIVE
-                    ? from.getX() <= to.getX()
-                    : from.getX() >= to.getX();
-            case Y -> dir.getAxisDirection() == Direction.AxisDirection.POSITIVE
-                    ? from.getY() <= to.getY()
-                    : from.getY() >= to.getY();
-            case Z -> dir.getAxisDirection() == Direction.AxisDirection.POSITIVE
-                    ? from.getZ() <= to.getZ()
-                    : from.getZ() >= to.getZ();
-        };
+    public static boolean pointsToward(Direction face, Vector3f offset) {
+        Vec3i normal = face.getNormal();
+        return new Vector3f(normal.getX(), normal.getY(), normal.getZ()).dot(offset) > 0;
     }
 
     public static void elytraTrail(LivingEntity entity) {

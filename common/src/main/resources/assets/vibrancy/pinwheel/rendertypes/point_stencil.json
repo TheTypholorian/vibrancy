@@ -6,7 +6,7 @@
   "layers": [
     {
       "type": "veil:shader",
-      "name": "vibrancy:light/ray/mask_stencil"
+      "name": "vibrancy:light/ray/point_stencil"
     },
     {
       "type": "minecraft:depth_test",

@@ -1,10 +1,10 @@
 package net.typho.vibrancy.light;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
-import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockBox;
@@ -12,7 +12,6 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.typho.vibrancy.Vibrancy;
 import org.joml.Matrix4f;
-import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 import java.util.*;
@@ -41,7 +40,7 @@ public abstract class AbstractMovingPointLight extends AbstractPointLight {
     }
 
     @Override
-    public void upload(BufferBuilder builder, Collection<ShadowVolume> volumes) {
+    protected void upload(BufferBuilder builder, Collection<? extends IQuad> volumes) {
         if (volumes.isEmpty()) {
             anyShadows = false;
         } else {
@@ -50,16 +49,16 @@ public abstract class AbstractMovingPointLight extends AbstractPointLight {
         }
     }
 
-    public void regenQuadsSync(ClientLevel world, BlockPos pos, Consumer<Quad> out, BlockPos lightBlockPos) {
+    protected void regenQuadsSync(ClientLevel world, BlockPos pos, Consumer<Quad> out, BlockPos lightBlockPos) {
         quads.remove(pos);
         regenQuadsAsync(world, pos, out, lightBlockPos);
     }
 
-    public void regenQuadsAsync(ClientLevel world, BlockPos pos, Consumer<Quad> out, BlockPos lightBlockPos) {
-        getQuads(world, pos, out, pos.distSqr(lightBlockPos), lightBlockPos, false);
+    protected void regenQuadsAsync(ClientLevel world, BlockPos pos, Consumer<Quad> out, BlockPos lightBlockPos) {
+        getQuads(world, pos, out, pos.distSqr(lightBlockPos) <= 4, lightBlockPos, false);
     }
 
-    public void regenAll(ClientLevel world, BlockBox box, BlockPos lightBlockPos) {
+    protected void regenAll(ClientLevel world, BlockBox box, BlockPos lightBlockPos) {
         fullRebuildTask = CompletableFuture.supplyAsync(() -> {
             Map<BlockPos, List<Quad>> quads = new LinkedHashMap<>();
 
@@ -143,7 +142,7 @@ public abstract class AbstractMovingPointLight extends AbstractPointLight {
                 quads.forEach((pos, list) -> {
                     if (box.contains(pos)) {
                         for (Quad quad : list) {
-                            ShadowVolume volume = quad.toVolume(lightPos, radius);
+                            ShadowVolume volume = quad.toVolumeSphere(lightPos, radius);
                             volume.render(builder);
                             volumes.add(volume);
                         }
@@ -154,10 +153,7 @@ public abstract class AbstractMovingPointLight extends AbstractPointLight {
 
                 shadowCount = volumes.size();
 
-                Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
-                Matrix4f view = new Matrix4f()
-                        .rotate(camera.rotation().invert(new Quaternionf()))
-                        .translate((float) -camera.getPosition().x, (float) -camera.getPosition().y, (float) -camera.getPosition().z);
+                Matrix4f view = RenderSystem.getModelViewMatrix();
 
                 renderMask(raytrace, lightPos, view);
                 renderLight(lightPos, view);
