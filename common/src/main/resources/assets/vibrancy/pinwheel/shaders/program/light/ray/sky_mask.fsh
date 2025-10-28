@@ -22,7 +22,7 @@ void main() {
     fragColor = vec4(1);
 
     vec3 Pos = getWorldPos(DiffuseDepthSampler, ivec2(gl_FragCoord.xy), ScreenSize);
-4
+
     if (testMask(AtlasSampler, Pos, LightDirection, MaxLength, quad)) {
         discard;
     }

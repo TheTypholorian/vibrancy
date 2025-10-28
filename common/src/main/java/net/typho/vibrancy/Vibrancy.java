@@ -240,7 +240,7 @@ public class Vibrancy {
     public static void onChunkLoad(LevelChunk chunk) {
         onChunkUnload(chunk);
 
-        for(int i = chunk.getMinSection(); i < chunk.getMaxSection(); i++) {
+        for (int i = chunk.getMinSection(); i < chunk.getMaxSection(); i++) {
             LevelChunkSection section = chunk.getSection(chunk.getSectionIndexFromSectionY(i));
 
             if (section.maybeHas(state -> DynamicLightInfo.MAP.keySet()
@@ -277,6 +277,10 @@ public class Vibrancy {
     }
 
     public static void afterClientLevelChange(ClientLevel world) {
+        if (SkyLight.INSTANCE != null) {
+            SkyLight.INSTANCE.markDirty();
+        }
+
         BLOCK_LIGHTS.values().forEach(BlockPointLight::free);
         BLOCK_LIGHTS.clear();
         ENTITY_LIGHTS.values().forEach(EntityPointLight::free);

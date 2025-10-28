@@ -55,7 +55,7 @@ public abstract class AbstractMovingPointLight extends AbstractPointLight {
     }
 
     protected void regenQuadsAsync(ClientLevel world, BlockPos pos, Consumer<Quad> out, BlockPos lightBlockPos) {
-        getQuads(world, pos, out, pos.distSqr(lightBlockPos) <= 4, lightBlockPos, false);
+        getQuads(world, pos, out, pos.distSqr(lightBlockPos) <= 4, lightBlockPos, false, dir -> true);
     }
 
     protected void regenAll(ClientLevel world, BlockBox box, BlockPos lightBlockPos) {

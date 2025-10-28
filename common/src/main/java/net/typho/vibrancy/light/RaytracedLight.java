@@ -29,6 +29,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.Set;
 import java.util.function.Consumer;
+import java.util.function.Predicate;
 
 import static org.lwjgl.opengl.GL15.glBindBuffer;
 import static org.lwjgl.opengl.GL15.glBufferData;
@@ -101,11 +102,11 @@ public interface RaytracedLight extends NativeResource {
         }
     }
 
-    default void getQuads(ClientLevel world, BlockPos pos, Consumer<Quad> out, boolean close, BlockPos blockPos, boolean normalTest) {
-        getQuads(world, pos, out, close, new Vector3f(blockPos.getX() - pos.getX(), blockPos.getY() - pos.getY(), blockPos.getZ() - pos.getZ()), normalTest);
+    default void getQuads(ClientLevel world, BlockPos pos, Consumer<Quad> out, boolean close, BlockPos blockPos, boolean normalTest, Predicate<Direction> predicate) {
+        getQuads(world, pos, out, close, new Vector3f(blockPos.getX() - pos.getX(), blockPos.getY() - pos.getY(), blockPos.getZ() - pos.getZ()), normalTest, predicate);
     }
 
-    default void getQuads(ClientLevel world, BlockPos pos, Consumer<Quad> out, boolean close, Vector3f lightDirection, boolean normalTest) {
+    default void getQuads(ClientLevel world, BlockPos pos, Consumer<Quad> out, boolean close, Vector3f lightDirection, boolean normalTest, Predicate<Direction> predicate) {
         BlockState state = world.getBlockState(pos);
 
         if (!Vibrancy.TRANSPARENCY_TEST.get() && state.propagatesSkylightDown(world, pos)) {
@@ -117,12 +118,14 @@ public interface RaytracedLight extends NativeResource {
         Vec3 offset = state.getOffset(world, pos);
 
         for (Direction direction : Direction.values()) {
-            if (close || (Block.shouldRenderFace(state, world, pos, direction, pos.relative(direction)) && (!normalTest || Vibrancy.pointsToward(direction, lightDirection)))) {
+            if (predicate.test(direction) && (close || (Block.shouldRenderFace(state, world, pos, direction, pos.relative(direction)) && (!normalTest || Vibrancy.pointsToward(direction, lightDirection))))) {
                 getQuads(model.getQuads(state, direction, random), pos, out, offset);
             }
         }
 
-        getQuads(model.getQuads(state, null, random), pos, out, offset);
+        if (predicate.test(null)) {
+            getQuads(model.getQuads(state, null, random), pos, out, offset);
+        }
     }
 
     default void upload(BufferBuilder builder, Collection<? extends IQuad> quads, VertexBuffer geomVBO, int quadsSSBO, int usage) {

@@ -11,9 +11,18 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.RenderType;
 import net.minecraft.client.renderer.ShaderInstance;
+import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
+import net.minecraft.core.SectionPos;
+import net.minecraft.util.RandomSource;
 import net.minecraft.world.inventory.InventoryMenu;
+import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.chunk.LevelChunk;
+import net.minecraft.world.level.chunk.LevelChunkSection;
+import net.minecraft.world.phys.Vec3;
 import net.typho.vibrancy.Vibrancy;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
@@ -25,6 +34,8 @@ import java.util.Collection;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.CompletableFuture;
+import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
 import static org.lwjgl.opengl.GL11.*;
@@ -42,8 +53,22 @@ public class SkyLight implements RaytracedLight {
     protected final int quadsSSBO = glGenBuffers();
     protected final List<BlockPos> dirty = new LinkedList<>();
     protected List<Quad> quads = new LinkedList<>();
+    protected CompletableFuture<List<Quad>> fullRebuildTask;
     protected Vector3f direction;
     protected float distance = 2048;
+    protected boolean isDirty = true;
+
+    public void markDirty() {
+        isDirty = true;
+    }
+
+    public void clean() {
+        isDirty = false;
+    }
+
+    public boolean isDirty() {
+        return isDirty;
+    }
 
     @Override
     public void updateDirty(Iterable<BlockPos> it) {
@@ -62,7 +87,7 @@ public class SkyLight implements RaytracedLight {
 
     protected void regenQuads(ClientLevel world, BlockPos pos, Consumer<Quad> out) {
         quads.removeIf(quad -> quad.blockPos().equals(pos));
-        getQuads(world, pos, out, false, direction, false);
+        getQuads(world, pos, out, false, direction, false, dir -> world.canSeeSky(pos.relative(dir)));
     }
 
     protected void renderMask(boolean raytrace, Matrix4f view) {
@@ -140,6 +165,10 @@ public class SkyLight implements RaytracedLight {
         ClientLevel level = Minecraft.getInstance().level;
 
         if (level != null) {
+            if (fullRebuildTask != null) {
+                Vibrancy.NUM_LIGHT_TASKS++;
+            }
+
             float sunAngle = level.getSunAngle(0);
             direction = new Vector3f((float) -Math.sin(sunAngle), (float) Math.cos(sunAngle), 0);
 
@@ -152,6 +181,59 @@ public class SkyLight implements RaytracedLight {
             }
 
             dirty.clear();
+
+            if (fullRebuildTask != null && fullRebuildTask.isDone()) {
+                try {
+                    quads = fullRebuildTask.get();
+                    fullRebuildTask = null;
+                } catch (InterruptedException | ExecutionException e) {
+                    throw new RuntimeException(e);
+                }
+            } else if (raytrace) {
+                if (isDirty()) {
+                    clean();
+                    fullRebuildTask = CompletableFuture.supplyAsync(() -> {
+                        List<Quad> quads = new LinkedList<>();
+                        ChunkPos pos = new ChunkPos(Minecraft.getInstance().player.blockPosition());
+
+                        for (int chunkX = pos.x - 3; chunkX <= pos.x + 3; chunkX++) {
+                            for (int chunkZ = pos.z - 3; chunkZ <= pos.z + 3; chunkZ++) {
+                                if (level.hasChunk(chunkX, chunkZ)) {
+                                    LevelChunk chunk = level.getChunk(chunkX, chunkZ);
+
+                                    for (int i = chunk.getMinSection(); i < chunk.getMaxSection(); i++) {
+                                        LevelChunkSection section = chunk.getSection(chunk.getSectionIndexFromSectionY(i));
+                                        BlockPos minPos = SectionPos.of(chunk.getPos(), i).origin();
+
+                                        for (int x = 0; x < 16; x++) {
+                                            for (int y = 0; y < 16; y++) {
+                                                for (int z = 0; z < 16; z++) {
+                                                    BlockState state = section.getBlockState(x, y, z);
+                                                    BlockPos blockPos = new BlockPos(minPos.getX() + x, minPos.getY() + y, minPos.getZ() + z);
+
+                                                    BakedModel model = Minecraft.getInstance().getBlockRenderer().getBlockModel(state);
+                                                    RandomSource random = RandomSource.create();
+                                                    Vec3 offset = state.getOffset(level, blockPos);
+
+                                                    for (Direction direction : Direction.values()) {
+                                                        if (Block.shouldRenderFace(state, level, blockPos, direction, blockPos.relative(direction))) {
+                                                            getQuads(model.getQuads(state, direction, random), blockPos, quads::add, offset);
+                                                        }
+                                                    }
+
+                                                    getQuads(model.getQuads(state, null, random), blockPos, quads::add, offset);
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        return quads;
+                    });
+                }
+            }
 
             BufferBuilder builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION);
 
