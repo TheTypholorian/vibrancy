@@ -6,6 +6,7 @@ import com.mojang.blaze3d.vertex.*;
 import foundry.veil.api.client.render.VeilRenderSystem;
 import foundry.veil.api.client.render.framebuffer.AdvancedFbo;
 import foundry.veil.api.client.render.rendertype.VeilRenderType;
+import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.renderer.RenderType;
@@ -16,6 +17,7 @@ import net.minecraft.world.inventory.InventoryMenu;
 import net.typho.vibrancy.Vibrancy;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
+import org.joml.Quaternionf;
 import org.joml.Vector3d;
 import org.joml.Vector3f;
 
@@ -85,7 +87,7 @@ public class SkyLight implements RaytracedLight {
 
             stencilType.clearRenderState();
 
-            RenderType type = VeilRenderType.get(Vibrancy.id("shadow"));
+            RenderType type = VeilRenderType.get(Vibrancy.id("sky_shadow"));
             type.setupRenderState();
 
             glEnable(GL_STENCIL_TEST);
@@ -96,6 +98,8 @@ public class SkyLight implements RaytracedLight {
 
             ShaderInstance shader = Objects.requireNonNull(RenderSystem.getShader());
 
+            shader.safeGetUniform("MaxLength").set(distance);
+            shader.safeGetUniform("LightDirection").set(direction);
             shader.setSampler("AtlasSampler", Minecraft.getInstance().getModelManager().getAtlas(InventoryMenu.BLOCK_ATLAS));
 
             geomVBO.bind();
@@ -119,8 +123,7 @@ public class SkyLight implements RaytracedLight {
         //shader.safeGetUniform("LightColor").set(color.x * brightness, color.y * brightness, color.z * brightness);
 
         RenderSystem.disableDepthTest();
-        glCullFace(GL_FRONT);
-        RenderSystem.enableCull();
+        RenderSystem.disableCull();
         RenderSystem.enableBlend();
         RenderSystem.blendFunc(GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ONE);
         RenderSystem.blendEquation(GL_FUNC_ADD);
@@ -129,7 +132,6 @@ public class SkyLight implements RaytracedLight {
         Vibrancy.SCREEN_VBO.drawWithShader(null, null, shader);
         VertexBuffer.unbind();
 
-        glCullFace(GL_BACK);
         RenderSystem.disableBlend();
     }
 
@@ -141,17 +143,15 @@ public class SkyLight implements RaytracedLight {
             float sunAngle = level.getSunAngle(0);
             direction = new Vector3f((float) -Math.sin(sunAngle), (float) Math.cos(sunAngle), 0);
 
-            if (!dirty.isEmpty()) {
-                for (BlockPos pos : dirty) {
-                    regenQuads(level, pos, quads::add);
+            for (BlockPos pos : dirty) {
+                regenQuads(level, pos, quads::add);
 
-                    for (Direction dir : Direction.values()) {
-                        regenQuads(level, pos.relative(dir), quads::add);
-                    }
+                for (Direction dir : Direction.values()) {
+                    regenQuads(level, pos.relative(dir), quads::add);
                 }
-
-                dirty.clear();
             }
+
+            dirty.clear();
 
             BufferBuilder builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION);
 
@@ -161,7 +161,12 @@ public class SkyLight implements RaytracedLight {
 
             upload(builder, quads);
 
-            renderMask(raytrace, RenderSystem.getModelViewMatrix());
+            Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
+            Matrix4f view = new Matrix4f()
+                    .rotate(camera.rotation().invert(new Quaternionf()))
+                    .translate((float) -camera.getPosition().x, (float) -camera.getPosition().y, (float) -camera.getPosition().z);
+
+            renderMask(raytrace, view);
             renderLight();
 
             return true;

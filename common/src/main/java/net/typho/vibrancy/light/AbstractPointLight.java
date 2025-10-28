@@ -107,7 +107,7 @@ public abstract class AbstractPointLight extends PointLight implements Raytraced
 
             stencilType.clearRenderState();
 
-            RenderType type = VeilRenderType.get(Vibrancy.id("shadow"));
+            RenderType type = VeilRenderType.get(Vibrancy.id("point_shadow"));
             type.setupRenderState();
 
             glEnable(GL_STENCIL_TEST);

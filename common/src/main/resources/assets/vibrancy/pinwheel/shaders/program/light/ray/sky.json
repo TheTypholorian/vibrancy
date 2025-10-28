@@ -1,5 +1,5 @@
 {
-  "vertex": "vibrancy:light/ray/sky",
+  "vertex": "vibrancy:blit",
   "fragment": "vibrancy:light/ray/sky",
   "textures": {
     "DiffuseDepthSampler": {

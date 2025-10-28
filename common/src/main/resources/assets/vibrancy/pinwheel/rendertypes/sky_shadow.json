@@ -6,7 +6,7 @@
   "layers": [
     {
       "type": "veil:shader",
-      "name": "vibrancy:light/ray/mask"
+      "name": "vibrancy:light/ray/sky_mask"
     },
     {
       "type": "minecraft:depth_test",

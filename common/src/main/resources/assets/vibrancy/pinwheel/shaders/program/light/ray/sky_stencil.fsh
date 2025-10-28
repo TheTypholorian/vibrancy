@@ -5,7 +5,7 @@
 uniform sampler2D WorldPosSampler;
 uniform sampler2D DiffuseDepthSampler;
 uniform sampler2D VeilDynamicNormalSampler;
-uniform vec3 LightPos;
+uniform vec3 LightDirection;
 uniform vec2 ScreenSize;
 
 out vec4 fragColor;
@@ -16,8 +16,7 @@ void main() {
     vec3 Pos = viewToWorldSpace(viewPosFromDepth(texelFetch(DiffuseDepthSampler, ivec2(gl_FragCoord.xy), 0).r, gl_FragCoord.xy / ScreenSize));
     vec3 Normal = normalize(texelFetch(VeilDynamicNormalSampler, ivec2(gl_FragCoord.xy), 0).xyz);
 
-    vec3 delta = LightPos - Pos;
-    float d = dot(Normal, normalize((VeilCamera.ViewMat * vec4(delta, 0)).xyz));
+    float d = dot(Normal, normalize((VeilCamera.ViewMat * vec4(LightDirection, 0)).xyz));
 
     if (d <= 0) {
         discard;
