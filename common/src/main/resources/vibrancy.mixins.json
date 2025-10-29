@@ -4,6 +4,7 @@
   "package": "net.typho.vibrancy.mixin",
   "compatibilityLevel": "JAVA_18",
   "client": [
+    "AdvancedFboBuilderMixin",
     "BlockStateBaseMixin",
     "ClientChunkCacheMixin",
     "ClientPacketListenerMixin",
@@ -26,11 +27,5 @@
   "overwrites": {
     "requireAnnotations": true
   },
-  "mixins": [
-    "AdvancedFboBuilderMixin",
-    "DynamicBufferProcessorMixin",
-    "DynamicBufferTypeMixin",
-    "SodiumShaderPreProcessorMixin"
-  ],
   "refmap": "vibrancy.refmap.json"
 }
