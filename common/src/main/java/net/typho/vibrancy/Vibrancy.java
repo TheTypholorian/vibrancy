@@ -239,7 +239,19 @@ public class Vibrancy {
     }
 
     public static void onChunkLoad(LevelChunk chunk) {
-        onChunkUnload(chunk);
+        if (SkyLight.INSTANCE != null) {
+            SkyLight.INSTANCE.onChunkLoad(chunk);
+        }
+
+        BLOCK_LIGHTS.values().removeIf(light -> {
+            boolean b = new ChunkPos(light.blockPos).equals(chunk.getPos());
+
+            if (b) {
+                light.free();
+            }
+
+            return b;
+        });
 
         for (int i = chunk.getMinSection(); i < chunk.getMaxSection(); i++) {
             LevelChunkSection section = chunk.getSection(chunk.getSectionIndexFromSectionY(i));
@@ -266,6 +278,10 @@ public class Vibrancy {
     }
 
     public static void onChunkUnload(LevelChunk chunk) {
+        if (SkyLight.INSTANCE != null) {
+            SkyLight.INSTANCE.onChunkUnload(chunk);
+        }
+
         BLOCK_LIGHTS.values().removeIf(light -> {
             boolean b = new ChunkPos(light.blockPos).equals(chunk.getPos());
 

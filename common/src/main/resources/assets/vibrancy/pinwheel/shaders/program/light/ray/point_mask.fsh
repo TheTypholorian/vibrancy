@@ -20,14 +20,14 @@ out vec4 fragColor;
 void main() {
     fragColor = vec4(1);
 
-    vec3 Pos = getWorldPos(DiffuseDepthSampler, ivec2(gl_FragCoord.xy), ScreenSize);
+    vec4 Pos = getWorldPos(DiffuseDepthSampler, ivec2(gl_FragCoord.xy), ScreenSize);
 
-    vec3 delta = LightPos - Pos;
+    vec3 delta = LightPos - Pos.xyz;
     float len = length(delta);
 
     vec3 dir = delta / len;
 
-    if (testMask(AtlasSampler, Pos, dir, len, 1e-3, true, quad)) {
+    if (testMask(AtlasSampler, Pos.xyz, dir, len, Pos.w / 128, true, quad)) {
         discard;
     }
 }
