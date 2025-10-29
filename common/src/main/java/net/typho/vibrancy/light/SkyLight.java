@@ -51,6 +51,19 @@ public abstract class SkyLight implements RaytracedLight {
         protected List<Quad> quads = new LinkedList<>();
         protected CompletableFuture<List<Quad>> fullRebuildTask;
         protected final ChunkPos pos;
+        protected boolean isDirty = true;
+
+        public void markDirty() {
+            isDirty = true;
+        }
+
+        public void clean() {
+            isDirty = false;
+        }
+
+        public boolean isDirty() {
+            return isDirty;
+        }
 
         protected Node(ChunkPos pos) {
             this.pos = pos;
@@ -96,7 +109,11 @@ public abstract class SkyLight implements RaytracedLight {
                     throw new RuntimeException(e);
                 }
             } else if (raytrace) {
-                if (isDirty()) {
+                if (isDirty() || SkyLight.this.isDirty()) {
+                    if (isDirty()) {
+                        clean();
+                    }
+
                     fullRebuildTask = CompletableFuture.supplyAsync(() -> {
                         List<Quad> quads = new LinkedList<>();
 
@@ -221,6 +238,11 @@ public abstract class SkyLight implements RaytracedLight {
         return isDirty;
     }
 
+    public void appendDebugInfo(Consumer<String> out) {
+        out.accept("Sky Light Nodes: " + nodes.size());
+        out.accept("Sky Light Quads: " + nodes.values().stream().mapToInt(node -> node.quads.size()).sum());
+    }
+
     @Override
     public void updateDirty(Iterable<BlockPos> it) {
         for (BlockPos pos : it) {
@@ -304,17 +326,6 @@ public abstract class SkyLight implements RaytracedLight {
 
         if (level != null) {
             direction = getColor(level);
-
-            if (isDirty()) {
-                ChunkPos pos = new ChunkPos(Minecraft.getInstance().player.blockPosition());
-                int radius = 1;
-
-                for (int chunkX = pos.x - radius; chunkX <= pos.x + radius; chunkX++) {
-                    for (int chunkZ = pos.z - radius; chunkZ <= pos.z + radius; chunkZ++) {
-                        nodes.computeIfAbsent(pos, Node::new);
-                    }
-                }
-            }
 
             for (Node node : nodes.values()) {
                 node.init(level, raytrace);

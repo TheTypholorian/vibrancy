@@ -2,6 +2,7 @@ package net.typho.vibrancy.mixin;
 
 import foundry.veil.api.client.render.light.renderer.LightRenderer;
 import net.typho.vibrancy.Vibrancy;
+import net.typho.vibrancy.light.SkyLight;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -26,5 +27,9 @@ public class LightRendererMixin {
 
         consumer.accept("Async tasks: " + Vibrancy.NUM_LIGHT_TASKS);
         consumer.accept("Number of shadows: " + Vibrancy.SHADOW_COUNT);
+
+        if (SkyLight.INSTANCE != null) {
+            SkyLight.INSTANCE.appendDebugInfo(consumer);
+        }
     }
 }
