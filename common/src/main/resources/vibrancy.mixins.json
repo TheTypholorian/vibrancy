@@ -27,7 +27,9 @@
     "requireAnnotations": true
   },
   "mixins": [
-    "AdvancedFboBuilderMixin"
+    "AdvancedFboBuilderMixin",
+    "DynamicBufferProcessorMixin",
+    "DynamicBufferTypeMixin"
   ],
   "refmap": "vibrancy.refmap.json"
 }

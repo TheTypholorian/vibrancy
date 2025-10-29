@@ -127,6 +127,7 @@ public class Vibrancy {
         throw new IllegalStateException();
     };
     public static VertexBuffer SCREEN_VBO;
+    public static DynamicBufferType POSITION_BUFFER_TYPE;
 
     static {
         RenderSystem.recordRenderCall(() -> {
@@ -295,7 +296,7 @@ public class Vibrancy {
         NUM_LIGHT_TASKS = 0;
         ResourceLocation id = id("ray_light");
 
-        VeilRenderSystem.renderer().enableBuffers(id, DynamicBufferType.NORMAL, DynamicBufferType.ALBEDO, DynamicBufferType.LIGHT_UV);
+        VeilRenderSystem.renderer().enableBuffers(id, DynamicBufferType.NORMAL, DynamicBufferType.ALBEDO, DynamicBufferType.LIGHT_UV, POSITION_BUFFER_TYPE);
 
         VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(id).bind(true);
         RenderSystem.clearColor(0, 0, 0, 0);
