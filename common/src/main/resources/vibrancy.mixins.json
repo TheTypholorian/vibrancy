@@ -29,7 +29,8 @@
   "mixins": [
     "AdvancedFboBuilderMixin",
     "DynamicBufferProcessorMixin",
-    "DynamicBufferTypeMixin"
+    "DynamicBufferTypeMixin",
+    "SodiumShaderPreProcessorMixin"
   ],
   "refmap": "vibrancy.refmap.json"
 }

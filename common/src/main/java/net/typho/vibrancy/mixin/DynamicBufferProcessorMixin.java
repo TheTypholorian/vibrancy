@@ -26,7 +26,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.Optional;
 
-@Mixin(DynamicBufferProcessor.class)
+@Mixin(value = DynamicBufferProcessor.class, remap = false)
 public class DynamicBufferProcessorMixin {
     @Shadow
     @Final
@@ -55,7 +55,7 @@ public class DynamicBufferProcessorMixin {
                     if ((validBuffers.getInt(shaderName) & type.getMask()) != 0) {
                         treeBody.add(GlslInjectionPoint.BEFORE_MAIN, GlslParser.parseExpression("in vec3 Pass" + type.getSourceName()));
                         treeBody.add(GlslInjectionPoint.BEFORE_MAIN, GlslParser.parseExpression(output));
-                        mainFunctionBody.add(new GlslAssignmentNode(new GlslVariableNode(type.getSourceName()), GlslParser.parseExpression("vec4(Pass" + type.getSourceName() + ", 1.0)"), GlslAssignmentNode.Operand.EQUAL));
+                        mainFunctionBody.add(new GlslAssignmentNode(new GlslVariableNode(type.getSourceName()), GlslParser.parseExpression("Pass" + type.getSourceName()), GlslAssignmentNode.Operand.EQUAL));
                         modified.set(true);
                     }
                 }
