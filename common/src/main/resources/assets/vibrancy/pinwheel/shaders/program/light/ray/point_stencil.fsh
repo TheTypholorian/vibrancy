@@ -2,7 +2,6 @@
 
 #include veil:deferred_utils
 
-uniform sampler2D WorldPosSampler;
 uniform sampler2D DiffuseDepthSampler;
 uniform sampler2D VeilDynamicNormalSampler;
 uniform vec3 LightPos;

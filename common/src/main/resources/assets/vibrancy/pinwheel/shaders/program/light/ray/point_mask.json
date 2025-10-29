@@ -6,10 +6,6 @@
       "type": "framebuffer",
       "name": "minecraft:main:depth"
     },
-    "WorldPosSampler": {
-      "type": "framebuffer",
-      "name": "vibrancy:view_pos"
-    },
     "VeilDynamicNormalSampler": {
       "type": "location",
       "location": "veil:dynamic_buffer/normal"

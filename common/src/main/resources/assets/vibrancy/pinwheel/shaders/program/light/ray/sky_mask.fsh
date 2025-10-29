@@ -7,7 +7,6 @@ layout(early_fragment_tests) in;
 #include vibrancy:quads
 
 uniform sampler2D AtlasSampler;
-uniform sampler2D WorldPosSampler;
 uniform sampler2D DiffuseDepthSampler;
 uniform sampler2D VeilDynamicNormalSampler;
 uniform vec3 LightDirection;

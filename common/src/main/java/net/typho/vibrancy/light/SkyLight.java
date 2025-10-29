@@ -30,160 +30,53 @@ import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3d;
 import org.joml.Vector3f;
+import org.lwjgl.system.NativeResource;
 
-import java.util.Collection;
-import java.util.LinkedList;
-import java.util.List;
-import java.util.Objects;
+import java.util.*;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
 import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL14.GL_FUNC_ADD;
-import static org.lwjgl.opengl.GL15.GL_STATIC_DRAW;
-import static org.lwjgl.opengl.GL15.glGenBuffers;
+import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL30.glBindBufferBase;
 import static org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER;
 
-public class SkyLight implements RaytracedLight {
-    public static final Vector3f SUN_COLOR = new Vector3f(0.5f, 0.5f, 0.425f);
-    public static @Nullable SkyLight INSTANCE = new SkyLight();
+public abstract class SkyLight implements RaytracedLight {
+    protected class Node implements NativeResource {
+        protected final VertexBuffer vbo = new VertexBuffer(VertexBuffer.Usage.STATIC);
+        protected final int ssbo = glGenBuffers();
+        protected final List<BlockPos> dirty = new LinkedList<>();
+        protected List<Quad> quads = new LinkedList<>();
+        protected CompletableFuture<List<Quad>> fullRebuildTask;
+        protected final ChunkPos pos;
 
-    protected final VertexBuffer geomVBO = new VertexBuffer(VertexBuffer.Usage.STATIC);
-    protected final int quadsSSBO = glGenBuffers();
-    protected final List<BlockPos> dirty = new LinkedList<>();
-    protected List<Quad> quads = new LinkedList<>();
-    protected CompletableFuture<List<Quad>> fullRebuildTask;
-    protected Vector3f direction;
-    protected float distance = 2048;
-    protected boolean isDirty = true;
-
-    public void markDirty() {
-        isDirty = true;
-    }
-
-    public void clean() {
-        isDirty = false;
-    }
-
-    public boolean isDirty() {
-        return isDirty;
-    }
-
-    @Override
-    public void updateDirty(Iterable<BlockPos> it) {
-        for (BlockPos pos : it) {
-            dirty.add(pos);
+        protected Node(ChunkPos pos) {
+            this.pos = pos;
         }
-    }
 
-    @Override
-    public void init() {
-    }
+        @Override
+        public void free() {
+            vbo.close();
+            glDeleteBuffers(ssbo);
+        }
 
-    protected void upload(BufferBuilder builder, Collection<? extends IQuad> volumes) {
-        upload(builder, volumes, geomVBO, quadsSSBO, GL_STATIC_DRAW);
-    }
+        protected void upload(BufferBuilder builder, Collection<? extends IQuad> volumes) {
+            SkyLight.this.upload(builder, volumes, vbo, ssbo, GL_STATIC_DRAW);
+        }
 
-    protected boolean shouldCastBlock(ClientLevel level, BlockPos pos) {
-        for (Direction direction : new Direction[]{Direction.UP, Direction.NORTH, Direction.SOUTH, Direction.WEST, Direction.EAST}) {
-            if (level.getBrightness(LightLayer.SKY, pos.relative(direction)) == 15) {
-                return true;
+        protected void regenQuads(ClientLevel level, BlockPos pos, Consumer<Quad> out) {
+            if (shouldCastBlock(level, pos)) {
+                quads.removeIf(quad -> quad.blockPos().equals(pos));
+                getQuads(level, pos, out, false, direction, false, dir -> true);
             }
         }
 
-        return false;
-    }
-
-    protected void regenQuads(ClientLevel level, BlockPos pos, Consumer<Quad> out) {
-        if (shouldCastBlock(level, pos)) {
-            quads.removeIf(quad -> quad.blockPos().equals(pos));
-            getQuads(level, pos, out, false, this.direction, false, dir -> true);
-        }
-    }
-
-    protected void renderMask(boolean raytrace, Matrix4f view) {
-        AdvancedFbo fbo = Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(Vibrancy.id("shadow_mask")));
-        fbo.bind(true);
-        glClearColor(0f, 0f, 0f, 0f);
-        glClearStencil(0);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
-
-        if (raytrace && !quads.isEmpty()) {
-            glEnable(GL_STENCIL_TEST);
-            glStencilMask(0xFF);
-            glStencilFunc(GL_ALWAYS, 1, 0xFF);
-            glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
-
-            RenderType stencilType = VeilRenderType.get(Vibrancy.id("sky_stencil"));
-            stencilType.setupRenderState();
-
-            Vibrancy.SCREEN_VBO.bind();
-            Vibrancy.SCREEN_VBO.drawWithShader(view, RenderSystem.getProjectionMatrix(), RenderSystem.getShader());
-            VertexBuffer.unbind();
-
-            stencilType.clearRenderState();
-
-            RenderType type = VeilRenderType.get(Vibrancy.id("sky_shadow"));
-            type.setupRenderState();
-
-            glEnable(GL_STENCIL_TEST);
-            glStencilMask(0xFF);
-            glStencilFunc(GL_EQUAL, 1, 0xFF);
-            glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, quadsSSBO);
-
-            ShaderInstance shader = Objects.requireNonNull(RenderSystem.getShader());
-
-            shader.safeGetUniform("MaxLength").set(distance);
-            shader.safeGetUniform("LightDirection").set(direction);
-            shader.setSampler("AtlasSampler", Minecraft.getInstance().getModelManager().getAtlas(InventoryMenu.BLOCK_ATLAS));
-
-            geomVBO.bind();
-            geomVBO.drawWithShader(view, RenderSystem.getProjectionMatrix(), RenderSystem.getShader());
-            VertexBuffer.unbind();
-
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
-
-            type.clearRenderState();
-            glDisable(GL_STENCIL_TEST);
-        }
-    }
-
-    protected void renderLight() {
-        Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(Vibrancy.id("ray_light"))).bind(true);
-        VeilRenderSystem.setShader(Vibrancy.id("light/ray/sky"));
-        ShaderInstance shader = Objects.requireNonNull(RenderSystem.getShader());
-
-        shader.safeGetUniform("LightDirection").set(direction);
-        shader.safeGetUniform("LightColor").set(SUN_COLOR);
-        //shader.safeGetUniform("LightColor").set(color.x * brightness, color.y * brightness, color.z * brightness);
-
-        RenderSystem.disableDepthTest();
-        RenderSystem.disableCull();
-        RenderSystem.enableBlend();
-        RenderSystem.blendFunc(GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ONE);
-        RenderSystem.blendEquation(GL_FUNC_ADD);
-
-        Vibrancy.SCREEN_VBO.bind();
-        Vibrancy.SCREEN_VBO.drawWithShader(null, null, shader);
-        VertexBuffer.unbind();
-
-        RenderSystem.disableBlend();
-    }
-
-    @Override
-    public boolean render(boolean raytrace) {
-        ClientLevel level = Minecraft.getInstance().level;
-
-        if (level != null) {
+        protected void init(ClientLevel level, boolean raytrace) {
             if (fullRebuildTask != null) {
                 Vibrancy.NUM_LIGHT_TASKS++;
             }
-
-            float sunAngle = level.getSunAngle(0);
-            direction = new Vector3f((float) -Math.sin(sunAngle), (float) Math.cos(sunAngle), 0);
 
             for (BlockPos pos : dirty) {
                 regenQuads(level, pos, quads::add);
@@ -204,41 +97,35 @@ public class SkyLight implements RaytracedLight {
                 }
             } else if (raytrace) {
                 if (isDirty()) {
-                    clean();
                     fullRebuildTask = CompletableFuture.supplyAsync(() -> {
                         List<Quad> quads = new LinkedList<>();
-                        ChunkPos pos = new ChunkPos(Minecraft.getInstance().player.blockPosition());
 
-                        for (int chunkX = pos.x - 1; chunkX <= pos.x + 1; chunkX++) {
-                            for (int chunkZ = pos.z - 1; chunkZ <= pos.z + 1; chunkZ++) {
-                                if (level.hasChunk(chunkX, chunkZ)) {
-                                    LevelChunk chunk = level.getChunk(chunkX, chunkZ);
+                        if (level.hasChunk(pos.x, pos.z)) {
+                            LevelChunk chunk = level.getChunk(pos.x, pos.z);
 
-                                    for (int i = chunk.getMinSection(); i < chunk.getMaxSection(); i++) {
-                                        LevelChunkSection section = chunk.getSection(chunk.getSectionIndexFromSectionY(i));
-                                        BlockPos minPos = SectionPos.of(chunk.getPos(), i).origin();
+                            for (int i = chunk.getMinSection(); i < chunk.getMaxSection(); i++) {
+                                LevelChunkSection section = chunk.getSection(chunk.getSectionIndexFromSectionY(i));
+                                BlockPos minPos = SectionPos.of(chunk.getPos(), i).origin();
 
-                                        for (int x = 0; x < 16; x++) {
-                                            for (int y = 0; y < 16; y++) {
-                                                for (int z = 0; z < 16; z++) {
-                                                    BlockPos blockPos = new BlockPos(minPos.getX() + x, minPos.getY() + y, minPos.getZ() + z);
+                                for (int x = 0; x < 16; x++) {
+                                    for (int y = 0; y < 16; y++) {
+                                        for (int z = 0; z < 16; z++) {
+                                            BlockPos blockPos = new BlockPos(minPos.getX() + x, minPos.getY() + y, minPos.getZ() + z);
 
-                                                    if (shouldCastBlock(level, blockPos)) {
-                                                        BlockState state = section.getBlockState(x, y, z);
+                                            if (shouldCastBlock(level, blockPos)) {
+                                                BlockState state = section.getBlockState(x, y, z);
 
-                                                        BakedModel model = Minecraft.getInstance().getBlockRenderer().getBlockModel(state);
-                                                        RandomSource random = RandomSource.create();
-                                                        Vec3 offset = state.getOffset(level, blockPos);
+                                                BakedModel model = Minecraft.getInstance().getBlockRenderer().getBlockModel(state);
+                                                RandomSource random = RandomSource.create();
+                                                Vec3 offset = state.getOffset(level, blockPos);
 
-                                                        for (Direction direction : Direction.values()) {
-                                                            if (Block.shouldRenderFace(state, level, blockPos, direction, blockPos.relative(direction))) {
-                                                                getQuads(model.getQuads(state, direction, random), blockPos, quads::add, offset, direction);
-                                                            }
-                                                        }
-
-                                                        getQuads(model.getQuads(state, null, random), blockPos, quads::add, offset, null);
+                                                for (Direction direction : Direction.values()) {
+                                                    if (Block.shouldRenderFace(state, level, blockPos, direction, blockPos.relative(direction))) {
+                                                        getQuads(model.getQuads(state, direction, random), blockPos, quads::add, offset, direction);
                                                     }
                                                 }
+
+                                                getQuads(model.getQuads(state, null, random), blockPos, quads::add, offset, null);
                                             }
                                         }
                                     }
@@ -263,6 +150,177 @@ public class SkyLight implements RaytracedLight {
             }
 
             upload(builder, newQuads);
+        }
+
+        protected void renderMask(Matrix4f view) {
+            RenderType stencilType = VeilRenderType.get(Vibrancy.id("sky_stencil_node"));
+            stencilType.setupRenderState();
+
+            glEnable(GL_STENCIL_TEST);
+            glStencilMask(2);
+            glStencilFunc(GL_ALWAYS, 2, 2);
+            glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
+            stencilType.clearRenderState();
+
+            RenderType type = VeilRenderType.get(Vibrancy.id("sky_shadow"));
+            type.setupRenderState();
+
+            glEnable(GL_STENCIL_TEST);
+            glStencilMask(0xFF);
+            glStencilFunc(GL_EQUAL, 3, 3);
+            glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo);
+
+            ShaderInstance shader = Objects.requireNonNull(RenderSystem.getShader());
+
+            shader.safeGetUniform("MaxLength").set(distance);
+            shader.safeGetUniform("LightDirection").set(direction);
+            shader.setSampler("AtlasSampler", Minecraft.getInstance().getModelManager().getAtlas(InventoryMenu.BLOCK_ATLAS));
+
+            vbo.bind();
+            vbo.drawWithShader(view, RenderSystem.getProjectionMatrix(), RenderSystem.getShader());
+            VertexBuffer.unbind();
+
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, 0);
+
+            type.clearRenderState();
+
+            RenderType stencilClearType = VeilRenderType.get(Vibrancy.id("sky_stencil_clear"));
+            stencilClearType.setupRenderState();
+
+            glEnable(GL_STENCIL_TEST);
+            glStencilMask(2);
+            glStencilFunc(GL_ALWAYS, 0, 2);
+            glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
+            Vibrancy.SCREEN_VBO.bind();
+            Vibrancy.SCREEN_VBO.drawWithShader(view, RenderSystem.getProjectionMatrix(), RenderSystem.getShader());
+
+            stencilClearType.clearRenderState();
+        }
+    }
+
+    public static final Vector3f SUN_COLOR = new Vector3f(0.5f, 0.5f, 0.425f);
+    public static @Nullable SkyLight INSTANCE;
+
+    protected final Map<ChunkPos, Node> nodes = new LinkedHashMap<>();
+    protected Vector3f direction;
+    protected float distance = 2048;
+    protected boolean isDirty = true;
+
+    public void markDirty() {
+        isDirty = true;
+    }
+
+    public void clean() {
+        isDirty = false;
+    }
+
+    public boolean isDirty() {
+        return isDirty;
+    }
+
+    @Override
+    public void updateDirty(Iterable<BlockPos> it) {
+        for (BlockPos pos : it) {
+            nodes.computeIfAbsent(new ChunkPos(pos), Node::new).dirty.add(pos);
+        }
+    }
+
+    @Override
+    public void init() {
+    }
+
+    public abstract Vector3f getDirection(ClientLevel level);
+
+    public abstract Vector3f getColor(ClientLevel level);
+
+    protected boolean shouldCastBlock(ClientLevel level, BlockPos pos) {
+        for (Direction direction : new Direction[]{Direction.UP, Direction.NORTH, Direction.SOUTH, Direction.WEST, Direction.EAST}) {
+            if (level.getBrightness(LightLayer.SKY, pos.relative(direction)) == 15) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    protected void renderMask(boolean raytrace, Matrix4f view) {
+        AdvancedFbo fbo = Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(Vibrancy.id("shadow_mask")));
+        fbo.bind(true);
+        glClearColor(0f, 0f, 0f, 0f);
+        glClearStencil(0);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
+
+        if (raytrace) {
+            glEnable(GL_STENCIL_TEST);
+            glStencilMask(1);
+            glStencilFunc(GL_ALWAYS, 1, 1);
+            glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
+
+            RenderType stencilType = VeilRenderType.get(Vibrancy.id("sky_stencil"));
+            stencilType.setupRenderState();
+
+            Vibrancy.SCREEN_VBO.bind();
+            Vibrancy.SCREEN_VBO.drawWithShader(view, RenderSystem.getProjectionMatrix(), RenderSystem.getShader());
+            VertexBuffer.unbind();
+
+            stencilType.clearRenderState();
+
+            for (Node node : nodes.values()) {
+                node.renderMask(view);
+            }
+
+            glDisable(GL_STENCIL_TEST);
+        }
+    }
+
+    protected void renderLight(ClientLevel level) {
+        Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(Vibrancy.id("ray_light"))).bind(true);
+        VeilRenderSystem.setShader(Vibrancy.id("light/ray/sky"));
+        ShaderInstance shader = Objects.requireNonNull(RenderSystem.getShader());
+
+        shader.safeGetUniform("LightDirection").set(direction);
+        shader.safeGetUniform("LightColor").set(getColor(level));
+        //shader.safeGetUniform("LightColor").set(color.x * brightness, color.y * brightness, color.z * brightness);
+
+        RenderSystem.disableDepthTest();
+        RenderSystem.disableCull();
+        RenderSystem.enableBlend();
+        RenderSystem.blendFunc(GlStateManager.SourceFactor.ONE, GlStateManager.DestFactor.ONE);
+        RenderSystem.blendEquation(GL_FUNC_ADD);
+
+        Vibrancy.SCREEN_VBO.bind();
+        Vibrancy.SCREEN_VBO.drawWithShader(null, null, shader);
+        VertexBuffer.unbind();
+
+        RenderSystem.disableBlend();
+    }
+
+    @Override
+    public boolean render(boolean raytrace) {
+        ClientLevel level = Minecraft.getInstance().level;
+
+        if (level != null) {
+            direction = getColor(level);
+
+            if (isDirty()) {
+                ChunkPos pos = new ChunkPos(Minecraft.getInstance().player.blockPosition());
+                int radius = 1;
+
+                for (int chunkX = pos.x - radius; chunkX <= pos.x + radius; chunkX++) {
+                    for (int chunkZ = pos.z - radius; chunkZ <= pos.z + radius; chunkZ++) {
+                        nodes.computeIfAbsent(pos, Node::new);
+                    }
+                }
+            }
+
+            for (Node node : nodes.values()) {
+                node.init(level, raytrace);
+            }
+
+            clean();
 
             Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
             Matrix4f view = new Matrix4f()
@@ -270,7 +328,7 @@ public class SkyLight implements RaytracedLight {
                     .translate((float) -camera.getPosition().x, (float) -camera.getPosition().y, (float) -camera.getPosition().z);
 
             renderMask(raytrace, view);
-            renderLight();
+            renderLight(level);
 
             return true;
         }
@@ -290,5 +348,23 @@ public class SkyLight implements RaytracedLight {
 
     @Override
     public void free() {
+        for (Node node : nodes.values()) {
+            node.free();
+        }
+
+        nodes.clear();
+    }
+
+    public static class Overworld extends SkyLight {
+        @Override
+        public Vector3f getDirection(ClientLevel level) {
+            float sunAngle = level.getSunAngle(0);
+            return new Vector3f((float) -Math.sin(sunAngle), (float) Math.cos(sunAngle), 0);
+        }
+
+        @Override
+        public Vector3f getColor(ClientLevel level) {
+            return SUN_COLOR;
+        }
     }
 }

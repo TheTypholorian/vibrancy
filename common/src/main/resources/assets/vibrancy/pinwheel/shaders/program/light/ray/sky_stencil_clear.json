@@ -1,0 +1,4 @@
+{
+  "vertex": "vibrancy:blit",
+  "fragment": "vibrancy:light/ray/sky_stencil_clear"
+}

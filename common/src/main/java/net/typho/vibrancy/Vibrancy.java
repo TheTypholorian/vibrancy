@@ -32,6 +32,7 @@ import net.minecraft.server.packs.resources.ResourceManagerReloadListener;
 import net.minecraft.tags.TagKey;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.block.state.StateDefinition;
@@ -278,7 +279,14 @@ public class Vibrancy {
 
     public static void afterClientLevelChange(ClientLevel world) {
         if (SkyLight.INSTANCE != null) {
+            SkyLight.INSTANCE.free();
+        }
+
+        if (world.dimension().equals(Level.OVERWORLD)) {
+            SkyLight.INSTANCE = new SkyLight.Overworld();
             SkyLight.INSTANCE.markDirty();
+        } else {
+            SkyLight.INSTANCE = null;
         }
 
         BLOCK_LIGHTS.values().forEach(BlockPointLight::free);

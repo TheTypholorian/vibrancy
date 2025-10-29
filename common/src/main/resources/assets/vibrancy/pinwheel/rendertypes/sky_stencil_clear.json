@@ -1,0 +1,29 @@
+{
+  "format": "POSITION",
+  "mode": "QUADS",
+  "bufferSize": "TRANSIENT",
+  "sort": false,
+  "layers": [
+    {
+      "type": "veil:shader",
+      "name": "vibrancy:light/ray/sky_stencil_clear"
+    },
+    {
+      "type": "minecraft:depth_test",
+      "mode": "always"
+    },
+    {
+      "type": "minecraft:cull",
+      "face": "none"
+    },
+    {
+      "type": "minecraft:write_mask",
+      "color": false,
+      "depth": false
+    },
+    {
+      "type": "minecraft:output",
+      "framebuffer": "vibrancy:shadow_mask"
+    }
+  ]
+}
