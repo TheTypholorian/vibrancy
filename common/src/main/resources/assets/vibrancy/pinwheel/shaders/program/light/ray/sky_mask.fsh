@@ -23,7 +23,7 @@ void main() {
 
     vec3 Pos = getWorldPos(DiffuseDepthSampler, ivec2(gl_FragCoord.xy), ScreenSize);
 
-    if (testMask(AtlasSampler, Pos, LightDirection, MaxLength, quad)) {
+    if (testMask(AtlasSampler, Pos.xyz, LightDirection, MaxLength, 1e-3, false, quad)) {
         discard;
     }
 }

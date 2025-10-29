@@ -14,12 +14,12 @@ struct Quad {
     float inv21; float inv22;
 };
 
-bool raycastQuad(vec3 origin, vec3 dir, float len, Quad q, out vec2 uv) {
+bool raycastQuad(vec3 origin, vec3 dir, float len, float margin, bool front, Quad q, out vec2 uv) {
     float denom = dot(dir, q.n);
-    if (denom >= 0.0) return false;
+    if (denom >= 0.0 == front) return false;
 
     float tt = (q.d - dot(origin, q.n)) / denom;
-    if (tt < 1e-3 || tt > len - 1e-3) return false;
+    if (tt < margin || tt > len - margin) return false;
 
     vec3 p = origin + tt * dir;
     vec3 vp = p - q.v1;

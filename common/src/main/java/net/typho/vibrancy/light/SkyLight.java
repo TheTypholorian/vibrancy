@@ -18,6 +18,7 @@ import net.minecraft.core.SectionPos;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
@@ -46,7 +47,7 @@ import static org.lwjgl.opengl.GL30.glBindBufferBase;
 import static org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER;
 
 public class SkyLight implements RaytracedLight {
-    public static final Vector3f SUN_COLOR = new Vector3f(1, 1, 0.85f);
+    public static final Vector3f SUN_COLOR = new Vector3f(0.5f, 0.5f, 0.425f);
     public static @Nullable SkyLight INSTANCE = new SkyLight();
 
     protected final VertexBuffer geomVBO = new VertexBuffer(VertexBuffer.Usage.STATIC);
@@ -85,9 +86,21 @@ public class SkyLight implements RaytracedLight {
         upload(builder, volumes, geomVBO, quadsSSBO, GL_STATIC_DRAW);
     }
 
-    protected void regenQuads(ClientLevel world, BlockPos pos, Consumer<Quad> out) {
-        quads.removeIf(quad -> quad.blockPos().equals(pos));
-        getQuads(world, pos, out, false, direction, false, dir -> world.canSeeSky(pos.relative(dir)));
+    protected boolean shouldCastBlock(ClientLevel level, BlockPos pos) {
+        for (Direction direction : new Direction[]{Direction.UP, Direction.NORTH, Direction.SOUTH, Direction.WEST, Direction.EAST}) {
+            if (level.getBrightness(LightLayer.SKY, pos.relative(direction)) == 15) {
+                return true;
+            }
+        }
+
+        return false;
+    }
+
+    protected void regenQuads(ClientLevel level, BlockPos pos, Consumer<Quad> out) {
+        if (shouldCastBlock(level, pos)) {
+            quads.removeIf(quad -> quad.blockPos().equals(pos));
+            getQuads(level, pos, out, false, this.direction, false, dir -> true);
+        }
     }
 
     protected void renderMask(boolean raytrace, Matrix4f view) {
@@ -196,8 +209,8 @@ public class SkyLight implements RaytracedLight {
                         List<Quad> quads = new LinkedList<>();
                         ChunkPos pos = new ChunkPos(Minecraft.getInstance().player.blockPosition());
 
-                        for (int chunkX = pos.x - 3; chunkX <= pos.x + 3; chunkX++) {
-                            for (int chunkZ = pos.z - 3; chunkZ <= pos.z + 3; chunkZ++) {
+                        for (int chunkX = pos.x - 1; chunkX <= pos.x + 1; chunkX++) {
+                            for (int chunkZ = pos.z - 1; chunkZ <= pos.z + 1; chunkZ++) {
                                 if (level.hasChunk(chunkX, chunkZ)) {
                                     LevelChunk chunk = level.getChunk(chunkX, chunkZ);
 
@@ -208,20 +221,23 @@ public class SkyLight implements RaytracedLight {
                                         for (int x = 0; x < 16; x++) {
                                             for (int y = 0; y < 16; y++) {
                                                 for (int z = 0; z < 16; z++) {
-                                                    BlockState state = section.getBlockState(x, y, z);
                                                     BlockPos blockPos = new BlockPos(minPos.getX() + x, minPos.getY() + y, minPos.getZ() + z);
 
-                                                    BakedModel model = Minecraft.getInstance().getBlockRenderer().getBlockModel(state);
-                                                    RandomSource random = RandomSource.create();
-                                                    Vec3 offset = state.getOffset(level, blockPos);
+                                                    if (shouldCastBlock(level, blockPos)) {
+                                                        BlockState state = section.getBlockState(x, y, z);
 
-                                                    for (Direction direction : Direction.values()) {
-                                                        if (Block.shouldRenderFace(state, level, blockPos, direction, blockPos.relative(direction))) {
-                                                            getQuads(model.getQuads(state, direction, random), blockPos, quads::add, offset);
+                                                        BakedModel model = Minecraft.getInstance().getBlockRenderer().getBlockModel(state);
+                                                        RandomSource random = RandomSource.create();
+                                                        Vec3 offset = state.getOffset(level, blockPos);
+
+                                                        for (Direction direction : Direction.values()) {
+                                                            if (Block.shouldRenderFace(state, level, blockPos, direction, blockPos.relative(direction))) {
+                                                                getQuads(model.getQuads(state, direction, random), blockPos, quads::add, offset, direction);
+                                                            }
                                                         }
-                                                    }
 
-                                                    getQuads(model.getQuads(state, null, random), blockPos, quads::add, offset);
+                                                        getQuads(model.getQuads(state, null, random), blockPos, quads::add, offset, null);
+                                                    }
                                                 }
                                             }
                                         }
@@ -237,11 +253,16 @@ public class SkyLight implements RaytracedLight {
 
             BufferBuilder builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION);
 
+            List<Quad> newQuads = new LinkedList<>();
+
             for (Quad quad : quads) {
-                quad.toVolumeSky(direction, distance).render(builder);
+                if (quad.direction() == null || Vibrancy.pointsToward(quad.direction(), direction)) {
+                    quad.toVolumeSky(direction, distance).render(builder);
+                    newQuads.add(quad);
+                }
             }
 
-            upload(builder, quads);
+            upload(builder, newQuads);
 
             Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
             Matrix4f view = new Matrix4f()

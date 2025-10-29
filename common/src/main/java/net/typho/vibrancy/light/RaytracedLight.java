@@ -68,7 +68,7 @@ public interface RaytracedLight extends NativeResource {
         return null;
     }
 
-    default void getQuads(Iterable<BakedQuad> bakedQuads, BlockPos pos, Consumer<Quad> out, Vec3 offset) {
+    default void getQuads(Iterable<BakedQuad> bakedQuads, BlockPos pos, Consumer<Quad> out, Vec3 offset, @Nullable Direction direction) {
         for (BakedQuad quad : bakedQuads) {
             Vector3f[] positions = new Vector3f[4];
             Vector2f[] uvs = new Vector2f[4];
@@ -90,6 +90,7 @@ public interface RaytracedLight extends NativeResource {
 
             out.accept(new Quad(
                     pos,
+                    direction,
                     positions[0],
                     positions[1],
                     positions[2],
@@ -106,7 +107,7 @@ public interface RaytracedLight extends NativeResource {
         getQuads(world, pos, out, close, new Vector3f(blockPos.getX() - pos.getX(), blockPos.getY() - pos.getY(), blockPos.getZ() - pos.getZ()), normalTest, predicate);
     }
 
-    default void getQuads(ClientLevel world, BlockPos pos, Consumer<Quad> out, boolean close, Vector3f lightDirection, boolean normalTest, Predicate<Direction> predicate) {
+    default void getQuads(ClientLevel world, BlockPos pos, Consumer<Quad> out, boolean close, Vector3f lightDirection, boolean normalTest, Predicate<@Nullable Direction> predicate) {
         BlockState state = world.getBlockState(pos);
 
         if (!Vibrancy.TRANSPARENCY_TEST.get() && state.propagatesSkylightDown(world, pos)) {
@@ -119,12 +120,12 @@ public interface RaytracedLight extends NativeResource {
 
         for (Direction direction : Direction.values()) {
             if (predicate.test(direction) && (close || (Block.shouldRenderFace(state, world, pos, direction, pos.relative(direction)) && (!normalTest || Vibrancy.pointsToward(direction, lightDirection))))) {
-                getQuads(model.getQuads(state, direction, random), pos, out, offset);
+                getQuads(model.getQuads(state, direction, random), pos, out, offset, direction);
             }
         }
 
         if (predicate.test(null)) {
-            getQuads(model.getQuads(state, null, random), pos, out, offset);
+            getQuads(model.getQuads(state, null, random), pos, out, offset, null);
         }
     }
 
@@ -157,7 +158,7 @@ public interface RaytracedLight extends NativeResource {
     }
 
     record Quad(
-            BlockPos blockPos,
+            BlockPos blockPos, @Nullable Direction direction,
             Vector3f v1, Vector3f v2, Vector3f v3, Vector3f v4,
             Vector2f uv1, Vector2f uv2, Vector2f uv3, Vector2f uv4,
             Vector3f n, float d,
@@ -165,10 +166,10 @@ public interface RaytracedLight extends NativeResource {
     ) implements IQuad {
         public static final int BYTES = 40 * Float.BYTES;
 
-        public Quad(BlockPos blockPos, Vector3f v1, Vector3f v2, Vector3f v3, Vector3f v4,
+        public Quad(BlockPos blockPos, @Nullable Direction direction, Vector3f v1, Vector3f v2, Vector3f v3, Vector3f v4,
                     Vector2f uv1, Vector2f uv2, Vector2f uv3, Vector2f uv4) {
             this(
-                    blockPos,
+                    blockPos, direction,
                     v1, v2, v3, v4, uv1, uv2, uv3, uv4,
                     new Vector3f(v2).sub(v1).cross(new Vector3f(v4).sub(v1)).normalize(),
                     new Vector3f(v2).sub(v1).cross(new Vector3f(v4).sub(v1)).normalize().dot(v1),

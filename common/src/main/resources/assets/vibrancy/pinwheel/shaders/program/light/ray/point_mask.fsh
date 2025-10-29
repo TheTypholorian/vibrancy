@@ -28,7 +28,7 @@ void main() {
 
     vec3 dir = delta / len;
 
-    if (testMask(AtlasSampler, Pos, dir, len, quad)) {
+    if (testMask(AtlasSampler, Pos, dir, len, 1e-3, true, quad)) {
         discard;
     }
 }
