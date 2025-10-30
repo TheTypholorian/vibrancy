@@ -1,10 +1,10 @@
 package net.typho.vibrancy.light;
 
-import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
+import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.core.BlockBox;
@@ -12,6 +12,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.typho.vibrancy.Vibrancy;
 import org.joml.Matrix4f;
+import org.joml.Quaternionf;
 import org.joml.Vector3f;
 
 import java.util.*;
@@ -153,7 +154,10 @@ public abstract class AbstractMovingPointLight extends AbstractPointLight {
 
                 shadowCount = volumes.size();
 
-                Matrix4f view = RenderSystem.getModelViewMatrix();
+                Camera camera = Minecraft.getInstance().gameRenderer.getMainCamera();
+                Matrix4f view = new Matrix4f()
+                        .rotate(camera.rotation().invert(new Quaternionf()))
+                        .translate((float) -camera.getPosition().x, (float) -camera.getPosition().y, (float) -camera.getPosition().z);
 
                 renderMask(raytrace, lightPos, view);
                 renderLight(lightPos, view);

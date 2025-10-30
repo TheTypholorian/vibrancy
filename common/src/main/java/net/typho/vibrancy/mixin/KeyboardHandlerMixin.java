@@ -8,6 +8,7 @@ import net.typho.vibrancy.Vibrancy;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -20,6 +21,9 @@ public class KeyboardHandlerMixin {
     @Final
     private Minecraft minecraft;
 
+    @Unique
+    private boolean f6Handled;
+
     @Inject(
             method = "keyPress",
             at = @At("HEAD"),
@@ -31,11 +35,16 @@ public class KeyboardHandlerMixin {
                 if (action == GLFW_PRESS) {
                     ci.cancel();
                 } else if (action == GLFW_RELEASE) {
-                    VeilImGuiImpl.get().toggle();
+                    if (!f6Handled) {
+                        VeilImGuiImpl.get().toggle();
+                    }
+
+                    f6Handled = false;
                     ci.cancel();
                 }
             } else if (action == GLFW_PRESS && glfwGetKey(window, GLFW_KEY_F6) == GLFW_PRESS) {
                 if (Vibrancy.debugKey(key)) {
+                    f6Handled = true;
                     ci.cancel();
                 }
             }

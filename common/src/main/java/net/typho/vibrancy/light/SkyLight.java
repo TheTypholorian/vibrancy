@@ -262,6 +262,7 @@ public abstract class SkyLight implements RaytracedLight {
 
     public static @Nullable SkyLight INSTANCE;
 
+    protected final VertexBuffer linesVBO = new VertexBuffer(VertexBuffer.Usage.DYNAMIC);
     protected final Map<ChunkPos, Chunk> chunks = new LinkedHashMap<>();
     protected final List<ChunkPos> chunksToAdd = new LinkedList<>();
     protected Vector3f direction;
@@ -376,7 +377,6 @@ public abstract class SkyLight implements RaytracedLight {
 
         shader.safeGetUniform("LightDirection").set(direction);
         shader.safeGetUniform("LightColor").set(getColor(level));
-        //shader.safeGetUniform("LightColor").set(color.x * brightness, color.y * brightness, color.z * brightness);
 
         RenderSystem.disableDepthTest();
         RenderSystem.disableCull();
@@ -434,28 +434,43 @@ public abstract class SkyLight implements RaytracedLight {
             renderMask(raytrace, view);
             renderLight(level);
 
-            if (Minecraft.getInstance().getDebugOverlay().showDebugScreen()) {
-                VertexConsumer consumer = Minecraft.getInstance().renderBuffers().bufferSource().getBuffer(RenderType.LINES);
-                Vec3 cam = Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
+            if (Vibrancy.DEBUG_LIGHT_VIEW.get()) {
+                BufferBuilder consumer = Tesselator.getInstance().begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR_NORMAL);
+                boolean any = false;
 
                 for (Chunk chunk : chunks.values()) {
                     if (chunk.shadowCount > 0 && chunk.render) {
                         for (Quad quad : chunk.quads) {
+                            any = true;
+
                             Vector3f color = quad.direction() == null || Vibrancy.pointsToward(quad.direction(), direction) ? new Vector3f(0, 1, 0) : new Vector3f(1, 0, 0);
 
-                            consumer.addVertex(quad.v1().x - (float) cam.x, quad.v1().y - (float) cam.y, quad.v1().z - (float) cam.z).setColor(color.x, color.y, color.z, 1).setNormal(0, 1, 0);
-                            consumer.addVertex(quad.v2().x - (float) cam.x, quad.v2().y - (float) cam.y, quad.v2().z - (float) cam.z).setColor(color.x, color.y, color.z, 1).setNormal(0, 1, 0);
+                            Vector3f[] order = {
+                                    quad.v1(), quad.v2(),
+                                    quad.v2(), quad.v3(),
+                                    quad.v3(), quad.v4(),
+                                    quad.v4(), quad.v1(),
+                                    quad.v1(), quad.v3(),
+                                    quad.v2(), quad.v4()
+                            };
 
-                            consumer.addVertex(quad.v2().x - (float) cam.x, quad.v2().y - (float) cam.y, quad.v2().z - (float) cam.z).setColor(color.x, color.y, color.z, 1).setNormal(0, 1, 0);
-                            consumer.addVertex(quad.v4().x - (float) cam.x, quad.v4().y - (float) cam.y, quad.v4().z - (float) cam.z).setColor(color.x, color.y, color.z, 1).setNormal(0, 1, 0);
-
-                            consumer.addVertex(quad.v4().x - (float) cam.x, quad.v4().y - (float) cam.y, quad.v4().z - (float) cam.z).setColor(color.x, color.y, color.z, 1).setNormal(0, 1, 0);
-                            consumer.addVertex(quad.v3().x - (float) cam.x, quad.v3().y - (float) cam.y, quad.v3().z - (float) cam.z).setColor(color.x, color.y, color.z, 1).setNormal(0, 1, 0);
-
-                            consumer.addVertex(quad.v3().x - (float) cam.x, quad.v3().y - (float) cam.y, quad.v3().z - (float) cam.z).setColor(color.x, color.y, color.z, 1).setNormal(0, 1, 0);
-                            consumer.addVertex(quad.v1().x - (float) cam.x, quad.v1().y - (float) cam.y, quad.v1().z - (float) cam.z).setColor(color.x, color.y, color.z, 1).setNormal(0, 1, 0);
+                            for (Vector3f vec : order) {
+                                consumer.addVertex(vec.x, vec.y, vec.z).setColor(color.x, color.y, color.z, 1).setNormal(0, 1, 0);
+                            }
                         }
                     }
+                }
+
+                if (any) {
+                    RenderType type = VeilRenderType.get(Vibrancy.id("debug_lines"));
+                    type.setupRenderState();
+
+                    linesVBO.bind();
+                    linesVBO.upload(consumer.build());
+                    linesVBO.drawWithShader(view, RenderSystem.getProjectionMatrix(), RenderSystem.getShader());
+                    VertexBuffer.unbind();
+
+                    type.clearRenderState();
                 }
             }
 
