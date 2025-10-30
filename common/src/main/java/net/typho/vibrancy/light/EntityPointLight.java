@@ -1,5 +1,6 @@
 package net.typho.vibrancy.light;
 
+import com.mojang.blaze3d.platform.NativeImage;
 import net.minecraft.client.Minecraft;
 import net.minecraft.world.entity.LivingEntity;
 import net.minecraft.world.item.BlockItem;
@@ -7,11 +8,14 @@ import net.minecraft.world.item.ItemStack;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.Vec3;
 import net.typho.vibrancy.DynamicLightInfo;
+import net.typho.vibrancy.mixin.LightTextureAccessor;
+
+import java.awt.*;
 
 public class EntityPointLight extends AbstractMovingPointLight {
     public final LivingEntity entity;
 
-    public EntityPointLight(net.minecraft.world.entity.LivingEntity entity) {
+    public EntityPointLight(LivingEntity entity) {
         this.entity = entity;
     }
 
@@ -21,8 +25,8 @@ public class EntityPointLight extends AbstractMovingPointLight {
     }
 
     @Override
-    public boolean shouldRender() {
-        return super.shouldRender() || entity == Minecraft.getInstance().cameraEntity;
+    public boolean shouldRender(Vec3 cam) {
+        return super.shouldRender(cam) || entity == Minecraft.getInstance().cameraEntity;
     }
 
     @Override
@@ -30,7 +34,7 @@ public class EntityPointLight extends AbstractMovingPointLight {
         float tickDelta = Minecraft.getInstance().getTimer().getGameTimeDeltaPartialTick(true);
         Vec3 entityPos = entity.getEyePosition(tickDelta)
                 .add(entity.getViewVector(tickDelta));
-        setPosition(entityPos.x, entityPos.y, entityPos.z);
+        position.set(entityPos.x, entityPos.y, entityPos.z);
     }
 
     @Override
@@ -46,9 +50,9 @@ public class EntityPointLight extends AbstractMovingPointLight {
             if (info != null) {
                 info.initLight(this, state);
 
-                //NativeImage lightmap = Minecraft.getInstance().gameRenderer.lightTexture().lightPixels;
-                //Color color = new Color(lightmap.getPixelRGBA(15, 0));
-                //this.color.set(color.getRed() / 255f, color.getGreen() / 255f, color.getBlue() / 255f);
+                NativeImage lightmap = ((LightTextureAccessor) Minecraft.getInstance().gameRenderer.lightTexture()).getLightPixels();
+                Color color = new Color(lightmap.getPixelRGBA(15, 0));
+                this.color.add(color.getRed() / 255f, color.getGreen() / 255f, color.getBlue() / 255f);
 
                 hasLight = true;
                 return true;

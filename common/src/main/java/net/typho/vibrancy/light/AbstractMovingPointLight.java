@@ -98,7 +98,7 @@ public abstract class AbstractMovingPointLight extends AbstractPointLight {
 
         if (world != null) {
             BlockPos lightBlockPos = new BlockPos((int) Math.floor(getPosition().x), (int) Math.floor(getPosition().y), (int) Math.floor(getPosition().z));
-            Vector3f lightPos = new Vector3f((float) getPosition().x, (float) getPosition().y, (float) getPosition().z);
+            Vector3f lightPos = new Vector3f(getPosition().x, getPosition().y, getPosition().z);
             int blockRadius = Vibrancy.capShadowDistance((int) Math.ceil(radius) - 2);
             BlockBox box = getBox();
 

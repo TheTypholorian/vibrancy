@@ -29,7 +29,6 @@ import net.typho.vibrancy.Vibrancy;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
-import org.joml.Vector3d;
 import org.joml.Vector3f;
 import org.lwjgl.system.NativeResource;
 
@@ -81,8 +80,9 @@ public abstract class SkyLight implements RaytracedLight {
         }
 
         protected void regenQuads(ClientLevel level, BlockPos pos, Consumer<Quad> out) {
+            quads.removeIf(quad -> quad.blockPos().equals(pos));
+
             if (shouldCastBlock(level, pos)) {
-                quads.removeIf(quad -> quad.blockPos().equals(pos));
                 getQuads(level, pos, out, false, direction, false, dir -> true);
             }
         }
@@ -295,6 +295,10 @@ public abstract class SkyLight implements RaytracedLight {
     public abstract Vector3f getColor(ClientLevel level);
 
     protected boolean shouldCastBlock(ClientLevel level, BlockPos pos) {
+        if (!level.getBlockState(pos).propagatesSkylightDown(level, pos)) {
+            return false;
+        }
+
         for (Direction direction : new Direction[]{Direction.UP, Direction.NORTH, Direction.SOUTH, Direction.WEST, Direction.EAST}) {
             if (level.getBrightness(LightLayer.SKY, pos.relative(direction)) == 15) {
                 return true;
@@ -389,12 +393,7 @@ public abstract class SkyLight implements RaytracedLight {
     }
 
     @Override
-    public Vector3d getPosition() {
-        return null;
-    }
-
-    @Override
-    public boolean shouldRender() {
+    public boolean shouldRender(Vec3 cam) {
         return true;
     }
 

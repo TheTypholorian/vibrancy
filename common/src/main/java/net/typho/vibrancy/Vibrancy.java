@@ -35,7 +35,6 @@ import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.phys.Vec3;
@@ -50,8 +49,6 @@ import java.io.IOException;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.Map;
-import java.util.function.BiFunction;
-import java.util.function.Predicate;
 import java.util.function.Supplier;
 
 import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
@@ -124,9 +121,6 @@ public class Vibrancy {
     public static final Map<BlockPos, BlockPointLight> BLOCK_LIGHTS = new LinkedHashMap<>();
     public static final Map<LivingEntity, EntityPointLight> ENTITY_LIGHTS = new LinkedHashMap<>();
     public static int NUM_LIGHT_TASKS = 0, NUM_RAYTRACED_LIGHTS = 0, NUM_VISIBLE_LIGHTS = 0, SHADOW_COUNT = 0;
-    public static BiFunction<StateDefinition<Block, BlockState>, String, Predicate<BlockState>> BLOCK_STATE_PREDICATE = (def, properties) -> {
-        throw new IllegalStateException();
-    };
     public static VertexBuffer SCREEN_VBO;
 
     static {
@@ -156,7 +150,7 @@ public class Vibrancy {
 
     public static boolean shouldRenderLight(RaytracedLight light) {
         Vec3 cam = Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
-        boolean b = light.getPosition().distanceSquared(cam.x, cam.y, cam.z) / 16 < Vibrancy.LIGHT_CULL_DISTANCE.get() * Vibrancy.LIGHT_CULL_DISTANCE.get() && light.shouldRender();
+        boolean b = light.shouldRender(cam);
 
         if (b) {
             NUM_VISIBLE_LIGHTS++;
@@ -165,9 +159,8 @@ public class Vibrancy {
         return b;
     }
 
-    public static double getLightDistance(RaytracedLight light) {
-        Vec3 cam = Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
-        return light.getPosition().distanceSquared(cam.x, cam.y, cam.z);
+    public static double getLightSortDistance(RaytracedLight light) {
+        return light.getSortDistance();
     }
 
     public static void renderLight(RaytracedLight light, int[] cap) {
@@ -359,11 +352,11 @@ public class Vibrancy {
         }
 
         ENTITY_LIGHTS.values().stream()
-                .sorted(Comparator.comparingDouble(Vibrancy::getLightDistance))
+                .sorted(Comparator.comparingDouble(Vibrancy::getLightSortDistance))
                 .filter(Vibrancy::shouldRenderLight)
                 .forEachOrdered(light -> renderLight(light, cap));
         BLOCK_LIGHTS.values().stream()
-                .sorted(Comparator.comparingDouble(Vibrancy::getLightDistance))
+                .sorted(Comparator.comparingDouble(Vibrancy::getLightSortDistance))
                 .filter(Vibrancy::shouldRenderLight)
                 .forEachOrdered(light -> renderLight(light, cap));
 

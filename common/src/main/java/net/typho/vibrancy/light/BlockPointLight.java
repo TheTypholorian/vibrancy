@@ -4,7 +4,6 @@ import com.mojang.blaze3d.vertex.BufferBuilder;
 import com.mojang.blaze3d.vertex.DefaultVertexFormat;
 import com.mojang.blaze3d.vertex.Tesselator;
 import com.mojang.blaze3d.vertex.VertexFormat;
-import foundry.veil.api.client.render.light.PointLight;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
@@ -17,7 +16,6 @@ import net.typho.vibrancy.DynamicLightInfo;
 import net.typho.vibrancy.Vibrancy;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
-import org.joml.Vector3dc;
 import org.joml.Vector3f;
 
 import java.util.LinkedList;
@@ -58,7 +56,7 @@ public class BlockPointLight extends AbstractPointLight {
     public void init() {
         render = false;
 
-        boolean dirty = isDirty();
+        boolean dirty = isDirty;
 
         ClientLevel world = Minecraft.getInstance().level;
 
@@ -74,9 +72,7 @@ public class BlockPointLight extends AbstractPointLight {
             }
         }
 
-        if (!dirty) {
-            clean();
-        }
+        isDirty = dirty;
     }
 
     @Override
@@ -89,7 +85,7 @@ public class BlockPointLight extends AbstractPointLight {
 
         if (world != null) {
             BlockPos lightBlockPos = new BlockPos((int) Math.floor(getPosition().x), (int) Math.floor(getPosition().y), (int) Math.floor(getPosition().z));
-            Vector3f lightPos = new Vector3f((float) getPosition().x, (float) getPosition().y, (float) getPosition().z);
+            Vector3f lightPos = new Vector3f(getPosition().x, getPosition().y, getPosition().z);
             int blockRadius = Vibrancy.capShadowDistance((int) Math.ceil(radius) - 2);
             BlockBox box = getBox();
 
@@ -186,16 +182,6 @@ public class BlockPointLight extends AbstractPointLight {
         }
 
         return false;
-    }
-
-    @Override
-    public final PointLight setPosition(Vector3dc position) {
-        throw new UnsupportedOperationException("Can't move a block light");
-    }
-
-    @Override
-    public final PointLight setPosition(double x, double y, double z) {
-        throw new UnsupportedOperationException("Can't move a block light");
     }
 
     @Override

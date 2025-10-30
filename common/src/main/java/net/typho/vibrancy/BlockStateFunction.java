@@ -4,6 +4,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
+import net.typho.vibrancy.mixin.BlockStateModelLoaderAccessor;
 import org.apache.commons.lang3.tuple.ImmutablePair;
 
 import java.util.HashMap;
@@ -40,7 +41,7 @@ public interface BlockStateFunction<T> {
                             .filter(entry -> !entry.getKey().equals("default"))
                             .map(entry -> {
                                 T value = toT.apply(entry.getValue());
-                                return new ImmutablePair<Predicate<BlockState>, Supplier<T>>(Vibrancy.BLOCK_STATE_PREDICATE.apply(block.getStateDefinition(), entry.getKey()), () -> value);
+                                return new ImmutablePair<Predicate<BlockState>, Supplier<T>>(BlockStateModelLoaderAccessor.predicate(block.getStateDefinition(), entry.getKey()), () -> value);
                             })
                             .collect(
                                     LinkedHashMap::new,

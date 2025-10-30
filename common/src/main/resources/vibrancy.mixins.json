@@ -6,6 +6,7 @@
   "client": [
     "AdvancedFboBuilderMixin",
     "BlockStateBaseMixin",
+    "BlockStateModelLoaderAccessor",
     "ClientChunkCacheMixin",
     "ClientPacketListenerMixin",
     "GlDebugMixin",
@@ -13,6 +14,7 @@
     "LevelRendererMixin",
     "LightmapTextureManagerMixin",
     "LightRendererMixin",
+    "LightTextureAccessor",
     "MinecraftMixin",
     "PlayerMixin",
     "ShaderProgramMixin",

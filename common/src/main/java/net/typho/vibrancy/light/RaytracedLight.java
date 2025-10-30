@@ -19,7 +19,6 @@ import net.minecraft.world.phys.Vec3;
 import net.typho.vibrancy.Vibrancy;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Vector2f;
-import org.joml.Vector3d;
 import org.joml.Vector3f;
 import org.lwjgl.system.MemoryUtil;
 import org.lwjgl.system.NativeResource;
@@ -48,13 +47,11 @@ public interface RaytracedLight extends NativeResource {
 
     boolean render(boolean raytrace);
 
-    @Nullable Vector3d getPosition();
-
     default boolean shouldRemove() {
         return false;
     }
 
-    default boolean shouldRender() {
+    default boolean shouldRender(Vec3 cam) {
         AABB box = getBoundingBox();
 
         if (box == null) {
@@ -62,6 +59,14 @@ public interface RaytracedLight extends NativeResource {
         }
 
         return VeilRenderSystem.getCullingFrustum().testAab(box);
+    }
+
+    default double getSortDistance() {
+        return getSortDistance(Minecraft.getInstance().gameRenderer.getMainCamera().getPosition());
+    }
+
+    default double getSortDistance(Vec3 cam) {
+        return 0;
     }
 
     default @Nullable AABB getBoundingBox() {
@@ -104,7 +109,7 @@ public interface RaytracedLight extends NativeResource {
     }
 
     default void getQuads(ClientLevel world, BlockPos pos, Consumer<Quad> out, boolean close, BlockPos blockPos, boolean normalTest, Predicate<Direction> predicate) {
-        getQuads(world, pos, out, close, new Vector3f(blockPos.getX() - pos.getX(), blockPos.getY() - pos.getY(), blockPos.getZ() - pos.getZ()), normalTest, predicate);
+        getQuads(world, pos, out, close, new Vector3f(pos.getX() - blockPos.getX(), pos.getY() - blockPos.getY(), pos.getZ() - blockPos.getZ()), normalTest, predicate);
     }
 
     default void getQuads(ClientLevel world, BlockPos pos, Consumer<Quad> out, boolean close, Vector3f lightDirection, boolean normalTest, Predicate<@Nullable Direction> predicate) {

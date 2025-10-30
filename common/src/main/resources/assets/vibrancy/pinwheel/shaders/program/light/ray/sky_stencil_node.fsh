@@ -1,8 +1,8 @@
 #version 430
 
-//#include vibrancy:mask_utils
-//#include vibrancy:quads
-//#include veil:deferred_utils
+#include vibrancy:mask_utils
+#include vibrancy:quads
+#include veil:deferred_utils
 
 uniform sampler2D DiffuseDepthSampler;
 uniform sampler2D VeilDynamicNormalSampler;

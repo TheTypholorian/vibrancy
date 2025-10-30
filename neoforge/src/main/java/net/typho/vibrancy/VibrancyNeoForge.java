@@ -1,6 +1,5 @@
 package net.typho.vibrancy;
 
-import net.minecraft.client.resources.model.BlockStateModelLoader;
 import net.minecraft.core.particles.ParticleType;
 import net.minecraft.core.particles.SimpleParticleType;
 import net.minecraft.core.registries.BuiltInRegistries;
@@ -18,7 +17,6 @@ public class VibrancyNeoForge {
     );
 
     public VibrancyNeoForge() {
-        Vibrancy.BLOCK_STATE_PREDICATE = BlockStateModelLoader::predicate;
         Vibrancy.STEAM = STEAM;
         Vibrancy.init();
     }
