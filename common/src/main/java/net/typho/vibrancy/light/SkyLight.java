@@ -26,13 +26,16 @@ import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
 import net.minecraft.world.phys.Vec3;
 import net.typho.vibrancy.Vibrancy;
+import net.typho.vibrancy.mixin.LightTextureAccessor;
 import org.jetbrains.annotations.Nullable;
 import org.joml.Matrix4f;
 import org.joml.Quaternionf;
 import org.joml.Vector3f;
 import org.lwjgl.system.NativeResource;
 
+import java.awt.*;
 import java.util.*;
+import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
@@ -44,7 +47,7 @@ import static org.lwjgl.opengl.GL30.glBindBufferBase;
 import static org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER;
 
 public abstract class SkyLight implements RaytracedLight {
-    protected class Node implements NativeResource {
+    protected class Chunk implements NativeResource {
         protected final VertexBuffer vbo = new VertexBuffer(VertexBuffer.Usage.STATIC);
         protected final int ssbo = glGenBuffers();
         protected final List<BlockPos> dirty = new LinkedList<>();
@@ -52,6 +55,8 @@ public abstract class SkyLight implements RaytracedLight {
         protected CompletableFuture<List<Quad>> fullRebuildTask;
         protected final ChunkPos pos;
         protected boolean isDirty = true, render = false;
+        protected int shadowCount = 0;
+        protected BlockBox box;
 
         public void markDirty() {
             isDirty = true;
@@ -65,7 +70,7 @@ public abstract class SkyLight implements RaytracedLight {
             return isDirty;
         }
 
-        protected Node(ChunkPos pos) {
+        protected Chunk(ChunkPos pos) {
             this.pos = pos;
         }
 
@@ -77,6 +82,8 @@ public abstract class SkyLight implements RaytracedLight {
 
         protected void upload(BufferBuilder builder, Collection<? extends IQuad> volumes) {
             SkyLight.this.upload(builder, volumes, vbo, ssbo, GL_STATIC_DRAW);
+
+            shadowCount = volumes.size();
         }
 
         protected void regenQuads(ClientLevel level, BlockPos pos, Consumer<Quad> out) {
@@ -169,7 +176,21 @@ public abstract class SkyLight implements RaytracedLight {
         }
 
         protected void renderMask(Matrix4f view) {
-            if (quads.isEmpty() || !render) {
+            if (shadowCount == 0 || !render) {
+                return;
+            }
+
+            box = null;
+
+            for (Quad quad : quads) {
+                if (box == null) {
+                    box = BlockBox.of(quad.blockPos());
+                } else {
+                    box = box.include(quad.blockPos());
+                }
+            }
+
+            if (box == null) {
                 return;
             }
 
@@ -182,16 +203,6 @@ public abstract class SkyLight implements RaytracedLight {
             glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE);
 
             ShaderInstance shader = Objects.requireNonNull(RenderSystem.getShader());
-
-            BlockBox box = null;
-
-            for (Quad quad : quads) {
-                if (box == null) {
-                    box = BlockBox.of(quad.blockPos());
-                } else {
-                    box = box.include(quad.blockPos());
-                }
-            }
 
             shader.safeGetUniform("BoxMin").set(box.min().getX(), box.min().getY(), box.min().getZ());
             shader.safeGetUniform("BoxMax").set(box.max().getX() + 1, box.max().getY() + 1, box.max().getZ() + 1);
@@ -238,16 +249,18 @@ public abstract class SkyLight implements RaytracedLight {
             VertexBuffer.unbind();
 
             stencilClearType.clearRenderState();
+
+            SkyLight.this.shadowCount += shadowCount;
         }
     }
 
-    public static final Vector3f SUN_COLOR = new Vector3f(0.5f, 0.5f, 0.425f);
     public static @Nullable SkyLight INSTANCE;
 
-    protected final Map<ChunkPos, Node> nodes = new LinkedHashMap<>();
+    protected final Map<ChunkPos, Chunk> chunks = new LinkedHashMap<>();
     protected Vector3f direction;
     protected float distance = 2048;
     protected boolean isDirty = true;
+    protected int shadowCount = 0;
 
     public void markDirty() {
         isDirty = true;
@@ -262,15 +275,15 @@ public abstract class SkyLight implements RaytracedLight {
     }
 
     public void appendDebugInfo(Consumer<String> out) {
-        out.accept("Sky Light Nodes: " + nodes.size());
-        out.accept("Sky Light Quads: " + nodes.values().stream().mapToInt(node -> node.quads.size()).sum());
+        out.accept("Sky Light Chunks: " + chunks.size());
+        out.accept("Sky Light Shadows: " + shadowCount + " / " + chunks.values().stream().mapToInt(chunk -> chunk.quads.size()).sum());
         out.accept("Sky Light Direction: (" + direction.x + ", " + direction.y + ", " + direction.z + ")");
     }
 
     @Override
     public void updateDirty(Iterable<BlockPos> it) {
         for (BlockPos pos : it) {
-            nodes.computeIfAbsent(new ChunkPos(pos), Node::new).dirty.add(pos);
+            chunks.computeIfAbsent(new ChunkPos(pos), Chunk::new).dirty.add(pos);
         }
     }
 
@@ -279,11 +292,11 @@ public abstract class SkyLight implements RaytracedLight {
     }
 
     public void onChunkLoad(LevelChunk chunk) {
-        nodes.computeIfAbsent(chunk.getPos(), Node::new).markDirty();
+        chunks.computeIfAbsent(chunk.getPos(), Chunk::new).markDirty();
     }
 
     public void onChunkUnload(LevelChunk chunk) {
-        Node node = nodes.remove(chunk.getPos());
+        Chunk node = chunks.remove(chunk.getPos());
 
         if (node != null) {
             node.free();
@@ -295,12 +308,12 @@ public abstract class SkyLight implements RaytracedLight {
     public abstract Vector3f getColor(ClientLevel level);
 
     protected boolean shouldCastBlock(ClientLevel level, BlockPos pos) {
-        if (!level.getBlockState(pos).propagatesSkylightDown(level, pos)) {
+        if (level.getBlockState(pos).propagatesSkylightDown(level, pos)) {
             return false;
         }
 
         for (Direction direction : new Direction[]{Direction.UP, Direction.NORTH, Direction.SOUTH, Direction.WEST, Direction.EAST}) {
-            if (level.getBrightness(LightLayer.SKY, pos.relative(direction)) == 15) {
+            if (level.getBrightness(LightLayer.SKY, pos.relative(direction)) != 0) {
                 return true;
             }
         }
@@ -330,8 +343,8 @@ public abstract class SkyLight implements RaytracedLight {
 
             stencilType.clearRenderState();
 
-            for (Node node : nodes.values()) {
-                node.renderMask(view);
+            for (Chunk chunk : chunks.values()) {
+                chunk.renderMask(view);
             }
 
             glDisable(GL_STENCIL_TEST);
@@ -362,17 +375,19 @@ public abstract class SkyLight implements RaytracedLight {
 
     @Override
     public boolean render(boolean raytrace) {
+        shadowCount = 0;
+
         ClientLevel level = Minecraft.getInstance().level;
 
         if (level != null) {
             direction = getDirection(level);
 
-            for (Node node : nodes.values()) {
-                if (node.pos.distanceSquared(Minecraft.getInstance().player.chunkPosition()) <= 16) {
-                    node.render = true;
-                    node.init(level, raytrace);
+            for (Chunk chunk : chunks.values()) {
+                if (chunk.pos.distanceSquared(Minecraft.getInstance().player.chunkPosition()) <= 16 && (chunk.box == null || VeilRenderSystem.getCullingFrustum().testAab(chunk.box.aabb()))) {
+                    chunk.render = true;
+                    chunk.init(level, raytrace);
                 } else {
-                    node.render = false;
+                    chunk.render = false;
                 }
             }
 
@@ -399,23 +414,31 @@ public abstract class SkyLight implements RaytracedLight {
 
     @Override
     public void free() {
-        for (Node node : nodes.values()) {
-            node.free();
+        for (Chunk chunk : chunks.values()) {
+            chunk.free();
         }
 
-        nodes.clear();
+        chunks.clear();
     }
 
     public static class Overworld extends SkyLight {
         @Override
         public Vector3f getDirection(ClientLevel level) {
             float sunAngle = level.getSunAngle(0);
-            return new Vector3f((float) -Math.sin(sunAngle), (float) Math.cos(sunAngle), 0);
+            float x = (float) -Math.sin(sunAngle), y = (float) Math.cos(sunAngle);
+
+            if (y < 0) {
+                x = -x;
+                y = -y;
+            }
+
+            return new Vector3f(x, y, 0);
         }
 
         @Override
         public Vector3f getColor(ClientLevel level) {
-            return SUN_COLOR;
+            Color color = new Color(((LightTextureAccessor) Minecraft.getInstance().gameRenderer.lightTexture()).getLightPixels().getPixelRGBA(0, 15));
+            return new Vector3f(color.getRed() / 255f / 2, color.getGreen() / 255f / 2, color.getBlue() / 255f / 2);
         }
     }
 }

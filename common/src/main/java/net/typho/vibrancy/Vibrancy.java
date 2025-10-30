@@ -333,18 +333,18 @@ public class Vibrancy {
         SHADOW_COUNT = 0;
 
         if (SkyLight.INSTANCE != null) {
-            SkyLight.INSTANCE.updateDirty(RaytracedLight.DIRTY);
             SkyLight.INSTANCE.init();
+            SkyLight.INSTANCE.updateDirty(RaytracedLight.DIRTY);
         }
 
         for (BlockPointLight light : BLOCK_LIGHTS.values()) {
-            light.updateDirty(RaytracedLight.DIRTY);
             light.init();
+            light.updateDirty(RaytracedLight.DIRTY);
         }
 
         for (EntityPointLight light : ENTITY_LIGHTS.values()) {
-            light.updateDirty(RaytracedLight.DIRTY);
             light.init();
+            light.updateDirty(RaytracedLight.DIRTY);
         }
 
         if (SkyLight.INSTANCE != null) {
