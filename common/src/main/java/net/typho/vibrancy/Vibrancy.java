@@ -51,6 +51,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
+import static org.lwjgl.glfw.GLFW.GLFW_KEY_9;
 import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.glClear;
 
@@ -61,10 +62,7 @@ public class Vibrancy {
         return ResourceLocation.fromNamespaceAndPath(MOD_ID, path);
     }
 
-    public static final ResourceLocation LOGO_TEXTURE = id("textures/gui/title/vibrancy.png");
-    //public static final OptionInstance<Boolean> DYNAMIC_LIGHTMAP = OptionInstance.createBoolean("options.vibrancy.dynamic_lightmap", value -> Tooltip.create(Component.translatable("options.vibrancy.dynamic_lightmap.tooltip")), true);
     public static final OptionInstance<Boolean> TRANSPARENCY_TEST = OptionInstance.createBoolean("options.vibrancy.transparency_test", value -> Tooltip.create(Component.translatable("options.vibrancy.transparency_test.tooltip")), true);
-    //public static final OptionInstance<Boolean> BETTER_SKY = OptionInstance.createBoolean("options.vibrancy.better_sky", value -> Tooltip.create(Component.translatable("options.vibrancy.better_sky.tooltip")), true);
     public static final OptionInstance<Boolean> BETTER_FOG = OptionInstance.createBoolean("options.vibrancy.better_fog", value -> Tooltip.create(Component.translatable("options.vibrancy.better_fog.tooltip")), true);
     public static final OptionInstance<Boolean> ELYTRA_TRAILS = OptionInstance.createBoolean("options.vibrancy.elytra_trails", value -> Tooltip.create(Component.translatable("options.vibrancy.elytra_trails.tooltip")), true);
     public static final OptionInstance<Integer> RAYTRACE_DISTANCE = new OptionInstance<>(
@@ -107,14 +105,7 @@ public class Vibrancy {
             15,
             value -> {}
     );
-    public static final OptionInstance<Double> BLOCK_LIGHT_MULTIPLIER = new OptionInstance<>(
-            "options.vibrancy.block_light_multiplier",
-            value -> Tooltip.create(Component.translatable("options.vibrancy.block_light_multiplier.tooltip")),
-            (text, value) -> Options.genericValueLabel(text, Component.translatable("options.vibrancy.block_light_multiplier.value", (int) (value * 100))),
-            OptionInstance.UnitDouble.INSTANCE,
-            0.5,
-            value -> {}
-    );
+    public static final OptionInstance<Boolean> DEBUG_LIGHT_VIEW = OptionInstance.createBoolean("options.vibrancy.debug.light_view", value -> Tooltip.create(Component.translatable("options.vibrancy.debug.light_view.tooltip")), true);
     public static boolean SEEN_ALPHA_TEXT = false;
     public static Supplier<SimpleParticleType> STEAM;
     public static final Map<ResourceKey<Block>, BlockStateFunction<Boolean>> EMISSIVE_OVERRIDES = new LinkedHashMap<>();
@@ -361,6 +352,17 @@ public class Vibrancy {
                 .forEachOrdered(light -> renderLight(light, cap));
 
         RaytracedLight.DIRTY.clear();
+    }
+
+    public static boolean debugKey(int key) {
+        switch (key) {
+            case GLFW_KEY_9 -> {
+                DEBUG_LIGHT_VIEW.set(!DEBUG_LIGHT_VIEW.get());
+                return true;
+            }
+        }
+
+        return false;
     }
 
     public static void init() {

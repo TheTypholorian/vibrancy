@@ -24,7 +24,7 @@ public class OptionsMixin {
         access.process("vibrancy/max_raytraced_lights", Vibrancy.MAX_RAYTRACED_LIGHTS);
         access.process("vibrancy/max_shadow_distance", Vibrancy.MAX_SHADOW_DISTANCE);
         access.process("vibrancy/max_light_radius", Vibrancy.MAX_LIGHT_RADIUS);
-        access.process("vibrancy/block_light_multiplier", Vibrancy.BLOCK_LIGHT_MULTIPLIER);
+        access.process("vibrancy/debug_light_view", Vibrancy.DEBUG_LIGHT_VIEW);
     }
 
     @Inject(

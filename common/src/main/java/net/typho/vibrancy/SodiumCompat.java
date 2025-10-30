@@ -77,12 +77,14 @@ public final class SodiumCompat {
                         .setBinding((opts, value) -> Vibrancy.MAX_LIGHT_RADIUS.set(value), opts -> Vibrancy.MAX_LIGHT_RADIUS.get())
                         .setImpact(OptionImpact.HIGH)
                         .build())
-                .add(OptionImpl.createBuilder(int.class, vanillaOpts)
-                        .setName(Component.translatable("options.vibrancy.block_light_multiplier"))
-                        .setTooltip(Component.translatable("options.vibrancy.block_light_multiplier.tooltip"))
-                        .setControl(option -> new SliderControl(option, 0, 100, 10, v -> Component.translatable("options.vibrancy.block_light_multiplier.value", v)))
-                        .setBinding((opts, value) -> Vibrancy.BLOCK_LIGHT_MULTIPLIER.set(value.doubleValue() / 100), opts -> (int) (Vibrancy.BLOCK_LIGHT_MULTIPLIER.get() * 100))
-                        .setImpact(OptionImpact.HIGH)
+                .build());
+
+        groups.add(OptionGroup.createBuilder()
+                .add(OptionImpl.createBuilder(boolean.class, vanillaOpts)
+                        .setName(Component.translatable("options.vibrancy.debug.light_view"))
+                        .setTooltip(Component.translatable("options.vibrancy.debug.light_view.tooltip"))
+                        .setControl(TickBoxControl::new)
+                        .setBinding((opts, value) -> Vibrancy.DEBUG_LIGHT_VIEW.set(value), opts -> Vibrancy.DEBUG_LIGHT_VIEW.get())
                         .build())
                 .build());
 

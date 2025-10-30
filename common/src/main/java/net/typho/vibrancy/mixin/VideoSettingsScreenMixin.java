@@ -26,7 +26,7 @@ public class VideoSettingsScreenMixin {
         arr[original.length - 3] = Vibrancy.MAX_RAYTRACED_LIGHTS;
         arr[original.length - 2] = Vibrancy.MAX_SHADOW_DISTANCE;
         arr[original.length - 1] = Vibrancy.MAX_LIGHT_RADIUS;
-        arr[original.length] = Vibrancy.BLOCK_LIGHT_MULTIPLIER;
+        arr[original.length] = Vibrancy.DEBUG_LIGHT_VIEW;
         return arr;
     }
 }
