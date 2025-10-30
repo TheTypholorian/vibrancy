@@ -165,12 +165,18 @@ public abstract class SkyLight implements RaytracedLight {
 
             List<Quad> newQuads = new LinkedList<>();
 
-            for (Quad quad : quads) {
+            quads.removeIf(quad -> {
+                if (quad.relative() != null && level.getBrightness(LightLayer.SKY, quad.relative()) == 0) {
+                    return true;
+                }
+
                 if (quad.direction() == null || Vibrancy.pointsToward(quad.direction(), direction)) {
                     quad.toVolumeSky(direction, distance).render(builder);
                     newQuads.add(quad);
                 }
-            }
+
+                return false;
+            });
 
             upload(builder, newQuads);
         }
@@ -257,6 +263,7 @@ public abstract class SkyLight implements RaytracedLight {
     public static @Nullable SkyLight INSTANCE;
 
     protected final Map<ChunkPos, Chunk> chunks = new LinkedHashMap<>();
+    protected final List<ChunkPos> chunksToAdd = new LinkedList<>();
     protected Vector3f direction;
     protected float distance = 2048;
     protected boolean isDirty = true;
@@ -291,15 +298,26 @@ public abstract class SkyLight implements RaytracedLight {
     public void init() {
     }
 
-    public void onChunkLoad(LevelChunk chunk) {
-        chunks.computeIfAbsent(chunk.getPos(), Chunk::new).markDirty();
+    public void onChunkLoad(ChunkPos pos) {
+        chunksToAdd.add(pos);
     }
 
-    public void onChunkUnload(LevelChunk chunk) {
-        Chunk node = chunks.remove(chunk.getPos());
+    public void onChunkUnload(ChunkPos pos) {
+        chunksToAdd.remove(pos);
+        Chunk chunk1 = chunks.remove(pos);
 
-        if (node != null) {
-            node.free();
+        if (chunk1 != null) {
+            chunk1.free();
+        }
+    }
+
+    public void onChunkUpdate(ChunkPos pos) {
+        Chunk chunk1 = chunks.get(pos);
+
+        if (chunk1 == null) {
+            onChunkLoad(pos);
+        } else {
+            chunk1.markDirty();
         }
     }
 
@@ -382,8 +400,23 @@ public abstract class SkyLight implements RaytracedLight {
         if (level != null) {
             direction = getDirection(level);
 
+            chunksToAdd.removeIf(pos -> {
+                if (
+                        level.hasChunk(pos.x, pos.z) &&
+                        level.hasChunk(pos.x + 1, pos.z) &&
+                        level.hasChunk(pos.x - 1, pos.z) &&
+                        level.hasChunk(pos.x, pos.z + 1) &&
+                        level.hasChunk(pos.x, pos.z - 1)
+                ) {
+                    chunks.computeIfAbsent(pos, Chunk::new).markDirty();
+                    return true;
+                }
+
+                return false;
+            });
+
             for (Chunk chunk : chunks.values()) {
-                if (chunk.pos.distanceSquared(Minecraft.getInstance().player.chunkPosition()) <= 16 && (chunk.box == null || VeilRenderSystem.getCullingFrustum().testAab(chunk.box.aabb()))) {
+                if (chunk.pos.distanceSquared(Minecraft.getInstance().player.chunkPosition()) <= 16) {
                     chunk.render = true;
                     chunk.init(level, raytrace);
                 } else {

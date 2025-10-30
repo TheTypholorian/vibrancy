@@ -233,7 +233,7 @@ public class Vibrancy {
 
     public static void onChunkLoad(LevelChunk chunk) {
         if (SkyLight.INSTANCE != null) {
-            SkyLight.INSTANCE.onChunkLoad(chunk);
+            SkyLight.INSTANCE.onChunkLoad(chunk.getPos());
         }
 
         BLOCK_LIGHTS.values().removeIf(light -> {
@@ -272,7 +272,7 @@ public class Vibrancy {
 
     public static void onChunkUnload(LevelChunk chunk) {
         if (SkyLight.INSTANCE != null) {
-            SkyLight.INSTANCE.onChunkUnload(chunk);
+            SkyLight.INSTANCE.onChunkUnload(chunk.getPos());
         }
 
         BLOCK_LIGHTS.values().removeIf(light -> {

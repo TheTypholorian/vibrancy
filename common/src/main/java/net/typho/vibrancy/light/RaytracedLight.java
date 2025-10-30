@@ -163,7 +163,7 @@ public interface RaytracedLight extends NativeResource {
     }
 
     record Quad(
-            BlockPos blockPos, @Nullable Direction direction,
+            BlockPos blockPos, @Nullable Direction direction, @Nullable BlockPos relative,
             Vector3f v1, Vector3f v2, Vector3f v3, Vector3f v4,
             Vector2f uv1, Vector2f uv2, Vector2f uv3, Vector2f uv4,
             Vector3f n, float d,
@@ -174,7 +174,7 @@ public interface RaytracedLight extends NativeResource {
         public Quad(BlockPos blockPos, @Nullable Direction direction, Vector3f v1, Vector3f v2, Vector3f v3, Vector3f v4,
                     Vector2f uv1, Vector2f uv2, Vector2f uv3, Vector2f uv4) {
             this(
-                    blockPos, direction,
+                    blockPos, direction, direction == null ? null : blockPos.relative(direction),
                     v1, v2, v3, v4, uv1, uv2, uv3, uv4,
                     new Vector3f(v2).sub(v1).cross(new Vector3f(v4).sub(v1)).normalize(),
                     new Vector3f(v2).sub(v1).cross(new Vector3f(v4).sub(v1)).normalize().dot(v1),

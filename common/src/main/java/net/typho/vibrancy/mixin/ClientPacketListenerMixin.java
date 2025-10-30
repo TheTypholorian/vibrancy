@@ -5,10 +5,14 @@ import net.minecraft.client.multiplayer.ClientCommonPacketListenerImpl;
 import net.minecraft.client.multiplayer.ClientPacketListener;
 import net.minecraft.client.multiplayer.CommonListenerCookie;
 import net.minecraft.network.Connection;
+import net.minecraft.network.protocol.game.ClientboundLevelChunkWithLightPacket;
+import net.minecraft.network.protocol.game.ClientboundLightUpdatePacket;
 import net.minecraft.network.protocol.game.ClientboundLoginPacket;
 import net.minecraft.network.protocol.game.ClientboundRespawnPacket;
+import net.minecraft.world.level.ChunkPos;
 import net.typho.vibrancy.Vibrancy;
 import net.typho.vibrancy.light.EntityPointLight;
+import net.typho.vibrancy.light.SkyLight;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
@@ -34,5 +38,25 @@ public abstract class ClientPacketListenerMixin extends ClientCommonPacketListen
     )
     private void onPlayerRespawn(ClientboundRespawnPacket packet, CallbackInfo ci) {
         Vibrancy.ENTITY_LIGHTS.computeIfAbsent(minecraft.player, EntityPointLight::new);
+    }
+
+    @Inject(
+            method = "handleLevelChunkWithLight",
+            at = @At("TAIL")
+    )
+    private void handleLevelChunkWithLight(ClientboundLevelChunkWithLightPacket packet, CallbackInfo ci) {
+        if (SkyLight.INSTANCE != null) {
+            SkyLight.INSTANCE.onChunkUpdate(new ChunkPos(packet.getX(), packet.getZ()));
+        }
+    }
+
+    @Inject(
+            method = "handleLightUpdatePacket",
+            at = @At("TAIL")
+    )
+    private void handleLightUpdatePacket(ClientboundLightUpdatePacket packet, CallbackInfo ci) {
+        if (SkyLight.INSTANCE != null) {
+            SkyLight.INSTANCE.onChunkUpdate(new ChunkPos(packet.getX(), packet.getZ()));
+        }
     }
 }
