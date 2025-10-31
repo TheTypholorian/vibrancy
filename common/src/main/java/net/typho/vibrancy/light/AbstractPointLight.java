@@ -99,7 +99,7 @@ public abstract class AbstractPointLight implements RaytracedLight {
     }
 
     protected void getVolumes(ClientLevel world, BlockPos pos, Consumer<ShadowVolume> out, double sqDist, BlockPos lightBlockPos, Vector3f lightPos, float radius) {
-        getQuads(world, pos, quad -> out.accept(quad.toVolumeSphere(lightPos, radius)), sqDist <= 4, lightBlockPos, false, dir -> true);
+        getQuads(world, pos, quad -> out.accept(quad.toVolumeSphere(lightPos, radius)), sqDist <= 4, lightBlockPos, true, dir -> true);
     }
 
     protected void upload(BufferBuilder builder, Collection<? extends IQuad> volumes) {

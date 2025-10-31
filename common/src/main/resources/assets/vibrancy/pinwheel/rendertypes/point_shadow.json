@@ -14,7 +14,7 @@
     },
     {
       "type": "minecraft:cull",
-      "face": "front"
+      "face": "none"
     },
     {
       "type": "minecraft:write_mask",
