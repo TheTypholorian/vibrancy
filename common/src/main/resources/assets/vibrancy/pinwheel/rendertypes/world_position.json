@@ -1,0 +1,29 @@
+{
+  "format": "POSITION",
+  "mode": "QUADS",
+  "bufferSize": "TRANSIENT",
+  "sort": false,
+  "layers": [
+    {
+      "type": "veil:shader",
+      "name": "vibrancy:world_position"
+    },
+    {
+      "type": "minecraft:depth_test",
+      "mode": "always"
+    },
+    {
+      "type": "minecraft:cull",
+      "face": "none"
+    },
+    {
+      "type": "minecraft:write_mask",
+      "color": true,
+      "depth": false
+    },
+    {
+      "type": "minecraft:output",
+      "framebuffer": "vibrancy:world_position"
+    }
+  ]
+}

@@ -9,6 +9,7 @@ import com.mojang.blaze3d.vertex.VertexBuffer;
 import com.mojang.blaze3d.vertex.VertexFormat;
 import foundry.veil.api.client.render.VeilRenderSystem;
 import foundry.veil.api.client.render.dynamicbuffer.DynamicBufferType;
+import foundry.veil.api.client.render.rendertype.VeilRenderType;
 import net.minecraft.Util;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.OptionInstance;
@@ -16,6 +17,7 @@ import net.minecraft.client.Options;
 import net.minecraft.client.gui.components.Tooltip;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.client.player.AbstractClientPlayer;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.core.SectionPos;
@@ -343,6 +345,15 @@ public class Vibrancy {
             light.init();
             light.updateDirty(RaytracedLight.DIRTY);
         }
+
+        RenderType worldPosRenderType = VeilRenderType.get(id("world_position"));
+        worldPosRenderType.setupRenderState();
+
+        SCREEN_VBO.bind();
+        SCREEN_VBO.drawWithShader(null, null, RenderSystem.getShader());
+        VertexBuffer.unbind();
+
+        worldPosRenderType.clearRenderState();
 
         if (SkyLight.INSTANCE != null && RENDER_SKY_LIGHT) {
             renderLight(SkyLight.INSTANCE, cap);

@@ -1,0 +1,10 @@
+{
+  "vertex": "vibrancy:blit",
+  "fragment": "vibrancy:world_position",
+  "textures": {
+    "DiffuseDepthSampler": {
+      "type": "framebuffer",
+      "name": "minecraft:main:depth"
+    }
+  }
+}

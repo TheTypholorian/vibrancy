@@ -9,6 +9,7 @@ layout(early_fragment_tests) in;
 uniform sampler2D AtlasSampler;
 uniform sampler2D DiffuseDepthSampler;
 uniform sampler2D VeilDynamicNormalSampler;
+uniform sampler2D WorldPositionSampler;
 uniform vec3 LightPos;
 uniform float LightRadius;
 uniform vec2 ScreenSize;
@@ -20,7 +21,7 @@ out vec4 fragColor;
 void main() {
     fragColor = vec4(1);
 
-    vec4 Pos = getWorldPos(DiffuseDepthSampler, ivec2(gl_FragCoord.xy), ScreenSize);
+    vec4 Pos = texelFetch(WorldPositionSampler, ivec2(gl_FragCoord.xy), 0);
 
     vec3 delta = LightPos - Pos.xyz;
     float len = length(delta);
