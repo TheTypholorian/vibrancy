@@ -9,6 +9,10 @@
     "VeilDynamicNormalSampler": {
       "type": "location",
       "location": "veil:dynamic_buffer/normal"
+    },
+    "VeilDynamicUVSampler": {
+      "type": "location",
+      "location": "veil:dynamic_buffer/light_uv"
     }
   }
 }
