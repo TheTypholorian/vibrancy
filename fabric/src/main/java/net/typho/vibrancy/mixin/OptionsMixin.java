@@ -20,6 +20,7 @@ public class OptionsMixin {
         access.process("vibrancy/better_fog", Vibrancy.BETTER_FOG);
         access.process("vibrancy/elytra_trails", Vibrancy.ELYTRA_TRAILS);
         access.process("vibrancy/raytrace_distance", Vibrancy.RAYTRACE_DISTANCE);
+        access.process("vibrancy/sky_shadow_distance", Vibrancy.SKY_SHADOW_DISTANCE);
         access.process("vibrancy/light_cull_distance", Vibrancy.LIGHT_CULL_DISTANCE);
         access.process("vibrancy/max_raytraced_lights", Vibrancy.MAX_RAYTRACED_LIGHTS);
         access.process("vibrancy/max_shadow_distance", Vibrancy.MAX_SHADOW_DISTANCE);

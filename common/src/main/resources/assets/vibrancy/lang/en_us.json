@@ -13,6 +13,9 @@
   "options.vibrancy.raytrace_distance": "Raytrace Distance",
   "options.vibrancy.raytrace_distance.tooltip": "The distance from camera where lights have perfect shadows, lights beyond this use an approximation",
   "options.vibrancy.raytrace_distance.value": "%s blocks",
+  "options.vibrancy.sky_shadow_distance": "Sky Shadow Distance",
+  "options.vibrancy.sky_shadow_distance.tooltip": "The distance from camera where the shadows from the sun are calculated",
+  "options.vibrancy.sky_shadow_distance.value": "%s chunks",
   "options.vibrancy.light_cull_distance": "Light Cull Distance",
   "options.vibrancy.light_cull_distance.tooltip": "The distance from camera when lights are no longer displayed (for performance reasons)",
   "options.vibrancy.light_cull_distance.value": "%s blocks",
@@ -35,5 +38,9 @@
   "options.vibrancy.max_light_radius.value": "%s blocks",
   "options.vibrancy.max_light_radius.max": "Unlimited",
   "options.vibrancy.debug.light_view": "Debug Light View",
-  "options.vibrancy.debug.light_view.tooltip": "Displays and color-codes all block faces casting shadows. Hotkey: F6 + 0"
+  "options.vibrancy.debug.light_view.tooltip": "Displays and color-codes all block faces casting shadows. Hotkey: F6 + 9",
+  "debug.vibrancy.sky_light_view": "Toggled debug renderer for sky light shadows, Hotkey: F6 + 9",
+  "debug.vibrancy.render_sky_light": "Toggled rendering of sky light, Hotkey: F6 + 8",
+  "debug.vibrancy.render_block_light": "Toggled rendering of block lights, Hotkey: F6 + 7",
+  "debug.vibrancy.render_entity_light": "Toggled rendering of entity lights, Hotkey: F6 + 6"
 }

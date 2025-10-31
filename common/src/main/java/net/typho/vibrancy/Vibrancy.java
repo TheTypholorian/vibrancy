@@ -65,7 +65,14 @@ public class Vibrancy {
     public static final OptionInstance<Boolean> TRANSPARENCY_TEST = OptionInstance.createBoolean("options.vibrancy.transparency_test", value -> Tooltip.create(Component.translatable("options.vibrancy.transparency_test.tooltip")), true);
     public static final OptionInstance<Boolean> BETTER_FOG = OptionInstance.createBoolean("options.vibrancy.better_fog", value -> Tooltip.create(Component.translatable("options.vibrancy.better_fog.tooltip")), true);
     public static final OptionInstance<Boolean> ELYTRA_TRAILS = OptionInstance.createBoolean("options.vibrancy.elytra_trails", value -> Tooltip.create(Component.translatable("options.vibrancy.elytra_trails.tooltip")), true);
-    public static final OptionInstance<Integer> RAYTRACE_DISTANCE = new OptionInstance<>(
+    public static final OptionInstance<Integer> SKY_SHADOW_DISTANCE = new OptionInstance<>(
+            "options.vibrancy.sky_shadow_distance",
+            value -> Tooltip.create(Component.translatable("options.vibrancy.sky_shadow_distance.tooltip")),
+            (text, value) -> Options.genericValueLabel(text, Component.translatable("options.vibrancy.sky_shadow_distance.value", value)),
+            new OptionInstance.IntRange(1, 8, false),
+            4,
+            value -> {}
+    );public static final OptionInstance<Integer> RAYTRACE_DISTANCE = new OptionInstance<>(
             "options.vibrancy.raytrace_distance",
             value -> Tooltip.create(Component.translatable("options.vibrancy.raytrace_distance.tooltip")),
             (text, value) -> Options.genericValueLabel(text, Component.translatable("options.vibrancy.raytrace_distance.value", value * 16)),
@@ -362,18 +369,22 @@ public class Vibrancy {
         switch (key) {
             case GLFW_KEY_9 -> {
                 DEBUG_SKY_LIGHT_VIEW = !DEBUG_SKY_LIGHT_VIEW;
+                Minecraft.getInstance().player.displayClientMessage(Component.translatable("debug.vibrancy.sky_light_view"), false);
                 return true;
             }
             case GLFW_KEY_8 -> {
                 RENDER_SKY_LIGHT = !RENDER_SKY_LIGHT;
+                Minecraft.getInstance().player.displayClientMessage(Component.translatable("debug.vibrancy.render_sky_light"), false);
                 return true;
             }
             case GLFW_KEY_7 -> {
                 RENDER_BLOCK_LIGHT = !RENDER_BLOCK_LIGHT;
+                Minecraft.getInstance().player.displayClientMessage(Component.translatable("debug.vibrancy.render_block_light"), false);
                 return true;
             }
             case GLFW_KEY_6 -> {
                 RENDER_ENTITY_LIGHT = !RENDER_ENTITY_LIGHT;
+                Minecraft.getInstance().player.displayClientMessage(Component.translatable("debug.vibrancy.render_entity_light"), false);
                 return true;
             }
         }

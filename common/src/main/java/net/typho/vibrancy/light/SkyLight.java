@@ -21,6 +21,7 @@ import net.minecraft.world.inventory.InventoryMenu;
 import net.minecraft.world.level.ChunkPos;
 import net.minecraft.world.level.LightLayer;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.LeavesBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
 import net.minecraft.world.level.chunk.LevelChunkSection;
@@ -144,7 +145,7 @@ public abstract class SkyLight implements RaytracedLight {
                                             Vec3 offset = state.getOffset(level, blockPos);
 
                                             for (Direction direction : Direction.values()) {
-                                                if (Block.shouldRenderFace(state, level, blockPos, direction, blockPos.relative(direction))) {
+                                                if (state.getBlock() instanceof LeavesBlock ? level.getBlockState(blockPos.relative(direction)).isAir() : Block.shouldRenderFace(state, level, blockPos, direction, blockPos.relative(direction))) {
                                                     getQuads(model.getQuads(state, direction, random), blockPos, quads::add, offset, direction);
                                                 }
                                             }
@@ -419,8 +420,10 @@ public abstract class SkyLight implements RaytracedLight {
                 return false;
             });
 
+            int distanceSq = Vibrancy.SKY_SHADOW_DISTANCE.get() * Vibrancy.SKY_SHADOW_DISTANCE.get();
+
             for (Chunk chunk : chunks.values()) {
-                if (chunk.pos.distanceSquared(Minecraft.getInstance().player.chunkPosition()) <= 16) {
+                if (chunk.pos.distanceSquared(Minecraft.getInstance().player.chunkPosition()) <= distanceSq) {
                     chunk.render = true;
                     chunk.init(level, raytrace);
                 } else {
