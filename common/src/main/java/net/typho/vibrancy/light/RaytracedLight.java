@@ -13,6 +13,7 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.block.Block;
+import net.minecraft.world.level.block.LeavesBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.phys.Vec3;
@@ -124,7 +125,7 @@ public interface RaytracedLight extends NativeResource {
         Vec3 offset = state.getOffset(world, pos);
 
         for (Direction direction : Direction.values()) {
-            if (predicate.test(direction) && (close || (Block.shouldRenderFace(state, world, pos, direction, pos.relative(direction)) && (!normalTest || Vibrancy.pointsToward(direction, lightDirection))))) {
+            if (predicate.test(direction) && (close || ((state.getBlock() instanceof LeavesBlock ? world.getBlockState(pos.relative(direction)).isAir() : Block.shouldRenderFace(state, world, pos, direction, pos.relative(direction))) && (!normalTest || Vibrancy.pointsToward(direction, lightDirection))))) {
                 getQuads(model.getQuads(state, direction, random), pos, out, offset, direction);
             }
         }

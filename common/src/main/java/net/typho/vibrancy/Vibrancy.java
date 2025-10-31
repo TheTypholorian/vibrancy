@@ -51,7 +51,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.function.Supplier;
 
-import static org.lwjgl.glfw.GLFW.GLFW_KEY_9;
+import static org.lwjgl.glfw.GLFW.*;
 import static org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT;
 import static org.lwjgl.opengl.GL11.glClear;
 
@@ -105,8 +105,7 @@ public class Vibrancy {
             15,
             value -> {}
     );
-    public static final OptionInstance<Boolean> DEBUG_LIGHT_VIEW = OptionInstance.createBoolean("options.vibrancy.debug.light_view", value -> Tooltip.create(Component.translatable("options.vibrancy.debug.light_view.tooltip")), true);
-    public static boolean SEEN_ALPHA_TEXT = false;
+    public static boolean DEBUG_SKY_LIGHT_VIEW = false, RENDER_SKY_LIGHT = true, RENDER_BLOCK_LIGHT = true, RENDER_ENTITY_LIGHT = true, SEEN_ALPHA_TEXT = false;
     public static Supplier<SimpleParticleType> STEAM;
     public static final Map<ResourceKey<Block>, BlockStateFunction<Boolean>> EMISSIVE_OVERRIDES = new LinkedHashMap<>();
     public static final Map<BlockPos, BlockPointLight> BLOCK_LIGHTS = new LinkedHashMap<>();
@@ -338,18 +337,23 @@ public class Vibrancy {
             light.updateDirty(RaytracedLight.DIRTY);
         }
 
-        if (SkyLight.INSTANCE != null) {
+        if (SkyLight.INSTANCE != null && RENDER_SKY_LIGHT) {
             renderLight(SkyLight.INSTANCE, cap);
         }
 
-        ENTITY_LIGHTS.values().stream()
-                .sorted(Comparator.comparingDouble(Vibrancy::getLightSortDistance))
-                .filter(Vibrancy::shouldRenderLight)
-                .forEachOrdered(light -> renderLight(light, cap));
-        BLOCK_LIGHTS.values().stream()
-                .sorted(Comparator.comparingDouble(Vibrancy::getLightSortDistance))
-                .filter(Vibrancy::shouldRenderLight)
-                .forEachOrdered(light -> renderLight(light, cap));
+        if (RENDER_BLOCK_LIGHT) {
+            ENTITY_LIGHTS.values().stream()
+                    .sorted(Comparator.comparingDouble(Vibrancy::getLightSortDistance))
+                    .filter(Vibrancy::shouldRenderLight)
+                    .forEachOrdered(light -> renderLight(light, cap));
+        }
+
+        if (RENDER_ENTITY_LIGHT) {
+            BLOCK_LIGHTS.values().stream()
+                    .sorted(Comparator.comparingDouble(Vibrancy::getLightSortDistance))
+                    .filter(Vibrancy::shouldRenderLight)
+                    .forEachOrdered(light -> renderLight(light, cap));
+        }
 
         RaytracedLight.DIRTY.clear();
     }
@@ -357,7 +361,19 @@ public class Vibrancy {
     public static boolean debugKey(int key) {
         switch (key) {
             case GLFW_KEY_9 -> {
-                DEBUG_LIGHT_VIEW.set(!DEBUG_LIGHT_VIEW.get());
+                DEBUG_SKY_LIGHT_VIEW = !DEBUG_SKY_LIGHT_VIEW;
+                return true;
+            }
+            case GLFW_KEY_8 -> {
+                RENDER_SKY_LIGHT = !RENDER_SKY_LIGHT;
+                return true;
+            }
+            case GLFW_KEY_7 -> {
+                RENDER_BLOCK_LIGHT = !RENDER_BLOCK_LIGHT;
+                return true;
+            }
+            case GLFW_KEY_6 -> {
+                RENDER_ENTITY_LIGHT = !RENDER_ENTITY_LIGHT;
                 return true;
             }
         }

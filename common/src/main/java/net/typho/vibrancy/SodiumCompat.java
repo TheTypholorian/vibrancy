@@ -79,15 +79,6 @@ public final class SodiumCompat {
                         .build())
                 .build());
 
-        groups.add(OptionGroup.createBuilder()
-                .add(OptionImpl.createBuilder(boolean.class, vanillaOpts)
-                        .setName(Component.translatable("options.vibrancy.debug.light_view"))
-                        .setTooltip(Component.translatable("options.vibrancy.debug.light_view.tooltip"))
-                        .setControl(TickBoxControl::new)
-                        .setBinding((opts, value) -> Vibrancy.DEBUG_LIGHT_VIEW.set(value), opts -> Vibrancy.DEBUG_LIGHT_VIEW.get())
-                        .build())
-                .build());
-
         return new OptionPage(Component.translatable("options.vibrancy.page"), ImmutableList.copyOf(groups));
     }
 }

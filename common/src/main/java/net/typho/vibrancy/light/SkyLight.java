@@ -200,6 +200,7 @@ public abstract class SkyLight implements RaytracedLight {
                 return;
             }
 
+            /*
             RenderType stencilType = VeilRenderType.get(Vibrancy.id("sky_stencil_node"));
             stencilType.setupRenderState();
 
@@ -218,17 +219,18 @@ public abstract class SkyLight implements RaytracedLight {
             VertexBuffer.unbind();
 
             stencilType.clearRenderState();
+             */
 
             RenderType type = VeilRenderType.get(Vibrancy.id("sky_shadow"));
             type.setupRenderState();
 
             glEnable(GL_STENCIL_TEST);
             glStencilMask(0xFF);
-            glStencilFunc(GL_EQUAL, 3, 3);
+            glStencilFunc(GL_EQUAL, 1, 1);
             glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP);
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo);
 
-            shader = Objects.requireNonNull(RenderSystem.getShader());
+            ShaderInstance shader = Objects.requireNonNull(RenderSystem.getShader());
 
             shader.safeGetUniform("MaxLength").set(distance);
             shader.safeGetUniform("LightDirection").set(direction);
@@ -242,6 +244,7 @@ public abstract class SkyLight implements RaytracedLight {
 
             type.clearRenderState();
 
+            /*
             RenderType stencilClearType = VeilRenderType.get(Vibrancy.id("sky_stencil_clear"));
             stencilClearType.setupRenderState();
 
@@ -255,6 +258,7 @@ public abstract class SkyLight implements RaytracedLight {
             VertexBuffer.unbind();
 
             stencilClearType.clearRenderState();
+             */
 
             SkyLight.this.shadowCount += shadowCount;
         }
@@ -266,7 +270,7 @@ public abstract class SkyLight implements RaytracedLight {
     protected final Map<ChunkPos, Chunk> chunks = new LinkedHashMap<>();
     protected final List<ChunkPos> chunksToAdd = new LinkedList<>();
     protected Vector3f direction;
-    protected float distance = 2048;
+    protected float distance = 128;
     protected boolean isDirty = true;
     protected int shadowCount = 0;
 
@@ -434,7 +438,7 @@ public abstract class SkyLight implements RaytracedLight {
             renderMask(raytrace, view);
             renderLight(level);
 
-            if (Vibrancy.DEBUG_LIGHT_VIEW.get()) {
+            if (Vibrancy.DEBUG_SKY_LIGHT_VIEW) {
                 BufferBuilder consumer = Tesselator.getInstance().begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR_NORMAL);
                 boolean any = false;
 
