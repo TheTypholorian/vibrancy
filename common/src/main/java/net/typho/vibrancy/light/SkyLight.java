@@ -91,7 +91,7 @@ public abstract class SkyLight implements RaytracedLight {
             quads.removeIf(quad -> quad.blockPos().equals(pos));
 
             if (shouldCastBlock(level, pos)) {
-                getQuads(level, pos, out, false, direction, false, dir -> true);
+                getQuads(level, pos, out, direction, null, false, dir -> true);
             }
         }
 

@@ -112,11 +112,11 @@ public interface RaytracedLight extends NativeResource {
         }
     }
 
-    default void getQuads(ClientLevel world, BlockPos pos, Consumer<Quad> out, boolean close, BlockPos lightBlockPos, boolean normalTest, Predicate<Direction> predicate) {
-        getQuads(world, pos, out, close, new Vector3f(lightBlockPos.getX() - pos.getX(), lightBlockPos.getY() - pos.getY(), lightBlockPos.getZ() - pos.getZ()), normalTest, predicate);
+    default void getQuads(ClientLevel world, BlockPos pos, Consumer<Quad> out, BlockPos lightBlockPos, boolean normalTest, Predicate<Direction> predicate) {
+        getQuads(world, pos, out, new Vector3f(lightBlockPos.getX() - pos.getX(), lightBlockPos.getY() - pos.getY(), lightBlockPos.getZ() - pos.getZ()), lightBlockPos, normalTest, predicate);
     }
 
-    default void getQuads(ClientLevel world, BlockPos pos, Consumer<Quad> out, boolean close, Vector3f lightDirection, boolean normalTest, Predicate<@Nullable Direction> predicate) {
+    default void getQuads(ClientLevel world, BlockPos pos, Consumer<Quad> out, Vector3f lightDirection, @Nullable BlockPos lightBlockPos, boolean normalTest, Predicate<@Nullable Direction> predicate) {
         BlockState state = world.getBlockState(pos);
 
         if (!Vibrancy.TRANSPARENCY_TEST.get() && state.propagatesSkylightDown(world, pos)) {
@@ -128,7 +128,7 @@ public interface RaytracedLight extends NativeResource {
         Vec3 offset = state.getOffset(world, pos);
 
         for (Direction direction : Direction.values()) {
-            if (predicate.test(direction) && (close || (Block.shouldRenderFace(state, world, pos, direction, pos.relative(direction)) && (!normalTest || Vibrancy.pointsToward(direction, lightDirection))))) {
+            if (predicate.test(direction) && (((lightBlockPos != null && pos.relative(direction).equals(lightBlockPos)) || Block.shouldRenderFace(state, world, pos, direction, pos.relative(direction))) && (!normalTest || Vibrancy.pointsToward(direction, lightDirection)))) {
                 getQuads(model.getQuads(state, direction, random), pos, out, offset, direction);
             }
         }

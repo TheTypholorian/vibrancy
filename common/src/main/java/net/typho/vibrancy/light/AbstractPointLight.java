@@ -103,8 +103,8 @@ public abstract class AbstractPointLight implements RaytracedLight {
         return position.distanceSquared((float) cam.x, (float) cam.y, (float) cam.z) < Vibrancy.LIGHT_CULL_DISTANCE.get() * Vibrancy.LIGHT_CULL_DISTANCE.get() * 256 && RaytracedLight.super.shouldRender(cam);
     }
 
-    protected void getVolumes(ClientLevel world, BlockPos pos, Consumer<ShadowVolume> out, double sqDist, BlockPos lightBlockPos, Vector3f lightPos, float radius) {
-        getQuads(world, pos, quad -> out.accept(quad.toVolumeSphere(lightPos, radius)), sqDist <= 1, lightBlockPos, true, dir -> true);
+    protected void getVolumes(ClientLevel world, BlockPos pos, Consumer<ShadowVolume> out, BlockPos lightBlockPos, Vector3f lightPos, float radius) {
+        getQuads(world, pos, quad -> out.accept(quad.toVolumeSphere(lightPos, radius)), lightBlockPos, true, dir -> true);
     }
 
     protected void upload(BufferBuilder builder, Collection<? extends IQuad> volumes) {

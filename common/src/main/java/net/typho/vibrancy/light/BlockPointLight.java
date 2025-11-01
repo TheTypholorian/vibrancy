@@ -38,7 +38,7 @@ public class BlockPointLight extends AbstractPointLight {
 
     public void regenQuads(ClientLevel world, BlockPos pos, Consumer<ShadowVolume> out, BlockPos lightBlockPos, Vector3f lightPos) {
         volumes.removeIf(v -> v.caster().blockPos().equals(pos));
-        getVolumes(world, pos, out, pos.distSqr(lightBlockPos), lightBlockPos, lightPos, radius);
+        getVolumes(world, pos, out, lightBlockPos, lightPos, radius);
     }
 
     @Override
@@ -160,7 +160,7 @@ public class BlockPointLight extends AbstractPointLight {
                                             double sqDist = pos.distSqr(lightBlockPos);
 
                                             if (sqDist != 0 && sqDist < blockRadius * blockRadius) {
-                                                getVolumes(world, pos, volumes::add, sqDist, lightBlockPos, lightPos, radius);
+                                                getVolumes(world, pos, volumes::add, lightBlockPos, lightPos, radius);
                                             }
                                         }
                                     }
