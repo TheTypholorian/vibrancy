@@ -6,6 +6,7 @@
 
 uniform sampler2D DiffuseDepthSampler;
 uniform sampler2D VeilDynamicNormalSampler;
+uniform sampler2D WorldPositionSampler;
 uniform vec3 LightDirection;
 uniform vec2 ScreenSize;
 
@@ -46,9 +47,9 @@ bool rayAabb(vec3 origin, vec3 invDir, vec3 _min, vec3 _max) {
 void main() {
     fragColor = vec4(1, 0, 0, 1);
 
-    vec3 Pos = getWorldPos(DiffuseDepthSampler, ivec2(gl_FragCoord.xy), ScreenSize).xyz;
+    vec4 Pos = texelFetch(WorldPositionSampler, ivec2(gl_FragCoord.xy), 0);
 
-    if (!rayAabb(Pos, 1 / LightDirection, BoxMin, BoxMax)) {
+    if (!rayAabb(Pos.xyz, 1 / LightDirection, BoxMin, BoxMax)) {
         discard;
     }
 }

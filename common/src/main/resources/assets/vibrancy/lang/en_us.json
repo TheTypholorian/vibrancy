@@ -40,6 +40,7 @@
   "options.vibrancy.debug.light_view": "Debug Light View",
   "options.vibrancy.debug.light_view.tooltip": "Displays and color-codes all block faces casting shadows. Hotkey: F6 + 9",
   "debug.vibrancy.sky_light_view": "Toggled debug renderer for sky light shadows, Hotkey: F6 + 9",
+  "debug.vibrancy.block_light_view": "Toggled debug renderer for block light shadows, Hotkey: F6 + 0",
   "debug.vibrancy.render_sky_light": "Toggled rendering of sky light, Hotkey: F6 + 8",
   "debug.vibrancy.render_block_light": "Toggled rendering of block lights, Hotkey: F6 + 7",
   "debug.vibrancy.render_entity_light": "Toggled rendering of entity lights, Hotkey: F6 + 6"

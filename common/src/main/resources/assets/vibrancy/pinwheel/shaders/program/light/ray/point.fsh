@@ -23,7 +23,7 @@ void main() {
     if (AnyShadows) {
         vec4 color = texelFetch(ShadowMaskSampler, ivec2(gl_FragCoord.xy), 0);
 
-        if (color.a == 1) {
+        if (color.r == 1) {
             discard;
         }
     }

@@ -1,12 +1,12 @@
 package net.typho.vibrancy.light;
 
-import com.mojang.blaze3d.vertex.BufferBuilder;
-import com.mojang.blaze3d.vertex.DefaultVertexFormat;
-import com.mojang.blaze3d.vertex.Tesselator;
-import com.mojang.blaze3d.vertex.VertexFormat;
+import com.mojang.blaze3d.systems.RenderSystem;
+import com.mojang.blaze3d.vertex.*;
+import foundry.veil.api.client.render.rendertype.VeilRenderType;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.multiplayer.ClientLevel;
+import net.minecraft.client.renderer.RenderType;
 import net.minecraft.core.BlockBox;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.Direction;
@@ -25,6 +25,7 @@ import java.util.concurrent.ExecutionException;
 import java.util.function.Consumer;
 
 public class BlockPointLight extends AbstractPointLight {
+    protected final VertexBuffer linesVBO = new VertexBuffer(VertexBuffer.Usage.DYNAMIC);
     protected final List<BlockPos> dirty = new LinkedList<>();
     protected List<ShadowVolume> volumes = new LinkedList<>();
     protected CompletableFuture<List<ShadowVolume>> fullRebuildTask;
@@ -33,7 +34,6 @@ public class BlockPointLight extends AbstractPointLight {
 
     public BlockPointLight(BlockPos blockPos) {
         this.blockPos = blockPos;
-        markDirty();
     }
 
     public void regenQuads(ClientLevel world, BlockPos pos, Consumer<ShadowVolume> out, BlockPos lightBlockPos, Vector3f lightPos) {
@@ -66,9 +66,14 @@ public class BlockPointLight extends AbstractPointLight {
 
             if (info != null) {
                 Vec3 offset = info.offset().apply(state).orElse(new Vec3(0.5, 0.5, 0.5));
-                position.set(blockPos.getX() + offset.x, blockPos.getY() + offset.y, blockPos.getZ() + offset.z);
+                Vector3f oldPos = position;
+                position = new Vector3f((float) (blockPos.getX() + offset.x), (float) (blockPos.getY() + offset.y), (float) (blockPos.getZ() + offset.z));
                 info.initLight(this, state);
                 render = true;
+
+                if (!oldPos.equals(position)) {
+                    updateBoxVBO();
+                }
             }
         }
 
@@ -84,8 +89,8 @@ public class BlockPointLight extends AbstractPointLight {
         ClientLevel world = Minecraft.getInstance().level;
 
         if (world != null) {
-            BlockPos lightBlockPos = new BlockPos((int) Math.floor(getPosition().x), (int) Math.floor(getPosition().y), (int) Math.floor(getPosition().z));
-            Vector3f lightPos = new Vector3f(getPosition().x, getPosition().y, getPosition().z);
+            BlockPos lightBlockPos = new BlockPos((int) Math.floor(position.x), (int) Math.floor(position.y), (int) Math.floor(position.z));
+            Vector3f lightPos = new Vector3f(position.x, position.y, position.z);
             int blockRadius = Vibrancy.capShadowDistance((int) Math.ceil(radius) - 2);
             BlockBox box = getBox();
 
@@ -176,6 +181,43 @@ public class BlockPointLight extends AbstractPointLight {
 
                 renderMask(raytrace, lightPos, view);
                 renderLight(lightPos, view);
+
+                if (Vibrancy.DEBUG_BLOCK_LIGHT_VIEW && !volumes.isEmpty()) {
+                    BufferBuilder consumer = Tesselator.getInstance().begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR_NORMAL);
+
+                    for (ShadowVolume volume : volumes) {
+                        for (int i = 0, j = 0; i < 6; i++, j += 4) {
+                            Vector3f color = volume.caster().direction() == null || Vibrancy.pointsToward(volume.caster().direction(), new Vector3f(blockPos.getX() - volume.caster().blockPos().getX(), blockPos.getY() - volume.caster().blockPos().getY(), blockPos.getZ() - volume.caster().blockPos().getZ())) ? new Vector3f(0, 1, 0) : new Vector3f(1, 0, 0);
+
+                            if (i == 0) {
+                                color.z = 1;
+                            }
+
+                            Vector3f[] order = {
+                                    volume.vertices()[ShadowVolume.INDICES[j]], volume.vertices()[ShadowVolume.INDICES[j + 1]],
+                                    volume.vertices()[ShadowVolume.INDICES[j + 1]], volume.vertices()[ShadowVolume.INDICES[j + 2]],
+                                    volume.vertices()[ShadowVolume.INDICES[j + 2]], volume.vertices()[ShadowVolume.INDICES[j + 3]],
+                                    volume.vertices()[ShadowVolume.INDICES[j + 3]], volume.vertices()[ShadowVolume.INDICES[j]],
+                                    volume.vertices()[ShadowVolume.INDICES[j]], volume.vertices()[ShadowVolume.INDICES[j + 2]],
+                                    volume.vertices()[ShadowVolume.INDICES[j + 1]], volume.vertices()[ShadowVolume.INDICES[j + 3]]
+                            };
+
+                            for (Vector3f vec : order) {
+                                consumer.addVertex(vec.x, vec.y, vec.z).setColor(color.x, color.y, color.z, 1).setNormal(0, 1, 0);
+                            }
+                        }
+                    }
+
+                    RenderType type = VeilRenderType.get(Vibrancy.id("debug_lines"));
+                    type.setupRenderState();
+
+                    linesVBO.bind();
+                    linesVBO.upload(consumer.build());
+                    linesVBO.drawWithShader(view, RenderSystem.getProjectionMatrix(), RenderSystem.getShader());
+                    VertexBuffer.unbind();
+
+                    type.clearRenderState();
+                }
 
                 return true;
             }

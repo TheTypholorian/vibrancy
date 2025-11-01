@@ -5,7 +5,6 @@ import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.vertex.*;
 import foundry.veil.api.client.render.VeilRenderSystem;
 import foundry.veil.api.client.render.framebuffer.AdvancedFbo;
-import foundry.veil.api.client.render.framebuffer.VeilFramebuffers;
 import foundry.veil.api.client.render.rendertype.VeilRenderType;
 import net.minecraft.client.Camera;
 import net.minecraft.client.Minecraft;
@@ -46,7 +45,6 @@ import static org.lwjgl.opengl.GL11.*;
 import static org.lwjgl.opengl.GL14.GL_FUNC_ADD;
 import static org.lwjgl.opengl.GL15.*;
 import static org.lwjgl.opengl.GL30.glBindBufferBase;
-import static org.lwjgl.opengl.GL30.glBlitFramebuffer;
 import static org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER;
 
 public abstract class SkyLight implements RaytracedLight {
@@ -290,9 +288,11 @@ public abstract class SkyLight implements RaytracedLight {
     }
 
     public void appendDebugInfo(Consumer<String> out) {
-        out.accept("Sky Light Chunks: " + chunks.size());
-        out.accept("Sky Light Shadows: " + shadowCount + " / " + chunks.values().stream().mapToInt(chunk -> chunk.quads.size()).sum());
-        out.accept("Sky Light Direction: (" + direction.x + ", " + direction.y + ", " + direction.z + ")");
+        if (direction != null) {
+            out.accept("Sky Light Chunks: " + chunks.size());
+            out.accept("Sky Light Shadows: " + shadowCount + " / " + chunks.values().stream().mapToInt(chunk -> chunk.quads.size()).sum());
+            out.accept("Sky Light Direction: (" + direction.x + ", " + direction.y + ", " + direction.z + ")");
+        }
     }
 
     @Override
@@ -355,15 +355,6 @@ public abstract class SkyLight implements RaytracedLight {
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 
         if (raytrace) {
-            fbo.bindDraw(true);
-            Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(VeilFramebuffers.MAIN)).bindRead();
-
-            glBlitFramebuffer(
-                    0, 0, fbo.getWidth(), fbo.getHeight(),
-                    0, 0, fbo.getWidth(), fbo.getHeight(),
-                    GL_DEPTH_BUFFER_BIT, GL_NEAREST
-            );
-
             glEnable(GL_STENCIL_TEST);
             glStencilMask(1);
             glStencilFunc(GL_ALWAYS, 1, 1);

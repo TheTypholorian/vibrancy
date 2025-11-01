@@ -56,7 +56,7 @@ public abstract class AbstractMovingPointLight extends AbstractPointLight {
     }
 
     protected void regenQuadsAsync(ClientLevel world, BlockPos pos, Consumer<Quad> out, BlockPos lightBlockPos) {
-        getQuads(world, pos, out, pos.distSqr(lightBlockPos) <= 4, lightBlockPos, false, dir -> true);
+        getQuads(world, pos, out, false, lightBlockPos, false, dir -> true);
     }
 
     protected void regenAll(ClientLevel world, BlockBox box, BlockPos lightBlockPos) {
@@ -98,8 +98,8 @@ public abstract class AbstractMovingPointLight extends AbstractPointLight {
         ClientLevel world = Minecraft.getInstance().level;
 
         if (world != null) {
-            BlockPos lightBlockPos = new BlockPos((int) Math.floor(getPosition().x), (int) Math.floor(getPosition().y), (int) Math.floor(getPosition().z));
-            Vector3f lightPos = new Vector3f(getPosition().x, getPosition().y, getPosition().z);
+            BlockPos lightBlockPos = new BlockPos((int) Math.floor(position.x), (int) Math.floor(position.y), (int) Math.floor(position.z));
+            Vector3f lightPos = new Vector3f(position.x, position.y, position.z);
             int blockRadius = Vibrancy.capShadowDistance((int) Math.ceil(radius) - 2);
             BlockBox box = getBox();
 
@@ -151,6 +151,7 @@ public abstract class AbstractMovingPointLight extends AbstractPointLight {
                 });
 
                 upload(builder, volumes);
+                updateBoxVBO();
 
                 shadowCount = volumes.size();
 

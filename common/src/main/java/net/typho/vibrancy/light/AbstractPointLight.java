@@ -55,7 +55,7 @@ public abstract class AbstractPointLight implements RaytracedLight {
     }
 
     public @NotNull Vector3f getPosition() {
-        return position;
+        return new Vector3f(position);
     }
 
     public float getFlicker() {
@@ -79,7 +79,7 @@ public abstract class AbstractPointLight implements RaytracedLight {
     }
 
     public Vector3f getColor() {
-        return color;
+        return new Vector3f(color);
     }
 
     public AbstractPointLight setColor(Vector3f color) {
@@ -94,12 +94,17 @@ public abstract class AbstractPointLight implements RaytracedLight {
     }
 
     @Override
+    public boolean shouldRaytrace(Vec3 cam, int[] cap) {
+        return position.distanceSquared((float) cam.x, (float) cam.y, (float) cam.z) < Vibrancy.LIGHT_CULL_DISTANCE.get() * Vibrancy.LIGHT_CULL_DISTANCE.get() * 256 && RaytracedLight.super.shouldRaytrace(cam, cap);
+    }
+
+    @Override
     public boolean shouldRender(Vec3 cam) {
-        return position.distanceSquared((float) cam.x, (float) cam.y, (float) cam.z) / 16 < Vibrancy.LIGHT_CULL_DISTANCE.get() * Vibrancy.LIGHT_CULL_DISTANCE.get() && RaytracedLight.super.shouldRender(cam);
+        return position.distanceSquared((float) cam.x, (float) cam.y, (float) cam.z) < Vibrancy.LIGHT_CULL_DISTANCE.get() * Vibrancy.LIGHT_CULL_DISTANCE.get() * 256 && RaytracedLight.super.shouldRender(cam);
     }
 
     protected void getVolumes(ClientLevel world, BlockPos pos, Consumer<ShadowVolume> out, double sqDist, BlockPos lightBlockPos, Vector3f lightPos, float radius) {
-        getQuads(world, pos, quad -> out.accept(quad.toVolumeSphere(lightPos, radius)), sqDist <= 4, lightBlockPos, true, dir -> true);
+        getQuads(world, pos, quad -> out.accept(quad.toVolumeSphere(lightPos, radius)), sqDist <= 1, lightBlockPos, true, dir -> true);
     }
 
     protected void upload(BufferBuilder builder, Collection<? extends IQuad> volumes) {
@@ -183,26 +188,7 @@ public abstract class AbstractPointLight implements RaytracedLight {
         }
     }
 
-    protected void renderLight(Vector3f lightPos, Matrix4f view) {
-        Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(Vibrancy.id("ray_light"))).bind(true);
-        VeilRenderSystem.setShader(Vibrancy.id("light/ray/point"));
-        ShaderInstance shader = Objects.requireNonNull(RenderSystem.getShader());
-
-        float time = (float) GLFW.glfwGetTime();
-
-        while (time - flickerStart > 0.25) {
-            flickerStart += 0.25f;
-            flickerMin = flickerMax;
-            flickerMax = new java.util.Random().nextFloat(-1, 1);
-        }
-
-        float brightness = (1 + flicker * Mth.lerp((time - flickerStart) * 4, flickerMin, flickerMax));
-
-        shader.safeGetUniform("LightPos").set(lightPos.x, lightPos.y, lightPos.z);
-        shader.safeGetUniform("LightColor").set(color.x * brightness, color.y * brightness, color.z * brightness);
-        shader.safeGetUniform("LightRadius").set(radius);
-        shader.safeGetUniform("AnyShadows").set(anyShadows ? 1 : 0);
-
+    protected void updateBoxVBO() {
         BufferBuilder builder = RenderSystem.renderThreadTesselator().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION);
         AABB box = getBoundingBox();
         Vector3f[] vertices = {
@@ -246,6 +232,31 @@ public abstract class AbstractPointLight implements RaytracedLight {
                 .addVertex(vertices[6])
                 .addVertex(vertices[7]);
 
+        boxVBO.bind();
+        boxVBO.upload(builder.build());
+        VertexBuffer.unbind();
+    }
+
+    protected void renderLight(Vector3f lightPos, Matrix4f view) {
+        Objects.requireNonNull(VeilRenderSystem.renderer().getFramebufferManager().getFramebuffer(Vibrancy.id("ray_light"))).bind(true);
+        VeilRenderSystem.setShader(Vibrancy.id("light/ray/point"));
+        ShaderInstance shader = Objects.requireNonNull(RenderSystem.getShader());
+
+        float time = (float) GLFW.glfwGetTime();
+
+        while (time - flickerStart > 0.25) {
+            flickerStart += 0.25f;
+            flickerMin = flickerMax;
+            flickerMax = new java.util.Random().nextFloat(-1, 1);
+        }
+
+        float brightness = (1 + flicker * Mth.lerp((time - flickerStart) * 4, flickerMin, flickerMax));
+
+        shader.safeGetUniform("LightPos").set(lightPos.x, lightPos.y, lightPos.z);
+        shader.safeGetUniform("LightColor").set(color.x * brightness, color.y * brightness, color.z * brightness);
+        shader.safeGetUniform("LightRadius").set(radius);
+        shader.safeGetUniform("AnyShadows").set(anyShadows ? 1 : 0);
+
         RenderSystem.disableDepthTest();
         glCullFace(GL_FRONT);
         RenderSystem.enableCull();
@@ -254,7 +265,6 @@ public abstract class AbstractPointLight implements RaytracedLight {
         RenderSystem.blendEquation(GL_FUNC_ADD);
 
         boxVBO.bind();
-        boxVBO.upload(builder.build());
         boxVBO.drawWithShader(view, RenderSystem.getProjectionMatrix(), shader);
         VertexBuffer.unbind();
 

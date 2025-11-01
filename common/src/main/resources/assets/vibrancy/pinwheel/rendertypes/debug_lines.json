@@ -14,7 +14,7 @@
     },
     {
       "type": "minecraft:line",
-      "width": 3
+      "width": 5
     },
     {
       "type": "minecraft:cull",

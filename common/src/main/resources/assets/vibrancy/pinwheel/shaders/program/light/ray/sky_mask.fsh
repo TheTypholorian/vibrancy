@@ -23,7 +23,7 @@ void main() {
 
     vec4 Pos = texelFetch(WorldPositionSampler, ivec2(gl_FragCoord.xy), 0);
 
-    if (testMask(AtlasSampler, Pos.xyz, LightDirection, MaxLength, Pos.w / 128, false, quad)) {
+    if (testMask(AtlasSampler, Pos.xyz, LightDirection, MaxLength, max((Pos.w - 16) / 128, 1e-3), false, quad)) {
         discard;
     }
 }

@@ -47,6 +47,10 @@ public interface RaytracedLight extends NativeResource {
 
     boolean render(boolean raytrace);
 
+    default boolean shouldRaytrace(Vec3 cam, int[] cap) {
+        return cap[0] < Vibrancy.maxLights();
+    }
+
     default boolean shouldRemove() {
         return false;
     }
@@ -108,8 +112,8 @@ public interface RaytracedLight extends NativeResource {
         }
     }
 
-    default void getQuads(ClientLevel world, BlockPos pos, Consumer<Quad> out, boolean close, BlockPos blockPos, boolean normalTest, Predicate<Direction> predicate) {
-        getQuads(world, pos, out, close, new Vector3f(pos.getX() - blockPos.getX(), pos.getY() - blockPos.getY(), pos.getZ() - blockPos.getZ()), normalTest, predicate);
+    default void getQuads(ClientLevel world, BlockPos pos, Consumer<Quad> out, boolean close, BlockPos lightBlockPos, boolean normalTest, Predicate<Direction> predicate) {
+        getQuads(world, pos, out, close, new Vector3f(lightBlockPos.getX() - pos.getX(), lightBlockPos.getY() - pos.getY(), lightBlockPos.getZ() - pos.getZ()), normalTest, predicate);
     }
 
     default void getQuads(ClientLevel world, BlockPos pos, Consumer<Quad> out, boolean close, Vector3f lightDirection, boolean normalTest, Predicate<@Nullable Direction> predicate) {
@@ -250,41 +254,24 @@ public interface RaytracedLight extends NativeResource {
     }
 
     record ShadowVolume(Quad caster, Vector3f[] vertices) implements IQuad {
+        public static final int[] INDICES = {
+                0, 1, 2, 3,
+                1, 5, 6, 2,
+                5, 4, 7, 6,
+                4, 0, 3, 7,
+                1, 0, 4, 5,
+                3, 2, 6, 7
+        };
+
         @Override
         public Quad toQuad() {
             return caster;
         }
 
         public void render(VertexConsumer consumer) {
-            consumer.addVertex(vertices()[0])
-                    .addVertex(vertices()[1])
-                    .addVertex(vertices()[2])
-                    .addVertex(vertices()[3]);
-
-            consumer.addVertex(vertices()[1])
-                    .addVertex(vertices()[5])
-                    .addVertex(vertices()[6])
-                    .addVertex(vertices()[2]);
-
-            consumer.addVertex(vertices()[5])
-                    .addVertex(vertices()[4])
-                    .addVertex(vertices()[7])
-                    .addVertex(vertices()[6]);
-
-            consumer.addVertex(vertices()[4])
-                    .addVertex(vertices()[0])
-                    .addVertex(vertices()[3])
-                    .addVertex(vertices()[7]);
-
-            consumer.addVertex(vertices()[1])
-                    .addVertex(vertices()[0])
-                    .addVertex(vertices()[4])
-                    .addVertex(vertices()[5]);
-
-            consumer.addVertex(vertices()[3])
-                    .addVertex(vertices()[2])
-                    .addVertex(vertices()[6])
-                    .addVertex(vertices()[7]);
+            for (int index : INDICES) {
+                consumer.addVertex(vertices[index]);
+            }
         }
     }
 }

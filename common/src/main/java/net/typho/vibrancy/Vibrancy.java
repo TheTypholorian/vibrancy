@@ -74,7 +74,8 @@ public class Vibrancy {
             new OptionInstance.IntRange(1, 8, false),
             4,
             value -> {}
-    );public static final OptionInstance<Integer> RAYTRACE_DISTANCE = new OptionInstance<>(
+    );
+    public static final OptionInstance<Integer> RAYTRACE_DISTANCE = new OptionInstance<>(
             "options.vibrancy.raytrace_distance",
             value -> Tooltip.create(Component.translatable("options.vibrancy.raytrace_distance.tooltip")),
             (text, value) -> Options.genericValueLabel(text, Component.translatable("options.vibrancy.raytrace_distance.value", value * 16)),
@@ -114,7 +115,7 @@ public class Vibrancy {
             15,
             value -> {}
     );
-    public static boolean DEBUG_SKY_LIGHT_VIEW = false, RENDER_SKY_LIGHT = true, RENDER_BLOCK_LIGHT = true, RENDER_ENTITY_LIGHT = true, SEEN_ALPHA_TEXT = false;
+    public static boolean DEBUG_BLOCK_LIGHT_VIEW = false, DEBUG_SKY_LIGHT_VIEW = false, RENDER_SKY_LIGHT = true, RENDER_BLOCK_LIGHT = true, RENDER_ENTITY_LIGHT = true, SEEN_ALPHA_TEXT = false;
     public static Supplier<SimpleParticleType> STEAM;
     public static final Map<ResourceKey<Block>, BlockStateFunction<Boolean>> EMISSIVE_OVERRIDES = new LinkedHashMap<>();
     public static final Map<BlockPos, BlockPointLight> BLOCK_LIGHTS = new LinkedHashMap<>();
@@ -162,8 +163,8 @@ public class Vibrancy {
         return light.getSortDistance();
     }
 
-    public static void renderLight(RaytracedLight light, int[] cap) {
-        boolean raytrace = cap[0] < Vibrancy.maxLights();
+    public static void renderLight(RaytracedLight light, Vec3 cam, int[] cap) {
+        boolean raytrace = light.shouldRaytrace(cam, cap);
 
         if (light.render(raytrace)) {
             if (raytrace) {
@@ -355,22 +356,24 @@ public class Vibrancy {
 
         worldPosRenderType.clearRenderState();
 
-        if (SkyLight.INSTANCE != null && RENDER_SKY_LIGHT) {
-            renderLight(SkyLight.INSTANCE, cap);
-        }
+        Vec3 cam = Minecraft.getInstance().gameRenderer.getMainCamera().getPosition();
 
-        if (RENDER_BLOCK_LIGHT) {
-            ENTITY_LIGHTS.values().stream()
-                    .sorted(Comparator.comparingDouble(Vibrancy::getLightSortDistance))
-                    .filter(Vibrancy::shouldRenderLight)
-                    .forEachOrdered(light -> renderLight(light, cap));
+        if (SkyLight.INSTANCE != null && RENDER_SKY_LIGHT) {
+            renderLight(SkyLight.INSTANCE, cam, cap);
         }
 
         if (RENDER_ENTITY_LIGHT) {
+            ENTITY_LIGHTS.values().stream()
+                    .sorted(Comparator.comparingDouble(Vibrancy::getLightSortDistance))
+                    .filter(Vibrancy::shouldRenderLight)
+                    .forEachOrdered(light -> renderLight(light, cam, cap));
+        }
+
+        if (RENDER_BLOCK_LIGHT) {
             BLOCK_LIGHTS.values().stream()
                     .sorted(Comparator.comparingDouble(Vibrancy::getLightSortDistance))
                     .filter(Vibrancy::shouldRenderLight)
-                    .forEachOrdered(light -> renderLight(light, cap));
+                    .forEachOrdered(light -> renderLight(light, cam, cap));
         }
 
         RaytracedLight.DIRTY.clear();
@@ -381,6 +384,11 @@ public class Vibrancy {
             case GLFW_KEY_9 -> {
                 DEBUG_SKY_LIGHT_VIEW = !DEBUG_SKY_LIGHT_VIEW;
                 Minecraft.getInstance().player.displayClientMessage(Component.translatable("debug.vibrancy.sky_light_view"), false);
+                return true;
+            }
+            case GLFW_KEY_0 -> {
+                DEBUG_BLOCK_LIGHT_VIEW = !DEBUG_BLOCK_LIGHT_VIEW;
+                Minecraft.getInstance().player.displayClientMessage(Component.translatable("debug.vibrancy.block_light_view"), false);
                 return true;
             }
             case GLFW_KEY_8 -> {

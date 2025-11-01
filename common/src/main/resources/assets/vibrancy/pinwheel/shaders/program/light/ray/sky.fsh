@@ -23,7 +23,7 @@ void main() {
 
     vec4 shadow = texelFetch(ShadowMaskSampler, ivec2(gl_FragCoord.xy), 0);
 
-    if (shadow.a == 1) {
+    if (shadow.r == 1) {
         discard;
     }
 
