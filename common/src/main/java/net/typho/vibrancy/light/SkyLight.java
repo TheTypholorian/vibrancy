@@ -450,21 +450,23 @@ public abstract class SkyLight implements RaytracedLight {
                 for (Chunk chunk : chunks.values()) {
                     if (chunk.shadowCount > 0 && chunk.render) {
                         for (Quad quad : chunk.quads) {
-                            any = true;
+                            if (quad.direction() == null || Vibrancy.pointsToward(quad.direction(), direction)) {
+                                any = true;
 
-                            Vector3f color = quad.direction() == null || Vibrancy.pointsToward(quad.direction(), direction) ? new Vector3f(0, 1, 0) : new Vector3f(1, 0, 0);
+                                Vector3f color = new Vector3f(0, 1, 0);
 
-                            Vector3f[] order = {
-                                    quad.v1(), quad.v2(),
-                                    quad.v2(), quad.v3(),
-                                    quad.v3(), quad.v4(),
-                                    quad.v4(), quad.v1(),
-                                    quad.v1(), quad.v3(),
-                                    quad.v2(), quad.v4()
-                            };
+                                Vector3f[] order = {
+                                        quad.v1(), quad.v2(),
+                                        quad.v2(), quad.v3(),
+                                        quad.v3(), quad.v4(),
+                                        quad.v4(), quad.v1(),
+                                        quad.v1(), quad.v3(),
+                                        quad.v2(), quad.v4()
+                                };
 
-                            for (Vector3f vec : order) {
-                                consumer.addVertex(vec.x, vec.y, vec.z).setColor(color.x, color.y, color.z, 1).setNormal(0, 1, 0);
+                                for (Vector3f vec : order) {
+                                    consumer.addVertex(vec.x, vec.y, vec.z).setColor(color.x, color.y, color.z, 1).setNormal(0, 1, 0);
+                                }
                             }
                         }
                     }
