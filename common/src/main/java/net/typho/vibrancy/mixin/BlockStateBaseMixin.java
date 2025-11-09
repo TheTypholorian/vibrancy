@@ -18,7 +18,8 @@ public abstract class BlockStateBaseMixin {
     @Shadow
     public abstract Block getBlock();
 
-    @Shadow protected abstract BlockState asState();
+    @Shadow
+    protected abstract BlockState asState();
 
     @Inject(
             method = "emissiveRendering",

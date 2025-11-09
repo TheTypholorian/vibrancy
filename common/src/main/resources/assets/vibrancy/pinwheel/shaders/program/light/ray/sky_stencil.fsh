@@ -23,7 +23,7 @@ void main() {
 
     vec2 uv = texelFetch(VeilDynamicUVSampler, ivec2(gl_FragCoord.xy), 0).xy;
 
-    if (uv.g <= 0.05) {
+    if (uv.g <= 0.1) {
         discard;
     }
 }

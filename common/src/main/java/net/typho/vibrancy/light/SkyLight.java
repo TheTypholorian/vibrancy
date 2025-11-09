@@ -18,9 +18,10 @@ import net.minecraft.core.Direction;
 import net.minecraft.core.SectionPos;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.inventory.InventoryMenu;
+import net.minecraft.world.level.BlockGetter;
 import net.minecraft.world.level.ChunkPos;
+import net.minecraft.world.level.ClipContext;
 import net.minecraft.world.level.LightLayer;
-import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.LeavesBlock;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.chunk.LevelChunk;
@@ -52,8 +53,8 @@ public abstract class SkyLight implements RaytracedLight {
         protected final VertexBuffer vbo = new VertexBuffer(VertexBuffer.Usage.STATIC);
         protected final int ssbo = glGenBuffers();
         protected final List<BlockPos> dirty = new LinkedList<>();
-        protected List<Quad> quads = new LinkedList<>();
-        protected CompletableFuture<List<Quad>> fullRebuildTask;
+        protected Map<BlockPos, List<Quad>> quads = new LinkedHashMap<>();
+        protected CompletableFuture<Map<BlockPos, List<Quad>>> fullRebuildTask;
         protected final ChunkPos pos;
         protected boolean isDirty = true, render = false;
         protected int shadowCount = 0;
@@ -88,7 +89,7 @@ public abstract class SkyLight implements RaytracedLight {
         }
 
         protected void regenQuads(ClientLevel level, BlockPos pos, Consumer<Quad> out) {
-            quads.removeIf(quad -> quad.blockPos().equals(pos));
+            quads.remove(pos);
 
             if (shouldCastBlock(level, pos)) {
                 getQuads(level, pos, out, direction, null, false, dir -> true);
@@ -101,10 +102,13 @@ public abstract class SkyLight implements RaytracedLight {
             }
 
             for (BlockPos pos : dirty) {
-                regenQuads(level, pos, quads::add);
+                List<Quad> list = quads.computeIfAbsent(pos, k -> new LinkedList<>());
+                regenQuads(level, pos, list::add);
 
                 for (Direction dir : Direction.values()) {
-                    regenQuads(level, pos.relative(dir), quads::add);
+                    BlockPos relative = pos.relative(dir);
+                    List<Quad> list1 = quads.computeIfAbsent(relative, k -> new LinkedList<>());
+                    regenQuads(level, relative, list1::add);
                 }
             }
 
@@ -123,7 +127,7 @@ public abstract class SkyLight implements RaytracedLight {
                 }
 
                 fullRebuildTask = CompletableFuture.supplyAsync(() -> {
-                    List<Quad> quads = new LinkedList<>();
+                    Map<BlockPos, List<Quad>> quads = new LinkedHashMap<>();
 
                     if (level.hasChunk(pos.x, pos.z)) {
                         LevelChunk chunk = level.getChunk(pos.x, pos.z);
@@ -138,6 +142,7 @@ public abstract class SkyLight implements RaytracedLight {
                                         BlockPos blockPos = new BlockPos(minPos.getX() + x, minPos.getY() + y, minPos.getZ() + z);
 
                                         if (shouldCastBlock(level, blockPos)) {
+                                            List<Quad> list = quads.computeIfAbsent(blockPos, k -> new LinkedList<>());
                                             BlockState state = section.getBlockState(x, y, z);
 
                                             BakedModel model = Minecraft.getInstance().getBlockRenderer().getBlockModel(state);
@@ -145,12 +150,12 @@ public abstract class SkyLight implements RaytracedLight {
                                             Vec3 offset = state.getOffset(level, blockPos);
 
                                             for (Direction direction : Direction.values()) {
-                                                if (state.getBlock() instanceof LeavesBlock ? level.getBlockState(blockPos.relative(direction)).isAir() : Block.shouldRenderFace(state, level, blockPos, direction, blockPos.relative(direction))) {
-                                                    getQuads(model.getQuads(state, direction, random), blockPos, quads::add, offset, direction);
+                                                if (state.getBlock() instanceof LeavesBlock ? level.getBlockState(blockPos.relative(direction)).isAir() : level.getBlockState(blockPos.relative(direction)).propagatesSkylightDown(level, blockPos.relative(direction))) {
+                                                    getQuads(model.getQuads(state, direction, random), blockPos, list::add, offset, direction);
                                                 }
                                             }
 
-                                            getQuads(model.getQuads(state, null, random), blockPos, quads::add, offset, null);
+                                            getQuads(model.getQuads(state, null, random), blockPos, list::add, offset, null);
                                         }
                                     }
                                 }
@@ -166,18 +171,20 @@ public abstract class SkyLight implements RaytracedLight {
 
             List<Quad> newQuads = new LinkedList<>();
 
-            quads.removeIf(quad -> {
-                if (quad.relative() != null && level.getBrightness(LightLayer.SKY, quad.relative()) == 0) {
-                    return true;
-                }
+            for (List<Quad> list : quads.values()) {
+                list.removeIf(quad -> {
+                    if (quad.relative() != null && level.getBrightness(LightLayer.SKY, quad.relative()) == 0) {
+                        return true;
+                    }
 
-                if (quad.direction() == null || Vibrancy.pointsToward(quad.direction(), direction)) {
-                    quad.toVolumeSky(direction, distance).render(builder);
-                    newQuads.add(quad);
-                }
+                    if (quad.direction() == null || Vibrancy.pointsToward(quad.direction(), direction)) {
+                        quad.toVolumeSky(direction, distance).render(builder);
+                        newQuads.add(quad);
+                    }
 
-                return false;
-            });
+                    return false;
+                });
+            }
 
             upload(builder, newQuads);
         }
@@ -189,11 +196,11 @@ public abstract class SkyLight implements RaytracedLight {
 
             box = null;
 
-            for (Quad quad : quads) {
+            for (BlockPos pos : quads.keySet()) {
                 if (box == null) {
-                    box = BlockBox.of(quad.blockPos());
+                    box = BlockBox.of(pos);
                 } else {
-                    box = box.include(quad.blockPos());
+                    box = box.include(pos);
                 }
             }
 
@@ -333,18 +340,95 @@ public abstract class SkyLight implements RaytracedLight {
 
     public abstract Vector3f getColor(ClientLevel level);
 
-    protected boolean shouldCastBlock(ClientLevel level, BlockPos pos) {
+    protected boolean isBlockLit(ClientLevel level, BlockPos pos) {
         if (level.getBlockState(pos).propagatesSkylightDown(level, pos)) {
             return false;
         }
 
-        for (Direction direction : new Direction[]{Direction.UP, Direction.NORTH, Direction.SOUTH, Direction.WEST, Direction.EAST}) {
-            if (level.getBrightness(LightLayer.SKY, pos.relative(direction)) != 0) {
+        if (level.getBrightness(LightLayer.SKY, pos.above()) != 0) {
+            return true;
+        }
+
+        if (direction.x > 0) {
+            if (level.getBrightness(LightLayer.SKY, pos.west()) != 0) {
+                return true;
+            }
+        } else if (direction.x < 0) {
+            if (level.getBrightness(LightLayer.SKY, pos.east()) != 0) {
                 return true;
             }
         }
 
+        if (direction.z > 0) {
+            return level.getBrightness(LightLayer.SKY, pos.north()) != 0;
+        } else if (direction.z < 0) {
+            return level.getBrightness(LightLayer.SKY, pos.south()) != 0;
+        }
+
         return false;
+    }
+
+    private boolean raycastCheck(ClientLevel level, BlockPos hitPos, boolean[] hasHitAir) {
+        BlockState state = level.getBlockState(hitPos);
+
+        if (state.propagatesSkylightDown(level, hitPos)) {
+            hasHitAir[0] = true;
+        } else {
+            return hasHitAir[0] && isBlockLit(level, hitPos);
+        }
+
+        return false;
+    }
+
+    protected boolean shouldCastBlock(ClientLevel level, BlockPos pos) {
+        if (!isBlockLit(level, pos)) {
+            return false;
+        }
+
+        Vec3 start = pos.getCenter();
+        Vec3 end = pos.getCenter().subtract(new Vec3(this.direction.mul(64, new Vector3f())));
+        boolean[] hasHitAir = {false};
+        BlockPos endPos = BlockGetter.traverseBlocks(
+                start,
+                end,
+                new ClipContext(
+                        start,
+                        end,
+                        ClipContext.Block.OUTLINE,
+                        ClipContext.Fluid.NONE,
+                        Minecraft.getInstance().player
+                ),
+                (context, hitPos) -> {
+                    if (raycastCheck(level, hitPos, hasHitAir)) {
+                        return hitPos;
+                    }
+
+                    if (direction.x > 0) {
+                        if (raycastCheck(level, hitPos.west(), hasHitAir)) {
+                            return hitPos;
+                        }
+                    } else if (direction.x < 0) {
+                        if (raycastCheck(level, hitPos.east(), hasHitAir)) {
+                            return hitPos;
+                        }
+                    }
+
+                    if (direction.z > 0) {
+                        if (raycastCheck(level, hitPos.north(), hasHitAir)) {
+                            return hitPos;
+                        }
+                    } else if (direction.z < 0) {
+                        if (raycastCheck(level, hitPos.south(), hasHitAir)) {
+                            return hitPos;
+                        }
+                    }
+
+                    return null;
+                },
+                context -> null
+        );
+
+        return endPos != null;
     }
 
     protected void renderMask(boolean raytrace, Matrix4f view) {
@@ -449,23 +533,25 @@ public abstract class SkyLight implements RaytracedLight {
 
                 for (Chunk chunk : chunks.values()) {
                     if (chunk.shadowCount > 0 && chunk.render) {
-                        for (Quad quad : chunk.quads) {
-                            if (quad.direction() == null || Vibrancy.pointsToward(quad.direction(), direction)) {
-                                any = true;
+                        for (List<Quad> list : chunk.quads.values()) {
+                            for (Quad quad : list) {
+                                if (quad.direction() == null || Vibrancy.pointsToward(quad.direction(), direction)) {
+                                    any = true;
 
-                                Vector3f color = new Vector3f(0, 1, 0);
+                                    Vector3f color = new Vector3f(0, 1, 0);
 
-                                Vector3f[] order = {
-                                        quad.v1(), quad.v2(),
-                                        quad.v2(), quad.v3(),
-                                        quad.v3(), quad.v4(),
-                                        quad.v4(), quad.v1(),
-                                        quad.v1(), quad.v3(),
-                                        quad.v2(), quad.v4()
-                                };
+                                    Vector3f[] order = {
+                                            quad.v1(), quad.v2(),
+                                            quad.v2(), quad.v3(),
+                                            quad.v3(), quad.v4(),
+                                            quad.v4(), quad.v1(),
+                                            quad.v1(), quad.v3(),
+                                            quad.v2(), quad.v4()
+                                    };
 
-                                for (Vector3f vec : order) {
-                                    consumer.addVertex(vec.x, vec.y, vec.z).setColor(color.x, color.y, color.z, 1).setNormal(0, 1, 0);
+                                    for (Vector3f vec : order) {
+                                        consumer.addVertex(vec.x, vec.y, vec.z).setColor(color.x, color.y, color.z, 1).setNormal(0, 1, 0);
+                                    }
                                 }
                             }
                         }
