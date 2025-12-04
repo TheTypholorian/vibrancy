@@ -5,6 +5,13 @@ plugins {
 
 val modId: String by project
 
+repositories {
+    maven {
+        name = "Modrinth"
+        url = uri("https://api.modrinth.com/maven")
+    }
+}
+
 dependencies {
     minecraft(libs.minecraft)
     mappings(loom.layered {
@@ -15,6 +22,8 @@ dependencies {
     modImplementation(libs.fabricApi)
 
     modImplementation(libs.flk)
+    modImplementation(libs.veil.fabric)
+    modImplementation(libs.sodium)
 }
 
 loom {

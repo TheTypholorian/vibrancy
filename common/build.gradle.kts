@@ -16,11 +16,20 @@ neoForge {
     }
 }
 
+repositories {
+    maven {
+        name = "Modrinth"
+        url = uri("https://api.modrinth.com/maven")
+    }
+}
+
 dependencies {
     compileOnly(libs.mixin)
     // fabric and neoforge both bundle mixinextras, so it is safe to use it in common
     compileOnly(libs.mixinExtras.common)
     annotationProcessor(libs.mixinExtras.common)
+    implementation(libs.veil.common)
+    implementation(libs.sodium)
 }
 
 configurations {
