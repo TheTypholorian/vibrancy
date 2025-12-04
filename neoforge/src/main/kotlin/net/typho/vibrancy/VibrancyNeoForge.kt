@@ -5,9 +5,8 @@ import net.neoforged.fml.ModContainer
 import net.neoforged.fml.common.Mod
 
 @Mod(Constants.MOD_ID)
-class Vibrancy(eventBus: IEventBus, modContainer: ModContainer) {
+class VibrancyNeoForge(eventBus: IEventBus, mod: ModContainer) {
     init {
-        Constants.LOG.info("Hello NeoForge world from Kotlin!")
-        CommonObject.init()
+        Vibrancy.init()
     }
 }

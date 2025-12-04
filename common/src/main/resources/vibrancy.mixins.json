@@ -5,10 +5,7 @@
   "refmap": "${mod_id}.refmap.json",
   "compatibilityLevel": "JAVA_18",
   "mixins": [],
-  "client": [
-    "MixinMinecraft"
-  ],
-  "server": [],
+  "client": [],
   "injectors": {
     "defaultRequire": 1
   }

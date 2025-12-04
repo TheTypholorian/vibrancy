@@ -7,18 +7,14 @@
     "authors": [
         "${mod_author}"
     ],
-    "contact": {
-        "homepage": "https://fabricmc.net/",
-        "sources": "https://github.com/FabricMC/fabric-example-mod"
-    },
     "license": "${license}",
     "icon": "${mod_id}.png",
-    "environment": "*",
+    "environment": "client",
     "entrypoints": {
-        "main": [
+        "client": [
             {
                 "adapter": "kotlin",
-                "value": "net.typho.vibrancy.Vibrancy"
+                "value": "net.typho.vibrancy.VibrancyFabric"
             }
         ]
     },
@@ -37,4 +33,3 @@
         "another-mod": "*"
     }
 }
-  
