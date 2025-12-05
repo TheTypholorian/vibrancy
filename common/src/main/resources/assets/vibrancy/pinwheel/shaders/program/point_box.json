@@ -1,0 +1,10 @@
+{
+  "vertex": "vibrancy:point_box",
+  "fragment": "vibrancy:point_box",
+  "textures": {
+    "DiffuseDepthSampler": {
+      "type": "framebuffer",
+      "name": "minecraft:main:depth"
+    }
+  }
+}

@@ -6,5 +6,5 @@ import net.typho.vibrancy.LightManager
 interface Light {
     fun render(manager: LightManager)
 
-    fun getCullingBoundingBox(): AABB?
+    fun getCullingBox(): AABB?
 }

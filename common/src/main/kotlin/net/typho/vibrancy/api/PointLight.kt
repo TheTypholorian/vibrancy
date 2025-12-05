@@ -1,0 +1,71 @@
+package net.typho.vibrancy.api
+
+import com.mojang.blaze3d.systems.RenderSystem
+import com.mojang.blaze3d.vertex.DefaultVertexFormat
+import com.mojang.blaze3d.vertex.VertexBuffer
+import com.mojang.blaze3d.vertex.VertexFormat
+import foundry.veil.api.client.color.Colorc
+import foundry.veil.api.client.render.rendertype.VeilRenderType
+import net.minecraft.world.phys.AABB
+import net.typho.vibrancy.LightManager
+import net.typho.vibrancy.Vibrancy
+import org.joml.Vector3f
+import java.util.concurrent.CompletableFuture
+
+abstract class PointLight : Light {
+    val shadowMesh = VertexBuffer(if (isStatic()) VertexBuffer.Usage.STATIC else VertexBuffer.Usage.DYNAMIC)
+    val boxMesh = VertexBuffer(if (isStatic()) VertexBuffer.Usage.STATIC else VertexBuffer.Usage.DYNAMIC)
+    val quadBuffer = ShaderStorageBuffer(if (isStatic()) ShaderStorageBuffer.Usage.STATIC else ShaderStorageBuffer.Usage.STREAM)
+    var shadowCount: Int = 0
+    var dirty = true
+    protected var fullRebuildTask: CompletableFuture<List<ShadowVolume>>? = null
+
+    protected fun uploadBoxMesh() {
+        val builder = RenderSystem.renderThreadTesselator().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION)
+        builder.cube(getBoundingBox())
+
+        boxMesh.bind()
+        boxMesh.upload(builder.buildOrThrow())
+        VertexBuffer.unbind()
+    }
+
+    override fun render(manager: LightManager) {
+        if (dirty) {
+            uploadBoxMesh()
+
+            dirty = false
+        }
+
+        val lightBoxRenderType = VeilRenderType.get(Vibrancy.id("point_box"))!!
+        lightBoxRenderType.setupRenderState()
+
+        val shader = RenderSystem.getShader()!!
+        val color = getColor()
+
+        shader.safeGetUniform("LightPos").set(getPosition())
+        shader.safeGetUniform("LightColor").set(Vector3f(color.red(), color.green(), color.blue()))
+        shader.safeGetUniform("LightRadius").set(getRadius())
+
+        boxMesh.bind()
+        boxMesh.drawWithShader(
+            manager.createViewMatrix(),
+            RenderSystem.getProjectionMatrix(),
+            shader
+        )
+        VertexBuffer.unbind()
+
+        lightBoxRenderType.clearRenderState()
+    }
+
+    override fun getCullingBox(): AABB? = getBoundingBox()
+
+    fun getBoundingBox(): AABB = boxOfRadius(getPosition(), getRadius())
+
+    abstract fun getPosition(): Vector3f
+
+    abstract fun getRadius(): Float
+
+    abstract fun getColor(): Colorc
+
+    protected fun isStatic() = true
+}
