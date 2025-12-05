@@ -1,0 +1,14 @@
+{
+  "vertex": "veil:blit_screen",
+  "fragment": "vibrancy:post",
+  "textures": {
+    "VibrancyOutputSampler": {
+      "type": "framebuffer",
+      "name": "vibrancy:output"
+    },
+    "VeilDynamicAlbedoSampler": {
+      "type": "location",
+      "location": "veil:dynamic_buffer/albedo"
+    }
+  }
+}

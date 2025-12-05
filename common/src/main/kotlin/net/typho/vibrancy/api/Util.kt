@@ -1,8 +1,18 @@
 package net.typho.vibrancy.api
 
 import com.mojang.blaze3d.vertex.VertexConsumer
+import foundry.veil.api.client.render.framebuffer.AdvancedFbo
 import net.minecraft.world.phys.AABB
 import org.joml.Vector3f
+import org.lwjgl.opengl.GL11
+import org.lwjgl.opengl.GL11.glClearColor
+
+fun AdvancedFbo.glClear(mask: Int) {
+    bind(true)
+    glClearColor(0f, 0f, 0f, 0f)
+    GL11.glClear(mask)
+    AdvancedFbo.unbind()
+}
 
 fun boxOfRadius(center: Vector3f, radius: Float) = AABB(
     (center.x - radius).toDouble(),

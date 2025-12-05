@@ -5,6 +5,10 @@
     "DiffuseDepthSampler": {
       "type": "framebuffer",
       "name": "minecraft:main:depth"
+    },
+    "VeilDynamicNormalSampler": {
+      "type": "location",
+      "location": "veil:dynamic_buffer/normal"
     }
   }
 }
