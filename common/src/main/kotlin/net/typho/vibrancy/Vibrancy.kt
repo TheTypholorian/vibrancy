@@ -24,10 +24,17 @@ object Vibrancy {
     }
 
     fun render() {
+        lightManager.viewMatrix = lightManager.createViewMatrix()
+
         VeilRenderSystem.renderer().enableBuffers(id("light"), DynamicBufferType.NORMAL, DynamicBufferType.ALBEDO, DynamicBufferType.LIGHT_UV)
 
-        VeilRenderSystem.renderer().framebufferManager.getFramebuffer(id("output"))?.glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT or GL_STENCIL_BUFFER_BIT)
-        VeilRenderSystem.renderer().framebufferManager.getFramebuffer(id("shadows"))?.glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT or GL_STENCIL_BUFFER_BIT)
+        val outputFramebuffer = VeilRenderSystem.renderer().framebufferManager.getFramebuffer(id("output"))!!
+        val shadowsFramebuffer = VeilRenderSystem.renderer().framebufferManager.getFramebuffer(id("shadows"))!!
+
+        outputFramebuffer.glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
+        shadowsFramebuffer.glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT or GL_STENCIL_BUFFER_BIT)
+
+        lightManager.setupStencil(id("shadows"))
 
         for (light in BlockLight.LIGHTS.values) {
             light.render(lightManager)

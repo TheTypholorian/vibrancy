@@ -1,0 +1,14 @@
+{
+  "vertex": "vibrancy:point_shadow",
+  "fragment": "vibrancy:point_shadow",
+  "textures": {
+    "DiffuseDepthSampler": {
+      "type": "framebuffer",
+      "name": "minecraft:main:depth"
+    },
+    "VeilDynamicNormalSampler": {
+      "type": "location",
+      "location": "veil:dynamic_buffer/normal"
+    }
+  }
+}

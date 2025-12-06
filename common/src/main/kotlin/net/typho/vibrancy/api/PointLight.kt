@@ -6,9 +6,11 @@ import com.mojang.blaze3d.vertex.VertexBuffer
 import com.mojang.blaze3d.vertex.VertexFormat
 import foundry.veil.api.client.color.Colorc
 import foundry.veil.api.client.render.rendertype.VeilRenderType
+import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.phys.AABB
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
+import org.joml.Matrix4f
 import org.joml.Vector3f
 import java.util.concurrent.CompletableFuture
 
@@ -29,15 +31,9 @@ abstract class PointLight : Light {
         VertexBuffer.unbind()
     }
 
-    override fun render(manager: LightManager) {
-        if (dirty) {
-            uploadBoxMesh()
-
-            dirty = false
-        }
-
-        val lightBoxRenderType = VeilRenderType.get(Vibrancy.id("point_box"))!!
-        lightBoxRenderType.setupRenderState()
+    fun renderMesh(vbo: VertexBuffer, renderTypeId: ResourceLocation, view: Matrix4f) {
+        val renderType = VeilRenderType.get(renderTypeId)!!
+        renderType.setupRenderState()
 
         val shader = RenderSystem.getShader()!!
         val color = getColor()
@@ -46,15 +42,26 @@ abstract class PointLight : Light {
         shader.safeGetUniform("LightColor").set(Vector3f(color.red(), color.green(), color.blue()))
         shader.safeGetUniform("LightRadius").set(getRadius())
 
-        boxMesh.bind()
-        boxMesh.drawWithShader(
-            manager.createViewMatrix(),
+        vbo.bind()
+        vbo.drawWithShader(
+            view,
             RenderSystem.getProjectionMatrix(),
             shader
         )
         VertexBuffer.unbind()
 
-        lightBoxRenderType.clearRenderState()
+        renderType.clearRenderState()
+    }
+
+    override fun render(manager: LightManager) {
+        if (dirty) {
+            uploadBoxMesh()
+
+            dirty = false
+        }
+
+        renderMesh(boxMesh, Vibrancy.id("point_shadow"), manager.viewMatrix!!)
+        renderMesh(boxMesh, Vibrancy.id("point_box"), manager.viewMatrix!!)
     }
 
     override fun getCullingBox(): AABB? = getBoundingBox()
