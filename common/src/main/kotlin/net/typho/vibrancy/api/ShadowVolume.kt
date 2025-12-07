@@ -4,8 +4,8 @@ import com.mojang.blaze3d.vertex.VertexConsumer
 import org.joml.Vector3f
 
 @JvmRecord
-data class ShadowVolume(val caster: LightFace?, val vertices: Array<Vector3f?>) : LightFaceConvertible {
-    override fun toLightFace(): LightFace? {
+data class ShadowVolume(val caster: LightFace, val vertices: Array<Vector3f?>) : LightFaceConvertible {
+    override fun toLightFace(): LightFace {
         return caster
     }
 
@@ -39,7 +39,7 @@ data class ShadowVolume(val caster: LightFace?, val vertices: Array<Vector3f?>) 
     }
 
     override fun hashCode(): Int {
-        var result = caster?.hashCode() ?: 0
+        var result = caster.hashCode()
         result = 31 * result + vertices.contentHashCode()
         return result
     }

@@ -1,6 +1,7 @@
 package net.typho.vibrancy.api
 
 import org.lwjgl.opengl.GL15.*
+import org.lwjgl.opengl.GL30.glBindBufferBase
 import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.system.NativeResource
 import java.nio.ByteBuffer
@@ -10,6 +11,10 @@ data class ShaderStorageBuffer(val buffer: Int, val usage: Usage) : NativeResour
 
     fun bind() {
         glBindBuffer(GL_SHADER_STORAGE_BUFFER, buffer)
+    }
+
+    fun bindBase(index: Int) {
+        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, index, buffer)
     }
 
     fun upload(buf: ByteBuffer) {
@@ -23,6 +28,10 @@ data class ShaderStorageBuffer(val buffer: Int, val usage: Usage) : NativeResour
     companion object {
         fun unbind() {
             glBindBuffer(GL_SHADER_STORAGE_BUFFER, 0)
+        }
+
+        fun unbindBase(index: Int) {
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, index, 0)
         }
     }
 

@@ -8,7 +8,6 @@ import net.minecraft.resources.ResourceKey
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
-import net.typho.vibrancy.block.BlockLight
 import org.joml.Vector3f
 import java.util.*
 

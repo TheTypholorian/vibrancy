@@ -98,7 +98,7 @@ data class LightFace(
     }
 
     companion object {
-        val BYTES: Int = 40 * Float.SIZE_BYTES
+        const val BYTES: Int = 40 * Float.SIZE_BYTES
 
         fun BakedQuad.toLightFace(x: Float, y: Float, z: Float, origin: BlockPos, direction: Direction?): LightFace {
             val vertices = arrayOfNulls<Vector3f>(4)
@@ -109,9 +109,9 @@ data class LightFace(
             var j = 0
             for (i in 0 until len) {
                 vertices[i] = Vector3f(
-                    Float.fromBits(data[j]) + x,
-                    Float.fromBits(data[j + 1]) + y,
-                    Float.fromBits(data[j + 2]) + z
+                    Float.fromBits(data[j]) + origin.x + x,
+                    Float.fromBits(data[j + 1]) + origin.y + y,
+                    Float.fromBits(data[j + 2]) + origin.z + z
                 )
                 texCoords[i] = Vector2f(
                     Float.fromBits(data[j + 4]),

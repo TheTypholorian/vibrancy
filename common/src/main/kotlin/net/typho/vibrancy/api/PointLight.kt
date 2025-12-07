@@ -6,26 +6,24 @@ import com.mojang.blaze3d.vertex.VertexBuffer
 import com.mojang.blaze3d.vertex.VertexFormat
 import foundry.veil.api.client.color.Colorc
 import foundry.veil.api.client.render.rendertype.VeilRenderType
+import net.minecraft.core.BlockBox
+import net.minecraft.core.BlockPos
 import net.minecraft.resources.ResourceLocation
-import net.minecraft.world.phys.AABB
 import net.typho.vibrancy.Vibrancy
 import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.lwjgl.system.NativeResource
-import java.util.concurrent.CompletableFuture
+import kotlin.math.ceil
+import kotlin.math.floor
 
 abstract class PointLight : Light, NativeResource {
-    val shadowMesh = VertexBuffer(if (isStatic()) VertexBuffer.Usage.STATIC else VertexBuffer.Usage.DYNAMIC)
     val boxMesh = VertexBuffer(if (isStatic()) VertexBuffer.Usage.STATIC else VertexBuffer.Usage.DYNAMIC)
-    val quadBuffer = ShaderStorageBuffer(if (isStatic()) ShaderStorageBuffer.Usage.STATIC else ShaderStorageBuffer.Usage.STREAM)
-    var shadowCount: Int = 0
+    val shadows = ShadowManager(isStatic())
     var dirty = true
-    protected var fullRebuildTask: CompletableFuture<List<ShadowVolume>>? = null
 
     override fun free() {
-        shadowMesh.close()
         boxMesh.close()
-        quadBuffer.close()
+        shadows.free()
     }
 
     protected fun uploadBoxMesh() {
@@ -59,20 +57,29 @@ abstract class PointLight : Light, NativeResource {
         renderType.clearRenderState()
     }
 
-    override fun render(manager: LightManager) {
+    override fun render(manager: LightManager, raytrace: Boolean) {
         if (dirty) {
             uploadBoxMesh()
+            shadows.fullRebuild(manager, getShadowBox(), getPosition(), getRadius())
 
             dirty = false
         }
 
-        renderMesh(boxMesh, Vibrancy.id("point_shadow"), manager.viewMatrix!!)
+        shadows.render(manager, raytrace, getPosition())
         renderMesh(boxMesh, Vibrancy.id("point_box"), manager.viewMatrix!!)
     }
 
-    override fun getCullingBox(): AABB? = getBoundingBox()
+    override fun getCullingBox() = getBoundingBox()
 
-    fun getBoundingBox(): AABB = boxOfRadius(getPosition(), getRadius())
+    fun getBoundingBox() = boxOfRadius(getPosition(), getRadius())
+
+    fun getShadowBox() = BlockBox.of(
+        BlockPos(
+            floor(getPosition().x.toDouble()).toInt(),
+            floor(getPosition().y.toDouble()).toInt(),
+            floor(getPosition().z.toDouble()).toInt()
+        )
+    ).expand(ceil(getRadius()).toInt())
 
     abstract fun getPosition(): Vector3f
 

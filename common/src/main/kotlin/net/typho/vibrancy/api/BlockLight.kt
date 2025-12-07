@@ -1,4 +1,4 @@
-package net.typho.vibrancy.block
+package net.typho.vibrancy.api
 
 import foundry.veil.api.client.color.Color
 import foundry.veil.api.client.color.Colorc
@@ -8,10 +8,6 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.level.chunk.LevelChunkSection
-import net.typho.vibrancy.api.DynamicLightInfo
-import net.typho.vibrancy.api.PointLight
-import net.typho.vibrancy.api.getKey
-import net.typho.vibrancy.api.withBrightness
 import org.joml.Vector3f
 
 data class BlockLight(

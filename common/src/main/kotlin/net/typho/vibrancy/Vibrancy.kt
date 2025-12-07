@@ -6,15 +6,20 @@ import foundry.veil.platform.VeilEventPlatform
 import net.minecraft.ChatFormatting
 import net.minecraft.core.GlobalPos
 import net.minecraft.resources.ResourceLocation
+import net.typho.vibrancy.api.BlockLight
 import net.typho.vibrancy.api.LightManager
 import net.typho.vibrancy.api.glClear
-import net.typho.vibrancy.block.BlockLight
 import org.lwjgl.opengl.GL11.*
+import org.slf4j.Logger
+import org.slf4j.LoggerFactory
 import java.util.*
 import java.util.function.Consumer
 
 object Vibrancy {
     const val MOD_ID = "vibrancy"
+    const val MOD_NAME = "Vibrancy"
+    @JvmStatic
+    val LOGGER: Logger = LoggerFactory.getLogger(MOD_NAME)
 
     val dirtyBlocks = LinkedList<GlobalPos>()
     val lightManager = LightManager(dirtyBlocks, 200, 10)
@@ -58,8 +63,10 @@ object Vibrancy {
             })
             .forEachOrdered { light ->
                 if (lightManager.shouldRender(light)) {
-                    light.render(lightManager)
-                    lightManager.postRender(light, true)
+                    val raytrace = lightManager.shouldRaytrace(light)
+
+                    light.render(lightManager, raytrace)
+                    lightManager.postRender(light, raytrace)
                 }
             }
     }
