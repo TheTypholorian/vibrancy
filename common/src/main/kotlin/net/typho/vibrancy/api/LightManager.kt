@@ -1,18 +1,16 @@
-package net.typho.vibrancy
+package net.typho.vibrancy.api
 
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.mojang.blaze3d.vertex.VertexBuffer
 import com.mojang.blaze3d.vertex.VertexFormat
-import foundry.veil.api.client.render.VeilRenderSystem
 import foundry.veil.api.client.render.rendertype.VeilRenderType
 import net.minecraft.client.Camera
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.GlobalPos
 import net.minecraft.resources.ResourceLocation
-import net.typho.vibrancy.api.Light
-import net.typho.vibrancy.api.invert
+import net.typho.vibrancy.Vibrancy
 import org.joml.Matrix4f
 
 open class LightManager(
@@ -60,6 +58,7 @@ open class LightManager(
         block.setupRenderState()
 
         SCREEN_VBO!!.bind()
+        @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
         SCREEN_VBO!!.drawWithShader(null, null, RenderSystem.getShader()!!)
         VertexBuffer.unbind()
 
@@ -67,17 +66,7 @@ open class LightManager(
     }
 
     fun shouldRender(light: Light): Boolean {
-        if (lightsRendered >= maxRendered) {
-            return false
-        }
-
-        val box = light.getCullingBox()
-
-        if (box != null) {
-            return VeilRenderSystem.getCullingFrustum().testAab(box)
-        }
-
-        return true
+        return lightsRendered < maxRendered
     }
 
     fun postRender(light: Light, didRaytrace: Boolean) {

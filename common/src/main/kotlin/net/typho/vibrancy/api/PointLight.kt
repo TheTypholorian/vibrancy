@@ -8,19 +8,25 @@ import foundry.veil.api.client.color.Colorc
 import foundry.veil.api.client.render.rendertype.VeilRenderType
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.phys.AABB
-import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 import org.joml.Matrix4f
 import org.joml.Vector3f
+import org.lwjgl.system.NativeResource
 import java.util.concurrent.CompletableFuture
 
-abstract class PointLight : Light {
+abstract class PointLight : Light, NativeResource {
     val shadowMesh = VertexBuffer(if (isStatic()) VertexBuffer.Usage.STATIC else VertexBuffer.Usage.DYNAMIC)
     val boxMesh = VertexBuffer(if (isStatic()) VertexBuffer.Usage.STATIC else VertexBuffer.Usage.DYNAMIC)
     val quadBuffer = ShaderStorageBuffer(if (isStatic()) ShaderStorageBuffer.Usage.STATIC else ShaderStorageBuffer.Usage.STREAM)
     var shadowCount: Int = 0
     var dirty = true
     protected var fullRebuildTask: CompletableFuture<List<ShadowVolume>>? = null
+
+    override fun free() {
+        shadowMesh.close()
+        boxMesh.close()
+        quadBuffer.close()
+    }
 
     protected fun uploadBoxMesh() {
         val builder = RenderSystem.renderThreadTesselator().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION)

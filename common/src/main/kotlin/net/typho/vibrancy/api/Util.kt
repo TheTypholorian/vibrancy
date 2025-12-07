@@ -1,11 +1,20 @@
 package net.typho.vibrancy.api
 
 import com.mojang.blaze3d.vertex.VertexConsumer
+import foundry.veil.api.client.color.Color
+import foundry.veil.api.client.color.Colorc
 import foundry.veil.api.client.render.framebuffer.AdvancedFbo
+import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.resources.ResourceKey
+import net.minecraft.world.level.block.Block
 import net.minecraft.world.phys.AABB
 import org.joml.Vector3f
 import org.lwjgl.opengl.GL11
 import org.lwjgl.opengl.GL11.glClearColor
+
+fun Block.getKey(): ResourceKey<Block> = BuiltInRegistries.BLOCK.getResourceKey(this).orElseThrow()
+
+fun Colorc.withBrightness(b: Float) = Color(red() * b, green() * b, blue() * b)
 
 fun AdvancedFbo.glClear(mask: Int) {
     bind(true)

@@ -5,11 +5,14 @@
   "refmap": "${mod_id}.refmap.json",
   "compatibilityLevel": "JAVA_18",
   "mixins": [
-    "ShaderImportProcessorMixin"
+    "LevelMixin",
+    "ShaderImportProcessorMixin",
+    "VeilRendererMixin"
   ],
   "client": [
-    "GlDebugMixin",
-    "LevelRendererMixin"
+    "ClientChunkCacheStorageMixin",
+    "LevelRendererMixin",
+    "MinecraftMixin"
   ],
   "injectors": {
     "defaultRequire": 1

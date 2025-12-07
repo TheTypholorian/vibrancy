@@ -8,5 +8,6 @@
   ],
   "dynamicBuffers": [
     "albedo"
-  ]
+  ],
+  "renderStage": "after_level"
 }
