@@ -19,7 +19,8 @@ import kotlin.math.floor
 abstract class PointLight : Light, NativeResource {
     val boxMesh = VertexBuffer(if (isStatic()) VertexBuffer.Usage.STATIC else VertexBuffer.Usage.DYNAMIC)
     val shadows = ShadowManager(isStatic())
-    var dirty = true
+    var boxDirty = true
+    var shadowsDirty = true
 
     override fun free() {
         boxMesh.close()
@@ -58,11 +59,16 @@ abstract class PointLight : Light, NativeResource {
     }
 
     override fun render(manager: LightManager, raytrace: Boolean) {
-        if (dirty) {
+        if (boxDirty) {
             uploadBoxMesh()
+
+            boxDirty = false
+        }
+
+        if (shadowsDirty && raytrace) {
             shadows.fullRebuild(manager, getShadowBox(), getPosition(), getRadius())
 
-            dirty = false
+            shadowsDirty = false
         }
 
         shadows.render(manager, raytrace, getPosition())

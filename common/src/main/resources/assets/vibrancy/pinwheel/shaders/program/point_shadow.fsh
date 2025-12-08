@@ -31,7 +31,6 @@ void main() {
     // max((Pos.w - 16) / 128, 1e-3)
 
     if (sampleQuad(AtlasSampler, Pos, dir, len, 1e-3, false, quad)) {
-        fragColor /= 2;
-        //discard;
+        discard;
     }
 }

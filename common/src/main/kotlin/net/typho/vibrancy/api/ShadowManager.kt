@@ -26,16 +26,25 @@ import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
 
 class ShadowManager(
-    static: Boolean
+    val static: Boolean
 ) : NativeResource {
-    val shadowMesh = VertexBuffer(if (static) VertexBuffer.Usage.STATIC else VertexBuffer.Usage.DYNAMIC)
-    val quadBuffer = ShaderStorageBuffer(if (static) ShaderStorageBuffer.Usage.STATIC else ShaderStorageBuffer.Usage.STREAM)
+    var shadowMesh: VertexBuffer? = null
+    var quadBuffer: ShaderStorageBuffer? = null
     private var shadows: List<ShadowVolume> = LinkedList()
     private var fullRebuildTask: CompletableFuture<List<ShadowVolume>>? = null
 
+    init {
+        RenderSystem.recordRenderCall {
+            shadowMesh = VertexBuffer(if (static) VertexBuffer.Usage.STATIC else VertexBuffer.Usage.DYNAMIC)
+            quadBuffer = ShaderStorageBuffer(if (static) ShaderStorageBuffer.Usage.STATIC else ShaderStorageBuffer.Usage.STREAM)
+        }
+    }
+
     override fun free() {
-        shadowMesh.close()
-        quadBuffer.close()
+        shadowMesh?.close()
+        shadowMesh = null
+        quadBuffer?.close()
+        quadBuffer = null
     }
 
     fun isTaskActive() = !(fullRebuildTask?.isDone ?: false)
@@ -114,8 +123,8 @@ class ShadowManager(
             val built = builder.build()
 
             if (built != null) {
-                shadowMesh.bind()
-                shadowMesh.upload(built)
+                shadowMesh!!.bind()
+                shadowMesh!!.upload(built)
                 VertexBuffer.unbind()
 
                 val buf = MemoryUtil.memAlloc(shadows.size * LightFace.BYTES)
@@ -124,8 +133,8 @@ class ShadowManager(
                     shadow.toLightFace().put(buf)
                 }
 
-                quadBuffer.bind()
-                quadBuffer.upload(buf.flip())
+                quadBuffer!!.bind()
+                quadBuffer!!.upload(buf.flip())
                 ShaderStorageBuffer.unbind()
 
                 MemoryUtil.memFree(buf)
@@ -151,10 +160,10 @@ class ShadowManager(
             shader.safeGetUniform("LightPos").set(pos)
             shader.setSampler("AtlasSampler", Minecraft.getInstance().modelManager.getAtlas(InventoryMenu.BLOCK_ATLAS))
 
-            quadBuffer.bindBase(0)
+            quadBuffer!!.bindBase(0)
 
-            shadowMesh.bind()
-            shadowMesh.drawWithShader(
+            shadowMesh!!.bind()
+            shadowMesh!!.drawWithShader(
                 manager.viewMatrix!!,
                 RenderSystem.getProjectionMatrix(),
                 shader

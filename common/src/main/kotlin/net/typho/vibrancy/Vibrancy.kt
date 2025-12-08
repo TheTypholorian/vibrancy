@@ -22,7 +22,7 @@ object Vibrancy {
     val LOGGER: Logger = LoggerFactory.getLogger(MOD_NAME)
 
     val dirtyBlocks = LinkedList<GlobalPos>()
-    val lightManager = LightManager(dirtyBlocks, 200, 10)
+    val lightManager = LightManager(dirtyBlocks, 50, 50)
 
     fun init() {
         ModRenderTypeLayers.init()

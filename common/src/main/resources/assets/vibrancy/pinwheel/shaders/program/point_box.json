@@ -6,6 +6,10 @@
       "type": "framebuffer",
       "name": "minecraft:main:depth"
     },
+    "ShadowSampler": {
+      "type": "framebuffer",
+      "name": "vibrancy:shadows"
+    },
     "VeilDynamicNormalSampler": {
       "type": "location",
       "location": "veil:dynamic_buffer/normal"

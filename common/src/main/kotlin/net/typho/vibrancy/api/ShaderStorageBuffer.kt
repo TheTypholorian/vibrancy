@@ -18,7 +18,7 @@ data class ShaderStorageBuffer(val buffer: Int, val usage: Usage) : NativeResour
     }
 
     fun upload(buf: ByteBuffer) {
-        glBufferData(GL_SHADER_STORAGE_BUFFER, buf.flip(), usage.id)
+        glBufferData(GL_SHADER_STORAGE_BUFFER, buf, usage.id)
     }
 
     override fun free() {

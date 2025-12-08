@@ -7,7 +7,7 @@
 #include "veil:light"
 
 uniform sampler2D DiffuseDepthSampler;
-uniform sampler2D ShadowMaskSampler;
+uniform sampler2D ShadowSampler;
 uniform sampler2D VeilDynamicNormalSampler;
 
 uniform vec2 ScreenSize;
@@ -20,13 +20,11 @@ out vec4 fragColor;
 void main() {
     vec3 pos = getWorldPos(DiffuseDepthSampler, ScreenSize);
 
-        /*
-    vec4 color = texelFetch(ShadowMaskSampler, ivec2(gl_FragCoord.xy), 0);
+    vec4 color = texelFetch(ShadowSampler, ivec2(gl_FragCoord.xy), 0);
 
-    if (color.r == 1) {
+    if (color.r != 0) {
         discard;
     }
-*/
 
     fragColor = sampleLight(VeilDynamicNormalSampler, LightPos, pos, LightRadius, LightColor);
 }

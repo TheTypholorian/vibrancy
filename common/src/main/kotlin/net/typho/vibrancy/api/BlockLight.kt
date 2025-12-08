@@ -35,7 +35,8 @@ data class BlockLight(
         color = info.color.map{ it.apply(state) }
             .orElse(DEFAULT_COLOR)
             .withBrightness(info.brightness.map { it.apply(state) }.orElse(1f))
-        dirty = true
+        boxDirty = true
+        shadowsDirty = true
     }
 
     override fun getPosition(): Vector3f = Vector3f(
