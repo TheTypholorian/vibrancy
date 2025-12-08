@@ -8,78 +8,33 @@ import org.joml.Vector3f
 
 data class ShadowVolume(
     val caster: LightFace,
-                        val vertices: Array<Vector3f?>,
-    var directions: Array<Direction>? = null
+    val vertices: Array<Vector3f?>
 ) : LightFaceConvertible {
     override fun toLightFace(): LightFace {
         return caster
     }
 
-    init {
-        caster.direction?.let {
-            val ax = caster.direction.axis
-            val ax1 = when (ax) {
-                Direction.Axis.X -> Direction.Axis.Y
-                Direction.Axis.Y -> Direction.Axis.Z
-                Direction.Axis.Z -> Direction.Axis.X
-            }
-            val ax2 = when (ax) {
-                Direction.Axis.X -> Direction.Axis.Z
-                Direction.Axis.Y -> Direction.Axis.X
-                Direction.Axis.Z -> Direction.Axis.Y
-            }
-            val f0 = caster.direction
-            val f1 = caster.direction.getClockWise(ax1)
-            val f2 = caster.direction.opposite
-            val f3 = caster.direction.getCounterClockWise(ax1)
-            val f4 = caster.direction.getClockWise(ax2)
-            val f5 = caster.direction.getCounterClockWise(ax2)
-            directions = arrayOf(f0, f1, f2, f3, f4, f5)
-        }
-    }
+    fun numQuads(): Int = 6
 
-    fun numQuads(): Int {
-        if (directions == null) {
-            return 6
-        }
-
-        var num = 0
-
-        for (i in 0 until 6) {
-            if (directions == null || (caster.mask and (1 shl directions!![i].ordinal) != 0)) {
-                num++
-            }
-        }
-
-        return num
-    }
-
-    fun buildGeometry(consumer: VertexConsumer): Int {
+    fun buildGeometry(consumer: VertexConsumer) {
         var i = 0
         var j = 0
-        var k = 0
 
         while (i < 6) {
-            if (directions == null || (caster.mask and (1 shl directions!![i].ordinal) != 0)) {
-                k++
+            val order = arrayOf(
+                vertices[INDICES[j]]!!,
+                vertices[INDICES[j + 1]]!!,
+                vertices[INDICES[j + 2]]!!,
+                vertices[INDICES[j + 3]]!!
+            )
 
-                val order = arrayOf(
-                    vertices[INDICES[j]]!!,
-                    vertices[INDICES[j + 1]]!!,
-                    vertices[INDICES[j + 2]]!!,
-                    vertices[INDICES[j + 3]]!!
-                )
-
-                for (vec in order) {
-                    consumer.addVertex(vec.x, vec.y, vec.z)
-                }
+            for (vec in order) {
+                consumer.addVertex(vec.x, vec.y, vec.z)
             }
 
             i++
             j += 4
         }
-
-        return k
     }
 
     fun buildDebug(lightPos: BlockPos, consumer: VertexConsumer) {
@@ -87,7 +42,6 @@ data class ShadowVolume(
         var j = 0
 
         while (i < 6) {
-            if (directions == null || (caster.mask and (1 shl directions!![i].ordinal) != 0)) {
                 val color = if (caster.direction == null || Vibrancy.pointsToward(
                         caster.direction,
                         Vector3f(
@@ -119,7 +73,6 @@ data class ShadowVolume(
                     consumer.addVertex(vec.x, vec.y, vec.z)
                         .setColor(color.x, color.y, color.z, 1f)
                 }
-            }
 
             i++
             j += 4

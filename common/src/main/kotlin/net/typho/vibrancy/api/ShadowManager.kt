@@ -66,41 +66,24 @@ class ShadowManager(
         level: BlockGetter,
         state: BlockState
     ): Boolean {
+        val otherPos = pos.relative(face)
+
+        if (otherPos.equals(lightPos)) {
+            return true
+        }
+
         if (!Vibrancy.pointsToward(face, lightPos.subtract(pos).center.toVector3f())) {
             return false
         }
 
-        val otherState = level.getBlockState(pos.relative(face))
+        val otherState = level.getBlockState(otherPos)
 
-        return !(state.isSolidRender(level, pos) && otherState.isSolidRender(level, pos.relative(face)))
-    }
-
-    fun createOcclusionMask(
-        lightPos: Vector3f,
-        radiusSq: Float,
-        pos: BlockPos,
-        level: BlockGetter,
-        state: BlockState
-    ): Int {
-        var mask = 0
-
-        for (face in Direction.entries) {
-            val offPos = pos.relative(face)
-            val otherState = level.getBlockState(offPos)
-
-            if (offPos.distToCenterSqr(Vec3(lightPos)) >= radiusSq || !(state.isSolidRender(level, pos) && otherState.isSolidRender(level, offPos))) {
-                mask = mask or (1 shl face.ordinal)
-            }
-        }
-
-        return mask
+        return !(state.isSolidRender(level, pos) && otherState.isSolidRender(level, otherPos))
     }
 
     fun getLightFaces(
         level: ClientLevel,
-        radiusSq: Float,
         lightBlockPos: BlockPos,
-        lightPos: Vector3f,
         pos: BlockPos,
         out: Consumer<LightFace>
     ) {
@@ -108,20 +91,12 @@ class ShadowManager(
         val model = Minecraft.getInstance().blockRenderer.getBlockModel(state)
         val random = RandomSource.create()
         val offset = state.getOffset(level, pos)
-        val mask = createOcclusionMask(
-            lightPos,
-            radiusSq,
-            pos,
-            level,
-            state
-        )
 
         for (dir in Direction.entries) {
             if (shouldCastFace(dir, lightBlockPos, pos, level, state)) {
                 for (quad in model.getQuads(state, dir, random)) {
                     out.accept(
                         quad.toLightFace(
-                            mask,
                             offset.x.toFloat(),
                             offset.y.toFloat(),
                             offset.z.toFloat(),
@@ -136,7 +111,6 @@ class ShadowManager(
         for (quad in model.getQuads(state, null, random)) {
             out.accept(
                 quad.toLightFace(
-                    mask,
                     offset.x.toFloat(),
                     offset.y.toFloat(),
                     offset.z.toFloat(),
@@ -162,9 +136,7 @@ class ShadowManager(
                         if (pos != centerBlock && pos.distToCenterSqr(Vec3(center)) <= radiusSq) {
                             getLightFaces(
                                 manager.getLevel(),
-                                radiusSq,
                                 centerBlock,
-                                center,
                                 pos
                             ) { face ->
                                 volumes.add(face.toVolumePoint(center, radius))
@@ -181,43 +153,38 @@ class ShadowManager(
     private fun uploadShadows(lightPos: BlockPos) {
         if (shadows.isNotEmpty()) {
             val builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION)
-            val quads = MemoryUtil.memAlloc(shadows.size * 6 * LightFace.BYTES)
+            val quads = MemoryUtil.memAlloc(shadows.size * LightFace.BYTES)
 
             for (shadow in shadows) {
-                val i = shadow.buildGeometry(builder)
-                repeat(i) {
-                    shadow.toLightFace().put(quads)
-                }
+                shadow.buildGeometry(builder)
+                shadow.toLightFace().put(quads)
             }
 
-            val built = builder.build()
+            val built = builder.build()!!
 
-            if (built != null) {
-                shadowMesh!!.bind()
-                shadowMesh!!.upload(built)
-                VertexBuffer.unbind()
-            }
+            shadowMesh!!.bind()
+            shadowMesh!!.upload(built)
+            VertexBuffer.unbind()
 
             quadBuffer!!.bind()
-            quadBuffer!!.upload(quads.limit(quads.position()).flip())
+            quadBuffer!!.upload(quads.flip())
             ShaderStorageBuffer.unbind()
 
             MemoryUtil.memFree(quads)
 
             debugMesh?.let {
-                val debugBuilder = Tesselator.getInstance().begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR)
+                val debugBuilder =
+                    Tesselator.getInstance().begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR)
 
                 for (shadow in shadows) {
                     shadow.buildDebug(lightPos, debugBuilder)
                 }
 
-                val debugBuilt = debugBuilder.build()
+                val debugBuilt = debugBuilder.build()!!
 
-                if (debugBuilt != null) {
-                    it.bind()
-                    it.upload(debugBuilt)
-                    VertexBuffer.unbind()
-                }
+                it.bind()
+                it.upload(debugBuilt)
+                VertexBuffer.unbind()
             }
         }
     }
