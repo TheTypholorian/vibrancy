@@ -66,7 +66,7 @@ abstract class PointLight : Light, NativeResource {
         }
 
         if (shadowsDirty && raytrace) {
-            shadows.fullRebuild(manager, getShadowBox(), getPosition(), getRadius())
+            shadows.fullRebuild(manager, getShadowBox(), getPosition(), getShadowRadius())
 
             shadowsDirty = false
         }
@@ -90,6 +90,8 @@ abstract class PointLight : Light, NativeResource {
     abstract fun getPosition(): Vector3f
 
     abstract fun getRadius(): Float
+
+    abstract fun getShadowRadius(): Float
 
     abstract fun getColor(): Colorc
 

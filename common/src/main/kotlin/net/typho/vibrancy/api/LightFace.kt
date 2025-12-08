@@ -9,18 +9,19 @@ import org.joml.Vector4f
 import java.nio.ByteBuffer
 
 data class LightFace(
-    var blockPos: BlockPos, var direction: Direction?, var relative: BlockPos?,
-    var vertex1: Vector3f, var vertex2: Vector3f, var vertex3: Vector3f, var vertex4: Vector3f,
-    var texCoord1: Vector2f, var texCoord2: Vector2f, var texCoord3: Vector2f, var texCoord4: Vector2f,
-    var normal: Vector3f, var dot: Float,
-    var diagonal1: Vector3f, var diagonal2: Vector3f,
+    val mask: Int,
+    val blockPos: BlockPos, val direction: Direction?, val relative: BlockPos?,
+    val vertex1: Vector3f, val vertex2: Vector3f, val vertex3: Vector3f, val vertex4: Vector3f,
+    val texCoord1: Vector2f, val texCoord2: Vector2f, val texCoord3: Vector2f, val texCoord4: Vector2f,
+    val normal: Vector3f, val dot: Float,
+    val diagonal1: Vector3f, val diagonal2: Vector3f,
     var inverse: Vector4f?
 ) : LightFaceConvertible {
     constructor(
-        blockPos: BlockPos, direction: Direction?, v1: Vector3f, v2: Vector3f, v3: Vector3f, v4: Vector3f,
+        mask: Int, blockPos: BlockPos, direction: Direction?, v1: Vector3f, v2: Vector3f, v3: Vector3f, v4: Vector3f,
         uv1: Vector2f, uv2: Vector2f, uv3: Vector2f, uv4: Vector2f
     ) : this(
-        blockPos, direction, if (direction == null) null else blockPos.relative(direction),
+        mask, blockPos, direction, if (direction == null) null else blockPos.relative(direction),
         v1, v2, v3, v4, uv1, uv2, uv3, uv4,
         Vector3f(v2).sub(v1).cross(Vector3f(v4).sub(v1)).normalize(),
         Vector3f(v2).sub(v1).cross(Vector3f(v4).sub(v1)).normalize().dot(v1),
@@ -100,7 +101,7 @@ data class LightFace(
     companion object {
         const val BYTES: Int = 40 * Float.SIZE_BYTES
 
-        fun BakedQuad.toLightFace(x: Float, y: Float, z: Float, origin: BlockPos, direction: Direction?): LightFace {
+        fun BakedQuad.toLightFace(mask: Int, x: Float, y: Float, z: Float, origin: BlockPos, direction: Direction?): LightFace {
             val vertices = arrayOfNulls<Vector3f>(4)
             val texCoords = arrayOfNulls<Vector2f>(4)
             val data = this.vertices
@@ -122,6 +123,7 @@ data class LightFace(
             }
 
             return LightFace(
+                mask,
                 origin,
                 direction,
                 vertices[0]!!,

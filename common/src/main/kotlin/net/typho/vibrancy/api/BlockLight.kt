@@ -47,6 +47,8 @@ data class BlockLight(
 
     override fun getRadius(): Float = radius
 
+    override fun getShadowRadius(): Float = getRadius().coerceAtMost(8f)
+
     override fun getColor(): Colorc = color
 
     companion object {

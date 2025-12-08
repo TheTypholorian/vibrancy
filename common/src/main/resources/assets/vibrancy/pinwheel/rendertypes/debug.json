@@ -1,16 +1,20 @@
 {
   "format": "POSITION_COLOR",
-  "mode": "QUADS",
+  "mode": "LINES",
   "bufferSize": "TRANSIENT",
-  "sort": true,
+  "sort": false,
   "layers": [
     {
       "type": "minecraft:shader",
-      "name": "position_color"
+      "name": "rendertype_lines"
     },
     {
       "type": "minecraft:depth_test",
       "mode": "lequal"
+    },
+    {
+      "type": "minecraft:line",
+      "width": 5
     },
     {
       "type": "minecraft:transparency",

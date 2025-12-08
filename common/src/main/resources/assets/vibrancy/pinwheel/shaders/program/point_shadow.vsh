@@ -15,5 +15,5 @@ out flat Quad quad;
 
 void main() {
     gl_Position = ProjMat * ModelViewMat * vec4(Position, 1);
-    quad = quads[gl_VertexID / 24];
+    quad = quads[gl_VertexID / 4];
 }

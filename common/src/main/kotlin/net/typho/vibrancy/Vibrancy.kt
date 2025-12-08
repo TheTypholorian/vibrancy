@@ -53,6 +53,10 @@ object Vibrancy {
             .mapToInt { it.shadows.numShadows() }
             .sum()
         out.accept("$shadows shadows")
+        val quads = BlockLight.LIGHTS.values.stream()
+            .mapToInt { it.shadows.numQuads() }
+            .sum()
+        out.accept("$quads quads")
     }
 
     fun render() {
