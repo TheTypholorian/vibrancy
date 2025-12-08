@@ -1,6 +1,5 @@
 package net.typho.vibrancy.platform
 
-import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.platform.services.PlatformHelper
 import java.util.*
 
@@ -13,7 +12,6 @@ object Services {
             .orElseThrow {
                 IllegalStateException("Failed to load service for ${clazz.name}")
             }
-        Vibrancy.LOGGER.debug("Loaded {} for service {}", loadedService, clazz)
         return loadedService
     }
 }

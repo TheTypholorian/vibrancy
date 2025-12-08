@@ -13,9 +13,12 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.util.RandomSource
 import net.minecraft.world.inventory.InventoryMenu
+import net.minecraft.world.level.BlockGetter
+import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.Vec3
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.api.LightFace.Companion.toLightFace
+import net.typho.vibrancy.platform.Services
 import org.joml.Vector3f
 import org.lwjgl.opengl.GL11
 import org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT
@@ -28,6 +31,7 @@ import java.util.function.Consumer
 class ShadowManager(
     val static: Boolean
 ) : NativeResource {
+    private val debugMesh: VertexBuffer? = if (Services.PLATFORM.isDevelopmentEnvironment()) VertexBuffer(VertexBuffer.Usage.STATIC) else null
     var shadowMesh: VertexBuffer? = null
     var quadBuffer: ShaderStorageBuffer? = null
     private var shadows: List<ShadowVolume> = LinkedList()
@@ -47,10 +51,29 @@ class ShadowManager(
         quadBuffer = null
     }
 
+    fun numShadows() = shadows.size
+
     fun isTaskActive() = !(fullRebuildTask?.isDone ?: false)
+
+    fun shouldCastFace(
+        face: Direction,
+        lightPos: BlockPos,
+        pos: BlockPos,
+        level: BlockGetter,
+        state: BlockState
+    ): Boolean {
+        if (!Vibrancy.pointsToward(face, lightPos.subtract(pos).center.toVector3f())) {
+            return false
+        }
+
+        val otherState = level.getBlockState(pos.relative(face))
+
+        return !(state.isSolidRender(level, pos) && otherState.isSolidRender(level, pos.relative(face)))
+    }
 
     fun getLightFaces(
         level: ClientLevel,
+        lightPos: BlockPos,
         pos: BlockPos,
         out: Consumer<LightFace>
     ) {
@@ -60,34 +83,38 @@ class ShadowManager(
         val offset = state.getOffset(level, pos)
 
         for (dir in Direction.entries) {
-            for (quad in model.getQuads(state, dir, random)) {
-                out.accept(
-                    quad.toLightFace(
-                        offset.x.toFloat(),
-                        offset.y.toFloat(),
-                        offset.z.toFloat(),
-                        pos,
-                        dir
+            if (shouldCastFace(dir, lightPos, pos, level, state)) {
+                for (quad in model.getQuads(state, dir, random)) {
+                    out.accept(
+                        quad.toLightFace(
+                            offset.x.toFloat(),
+                            offset.y.toFloat(),
+                            offset.z.toFloat(),
+                            pos,
+                            dir
+                        )
                     )
-                )
+                }
             }
         }
 
         for (quad in model.getQuads(state, null, random)) {
-            out.accept(quad.toLightFace(
-                offset.x.toFloat(),
-                offset.y.toFloat(),
-                offset.z.toFloat(),
-                pos,
-                null
-            ))
+            out.accept(
+                quad.toLightFace(
+                    offset.x.toFloat(),
+                    offset.y.toFloat(),
+                    offset.z.toFloat(),
+                    pos,
+                    null
+                )
+            )
         }
     }
 
     fun fullRebuild(manager: LightManager, box: BlockBox, center: Vector3f, radius: Float) {
         fullRebuildTask?.cancel(true)
         fullRebuildTask = CompletableFuture.supplyAsync {
-            val centerBlock = BlockPos.containing(center.x.toDouble(), center.y.toDouble(), center.z.toDouble())
+            val centerBlock = BlockPos.containing(Vec3(center))
             val radiusSq = radius * radius
             val volumes = LinkedList<ShadowVolume>()
 
@@ -99,6 +126,7 @@ class ShadowManager(
                         if (pos != centerBlock && pos.distToCenterSqr(Vec3(center)) <= radiusSq) {
                             getLightFaces(
                                 manager.getLevel(),
+                                centerBlock,
                                 pos
                             ) { face ->
                                 volumes.add(face.toVolumePoint(center, radius))
@@ -112,7 +140,7 @@ class ShadowManager(
         }
     }
 
-    private fun uploadShadows() {
+    private fun uploadShadows(lightPos: BlockPos) {
         if (shadows.isNotEmpty()) {
             val builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION)
 
@@ -126,18 +154,34 @@ class ShadowManager(
                 shadowMesh!!.bind()
                 shadowMesh!!.upload(built)
                 VertexBuffer.unbind()
+            }
 
-                val buf = MemoryUtil.memAlloc(shadows.size * LightFace.BYTES)
+            val buf = MemoryUtil.memAlloc(shadows.size * LightFace.BYTES)
+
+            for (shadow in shadows) {
+                shadow.toLightFace().put(buf)
+            }
+
+            quadBuffer!!.bind()
+            quadBuffer!!.upload(buf.flip())
+            ShaderStorageBuffer.unbind()
+
+            MemoryUtil.memFree(buf)
+
+            debugMesh?.let {
+                val debugBuilder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_COLOR)
 
                 for (shadow in shadows) {
-                    shadow.toLightFace().put(buf)
+                    shadow.buildDebug(lightPos, debugBuilder)
                 }
 
-                quadBuffer!!.bind()
-                quadBuffer!!.upload(buf.flip())
-                ShaderStorageBuffer.unbind()
+                val debugBuilt = debugBuilder.build()
 
-                MemoryUtil.memFree(buf)
+                if (debugBuilt != null) {
+                    it.bind()
+                    it.upload(debugBuilt)
+                    VertexBuffer.unbind()
+                }
             }
         }
     }
@@ -146,7 +190,7 @@ class ShadowManager(
         if (fullRebuildTask?.isDone ?: false) {
             shadows = fullRebuildTask!!.get()
             fullRebuildTask = null
-            uploadShadows()
+            uploadShadows(BlockPos.containing(Vec3(pos)))
         }
 
         val renderType = VeilRenderType.get(Vibrancy.id("point_shadow"))!!
@@ -174,5 +218,22 @@ class ShadowManager(
         }
 
         renderType.clearRenderState()
+
+        if (raytrace && shadows.isNotEmpty() && Vibrancy.RENDER_DEBUG_LINES) {
+            debugMesh?.let {
+                val lineRenderType = VeilRenderType.get(Vibrancy.id("debug"))!!
+                lineRenderType.setupRenderState()
+
+                it.bind()
+                it.drawWithShader(
+                    manager.viewMatrix!!,
+                    RenderSystem.getProjectionMatrix(),
+                    RenderSystem.getShader()!!
+                )
+                VertexBuffer.unbind()
+
+                lineRenderType.clearRenderState()
+            }
+        }
     }
 }

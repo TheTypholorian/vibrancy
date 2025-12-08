@@ -9,7 +9,7 @@ import org.joml.Vector4f
 import java.nio.ByteBuffer
 
 data class LightFace(
-    var blockPos: BlockPos?, var direction: Direction?, var relative: BlockPos?,
+    var blockPos: BlockPos, var direction: Direction?, var relative: BlockPos?,
     var vertex1: Vector3f, var vertex2: Vector3f, var vertex3: Vector3f, var vertex4: Vector3f,
     var texCoord1: Vector2f, var texCoord2: Vector2f, var texCoord3: Vector2f, var texCoord4: Vector2f,
     var normal: Vector3f, var dot: Float,

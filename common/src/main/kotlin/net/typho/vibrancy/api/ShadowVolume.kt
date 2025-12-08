@@ -1,6 +1,8 @@
 package net.typho.vibrancy.api
 
 import com.mojang.blaze3d.vertex.VertexConsumer
+import net.minecraft.core.BlockPos
+import net.typho.vibrancy.Vibrancy
 import org.joml.Vector3f
 
 @JvmRecord
@@ -15,14 +17,58 @@ data class ShadowVolume(val caster: LightFace, val vertices: Array<Vector3f?>) :
         }
     }
 
+    fun buildDebug(lightPos: BlockPos, consumer: VertexConsumer) {
+        var i = 0
+        var j = 0
+
+        while (i < 2) {
+            val color = if (caster.direction == null || Vibrancy.pointsToward(
+                    caster.direction!!,
+                    Vector3f(
+                        lightPos.x.toFloat() - caster.blockPos.x,
+                        lightPos.y.toFloat() - caster.blockPos.y,
+                        lightPos.z.toFloat() - caster.blockPos.z
+                    )
+                )
+            ) Vector3f(0f, 1f, 0f) else Vector3f(1f, 0f, 0f)
+
+            if (i == 0) {
+                color.z = 1f
+            }
+
+            val order = arrayOf(
+                vertices[INDICES[j]]!!,
+                vertices[INDICES[j + 1]]!!,
+                vertices[INDICES[j + 2]]!!,
+                vertices[INDICES[j + 3]]!!
+                /*
+                vertices[INDICES[j]]!!, vertices[INDICES[j + 1]]!!,
+                vertices[INDICES[j + 1]]!!, vertices[INDICES[j + 2]]!!,
+                vertices[INDICES[j + 2]]!!, vertices[INDICES[j + 3]]!!,
+                vertices[INDICES[j + 3]]!!, vertices[INDICES[j]]!!,
+                vertices[INDICES[j]]!!, vertices[INDICES[j + 2]]!!,
+                vertices[INDICES[j + 1]]!!, vertices[INDICES[j + 3]]!!
+                 */
+            )
+
+            for (vec in order) {
+                consumer.addVertex(vec.x, vec.y, vec.z)
+                    .setColor(color.x, color.y, color.z, 0.25f)
+            }
+
+            i++
+            j += 4
+        }
+    }
+
     companion object {
         val INDICES: IntArray = intArrayOf(
             0, 1, 2, 3,
-            1, 5, 6, 2,
+            //1, 5, 6, 2,
             5, 4, 7, 6,
-            4, 0, 3, 7,
-            1, 0, 4, 5,
-            3, 2, 6, 7
+            //4, 0, 3, 7,
+            //1, 0, 4, 5,
+            //3, 2, 6, 7
         )
     }
 

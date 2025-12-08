@@ -1,0 +1,29 @@
+{
+  "format": "POSITION_COLOR",
+  "mode": "QUADS",
+  "bufferSize": "TRANSIENT",
+  "sort": true,
+  "layers": [
+    {
+      "type": "minecraft:shader",
+      "name": "position_color"
+    },
+    {
+      "type": "minecraft:depth_test",
+      "mode": "lequal"
+    },
+    {
+      "type": "minecraft:transparency",
+      "mode": "translucent"
+    },
+    {
+      "type": "minecraft:cull",
+      "face": "none"
+    },
+    {
+      "type": "minecraft:write_mask",
+      "color": true,
+      "depth": true
+    }
+  ]
+}
