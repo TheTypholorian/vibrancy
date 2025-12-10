@@ -66,7 +66,6 @@ abstract class PointLight : Light, NativeResource {
         }
 
         glClear(GL_STENCIL_BUFFER_BIT)
-        glDisable(GL_CULL_FACE)
 
         VeilRenderSystem.setShader(Vibrancy.id("point_shadow"))
         glStencilFunc(GL_ALWAYS, 1, LightManager.BLOCK_STENCIL_MASK)
@@ -77,7 +76,6 @@ abstract class PointLight : Light, NativeResource {
         VeilRenderSystem.setShader(Vibrancy.id("point_box"))
         glStencilFunc(GL_EQUAL, 0, 1)
         glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP)
-        glEnable(GL_CULL_FACE)
 
         renderMesh(boxMesh, manager.viewMatrix!!)
     }
