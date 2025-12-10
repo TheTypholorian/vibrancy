@@ -68,7 +68,7 @@ abstract class PointLight : Light, NativeResource {
         glClear(GL_STENCIL_BUFFER_BIT)
 
         VeilRenderSystem.setShader(Vibrancy.id("point_shadow"))
-        glStencilFunc(GL_ALWAYS, 1, LightManager.BLOCK_STENCIL_MASK)
+        glStencilFunc(GL_NOTEQUAL, 1, 1) //LightManager.BLOCK_STENCIL_MASK
         glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE)
 
         shadows.render(manager, raytrace, getPosition())
