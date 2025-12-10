@@ -13,13 +13,13 @@ data class ShadowVolume(
         return caster
     }
 
-    fun numQuads(): Int = 6
+    fun numQuads(): Int = 5
 
     fun buildGeometry(consumer: VertexConsumer) {
         var i = 0
         var j = 0
 
-        while (i < 5) {
+        while (i < numQuads()) {
             val order = arrayOf(
                 vertices[INDICES[j]]!!,
                 vertices[INDICES[j + 1]]!!,
@@ -40,7 +40,7 @@ data class ShadowVolume(
         var i = 0
         var j = 0
 
-        while (i < 5) {
+        while (i < numQuads()) {
                 val color = if (caster.direction == null || Vibrancy.pointsToward(
                         caster.direction,
                         Vector3f(

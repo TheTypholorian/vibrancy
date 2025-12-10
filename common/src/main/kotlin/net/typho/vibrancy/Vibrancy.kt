@@ -1,7 +1,9 @@
 package net.typho.vibrancy
 
+import com.mojang.blaze3d.vertex.VertexBuffer
 import foundry.veil.api.client.render.VeilRenderSystem
 import foundry.veil.api.client.render.dynamicbuffer.DynamicBufferType
+import foundry.veil.api.client.render.rendertype.VeilRenderType
 import foundry.veil.platform.VeilEventPlatform
 import net.minecraft.ChatFormatting
 import net.minecraft.core.Direction
@@ -9,6 +11,7 @@ import net.minecraft.core.GlobalPos
 import net.minecraft.resources.ResourceLocation
 import net.typho.vibrancy.api.BlockLight
 import net.typho.vibrancy.api.LightManager
+import net.typho.vibrancy.api.ShaderStorageBuffer
 import net.typho.vibrancy.api.glClear
 import org.joml.Vector3f
 import org.lwjgl.opengl.GL11.*
@@ -73,6 +76,9 @@ object Vibrancy {
 
         LIGHT_MANAGER.setupStencil(id("output"))
 
+        val pointRenderType = VeilRenderType.get(id("point_common"))!!
+        pointRenderType.setupRenderState()
+
         BlockLight.LIGHTS.values.stream()
             .sorted(Comparator.comparingDouble {
                 it.getPosition().distanceSquared(LIGHT_MANAGER.getCamera().position.toVector3f()).toDouble()
@@ -85,6 +91,11 @@ object Vibrancy {
                     LIGHT_MANAGER.postRender(light, raytrace)
                 }
             }
+
+        pointRenderType.clearRenderState()
+
+        ShaderStorageBuffer.unbindBase(0)
+        VertexBuffer.unbind()
     }
 
     fun id(path: String): ResourceLocation = ResourceLocation.fromNamespaceAndPath(MOD_ID, path)

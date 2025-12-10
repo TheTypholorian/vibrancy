@@ -194,14 +194,6 @@ class ShadowManager(
             uploadShadows(BlockPos.containing(Vec3(pos)))
         }
 
-        val renderType = VeilRenderType.get(Vibrancy.id("point_shadow"))!!
-        renderType.setupRenderState()
-
-        //glStencilMask(1)
-        //GL11.glClear(GL_DEPTH_BUFFER_BIT or GL_STENCIL_BUFFER_BIT)
-
-        renderType.setupRenderState()
-
         if (raytrace && shadows.isNotEmpty()) {
             val shader = RenderSystem.getShader()!!
 
@@ -216,12 +208,7 @@ class ShadowManager(
                 RenderSystem.getProjectionMatrix(),
                 shader
             )
-            VertexBuffer.unbind()
-
-            ShaderStorageBuffer.unbindBase(0)
         }
-
-        renderType.clearRenderState()
 
         if (raytrace && shadows.isNotEmpty() && Vibrancy.RENDER_DEBUG_LINES) {
             debugMesh?.let {

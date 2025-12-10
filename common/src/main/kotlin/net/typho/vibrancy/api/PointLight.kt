@@ -5,13 +5,13 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.mojang.blaze3d.vertex.VertexBuffer
 import com.mojang.blaze3d.vertex.VertexFormat
 import foundry.veil.api.client.color.Colorc
-import foundry.veil.api.client.render.rendertype.VeilRenderType
+import foundry.veil.api.client.render.VeilRenderSystem
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
-import net.minecraft.resources.ResourceLocation
 import net.typho.vibrancy.Vibrancy
 import org.joml.Matrix4f
 import org.joml.Vector3f
+import org.lwjgl.opengl.GL11.*
 import org.lwjgl.system.NativeResource
 import kotlin.math.ceil
 import kotlin.math.floor
@@ -36,10 +36,7 @@ abstract class PointLight : Light, NativeResource {
         VertexBuffer.unbind()
     }
 
-    fun renderMesh(vbo: VertexBuffer, renderTypeId: ResourceLocation, view: Matrix4f) {
-        val renderType = VeilRenderType.get(renderTypeId)!!
-        renderType.setupRenderState()
-
+    fun renderMesh(vbo: VertexBuffer, view: Matrix4f) {
         val shader = RenderSystem.getShader()!!
         val color = getColor()
 
@@ -53,9 +50,6 @@ abstract class PointLight : Light, NativeResource {
             RenderSystem.getProjectionMatrix(),
             shader
         )
-        VertexBuffer.unbind()
-
-        renderType.clearRenderState()
     }
 
     override fun render(manager: LightManager, raytrace: Boolean) {
@@ -71,8 +65,21 @@ abstract class PointLight : Light, NativeResource {
             shadowsDirty = false
         }
 
+        glClear(GL_STENCIL_BUFFER_BIT)
+        glDisable(GL_CULL_FACE)
+
+        VeilRenderSystem.setShader(Vibrancy.id("point_shadow"))
+        glStencilFunc(GL_ALWAYS, 1, LightManager.BLOCK_STENCIL_MASK)
+        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE)
+
         shadows.render(manager, raytrace, getPosition())
-        renderMesh(boxMesh, Vibrancy.id("point_box"), manager.viewMatrix!!)
+
+        VeilRenderSystem.setShader(Vibrancy.id("point_box"))
+        glStencilFunc(GL_EQUAL, 0, 1)
+        glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP)
+        glEnable(GL_CULL_FACE)
+
+        renderMesh(boxMesh, manager.viewMatrix!!)
     }
 
     override fun getCullingBox() = getBoundingBox()

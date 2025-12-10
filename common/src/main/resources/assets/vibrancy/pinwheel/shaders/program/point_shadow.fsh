@@ -1,7 +1,5 @@
 #version 430
 
-layout(early_fragment_tests) in;
-
 #include "vibrancy:common"
 #include "vibrancy:fragment"
 #include "veil:common"
@@ -19,7 +17,7 @@ in flat Quad quad;
 out vec4 fragColor;
 
 void main() {
-    fragColor = vec4(1);
+    fragColor = vec4(0);
 
     vec3 Pos = getWorldPos(DiffuseDepthSampler, ScreenSize);
 
