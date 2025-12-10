@@ -7,12 +7,14 @@
   "mixins": [
     "LevelMixin",
     "ShaderImportProcessorMixin",
+    "SodiumGameOptionsPagesAccessor",
     "VeilRendererMixin"
   ],
   "client": [
     "ClientChunkCacheStorageMixin",
     "LevelRendererMixin",
-    "MinecraftMixin"
+    "MinecraftMixin",
+    "SodiumOptionsGUIMixin"
   ],
   "injectors": {
     "defaultRequire": 1

@@ -21,8 +21,13 @@ import org.joml.Matrix4f
 open class LightManager(
     var dirtyBlocks: Iterable<GlobalPos>,
 
+    var raytraceDistance: Int,
+    var lightCullDistance: Int,
+
     var maxRendered: Int,
-    var maxRaytraced: Int
+    var maxRaytraced: Int,
+
+    var shadowRadius: Int
 ) {
     companion object {
         const val SKY_STENCIL_MASK: Int = 0b01000000
@@ -83,11 +88,11 @@ open class LightManager(
     }
 
     fun shouldRender(light: Light): Boolean {
-        return lightsRendered < maxRendered
+        return (maxRendered > 400 || lightsRendered < maxRendered) && light.testCullingDistance(lightCullDistance)
     }
 
     fun shouldRaytrace(light: Light): Boolean {
-        return lightsRaytraced < maxRaytraced
+        return (maxRendered > 400 || lightsRaytraced < maxRaytraced) && light.testCullingDistance(raytraceDistance)
     }
 
     fun postRender(light: Light, didRaytrace: Boolean) {

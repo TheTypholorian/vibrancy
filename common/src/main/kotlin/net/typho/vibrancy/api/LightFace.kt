@@ -66,8 +66,7 @@ data class LightFace(
     }
 
     fun toVolumePoint(origin: Vector3f?, radius: Float): ShadowVolume {
-        val d0 = normal.dot(vertex1.sub(origin, Vector3f()))
-        val t = radius - d0
+        val t = radius * 4
 
         val vertices = arrayOf(vertex1, vertex2, vertex3, vertex4, null, null, null, null)
 

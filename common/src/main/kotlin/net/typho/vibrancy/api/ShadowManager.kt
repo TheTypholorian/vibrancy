@@ -30,17 +30,11 @@ class ShadowManager(
     val static: Boolean
 ) : NativeResource {
     private val debugMesh: VertexBuffer? = if (Services.PLATFORM.isDevelopmentEnvironment()) VertexBuffer(VertexBuffer.Usage.STATIC) else null
-    var shadowMesh: VertexBuffer? = null
-    var quadBuffer: ShaderStorageBuffer? = null
-    private var shadows: List<ShadowVolume> = LinkedList()
-    private var fullRebuildTask: CompletableFuture<List<ShadowVolume>>? = null
-
-    init {
-        RenderSystem.recordRenderCall {
-            shadowMesh = VertexBuffer(if (static) VertexBuffer.Usage.STATIC else VertexBuffer.Usage.DYNAMIC)
-            quadBuffer = ShaderStorageBuffer(if (static) ShaderStorageBuffer.Usage.STATIC else ShaderStorageBuffer.Usage.STREAM)
-        }
-    }
+    var shadowMesh: VertexBuffer? = VertexBuffer(if (static) VertexBuffer.Usage.STATIC else VertexBuffer.Usage.DYNAMIC)
+    var quadBuffer: ShaderStorageBuffer? = ShaderStorageBuffer(if (static) ShaderStorageBuffer.Usage.STATIC else ShaderStorageBuffer.Usage.STREAM)
+    private var shadows: MutableList<ShadowVolume> = LinkedList()
+    private var fullRebuildTask: CompletableFuture<MutableList<ShadowVolume>>? = null
+    private var shadowsDirty = false
 
     override fun free() {
         shadowMesh?.close()
@@ -119,6 +113,21 @@ class ShadowManager(
         }
     }
 
+    fun rebuildBlock(manager: LightManager, pos: BlockPos, center: Vector3f, radius: Float) {
+        shadows.removeIf { shadow -> shadow.caster.blockPos == pos }
+
+        val centerBlock = BlockPos.containing(Vec3(center))
+
+        getLightFaces(
+            manager.getLevel(),
+            centerBlock,
+            pos
+        ) { face ->
+            shadows.add(face.toVolumePoint(center, radius))
+        }
+        shadowsDirty = true
+    }
+
     fun fullRebuild(manager: LightManager, box: BlockBox, center: Vector3f, radius: Float) {
         fullRebuildTask?.cancel(true)
         fullRebuildTask = CompletableFuture.supplyAsync {
@@ -143,6 +152,8 @@ class ShadowManager(
                     }
                 }
             }
+
+            shadowsDirty = true
 
             return@supplyAsync volumes
         }
@@ -191,6 +202,9 @@ class ShadowManager(
         if (fullRebuildTask?.isDone ?: false) {
             shadows = fullRebuildTask!!.get()
             fullRebuildTask = null
+        }
+
+        if (shadowsDirty) {
             uploadShadows(BlockPos.containing(Vec3(pos)))
         }
 

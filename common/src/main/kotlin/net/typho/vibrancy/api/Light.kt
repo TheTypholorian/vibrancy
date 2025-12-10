@@ -6,4 +6,6 @@ interface Light {
     fun render(manager: LightManager, raytrace: Boolean)
 
     fun getCullingBox(): AABB?
+
+    fun testCullingDistance(chunks: Int): Boolean
 }

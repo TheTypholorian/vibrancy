@@ -28,7 +28,7 @@ mixin = "0.8.5"
 mixinExtras = "0.3.5"
 
 veil="2.5.1"
-sodium="mc1.21.1-0.6.13-fabric"
+sodium="mc1.21.1-0.6.13-neoforge"
 
 [libraries]
 minecraft = { group = "com.mojang", name = "minecraft", version.ref = "minecraft" }

@@ -8,6 +8,7 @@ import foundry.veil.api.client.color.Colorc
 import foundry.veil.api.client.render.VeilRenderSystem
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
+import net.minecraft.world.phys.Vec3
 import net.typho.vibrancy.Vibrancy
 import org.joml.Matrix4f
 import org.joml.Vector3f
@@ -53,6 +54,14 @@ abstract class PointLight : Light, NativeResource {
     }
 
     override fun render(manager: LightManager, raytrace: Boolean) {
+        val shadowRadiusSq = getShadowRadius() * getShadowRadius()
+
+        for (pos in manager.dirtyBlocks) {
+            if (manager.getLevel().dimension().equals(pos.dimension()) && pos.pos.distToCenterSqr(Vec3(getPosition())) < shadowRadiusSq) {
+                shadows.rebuildBlock(manager, pos.pos, getPosition(), getShadowRadius())
+            }
+        }
+
         if (boxDirty) {
             uploadBoxMesh()
 
@@ -68,7 +77,7 @@ abstract class PointLight : Light, NativeResource {
         glClear(GL_STENCIL_BUFFER_BIT)
 
         VeilRenderSystem.setShader(Vibrancy.id("point_shadow"))
-        glStencilFunc(GL_NOTEQUAL, 1, 1) //LightManager.BLOCK_STENCIL_MASK
+        glStencilFunc(GL_NOTEQUAL, 1, LightManager.BLOCK_STENCIL_MASK or 1)
         glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE)
 
         shadows.render(manager, raytrace, getPosition())

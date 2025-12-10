@@ -27,7 +27,7 @@ object Vibrancy {
     val LOGGER: Logger = LoggerFactory.getLogger(MOD_NAME)
 
     val DIRTY_BLOCKS = LinkedList<GlobalPos>()
-    val LIGHT_MANAGER = LightManager(DIRTY_BLOCKS, 200, 200)
+    val LIGHT_MANAGER = LightManager(DIRTY_BLOCKS, 8, 32, 200, 100, 8)
 
     var RENDER_DEBUG_LINES = false
 
@@ -96,6 +96,8 @@ object Vibrancy {
 
         ShaderStorageBuffer.unbindBase(0)
         VertexBuffer.unbind()
+
+        DIRTY_BLOCKS.clear()
     }
 
     fun id(path: String): ResourceLocation = ResourceLocation.fromNamespaceAndPath(MOD_ID, path)
