@@ -1,5 +1,8 @@
 {
-  "depth": false,
+  "depth": {
+    "format": "DEPTH_STENCIL",
+    "dataType": "UNSIGNED_INT_24_8"
+  },
   "format": "RGB16F",
   "autoClear": false
 }

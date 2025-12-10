@@ -28,6 +28,16 @@
     {
       "type": "minecraft:output",
       "framebuffer": "vibrancy:output"
+    },
+    {
+      "type": "vibrancy:stencil",
+      "enabled": true,
+      "mask": 1,
+      "func": {
+        "func": "EQUAL",
+        "ref": 0,
+        "mask": 1
+      }
     }
   ]
 }

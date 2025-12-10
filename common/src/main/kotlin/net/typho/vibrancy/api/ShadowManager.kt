@@ -20,8 +20,6 @@ import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.api.LightFace.Companion.toLightFace
 import net.typho.vibrancy.platform.Services
 import org.joml.Vector3f
-import org.lwjgl.opengl.GL11
-import org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT
 import org.lwjgl.system.MemoryUtil
 import org.lwjgl.system.NativeResource
 import java.util.*
@@ -199,7 +197,10 @@ class ShadowManager(
         val renderType = VeilRenderType.get(Vibrancy.id("point_shadow"))!!
         renderType.setupRenderState()
 
-        GL11.glClear(GL_COLOR_BUFFER_BIT)
+        //glStencilMask(1)
+        //GL11.glClear(GL_DEPTH_BUFFER_BIT or GL_STENCIL_BUFFER_BIT)
+
+        renderType.setupRenderState()
 
         if (raytrace && shadows.isNotEmpty()) {
             val shader = RenderSystem.getShader()!!

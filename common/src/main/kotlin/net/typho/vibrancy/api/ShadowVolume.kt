@@ -2,7 +2,6 @@ package net.typho.vibrancy.api
 
 import com.mojang.blaze3d.vertex.VertexConsumer
 import net.minecraft.core.BlockPos
-import net.minecraft.core.Direction
 import net.typho.vibrancy.Vibrancy
 import org.joml.Vector3f
 
@@ -20,7 +19,7 @@ data class ShadowVolume(
         var i = 0
         var j = 0
 
-        while (i < 6) {
+        while (i < 5) {
             val order = arrayOf(
                 vertices[INDICES[j]]!!,
                 vertices[INDICES[j + 1]]!!,
@@ -41,7 +40,7 @@ data class ShadowVolume(
         var i = 0
         var j = 0
 
-        while (i < 6) {
+        while (i < 5) {
                 val color = if (caster.direction == null || Vibrancy.pointsToward(
                         caster.direction,
                         Vector3f(
@@ -81,12 +80,12 @@ data class ShadowVolume(
 
     companion object {
         val INDICES: IntArray = intArrayOf(
-            0, 1, 2, 3, // front
-            1, 5, 6, 2, // CCW top 1
-            5, 4, 7, 6, // back
-            4, 0, 3, 7, // CW top 1
-            1, 0, 4, 5, // up
-            3, 2, 6, 7 // down
+            //0, 1, 2, 3,
+            1, 5, 6, 2,
+            5, 4, 7, 6,
+            4, 0, 3, 7,
+            1, 0, 4, 5,
+            3, 2, 6, 7
         )
     }
 

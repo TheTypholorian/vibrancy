@@ -68,12 +68,10 @@ object Vibrancy {
             .enableBuffers(id("light"), DynamicBufferType.NORMAL, DynamicBufferType.ALBEDO, DynamicBufferType.LIGHT_UV)
 
         val outputFramebuffer = VeilRenderSystem.renderer().framebufferManager.getFramebuffer(id("output"))!!
-        val shadowsFramebuffer = VeilRenderSystem.renderer().framebufferManager.getFramebuffer(id("shadows"))!!
 
-        outputFramebuffer.glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT)
-        shadowsFramebuffer.glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT or GL_STENCIL_BUFFER_BIT)
+        outputFramebuffer.glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT or GL_STENCIL_BUFFER_BIT)
 
-        LIGHT_MANAGER.setupStencil(id("shadows"))
+        LIGHT_MANAGER.setupStencil(id("output"))
 
         BlockLight.LIGHTS.values.stream()
             .sorted(Comparator.comparingDouble {

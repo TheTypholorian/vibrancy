@@ -18,21 +18,26 @@
     },
     {
       "type": "minecraft:write_mask",
-      "color": true,
+      "color": false,
       "depth": false
     },
     {
       "type": "minecraft:output",
-      "framebuffer": "vibrancy:shadows"
+      "framebuffer": "vibrancy:output"
     },
     {
       "type": "vibrancy:stencil",
       "enabled": true,
-      "mask": 255,
+      "mask": 1,
       "func": {
-        "func": "NOTEQUAL",
-        "ref": 0,
-        "mask": 255
+        "func": "ALWAYS",
+        "ref": 1,
+        "mask": 128
+      },
+      "op": {
+        "sfail": "KEEP",
+        "dpfail": "KEEP",
+        "dppass": "REPLACE"
       }
     }
   ]
