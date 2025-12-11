@@ -1,5 +1,6 @@
 package net.typho.vibrancy.api
 
+import net.minecraft.client.Camera
 import net.minecraft.world.phys.AABB
 
 interface Light {
@@ -7,5 +8,5 @@ interface Light {
 
     fun getCullingBox(): AABB?
 
-    fun testCullingDistance(chunks: Int): Boolean
+    fun testCullingDistance(camera: Camera, chunks: Int): Boolean
 }

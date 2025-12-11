@@ -2,6 +2,7 @@ package net.typho.vibrancy.api
 
 import foundry.veil.api.client.color.Color
 import foundry.veil.api.client.color.Colorc
+import net.minecraft.client.Camera
 import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
 import net.minecraft.world.level.ChunkPos
@@ -50,6 +51,9 @@ data class BlockLight(
     override fun getShadowRadius(): Float = getRadius().coerceAtMost(8f)
 
     override fun getColor(): Colorc = color
+
+    override fun testCullingDistance(camera: Camera, chunks: Int): Boolean =
+        getPosition().distanceSquared(camera.position.toVector3f()) <= (chunks * chunks * 256)
 
     companion object {
         val LIGHTS = HashMap<BlockPos, BlockLight>()

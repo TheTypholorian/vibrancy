@@ -87,12 +87,12 @@ open class LightManager(
         block.clearRenderState()
     }
 
-    fun shouldRender(light: Light): Boolean {
-        return (maxRendered > 400 || lightsRendered < maxRendered) && light.testCullingDistance(lightCullDistance)
+    fun shouldRender(light: Light, camera: Camera = getCamera()): Boolean {
+        return (maxRendered > 400 || lightsRendered < maxRendered) && light.testCullingDistance(camera, lightCullDistance)
     }
 
-    fun shouldRaytrace(light: Light): Boolean {
-        return (maxRendered > 400 || lightsRaytraced < maxRaytraced) && light.testCullingDistance(raytraceDistance)
+    fun shouldRaytrace(light: Light, camera: Camera = getCamera()): Boolean {
+        return (maxRendered > 400 || lightsRaytraced < maxRaytraced) && light.testCullingDistance(camera, raytraceDistance)
     }
 
     fun postRender(light: Light, didRaytrace: Boolean) {
