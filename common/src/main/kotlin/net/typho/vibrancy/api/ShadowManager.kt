@@ -1,13 +1,12 @@
 package net.typho.vibrancy.api
 
 import com.mojang.blaze3d.systems.RenderSystem
-import com.mojang.blaze3d.vertex.DefaultVertexFormat
-import com.mojang.blaze3d.vertex.Tesselator
-import com.mojang.blaze3d.vertex.VertexBuffer
-import com.mojang.blaze3d.vertex.VertexFormat
+import com.mojang.blaze3d.vertex.*
 import foundry.veil.api.client.render.rendertype.VeilRenderType
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
+import net.minecraft.client.renderer.MultiBufferSource
+import net.minecraft.client.renderer.RenderType
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -15,26 +14,25 @@ import net.minecraft.util.RandomSource
 import net.minecraft.world.inventory.InventoryMenu
 import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.block.state.BlockState
-import net.minecraft.world.phys.Vec3
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.api.LightFace.Companion.toLightFace
 import net.typho.vibrancy.platform.Services
-import org.joml.Vector3f
 import org.lwjgl.system.MemoryUtil
 import org.lwjgl.system.NativeResource
 import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
 
-class ShadowManager(
+open class ShadowManager(
     static: Boolean
-) : NativeResource {
+) : NativeResource, MultiBufferSource {
     private val debugMesh: VertexBuffer? = if (Services.PLATFORM.isDevelopmentEnvironment()) VertexBuffer(VertexBuffer.Usage.STATIC) else null
     var shadowMesh: VertexBuffer? = VertexBuffer(if (static) VertexBuffer.Usage.STATIC else VertexBuffer.Usage.DYNAMIC)
     var quadBuffer: ShaderStorageBuffer? = ShaderStorageBuffer(if (static) ShaderStorageBuffer.Usage.STATIC else ShaderStorageBuffer.Usage.STREAM)
     private var shadows: MutableList<ShadowVolume> = LinkedList()
     private var fullRebuildTask: CompletableFuture<MutableList<ShadowVolume>>? = null
     private var shadowsDirty = false
+    private val buffers = LinkedHashMap<RenderType, ShadowBuilder>()
 
     override fun free() {
         shadowMesh?.close()
@@ -50,6 +48,8 @@ class ShadowManager(
     fun numShadows() = shadows.size
 
     fun isTaskActive() = !(fullRebuildTask?.isDone ?: false)
+
+    override fun getBuffer(renderType: RenderType): VertexConsumer = buffers.computeIfAbsent(renderType) { ShadowBuilder() }
 
     fun shouldCastFace(
         face: Direction,
@@ -114,25 +114,28 @@ class ShadowManager(
         }
     }
 
-    fun rebuildBlock(manager: LightManager, pos: BlockPos, center: Vector3f, radius: Float) {
+    fun rebuildBlock(manager: LightManager, pos: BlockPos, light: PointLight) {
         shadows.removeIf { shadow -> shadow.caster.blockPos == pos }
 
-        val centerBlock = BlockPos.containing(Vec3(center))
+        val lightPos = light.getPosition()
+        val lightBlockPos = light.getBlockPos()
 
         getLightFaces(
             manager.getLevel(),
-            centerBlock,
+            lightBlockPos,
             pos
         ) { face ->
-            shadows.add(face.toVolumePoint(center, radius))
+            shadows.add(face.toVolumePoint(lightPos, light.getRadius()))
         }
         shadowsDirty = true
     }
 
-    fun fullRebuild(manager: LightManager, box: BlockBox, center: Vector3f, radius: Float) {
+    fun fullRebuild(manager: LightManager, box: BlockBox, light: PointLight) {
         fullRebuildTask?.cancel(true)
         fullRebuildTask = CompletableFuture.supplyAsync {
-            val centerBlock = BlockPos.containing(Vec3(center))
+            val lightPos = light.getPosition()
+            val lightBlockPos = light.getBlockPos()
+            val radius = light.getShadowRadius(manager)
             val radiusSq = radius * radius
             val volumes = LinkedList<ShadowVolume>()
 
@@ -141,13 +144,13 @@ class ShadowManager(
                     for (z in box.min.z..box.max.z) {
                         val pos = BlockPos(x, y, z)
 
-                        if (pos != centerBlock && pos.distToCenterSqr(Vec3(center)) <= radiusSq) {
+                        if (pos != lightBlockPos && pos.distSqr(lightBlockPos) <= radiusSq) {
                             getLightFaces(
                                 manager.getLevel(),
-                                centerBlock,
+                                lightBlockPos,
                                 pos
                             ) { face ->
-                                volumes.add(face.toVolumePoint(center, radius))
+                                volumes.add(face.toVolumePoint(lightPos, light.getRadius()))
                             }
                         }
                     }
@@ -160,7 +163,7 @@ class ShadowManager(
         }
     }
 
-    private fun uploadShadows(lightPos: BlockPos) {
+    private fun uploadShadows(light: PointLight) {
         if (shadows.isNotEmpty()) {
             val builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION)
             val quads = MemoryUtil.memAlloc(shadows.size * LightFace.BYTES)
@@ -183,11 +186,12 @@ class ShadowManager(
             MemoryUtil.memFree(quads)
 
             debugMesh?.let {
+                val lightBlockPos = light.getBlockPos()
                 val debugBuilder =
                     Tesselator.getInstance().begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR)
 
                 for (shadow in shadows) {
-                    shadow.buildDebug(lightPos, debugBuilder)
+                    shadow.buildDebug(lightBlockPos, debugBuilder)
                 }
 
                 val debugBuilt = debugBuilder.build()!!
@@ -199,47 +203,96 @@ class ShadowManager(
         }
     }
 
-    fun render(manager: LightManager, raytrace: Boolean, pos: Vector3f) {
+    fun castBlockEntities(manager: LightManager, box: BlockBox, light: PointLight): Boolean {
+        val level = manager.getLevel()
+        val poseStack = PoseStack()
+        var any = false
+
+        for (pos in box) {
+            val blockEntity = level.getBlockEntity(pos)
+
+            if (blockEntity != null) {
+                poseStack.pushPose()
+                poseStack.translate(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
+
+                Minecraft.getInstance().blockEntityRenderDispatcher.render(
+                    blockEntity,
+                    manager.tickDelta(),
+                    poseStack,
+                    this
+                )
+
+                poseStack.popPose()
+
+                any = true
+            }
+        }
+
+        return any
+    }
+
+    fun render(manager: LightManager, raytrace: Boolean, light: PointLight) {
         if (fullRebuildTask?.isDone ?: false) {
             shadows = fullRebuildTask!!.get()
             fullRebuildTask = null
         }
 
-        if (shadowsDirty) {
-            uploadShadows(BlockPos.containing(Vec3(pos)))
-            shadowsDirty = false
-        }
+        if (raytrace) {
+            if (shadowsDirty) {
+                uploadShadows(light)
+                shadowsDirty = false
+            }
 
-        if (raytrace && shadows.isNotEmpty()) {
-            val shader = RenderSystem.getShader()!!
+            if (shadows.isNotEmpty()) {
+                val shader = RenderSystem.getShader()!!
 
-            shader.safeGetUniform("LightPos").set(pos)
-            shader.setSampler("AtlasSampler", Minecraft.getInstance().modelManager.getAtlas(InventoryMenu.BLOCK_ATLAS))
+                shader.safeGetUniform("LightPos").set(light.getPosition())
+                shader.setSampler(
+                    "AtlasSampler",
+                    Minecraft.getInstance().modelManager.getAtlas(InventoryMenu.BLOCK_ATLAS)
+                )
 
-            quadBuffer!!.bindBase(0)
+                quadBuffer!!.bindBase(0)
 
-            shadowMesh!!.bind()
-            shadowMesh!!.drawWithShader(
-                manager.viewMatrix!!,
-                RenderSystem.getProjectionMatrix(),
-                shader
-            )
-        }
-
-        if (raytrace && shadows.isNotEmpty() && Vibrancy.RENDER_DEBUG_LINES) {
-            debugMesh?.let {
-                val lineRenderType = VeilRenderType.get(Vibrancy.id("debug"))!!
-                lineRenderType.setupRenderState()
-
-                it.bind()
-                it.drawWithShader(
+                shadowMesh!!.bind()
+                shadowMesh!!.drawWithShader(
                     manager.viewMatrix!!,
                     RenderSystem.getProjectionMatrix(),
-                    RenderSystem.getShader()!!
+                    shader
                 )
-                VertexBuffer.unbind()
+            }
 
-                lineRenderType.clearRenderState()
+            for (builder in buffers.values) {
+                builder.vertices.clear()
+            }
+
+            val anyEntities = castBlockEntities(
+                manager,
+                BlockBox.of(light.getBlockPos()).expand(light.getShadowRadius(manager)),
+                light
+            )
+
+            if (anyEntities) {
+                for (entry in buffers) {
+                    val texture = Services.PLATFORM.getRenderTypeTexture(entry.key)
+                }
+            }
+
+            if ((shadows.isNotEmpty() || anyEntities) && Vibrancy.RENDER_DEBUG_LINES) {
+                debugMesh?.let {
+                    val lineRenderType = VeilRenderType.get(Vibrancy.id("debug"))!!
+                    lineRenderType.setupRenderState()
+
+                    it.bind()
+                    it.drawWithShader(
+                        manager.viewMatrix!!,
+                        RenderSystem.getProjectionMatrix(),
+                        RenderSystem.getShader()!!
+                    )
+                    VertexBuffer.unbind()
+
+                    lineRenderType.clearRenderState()
+                }
             }
         }
     }

@@ -53,6 +53,8 @@ open class LightManager(
     var lightsRaytraced: Int = 0
     var viewMatrix: Matrix4f? = null
 
+    fun tickDelta(): Float = Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(false)
+
     fun getLevel(): ClientLevel = Minecraft.getInstance().level!!
 
     fun getCamera(): Camera = Minecraft.getInstance().gameRenderer.mainCamera

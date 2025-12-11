@@ -14,7 +14,7 @@ import org.joml.Vector3f
 import java.util.function.Supplier
 
 data class BlockLight(
-    val blockPos: BlockPos,
+    private val blockPos: BlockPos,
     var offset: Supplier<Vector3f>,
     private var radius: Supplier<Float>,
     private var color: Supplier<Colorc>
@@ -63,10 +63,12 @@ data class BlockLight(
         )
     }
 
+    override fun getBlockPos(): BlockPos = blockPos
+
     override fun getRadius(): Float = radius.get()
 
-    override fun getShadowRadius(manager: LightManager): Float =
-        getRadius().coerceAtMost(manager.shadowRadius.toFloat())
+    override fun getShadowRadius(manager: LightManager): Int =
+        getRadius().coerceAtMost(manager.shadowRadius.toFloat()).toInt()
 
     override fun getColor(): Colorc = color.get()
 

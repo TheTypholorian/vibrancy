@@ -61,7 +61,7 @@ abstract class PointLight : Light, NativeResource {
 
         for (pos in manager.dirtyBlocks) {
             if (manager.getLevel().dimension().equals(pos.dimension()) && pos.pos.distToCenterSqr(Vec3(getPosition())) < shadowRadiusSq) {
-                shadows.rebuildBlock(manager, pos.pos, getPosition(), shadowRadius)
+                shadows.rebuildBlock(manager, pos.pos, this)
             }
         }
 
@@ -72,7 +72,7 @@ abstract class PointLight : Light, NativeResource {
         }
 
         if (shadowsDirty && raytrace) {
-            shadows.fullRebuild(manager, getShadowBox(), getPosition(), shadowRadius)
+            shadows.fullRebuild(manager, getShadowBox(), this)
 
             shadowsDirty = false
         }
@@ -83,7 +83,7 @@ abstract class PointLight : Light, NativeResource {
         glStencilFunc(GL_NOTEQUAL, SHADOW_MASK, BLOCK_STENCIL_MASK or SHADOW_MASK)
         glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE)
 
-        shadows.render(manager, raytrace, getPosition())
+        shadows.render(manager, raytrace, this)
 
         VeilRenderSystem.setShader(Vibrancy.id("point_box"))
         glStencilFunc(GL_EQUAL, 0, SHADOW_MASK)
@@ -106,9 +106,11 @@ abstract class PointLight : Light, NativeResource {
 
     abstract fun getPosition(): Vector3f
 
+    abstract fun getBlockPos(): BlockPos
+
     abstract fun getRadius(): Float
 
-    abstract fun getShadowRadius(manager: LightManager): Float
+    abstract fun getShadowRadius(manager: LightManager): Int
 
     abstract fun getColor(): Colorc
 
