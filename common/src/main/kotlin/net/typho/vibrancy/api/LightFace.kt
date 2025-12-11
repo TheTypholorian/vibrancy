@@ -9,7 +9,7 @@ import org.joml.Vector4f
 import java.nio.ByteBuffer
 
 data class LightFace(
-    val blockPos: BlockPos, val direction: Direction?, val relative: BlockPos?,
+    val blockPos: BlockPos?, val direction: Direction?, val relative: BlockPos?,
     val vertex1: Vector3f, val vertex2: Vector3f, val vertex3: Vector3f, val vertex4: Vector3f,
     val texCoord1: Vector2f, val texCoord2: Vector2f, val texCoord3: Vector2f, val texCoord4: Vector2f,
     val normal: Vector3f, val dot: Float,
@@ -17,10 +17,10 @@ data class LightFace(
     var inverse: Vector4f?
 ) : LightFaceConvertible {
     constructor(
-        blockPos: BlockPos, direction: Direction?, v1: Vector3f, v2: Vector3f, v3: Vector3f, v4: Vector3f,
+        blockPos: BlockPos?, direction: Direction?, v1: Vector3f, v2: Vector3f, v3: Vector3f, v4: Vector3f,
         uv1: Vector2f, uv2: Vector2f, uv3: Vector2f, uv4: Vector2f
     ) : this(
-        blockPos, direction, if (direction == null) null else blockPos.relative(direction),
+        blockPos, direction, if (direction == null || blockPos == null) null else blockPos.relative(direction),
         v1, v2, v3, v4, uv1, uv2, uv3, uv4,
         Vector3f(v2).sub(v1).cross(Vector3f(v4).sub(v1)).normalize(),
         Vector3f(v2).sub(v1).cross(Vector3f(v4).sub(v1)).normalize().dot(v1),

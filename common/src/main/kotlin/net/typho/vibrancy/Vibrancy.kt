@@ -9,6 +9,7 @@ import foundry.veil.api.client.render.dynamicbuffer.DynamicBufferType
 import foundry.veil.api.client.render.rendertype.VeilRenderType
 import foundry.veil.platform.VeilEventPlatform
 import net.minecraft.ChatFormatting
+import net.minecraft.client.Minecraft
 import net.minecraft.core.Direction
 import net.minecraft.core.GlobalPos
 import net.minecraft.resources.ResourceLocation
@@ -124,6 +125,7 @@ object Vibrancy {
 
         if (Files.notExists(path)) {
             Files.createFile(path)
+            Minecraft.getInstance().options.entityShadows().set(false)
         }
 
         return path

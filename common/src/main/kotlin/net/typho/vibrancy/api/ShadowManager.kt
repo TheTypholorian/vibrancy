@@ -5,11 +5,14 @@ import com.mojang.blaze3d.vertex.*
 import foundry.veil.api.client.render.rendertype.VeilRenderType
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
+import net.minecraft.client.renderer.LightTexture
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
+import net.minecraft.resources.ResourceLocation
+import net.minecraft.util.Mth
 import net.minecraft.util.RandomSource
 import net.minecraft.world.inventory.InventoryMenu
 import net.minecraft.world.level.BlockGetter
@@ -33,6 +36,11 @@ open class ShadowManager(
     private var fullRebuildTask: CompletableFuture<MutableList<ShadowVolume>>? = null
     private var shadowsDirty = false
     private val buffers = LinkedHashMap<RenderType, ShadowBuilder>()
+
+    companion object {
+        var DYNAMIC_SHADOW_MESH: VertexBuffer? = VertexBuffer(VertexBuffer.Usage.DYNAMIC)
+        var DYNAMIC_QUAD_BUFFER: ShaderStorageBuffer? = ShaderStorageBuffer(ShaderStorageBuffer.Usage.STREAM)
+    }
 
     override fun free() {
         shadowMesh?.close()
@@ -115,7 +123,7 @@ open class ShadowManager(
     }
 
     fun rebuildBlock(manager: LightManager, pos: BlockPos, light: PointLight) {
-        shadows.removeIf { shadow -> shadow.caster.blockPos == pos }
+        shadows.removeIf { shadow -> shadow.caster.blockPos?.equals(pos) ?: false }
 
         val lightPos = light.getPosition()
         val lightBlockPos = light.getBlockPos()
@@ -163,7 +171,7 @@ open class ShadowManager(
         }
     }
 
-    private fun uploadShadows(light: PointLight) {
+    private fun uploadShadows(light: PointLight, shadowMesh: VertexBuffer?, quadBuffer: ShaderStorageBuffer?, shadows: Collection<ShadowVolume>) {
         if (shadows.isNotEmpty()) {
             val builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION)
             val quads = MemoryUtil.memAlloc(shadows.size * LightFace.BYTES)
@@ -185,6 +193,7 @@ open class ShadowManager(
 
             MemoryUtil.memFree(quads)
 
+            /*
             debugMesh?.let {
                 val lightBlockPos = light.getBlockPos()
                 val debugBuilder =
@@ -200,13 +209,15 @@ open class ShadowManager(
                 it.upload(debugBuilt)
                 VertexBuffer.unbind()
             }
+             */
         }
     }
 
-    fun castBlockEntities(manager: LightManager, box: BlockBox, light: PointLight): Boolean {
+    fun castEntities(manager: LightManager, box: BlockBox, light: PointLight): Boolean {
         val level = manager.getLevel()
         val poseStack = PoseStack()
         var any = false
+        val tickDelta = manager.tickDelta()
 
         for (pos in box) {
             val blockEntity = level.getBlockEntity(pos)
@@ -217,7 +228,7 @@ open class ShadowManager(
 
                 Minecraft.getInstance().blockEntityRenderDispatcher.render(
                     blockEntity,
-                    manager.tickDelta(),
+                    tickDelta,
                     poseStack,
                     this
                 )
@@ -226,6 +237,21 @@ open class ShadowManager(
 
                 any = true
             }
+        }
+
+        for (entity in level.getEntities(null, box.aabb())) {
+            val pos = entity.getPosition(tickDelta)
+            Minecraft.getInstance().entityRenderDispatcher.render(
+                entity,
+                pos.x,
+                pos.y,
+                pos.z,
+                Mth.lerp(tickDelta, entity.yRotO, entity.yRot),
+                tickDelta,
+                poseStack,
+                this,
+                LightTexture.FULL_BRIGHT
+            )
         }
 
         return any
@@ -238,15 +264,15 @@ open class ShadowManager(
         }
 
         if (raytrace) {
+            val shader = RenderSystem.getShader()!!
+            shader.safeGetUniform("LightPos").set(light.getPosition())
+
             if (shadowsDirty) {
-                uploadShadows(light)
+                uploadShadows(light, shadowMesh, quadBuffer, shadows)
                 shadowsDirty = false
             }
 
             if (shadows.isNotEmpty()) {
-                val shader = RenderSystem.getShader()!!
-
-                shader.safeGetUniform("LightPos").set(light.getPosition())
                 shader.setSampler(
                     "AtlasSampler",
                     Minecraft.getInstance().modelManager.getAtlas(InventoryMenu.BLOCK_ATLAS)
@@ -266,15 +292,61 @@ open class ShadowManager(
                 builder.vertices.clear()
             }
 
-            val anyEntities = castBlockEntities(
+            val anyEntities = castEntities(
                 manager,
                 BlockBox.of(light.getBlockPos()).expand(light.getShadowRadius(manager)),
                 light
             )
 
             if (anyEntities) {
+                val entityShadows = HashMap<ResourceLocation, MutableList<ShadowVolume>>()
+
                 for (entry in buffers) {
-                    val texture = Services.PLATFORM.getRenderTypeTexture(entry.key)
+                    entry.value.endVertex()
+
+                    if (entry.key.mode() == VertexFormat.Mode.QUADS && !entry.value.vertices.isEmpty()) {
+                        val texture = Services.PLATFORM.getRenderTypeTexture(entry.key)
+                        val output = entityShadows.computeIfAbsent(texture) { LinkedList() }
+                        val iterator = entry.value.vertices.iterator()
+
+                        while (iterator.hasNext()) {
+                            val v1 = iterator.next()
+                            val v2 = iterator.next()
+                            val v3 = iterator.next()
+                            val v4 = iterator.next()
+
+                            output.add(LightFace(
+                                null,
+                                null,
+                                v1.vertex,
+                                v2.vertex,
+                                v3.vertex,
+                                v4.vertex,
+                                v1.uv,
+                                v2.uv,
+                                v3.uv,
+                                v4.uv
+                            ).toVolumePoint(light.getPosition(), light.getRadius()))
+                        }
+                    }
+                }
+
+                for (entry in entityShadows) {
+                    uploadShadows(light, DYNAMIC_SHADOW_MESH, DYNAMIC_QUAD_BUFFER, entry.value)
+
+                    shader.setSampler(
+                        "AtlasSampler",
+                        Minecraft.getInstance().textureManager.getTexture(entry.key)
+                    )
+
+                    DYNAMIC_QUAD_BUFFER!!.bindBase(0)
+
+                    DYNAMIC_SHADOW_MESH!!.bind()
+                    DYNAMIC_SHADOW_MESH!!.drawWithShader(
+                        manager.viewMatrix!!,
+                        RenderSystem.getProjectionMatrix(),
+                        shader
+                    )
                 }
             }
 

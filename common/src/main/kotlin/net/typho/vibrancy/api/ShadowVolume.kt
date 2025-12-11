@@ -41,12 +41,12 @@ data class ShadowVolume(
         var j = 0
 
         while (i < numQuads()) {
-                val color = if (caster.direction == null || Vibrancy.pointsToward(
+                val color = if (caster.direction == null || caster.blockPos == null || Vibrancy.pointsToward(
                         caster.direction,
                         Vector3f(
-                            lightPos.x.toFloat() - caster.blockPos.x,
-                            lightPos.y.toFloat() - caster.blockPos.y,
-                            lightPos.z.toFloat() - caster.blockPos.z
+                            lightPos.x.toFloat() - caster.blockPos!!.x,
+                            lightPos.y.toFloat() - caster.blockPos!!.y,
+                            lightPos.z.toFloat() - caster.blockPos!!.z
                         )
                     )
                 ) Vector3f(0f, 1f, 0f) else Vector3f(1f, 0f, 0f)
