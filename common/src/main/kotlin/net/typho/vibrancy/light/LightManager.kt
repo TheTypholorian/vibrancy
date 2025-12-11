@@ -1,4 +1,4 @@
-package net.typho.vibrancy.api
+package net.typho.vibrancy.light
 
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
@@ -12,6 +12,7 @@ import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.GlobalPos
 import net.minecraft.resources.ResourceLocation
 import net.typho.vibrancy.Vibrancy
+import net.typho.vibrancy.util.invert
 import org.joml.Matrix4f
 
 open class LightManager(

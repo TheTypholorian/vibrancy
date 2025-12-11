@@ -13,11 +13,11 @@ import net.minecraft.client.Minecraft
 import net.minecraft.core.Direction
 import net.minecraft.core.GlobalPos
 import net.minecraft.resources.ResourceLocation
-import net.typho.vibrancy.api.BlockLight
-import net.typho.vibrancy.api.LightManager
-import net.typho.vibrancy.api.ShaderStorageBuffer
-import net.typho.vibrancy.api.glClear
+import net.typho.vibrancy.light.BlockLight
+import net.typho.vibrancy.light.LightManager
 import net.typho.vibrancy.platform.Services
+import net.typho.vibrancy.util.ShaderStorageBuffer
+import net.typho.vibrancy.util.glClear
 import org.joml.Vector3f
 import org.lwjgl.opengl.GL11.*
 import org.slf4j.Logger

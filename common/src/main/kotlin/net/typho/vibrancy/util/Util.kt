@@ -1,4 +1,4 @@
-package net.typho.vibrancy.api
+package net.typho.vibrancy.util
 
 import com.mojang.blaze3d.vertex.VertexConsumer
 import foundry.veil.api.client.color.Color

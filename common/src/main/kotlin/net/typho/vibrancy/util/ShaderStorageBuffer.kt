@@ -1,4 +1,4 @@
-package net.typho.vibrancy.api
+package net.typho.vibrancy.util
 
 import org.lwjgl.opengl.GL15.*
 import org.lwjgl.opengl.GL30.glBindBufferBase

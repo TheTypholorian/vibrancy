@@ -1,4 +1,4 @@
-package net.typho.vibrancy.api
+package net.typho.vibrancy.shadows
 
 import net.minecraft.client.renderer.block.model.BakedQuad
 import net.minecraft.core.BlockPos

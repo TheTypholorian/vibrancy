@@ -1,4 +1,4 @@
-package net.typho.vibrancy.api
+package net.typho.vibrancy.shadows
 
 import com.mojang.blaze3d.vertex.VertexConsumer
 import org.joml.Vector2f

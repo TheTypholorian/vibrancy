@@ -1,4 +1,4 @@
-package net.typho.vibrancy.api
+package net.typho.vibrancy.light
 
 import net.minecraft.client.Camera
 import net.minecraft.world.phys.AABB

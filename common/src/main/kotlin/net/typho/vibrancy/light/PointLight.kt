@@ -1,4 +1,4 @@
-package net.typho.vibrancy.api
+package net.typho.vibrancy.light
 
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
@@ -10,8 +10,10 @@ import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.world.phys.Vec3
 import net.typho.vibrancy.Vibrancy
-import net.typho.vibrancy.api.LightManager.Companion.BLOCK_STENCIL_MASK
-import net.typho.vibrancy.api.LightManager.Companion.SHADOW_MASK
+import net.typho.vibrancy.shadows.ShadowManager
+import net.typho.vibrancy.util.boxOfRadius
+import net.typho.vibrancy.util.cube
+import net.typho.vibrancy.util.expand
 import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.lwjgl.opengl.GL11.*
@@ -72,7 +74,7 @@ abstract class PointLight : Light, NativeResource {
         }
 
         if (shadowsDirty && raytrace) {
-            shadows.fullRebuild(manager, getShadowBox(), this)
+            shadows.fullRebuildAsync(manager, getShadowBox(), this)
 
             shadowsDirty = false
         }
@@ -80,13 +82,15 @@ abstract class PointLight : Light, NativeResource {
         glClear(GL_STENCIL_BUFFER_BIT)
 
         VeilRenderSystem.setShader(Vibrancy.id("point_shadow"))
-        glStencilFunc(GL_NOTEQUAL, SHADOW_MASK, BLOCK_STENCIL_MASK or SHADOW_MASK)
+        glStencilFunc(GL_NOTEQUAL,
+            LightManager.Companion.SHADOW_MASK, LightManager.Companion.BLOCK_STENCIL_MASK or LightManager.Companion.SHADOW_MASK
+        )
         glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE)
 
         shadows.render(manager, raytrace, this)
 
         VeilRenderSystem.setShader(Vibrancy.id("point_box"))
-        glStencilFunc(GL_EQUAL, 0, SHADOW_MASK)
+        glStencilFunc(GL_EQUAL, 0, LightManager.Companion.SHADOW_MASK)
         glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP)
 
         renderMesh(boxMesh, manager.viewMatrix!!)

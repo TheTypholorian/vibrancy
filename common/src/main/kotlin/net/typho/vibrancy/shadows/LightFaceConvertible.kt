@@ -1,4 +1,4 @@
-package net.typho.vibrancy.api
+package net.typho.vibrancy.shadows
 
 interface LightFaceConvertible {
     fun toLightFace(): LightFace

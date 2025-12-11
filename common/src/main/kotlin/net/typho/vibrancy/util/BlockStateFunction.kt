@@ -1,4 +1,4 @@
-package net.typho.vibrancy.api
+package net.typho.vibrancy.util
 
 import net.minecraft.world.level.block.state.BlockState
 

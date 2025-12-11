@@ -1,4 +1,4 @@
-package net.typho.vibrancy.api
+package net.typho.vibrancy.light
 
 import foundry.veil.api.client.color.Color
 import foundry.veil.api.client.color.Colorc
@@ -10,6 +10,8 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.level.chunk.LevelChunkSection
 import net.typho.vibrancy.Vibrancy
+import net.typho.vibrancy.util.getKey
+import net.typho.vibrancy.util.withBrightness
 import org.joml.Vector3f
 import java.util.function.Supplier
 

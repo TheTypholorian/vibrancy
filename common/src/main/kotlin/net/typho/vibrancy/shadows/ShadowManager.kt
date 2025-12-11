@@ -1,4 +1,4 @@
-package net.typho.vibrancy.api
+package net.typho.vibrancy.shadows
 
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.*
@@ -18,8 +18,12 @@ import net.minecraft.world.inventory.InventoryMenu
 import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.block.state.BlockState
 import net.typho.vibrancy.Vibrancy
-import net.typho.vibrancy.api.LightFace.Companion.toLightFace
+import net.typho.vibrancy.light.LightManager
+import net.typho.vibrancy.light.PointLight
 import net.typho.vibrancy.platform.Services
+import net.typho.vibrancy.shadows.LightFace.Companion.toLightFace
+import net.typho.vibrancy.util.ShaderStorageBuffer
+import net.typho.vibrancy.util.expand
 import org.lwjgl.system.MemoryUtil
 import org.lwjgl.system.NativeResource
 import java.util.*
@@ -31,7 +35,8 @@ open class ShadowManager(
 ) : NativeResource, MultiBufferSource {
     private val debugMesh: VertexBuffer? = if (Services.PLATFORM.isDevelopmentEnvironment()) VertexBuffer(VertexBuffer.Usage.STATIC) else null
     var shadowMesh: VertexBuffer? = VertexBuffer(if (static) VertexBuffer.Usage.STATIC else VertexBuffer.Usage.DYNAMIC)
-    var quadBuffer: ShaderStorageBuffer? = ShaderStorageBuffer(if (static) ShaderStorageBuffer.Usage.STATIC else ShaderStorageBuffer.Usage.STREAM)
+    var quadBuffer: ShaderStorageBuffer? =
+        ShaderStorageBuffer(if (static) ShaderStorageBuffer.Usage.STATIC else ShaderStorageBuffer.Usage.STREAM)
     private var shadows: MutableList<ShadowVolume> = LinkedList()
     private var fullRebuildTask: CompletableFuture<MutableList<ShadowVolume>>? = null
     private var shadowsDirty = false
@@ -138,43 +143,47 @@ open class ShadowManager(
         shadowsDirty = true
     }
 
-    fun fullRebuild(manager: LightManager, box: BlockBox, light: PointLight) {
-        fullRebuildTask?.cancel(true)
-        fullRebuildTask = CompletableFuture.supplyAsync {
-            val lightPos = light.getPosition()
-            val lightBlockPos = light.getBlockPos()
-            val radius = light.getShadowRadius(manager)
-            val radiusSq = radius * radius
-            val volumes = LinkedList<ShadowVolume>()
+    fun fullRebuild(manager: LightManager, box: BlockBox, light: PointLight): MutableList<ShadowVolume> {
+        val lightPos = light.getPosition()
+        val lightBlockPos = light.getBlockPos()
+        val radius = light.getShadowRadius(manager)
+        val radiusSq = radius * radius
+        val volumes = LinkedList<ShadowVolume>()
 
-            for (x in box.min.x..box.max.x) {
-                for (y in box.min.y..box.max.y) {
-                    for (z in box.min.z..box.max.z) {
-                        val pos = BlockPos(x, y, z)
+        for (x in box.min.x..box.max.x) {
+            for (y in box.min.y..box.max.y) {
+                for (z in box.min.z..box.max.z) {
+                    val pos = BlockPos(x, y, z)
 
-                        if (pos != lightBlockPos && pos.distSqr(lightBlockPos) <= radiusSq) {
-                            getLightFaces(
-                                manager.getLevel(),
-                                lightBlockPos,
-                                pos
-                            ) { face ->
-                                volumes.add(face.toVolumePoint(lightPos, light.getRadius()))
-                            }
+                    if (pos != lightBlockPos && pos.distSqr(lightBlockPos) <= radiusSq) {
+                        getLightFaces(
+                            manager.getLevel(),
+                            lightBlockPos,
+                            pos
+                        ) { face ->
+                            volumes.add(face.toVolumePoint(lightPos, light.getRadius()))
                         }
                     }
                 }
             }
+        }
 
-            shadowsDirty = true
+        shadowsDirty = true
 
-            return@supplyAsync volumes
+        return volumes
+    }
+
+    fun fullRebuildAsync(manager: LightManager, box: BlockBox, light: PointLight) {
+        fullRebuildTask?.cancel(true)
+        fullRebuildTask = CompletableFuture.supplyAsync {
+            return@supplyAsync fullRebuild(manager, box, light)
         }
     }
 
     private fun uploadShadows(light: PointLight, shadowMesh: VertexBuffer?, quadBuffer: ShaderStorageBuffer?, shadows: Collection<ShadowVolume>) {
         if (shadows.isNotEmpty()) {
             val builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION)
-            val quads = MemoryUtil.memAlloc(shadows.size * LightFace.BYTES)
+            val quads = MemoryUtil.memAlloc(shadows.size * LightFace.Companion.BYTES)
 
             for (shadow in shadows) {
                 shadow.buildGeometry(builder)
@@ -189,7 +198,7 @@ open class ShadowManager(
 
             quadBuffer!!.bind()
             quadBuffer!!.upload(quads.flip())
-            ShaderStorageBuffer.unbind()
+            ShaderStorageBuffer.Companion.unbind()
 
             MemoryUtil.memFree(quads)
 
@@ -315,18 +324,19 @@ open class ShadowManager(
                             val v3 = iterator.next()
                             val v4 = iterator.next()
 
-                            output.add(LightFace(
-                                null,
-                                null,
-                                v1.vertex,
-                                v2.vertex,
-                                v3.vertex,
-                                v4.vertex,
-                                v1.uv,
-                                v2.uv,
-                                v3.uv,
-                                v4.uv
-                            ).toVolumePoint(light.getPosition(), light.getRadius()))
+                            output.add(
+                                LightFace(
+                                    null,
+                                    null,
+                                    v1.vertex,
+                                    v2.vertex,
+                                    v3.vertex,
+                                    v4.vertex,
+                                    v1.uv,
+                                    v2.uv,
+                                    v3.uv,
+                                    v4.uv
+                                ).toVolumePoint(light.getPosition(), light.getRadius()))
                         }
                     }
                 }

@@ -1,4 +1,4 @@
-package net.typho.vibrancy.api
+package net.typho.vibrancy.light
 
 import foundry.veil.api.client.color.Color
 import foundry.veil.api.client.color.Colorc
@@ -8,6 +8,8 @@ import net.minecraft.resources.ResourceKey
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
+import net.typho.vibrancy.util.BlockStateFunction
+import net.typho.vibrancy.util.getKey
 import org.joml.Vector3f
 import java.util.*
 
@@ -57,22 +59,26 @@ data class DynamicLightInfo(
                 Optional.empty(),
                 Optional.empty(),
                 Optional.empty(),
-                Optional.of(BlockStateFunction(
-                    Vector3f(0.5f, 0.5625f, 0.5f),
-                    BlockStateFunction.Entry("facing", Direction.EAST, Vector3f(0.25f, 0.8125f, 0.5f)),
-                    BlockStateFunction.Entry("facing", Direction.WEST, Vector3f(0.75f, 0.8125f, 0.5f)),
-                    BlockStateFunction.Entry("facing", Direction.SOUTH, Vector3f(0.5f, 0.8125f, 0.25f)),
-                    BlockStateFunction.Entry("facing", Direction.NORTH, Vector3f(0.5f, 0.8125f, 0.75f))
-                ))
+                Optional.of(
+                    BlockStateFunction(
+                        Vector3f(0.5f, 0.5625f, 0.5f),
+                        BlockStateFunction.Entry("facing", Direction.EAST, Vector3f(0.25f, 0.8125f, 0.5f)),
+                        BlockStateFunction.Entry("facing", Direction.WEST, Vector3f(0.75f, 0.8125f, 0.5f)),
+                        BlockStateFunction.Entry("facing", Direction.SOUTH, Vector3f(0.5f, 0.8125f, 0.25f)),
+                        BlockStateFunction.Entry("facing", Direction.NORTH, Vector3f(0.5f, 0.8125f, 0.75f))
+                    )
+                )
             ).copy(Blocks.TORCH))
             put(Blocks.LANTERN, DynamicLightInfo().copy(Blocks.TORCH)) // TODO adjust offset for lantern state
             put(Blocks.CAMPFIRE, DynamicLightInfo(
                 Optional.empty(),
                 Optional.empty(),
-                Optional.of(BlockStateFunction(
-                    0f,
-                    BlockStateFunction.Entry("lit", true, 0.6f)
-                )),
+                Optional.of(
+                    BlockStateFunction(
+                        0f,
+                        BlockStateFunction.Entry("lit", true, 0.6f)
+                    )
+                ),
                 Optional.empty()
             ).copy(Blocks.TORCH))
             put(Blocks.SOUL_TORCH, DynamicLightInfo(
@@ -91,10 +97,12 @@ data class DynamicLightInfo(
             put(Blocks.SOUL_CAMPFIRE, DynamicLightInfo(
                 Optional.empty(),
                 Optional.empty(),
-                Optional.of(BlockStateFunction(
-                    0f,
-                    BlockStateFunction.Entry("lit", true, 0.4f)
-                )),
+                Optional.of(
+                    BlockStateFunction(
+                        0f,
+                        BlockStateFunction.Entry("lit", true, 0.4f)
+                    )
+                ),
                 Optional.empty()
             ).copy(Blocks.SOUL_TORCH))
             put(Blocks.END_ROD, DynamicLightInfo(
@@ -106,37 +114,45 @@ data class DynamicLightInfo(
             put(Blocks.COPPER_BULB, DynamicLightInfo(
                 Optional.of(BlockStateFunction(Color(1f, 0.86f, 0.6f))),
                 Optional.empty(),
-                Optional.of(BlockStateFunction(
-                    0f,
-                    BlockStateFunction.Entry("lit", true, 0.6f)
-                )),
+                Optional.of(
+                    BlockStateFunction(
+                        0f,
+                        BlockStateFunction.Entry("lit", true, 0.6f)
+                    )
+                ),
                 Optional.empty()
             ))
             put(Blocks.EXPOSED_COPPER_BULB, DynamicLightInfo(
                 Optional.empty(),
                 Optional.empty(),
-                Optional.of(BlockStateFunction(
-                    0f,
-                    BlockStateFunction.Entry("lit", true, 0.5f)
-                )),
+                Optional.of(
+                    BlockStateFunction(
+                        0f,
+                        BlockStateFunction.Entry("lit", true, 0.5f)
+                    )
+                ),
                 Optional.empty()
             ).copy(Blocks.COPPER_BULB))
             put(Blocks.WEATHERED_COPPER_BULB, DynamicLightInfo(
                 Optional.empty(),
                 Optional.empty(),
-                Optional.of(BlockStateFunction(
-                    0f,
-                    BlockStateFunction.Entry("lit", true, 0.4f)
-                )),
+                Optional.of(
+                    BlockStateFunction(
+                        0f,
+                        BlockStateFunction.Entry("lit", true, 0.4f)
+                    )
+                ),
                 Optional.empty()
             ).copy(Blocks.COPPER_BULB))
             put(Blocks.OXIDIZED_COPPER_BULB, DynamicLightInfo(
                 Optional.empty(),
                 Optional.empty(),
-                Optional.of(BlockStateFunction(
-                    0f,
-                    BlockStateFunction.Entry("lit", true, 0.4f)
-                )),
+                Optional.of(
+                    BlockStateFunction(
+                        0f,
+                        BlockStateFunction.Entry("lit", true, 0.4f)
+                    )
+                ),
                 Optional.empty()
             ).copy(Blocks.COPPER_BULB))
             put(Blocks.WAXED_COPPER_BULB, DynamicLightInfo().copy(Blocks.COPPER_BULB))
