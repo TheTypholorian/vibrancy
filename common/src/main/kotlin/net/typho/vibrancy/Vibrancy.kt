@@ -29,12 +29,12 @@ import java.util.function.Consumer
 object Vibrancy {
     const val MOD_ID = "vibrancy"
     const val MOD_NAME = "Vibrancy"
-    @JvmStatic
-    val LOGGER: Logger = LoggerFactory.getLogger(MOD_NAME)
     const val CONFIG_FILE_NAME = "$MOD_ID.json"
 
+    val LOGGER: Logger = LoggerFactory.getLogger(MOD_NAME)
+
     val DIRTY_BLOCKS = LinkedList<GlobalPos>()
-    val LIGHT_MANAGER = LightManager(DIRTY_BLOCKS, 8, 32, 200, 100, 6)
+    val LIGHT_MANAGER = LightManager(DIRTY_BLOCKS, 16, 32, 200, 100, 6)
 
     var RENDER_DEBUG_LINES = false
 
@@ -106,6 +106,12 @@ object Vibrancy {
         VertexBuffer.unbind()
 
         DIRTY_BLOCKS.clear()
+    }
+
+    fun reloadShadows() {
+        for (light in BlockLight.LIGHTS.values) {
+            light.shadowsDirty = true
+        }
     }
 
     fun getConfigFile(): Path {

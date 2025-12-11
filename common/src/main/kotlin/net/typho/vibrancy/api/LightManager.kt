@@ -4,17 +4,13 @@ import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.mojang.blaze3d.vertex.VertexBuffer
 import com.mojang.blaze3d.vertex.VertexFormat
+import foundry.veil.api.client.render.VeilRenderSystem
 import foundry.veil.api.client.render.rendertype.VeilRenderType
 import net.minecraft.client.Camera
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
-import net.minecraft.core.BlockPos
-import net.minecraft.core.Direction
 import net.minecraft.core.GlobalPos
 import net.minecraft.resources.ResourceLocation
-import net.minecraft.world.level.Level
-import net.minecraft.world.level.block.Block
-import net.minecraft.world.level.block.state.BlockState
 import net.typho.vibrancy.Vibrancy
 import org.joml.Matrix4f
 
@@ -32,6 +28,7 @@ open class LightManager(
     companion object {
         const val SKY_STENCIL_MASK: Int = 0b01000000
         const val BLOCK_STENCIL_MASK: Int = 0b10000000
+        const val SHADOW_MASK: Int = 0b1
 
         var SCREEN_VBO: VertexBuffer? = null
 
@@ -63,18 +60,6 @@ open class LightManager(
     fun createViewMatrix(camera: Camera = getCamera()): Matrix4f = RenderSystem.getModelViewMatrix()
         .translate(camera.position.toVector3f().invert())
 
-    fun createOcclusionMask(level: Level, pos: BlockPos, state: BlockState): Int {
-        var mask = 0
-
-        for (dir in Direction.entries) {
-            if (Block.shouldRenderFace(state, level, pos, dir, pos.relative(dir))) {
-                mask = mask or (1 shl dir.ordinal)
-            }
-        }
-
-        return mask
-    }
-
     fun setupStencil(framebuffer: ResourceLocation) {
         val block = VeilRenderType.get(Vibrancy.id("stencil_setup_block"), framebuffer.toString())!!
         block.setupRenderState()
@@ -88,11 +73,14 @@ open class LightManager(
     }
 
     fun shouldRender(light: Light, camera: Camera = getCamera()): Boolean {
-        return (maxRendered > 400 || lightsRendered < maxRendered) && light.testCullingDistance(camera, lightCullDistance)
+        return (maxRendered > 400 || lightsRendered < maxRendered)
+                && light.testCullingDistance(camera, lightCullDistance)
+                && VeilRenderSystem.getCullingFrustum().testAab(light.getCullingBox())
     }
 
     fun shouldRaytrace(light: Light, camera: Camera = getCamera()): Boolean {
-        return (maxRendered > 400 || lightsRaytraced < maxRaytraced) && light.testCullingDistance(camera, raytraceDistance)
+        return (maxRendered > 400 || lightsRaytraced < maxRaytraced)
+                && light.testCullingDistance(camera, raytraceDistance)
     }
 
     fun postRender(light: Light, didRaytrace: Boolean) {

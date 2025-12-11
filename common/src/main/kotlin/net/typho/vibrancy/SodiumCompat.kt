@@ -143,6 +143,7 @@ object SodiumCompat {
                             { options: Options, value: Int ->
                                 Vibrancy.LIGHT_MANAGER.shadowRadius = value
                                 Vibrancy.saveConfig()
+                                Vibrancy.reloadShadows()
                             },
                             { options: Options -> Vibrancy.LIGHT_MANAGER.shadowRadius }
                         )

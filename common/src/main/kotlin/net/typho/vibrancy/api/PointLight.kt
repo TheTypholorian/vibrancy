@@ -10,6 +10,8 @@ import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.world.phys.Vec3
 import net.typho.vibrancy.Vibrancy
+import net.typho.vibrancy.api.LightManager.Companion.BLOCK_STENCIL_MASK
+import net.typho.vibrancy.api.LightManager.Companion.SHADOW_MASK
 import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.lwjgl.opengl.GL11.*
@@ -78,13 +80,13 @@ abstract class PointLight : Light, NativeResource {
         glClear(GL_STENCIL_BUFFER_BIT)
 
         VeilRenderSystem.setShader(Vibrancy.id("point_shadow"))
-        glStencilFunc(GL_NOTEQUAL, 1, LightManager.BLOCK_STENCIL_MASK or 1)
+        glStencilFunc(GL_NOTEQUAL, SHADOW_MASK, BLOCK_STENCIL_MASK or SHADOW_MASK)
         glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE)
 
         shadows.render(manager, raytrace, getPosition())
 
         VeilRenderSystem.setShader(Vibrancy.id("point_box"))
-        glStencilFunc(GL_EQUAL, 0, 1)
+        glStencilFunc(GL_EQUAL, 0, SHADOW_MASK)
         glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP)
 
         renderMesh(boxMesh, manager.viewMatrix!!)

@@ -12,7 +12,7 @@ float getNormalDot(sampler2D normalSampler, vec3 lightDirection) {
 vec4 sampleLight(sampler2D normalSampler, vec3 lightPos, vec3 fragPos, float radius, vec3 lightColor) {
     return vec4(
         getNormalDot(normalSampler, normalize((VeilCamera.ViewMat * vec4(lightPos - fragPos, 0.0)).xyz))
-        * attenuate_no_cusp(length(lightPos - fragPos), radius)
+        * attenuate_no_cusp(distance(lightPos, fragPos), radius)
         * lightColor,
         1
     );
