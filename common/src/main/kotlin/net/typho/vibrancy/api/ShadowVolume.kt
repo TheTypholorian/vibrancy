@@ -13,7 +13,7 @@ data class ShadowVolume(
         return caster
     }
 
-    fun numQuads(): Int = 5
+    fun numQuads(): Int = 6
 
     fun buildGeometry(consumer: VertexConsumer) {
         var i = 0
@@ -80,7 +80,7 @@ data class ShadowVolume(
 
     companion object {
         val INDICES: IntArray = intArrayOf(
-            //0, 1, 2, 3,
+            0, 1, 2, 3,
             1, 5, 6, 2,
             5, 4, 7, 6,
             4, 0, 3, 7,

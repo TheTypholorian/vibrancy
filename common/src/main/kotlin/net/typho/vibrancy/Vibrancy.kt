@@ -1,5 +1,8 @@
 package net.typho.vibrancy
 
+import com.google.gson.GsonBuilder
+import com.google.gson.JsonObject
+import com.google.gson.JsonParser
 import com.mojang.blaze3d.vertex.VertexBuffer
 import foundry.veil.api.client.render.VeilRenderSystem
 import foundry.veil.api.client.render.dynamicbuffer.DynamicBufferType
@@ -13,10 +16,13 @@ import net.typho.vibrancy.api.BlockLight
 import net.typho.vibrancy.api.LightManager
 import net.typho.vibrancy.api.ShaderStorageBuffer
 import net.typho.vibrancy.api.glClear
+import net.typho.vibrancy.platform.Services
 import org.joml.Vector3f
 import org.lwjgl.opengl.GL11.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.nio.file.Files
+import java.nio.file.Path
 import java.util.*
 import java.util.function.Consumer
 
@@ -25,13 +31,15 @@ object Vibrancy {
     const val MOD_NAME = "Vibrancy"
     @JvmStatic
     val LOGGER: Logger = LoggerFactory.getLogger(MOD_NAME)
+    const val CONFIG_FILE_NAME = "$MOD_ID.json"
 
     val DIRTY_BLOCKS = LinkedList<GlobalPos>()
-    val LIGHT_MANAGER = LightManager(DIRTY_BLOCKS, 8, 32, 200, 100, 8)
+    val LIGHT_MANAGER = LightManager(DIRTY_BLOCKS, 8, 32, 200, 100, 6)
 
     var RENDER_DEBUG_LINES = false
 
     fun init() {
+        loadConfig()
         ModRenderTypeLayers.init()
         VeilEventPlatform.INSTANCE.onVeilRendererAvailable { renderer ->
             renderer.postProcessingManager.add(id("post"))
@@ -98,6 +106,48 @@ object Vibrancy {
         VertexBuffer.unbind()
 
         DIRTY_BLOCKS.clear()
+    }
+
+    fun getConfigFile(): Path {
+        val path = Services.PLATFORM.getConfigDir().resolve(CONFIG_FILE_NAME)
+
+        if (Files.notExists(path)) {
+            Files.createFile(path)
+        }
+
+        return path
+    }
+
+    fun loadConfig() {
+        Files.newBufferedReader(getConfigFile()).use { reader ->
+            val jsonElement = JsonParser.parseReader(reader)
+
+            if (!jsonElement.isJsonObject) {
+                return@use
+            }
+
+            val json = jsonElement.asJsonObject
+
+            json.get("raytraceDistance")?.let { LIGHT_MANAGER.raytraceDistance = it.asInt }
+            json.get("lightCullDistance")?.let { LIGHT_MANAGER.lightCullDistance = it.asInt }
+            json.get("maxRendered")?.let { LIGHT_MANAGER.maxRendered = it.asInt }
+            json.get("maxRaytraced")?.let { LIGHT_MANAGER.maxRaytraced = it.asInt }
+            json.get("shadowRadius")?.let { LIGHT_MANAGER.shadowRadius = it.asInt }
+        }
+    }
+
+    fun saveConfig() {
+        Files.newBufferedWriter(getConfigFile()).use { writer ->
+            val json = JsonObject()
+
+            json.addProperty("raytraceDistance", LIGHT_MANAGER.raytraceDistance)
+            json.addProperty("lightCullDistance", LIGHT_MANAGER.lightCullDistance)
+            json.addProperty("maxRendered", LIGHT_MANAGER.maxRendered)
+            json.addProperty("maxRaytraced", LIGHT_MANAGER.maxRaytraced)
+            json.addProperty("shadowRadius", LIGHT_MANAGER.shadowRadius)
+
+            writer.write(GsonBuilder().setPrettyPrinting().create().toJson(json))
+        }
     }
 
     fun id(path: String): ResourceLocation = ResourceLocation.fromNamespaceAndPath(MOD_ID, path)

@@ -54,11 +54,12 @@ abstract class PointLight : Light, NativeResource {
     }
 
     override fun render(manager: LightManager, raytrace: Boolean) {
-        val shadowRadiusSq = getShadowRadius() * getShadowRadius()
+        val shadowRadius = getShadowRadius(manager)
+        val shadowRadiusSq = shadowRadius * shadowRadius
 
         for (pos in manager.dirtyBlocks) {
             if (manager.getLevel().dimension().equals(pos.dimension()) && pos.pos.distToCenterSqr(Vec3(getPosition())) < shadowRadiusSq) {
-                shadows.rebuildBlock(manager, pos.pos, getPosition(), getShadowRadius())
+                shadows.rebuildBlock(manager, pos.pos, getPosition(), shadowRadius)
             }
         }
 
@@ -69,7 +70,7 @@ abstract class PointLight : Light, NativeResource {
         }
 
         if (shadowsDirty && raytrace) {
-            shadows.fullRebuild(manager, getShadowBox(), getPosition(), getShadowRadius())
+            shadows.fullRebuild(manager, getShadowBox(), getPosition(), shadowRadius)
 
             shadowsDirty = false
         }
@@ -105,7 +106,7 @@ abstract class PointLight : Light, NativeResource {
 
     abstract fun getRadius(): Float
 
-    abstract fun getShadowRadius(): Float
+    abstract fun getShadowRadius(manager: LightManager): Float
 
     abstract fun getColor(): Colorc
 

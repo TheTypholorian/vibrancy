@@ -206,6 +206,7 @@ class ShadowManager(
 
         if (shadowsDirty) {
             uploadShadows(BlockPos.containing(Vec3(pos)))
+            shadowsDirty = false
         }
 
         if (raytrace && shadows.isNotEmpty()) {

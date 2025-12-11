@@ -30,10 +30,13 @@ object SodiumCompat {
                             ) { v -> Component.translatable("options.vibrancy.raytrace_distance.value", v * 16) }
                         }
                         .setBinding(
-                            { options: Options, value: Int -> Vibrancy.LIGHT_MANAGER.raytraceDistance = value },
+                            { options: Options, value: Int ->
+                                Vibrancy.LIGHT_MANAGER.raytraceDistance = value
+                                Vibrancy.saveConfig()
+                            },
                             { options: Options -> Vibrancy.LIGHT_MANAGER.raytraceDistance }
                         )
-                        .setImpact(OptionImpact.HIGH)
+                        .setImpact(OptionImpact.MEDIUM)
                         .build()
                 )
                 .add(
@@ -49,10 +52,13 @@ object SodiumCompat {
                             ) { v -> Component.translatable("options.vibrancy.light_cull_distance.value", v * 16) }
                         }
                         .setBinding(
-                            { options: Options, value: Int -> Vibrancy.LIGHT_MANAGER.lightCullDistance = value },
+                            { options: Options, value: Int ->
+                                Vibrancy.LIGHT_MANAGER.lightCullDistance = value
+                                Vibrancy.saveConfig()
+                            },
                             { options: Options -> Vibrancy.LIGHT_MANAGER.lightCullDistance }
                         )
-                        .setImpact(OptionImpact.HIGH)
+                        .setImpact(OptionImpact.MEDIUM)
                         .build()
                 )
                 .add(
@@ -74,10 +80,15 @@ object SodiumCompat {
                             }
                         }
                         .setBinding(
-                            { options: Options, value: Int -> Vibrancy.LIGHT_MANAGER.maxRaytraced = value },
+                            { options: Options, value: Int ->
+                                Vibrancy.LIGHT_MANAGER.maxRaytraced = value
+                                Vibrancy.LIGHT_MANAGER.maxRendered =
+                                    Vibrancy.LIGHT_MANAGER.maxRendered.coerceAtLeast(value)
+                                Vibrancy.saveConfig()
+                            },
                             { options: Options -> Vibrancy.LIGHT_MANAGER.maxRaytraced }
                         )
-                        .setImpact(OptionImpact.HIGH)
+                        .setImpact(OptionImpact.MEDIUM)
                         .build()
                 )
                 .add(
@@ -101,11 +112,13 @@ object SodiumCompat {
                         .setBinding(
                             { options: Options, value: Int ->
                                 Vibrancy.LIGHT_MANAGER.maxRendered = value
-                                Vibrancy.LIGHT_MANAGER.maxRaytraced = Vibrancy.LIGHT_MANAGER.maxRaytraced.coerceAtMost(value)
+                                Vibrancy.LIGHT_MANAGER.maxRaytraced =
+                                    Vibrancy.LIGHT_MANAGER.maxRaytraced.coerceAtMost(value)
+                                Vibrancy.saveConfig()
                             },
                             { options: Options -> Vibrancy.LIGHT_MANAGER.maxRendered }
                         )
-                        .setImpact(OptionImpact.HIGH)
+                        .setImpact(OptionImpact.MEDIUM)
                         .build()
                 )
                 .add(
@@ -127,7 +140,10 @@ object SodiumCompat {
                             }
                         }
                         .setBinding(
-                            { options: Options, value: Int -> Vibrancy.LIGHT_MANAGER.shadowRadius = value },
+                            { options: Options, value: Int ->
+                                Vibrancy.LIGHT_MANAGER.shadowRadius = value
+                                Vibrancy.saveConfig()
+                            },
                             { options: Options -> Vibrancy.LIGHT_MANAGER.shadowRadius }
                         )
                         .setImpact(OptionImpact.HIGH)

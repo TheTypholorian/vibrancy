@@ -1,2 +1,21 @@
 {
+  "options.vibrancy.page": "Vibrancy",
+  "options.vibrancy.raytrace_distance": "Raytrace Distance",
+  "options.vibrancy.raytrace_distance.tooltip": "The distance from camera where lights have perfect shadows, lights beyond this use an approximation",
+  "options.vibrancy.raytrace_distance.value": "%s blocks",
+  "options.vibrancy.light_cull_distance": "Light Cull Distance",
+  "options.vibrancy.light_cull_distance.tooltip": "The distance from camera when lights are no longer displayed (for performance reasons)",
+  "options.vibrancy.light_cull_distance.value": "%s blocks",
+  "options.vibrancy.max_raytraced_lights": "Max Raytraced Lights",
+  "options.vibrancy.max_raytraced_lights.tooltip": "A cap on the number of raytraced lights, avoiding lag",
+  "options.vibrancy.max_raytraced_lights.value": "%s lights",
+  "options.vibrancy.max_raytraced_lights.max": "Unlimited",
+  "options.vibrancy.max_lights": "Max Lights",
+  "options.vibrancy.max_lights.tooltip": "A cap on the number of lights, avoiding lag",
+  "options.vibrancy.max_lights.value": "%s lights",
+  "options.vibrancy.max_lights.max": "Unlimited",
+  "options.vibrancy.shadow_radius": "Shadow Radius",
+  "options.vibrancy.shadow_radius.tooltip": "The radius from lights where blocks cast shadows, lower value = less shadows but far more performance",
+  "options.vibrancy.shadow_radius.value": "%s blocks",
+  "options.vibrancy.shadow_radius.max": "Unlimited"
 }
