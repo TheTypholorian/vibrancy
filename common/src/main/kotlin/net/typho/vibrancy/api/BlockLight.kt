@@ -9,48 +9,66 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.level.chunk.LevelChunkSection
+import net.typho.vibrancy.Vibrancy
 import org.joml.Vector3f
+import java.util.function.Supplier
 
 data class BlockLight(
     val blockPos: BlockPos,
-    var offset: Vector3f,
-    private var radius: Float,
-    private var color: Colorc
+    var offset: Supplier<Vector3f>,
+    private var radius: Supplier<Float>,
+    private var color: Supplier<Colorc>
 ) : PointLight() {
     constructor(blockPos: BlockPos, info: DynamicLightInfo, state: BlockState) : this(
         blockPos,
-        info.offset.map{ it.apply(state) }
-            .orElse(Vector3f(0.5f)),
-        info.radius.map{ it.apply(state) }
-            .orElse(15f),
-        info.color.map{ it.apply(state) }
-            .orElse(DEFAULT_COLOR)
-            .withBrightness(info.brightness.map { it.apply(state) }.orElse(1f))
+        {
+            info.offset.map { it.apply(state) }
+                .orElse(Vector3f(0.5f))
+        },
+        {
+            info.radius.map { it.apply(state) }
+                .orElse(15f)
+        },
+        {
+            info.color.map { it.apply(state) }
+                .orElse(DEFAULT_COLOR)
+                .withBrightness(info.brightness.map { it.apply(state) }.orElse(1f) * Vibrancy.LIGHT_BRIGHTNESS)
+        }
     )
 
     fun set(info: DynamicLightInfo, state: BlockState) {
-        offset = info.offset.map{ it.apply(state) }
-            .orElse(Vector3f(0.5f))
-        radius = info.radius.map{ it.apply(state) }
-            .orElse(15f)
-        color = info.color.map{ it.apply(state) }
-            .orElse(DEFAULT_COLOR)
-            .withBrightness(info.brightness.map { it.apply(state) }.orElse(1f))
+        offset = Supplier {
+            info.offset.map { it.apply(state) }
+                .orElse(Vector3f(0.5f))
+        }
+        radius = Supplier {
+            info.radius.map { it.apply(state) }
+                .orElse(15f)
+        }
+        color = Supplier {
+            info.color.map { it.apply(state) }
+                .orElse(DEFAULT_COLOR)
+                .withBrightness(info.brightness.map { it.apply(state) }.orElse(1f) * Vibrancy.LIGHT_BRIGHTNESS)
+        }
         boxDirty = true
         shadowsDirty = true
     }
 
-    override fun getPosition(): Vector3f = Vector3f(
-        blockPos.x + offset.x,
-        blockPos.y + offset.y,
-        blockPos.z + offset.z
-    )
+    override fun getPosition(): Vector3f {
+        val offset = this.offset.get()
+        return Vector3f(
+            blockPos.x + offset.x,
+            blockPos.y + offset.y,
+            blockPos.z + offset.z
+        )
+    }
 
-    override fun getRadius(): Float = radius
+    override fun getRadius(): Float = radius.get()
 
-    override fun getShadowRadius(manager: LightManager): Float = getRadius().coerceAtMost(manager.shadowRadius.toFloat())
+    override fun getShadowRadius(manager: LightManager): Float =
+        getRadius().coerceAtMost(manager.shadowRadius.toFloat())
 
-    override fun getColor(): Colorc = color
+    override fun getColor(): Colorc = color.get()
 
     override fun testCullingDistance(camera: Camera, chunks: Int): Boolean =
         getPosition().distanceSquared(camera.position.toVector3f()) <= (chunks * chunks * 256)

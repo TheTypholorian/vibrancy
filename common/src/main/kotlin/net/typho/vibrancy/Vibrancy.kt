@@ -34,6 +34,7 @@ object Vibrancy {
     val LOGGER: Logger = LoggerFactory.getLogger(MOD_NAME)
 
     val DIRTY_BLOCKS = LinkedList<GlobalPos>()
+    var LIGHT_BRIGHTNESS: Float = 1f
     val LIGHT_MANAGER = LightManager(DIRTY_BLOCKS, 16, 32, 200, 100, 6)
 
     var RENDER_DEBUG_LINES = false
@@ -68,6 +69,10 @@ object Vibrancy {
             .mapToInt { it.shadows.numQuads() }
             .sum()
         out.accept("$quads quads")
+        val tasks = BlockLight.LIGHTS.values.stream()
+            .mapToInt { if (it.shadows.isTaskActive()) 1 else 0 }
+            .sum()
+        out.accept("$tasks async tasks")
     }
 
     fun render() {
@@ -139,6 +144,7 @@ object Vibrancy {
             json.get("maxRendered")?.let { LIGHT_MANAGER.maxRendered = it.asInt }
             json.get("maxRaytraced")?.let { LIGHT_MANAGER.maxRaytraced = it.asInt }
             json.get("shadowRadius")?.let { LIGHT_MANAGER.shadowRadius = it.asInt }
+            json.get("lightBrightness")?.let { LIGHT_BRIGHTNESS = it.asFloat }
         }
     }
 
@@ -151,6 +157,7 @@ object Vibrancy {
             json.addProperty("maxRendered", LIGHT_MANAGER.maxRendered)
             json.addProperty("maxRaytraced", LIGHT_MANAGER.maxRaytraced)
             json.addProperty("shadowRadius", LIGHT_MANAGER.shadowRadius)
+            json.addProperty("lightBrightness", LIGHT_BRIGHTNESS)
 
             writer.write(GsonBuilder().setPrettyPrinting().create().toJson(json))
         }

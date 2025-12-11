@@ -150,6 +150,30 @@ object SodiumCompat {
                         .setImpact(OptionImpact.HIGH)
                         .build()
                 )
+                .add(
+                    OptionImpl.createBuilder(Int::class.java, vanillaOpts)
+                        .setName(Component.translatable("options.vibrancy.light_brightness"))
+                        .setTooltip(Component.translatable("options.vibrancy.light_brightness.tooltip"))
+                        .setControl {
+                            SliderControl(
+                                it,
+                                5,
+                                20,
+                                1
+                            ) { v ->
+                                Component.translatable("options.vibrancy.light_brightness.value", v * 10)
+                            }
+                        }
+                        .setBinding(
+                            { options: Options, value: Int ->
+                                Vibrancy.LIGHT_BRIGHTNESS = value / 5f
+                                Vibrancy.saveConfig()
+                            },
+                            { options: Options -> (Vibrancy.LIGHT_BRIGHTNESS * 5).toInt() }
+                        )
+                        .setImpact(OptionImpact.HIGH)
+                        .build()
+                )
                 .build()
         )
 

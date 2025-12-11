@@ -17,5 +17,8 @@
   "options.vibrancy.shadow_radius": "Shadow Radius",
   "options.vibrancy.shadow_radius.tooltip": "The radius from lights where blocks cast shadows, lower value = less shadows but far more performance",
   "options.vibrancy.shadow_radius.value": "%s blocks",
-  "options.vibrancy.shadow_radius.max": "Unlimited"
+  "options.vibrancy.shadow_radius.max": "Unlimited",
+  "options.vibrancy.light_brightness": "Light Brightness",
+  "options.vibrancy.light_brightness.tooltip": "Multiplier for brightness of raytraced lights",
+  "options.vibrancy.light_brightness.value": "%s %%"
 }

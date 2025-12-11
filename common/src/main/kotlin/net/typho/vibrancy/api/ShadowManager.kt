@@ -27,7 +27,7 @@ import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
 
 class ShadowManager(
-    val static: Boolean
+    static: Boolean
 ) : NativeResource {
     private val debugMesh: VertexBuffer? = if (Services.PLATFORM.isDevelopmentEnvironment()) VertexBuffer(VertexBuffer.Usage.STATIC) else null
     var shadowMesh: VertexBuffer? = VertexBuffer(if (static) VertexBuffer.Usage.STATIC else VertexBuffer.Usage.DYNAMIC)
@@ -73,6 +73,7 @@ class ShadowManager(
         return !(state.isSolidRender(level, pos) && otherState.isSolidRender(level, otherPos))
     }
 
+    @Suppress("DEPRECATION")
     fun getLightFaces(
         level: ClientLevel,
         lightBlockPos: BlockPos,

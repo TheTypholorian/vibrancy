@@ -12,7 +12,7 @@ minecraftRange = "[1.21.1, 1.21.2)"
 parchment = "2024.11.10"
 parchmentMC = "1.21"
 
-neoforge = "21.1.80"
+neoforge = "21.1.115"
 neoforgeRange = "[21.1, 21.2)"
 ## This is the version of minecraft that the 'common' project uses, you can find a list of all versions here
 ## https://projects.neoforged.net/neoforged/neoform
