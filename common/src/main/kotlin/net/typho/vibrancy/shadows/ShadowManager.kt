@@ -2,12 +2,12 @@ package net.typho.vibrancy.shadows
 
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.*
-import foundry.veil.api.client.render.rendertype.VeilRenderType
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.client.renderer.LightTexture
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.RenderType
+import net.minecraft.client.renderer.ShaderInstance
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -17,34 +17,29 @@ import net.minecraft.util.RandomSource
 import net.minecraft.world.inventory.InventoryMenu
 import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.block.state.BlockState
-import net.typho.vibrancy.Vibrancy
+import net.typho.vibrancy.light.Light
 import net.typho.vibrancy.light.LightManager
-import net.typho.vibrancy.light.PointLight
 import net.typho.vibrancy.platform.Services
 import net.typho.vibrancy.shadows.LightFace.Companion.toLightFace
 import net.typho.vibrancy.util.ShaderStorageBuffer
-import net.typho.vibrancy.util.expand
 import org.lwjgl.system.MemoryUtil
 import org.lwjgl.system.NativeResource
 import java.util.*
-import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
 
-open class ShadowManager(
+abstract class ShadowManager<L : Light>(
     static: Boolean
 ) : NativeResource, MultiBufferSource {
-    private val debugMesh: VertexBuffer? = if (Services.PLATFORM.isDevelopmentEnvironment()) VertexBuffer(VertexBuffer.Usage.STATIC) else null
     var shadowMesh: VertexBuffer? = VertexBuffer(if (static) VertexBuffer.Usage.STATIC else VertexBuffer.Usage.DYNAMIC)
     var quadBuffer: ShaderStorageBuffer? =
         ShaderStorageBuffer(if (static) ShaderStorageBuffer.Usage.STATIC else ShaderStorageBuffer.Usage.STREAM)
-    private var shadows: MutableList<ShadowVolume> = LinkedList()
-    private var fullRebuildTask: CompletableFuture<MutableList<ShadowVolume>>? = null
-    private var shadowsDirty = false
-    private val buffers = LinkedHashMap<RenderType, ShadowBuilder>()
+    protected var shadows: MutableList<ShadowVolume> = LinkedList()
+    protected var shadowsDirty = false
+    protected val shadowBuilders = LinkedHashMap<RenderType, ShadowBuilder>()
 
     companion object {
-        var DYNAMIC_SHADOW_MESH: VertexBuffer? = VertexBuffer(VertexBuffer.Usage.DYNAMIC)
-        var DYNAMIC_QUAD_BUFFER: ShaderStorageBuffer? = ShaderStorageBuffer(ShaderStorageBuffer.Usage.STREAM)
+        val DYNAMIC_SHADOW_MESH: VertexBuffer = VertexBuffer(VertexBuffer.Usage.DYNAMIC)
+        val DYNAMIC_QUAD_BUFFER: ShaderStorageBuffer = ShaderStorageBuffer(ShaderStorageBuffer.Usage.STREAM)
     }
 
     override fun free() {
@@ -54,42 +49,44 @@ open class ShadowManager(
         quadBuffer = null
     }
 
-    fun numQuads() = shadows.stream()
+    open fun numQuads() = shadows.stream()
         .mapToInt { it.numQuads() }
         .sum()
 
-    fun numShadows() = shadows.size
+    open fun numShadows() = shadows.size
 
-    fun isTaskActive() = !(fullRebuildTask?.isDone ?: false)
+    open fun isTaskActive() = false
 
-    override fun getBuffer(renderType: RenderType): VertexConsumer = buffers.computeIfAbsent(renderType) { ShadowBuilder() }
+    override fun getBuffer(renderType: RenderType): VertexConsumer =
+        shadowBuilders.computeIfAbsent(renderType) { ShadowBuilder() }
 
-    fun shouldCastFace(
+    abstract fun shouldCastFace(
         face: Direction,
-        lightPos: BlockPos,
+        light: L,
         pos: BlockPos,
         level: BlockGetter,
         state: BlockState
-    ): Boolean {
-        val otherPos = pos.relative(face)
+    ): Boolean
 
-        if (otherPos.equals(lightPos)) {
-            return true
+    open fun rebuildBlock(manager: LightManager, pos: BlockPos, light: L) {
+        shadows.removeIf { shadow -> shadow.caster.blockPos?.equals(pos) ?: false }
+
+        getLightFaces(
+            manager.getLevel(),
+            light,
+            pos
+        ) { face ->
+            shadows.add(lightFaceToVolume(face, manager, light))
         }
-
-        if (!Vibrancy.pointsToward(face, lightPos.subtract(pos).center.toVector3f())) {
-            return false
-        }
-
-        val otherState = level.getBlockState(otherPos)
-
-        return !(state.isSolidRender(level, pos) && otherState.isSolidRender(level, otherPos))
+        shadowsDirty = true
     }
 
+    abstract fun lightFaceToVolume(face: LightFace, manager: LightManager, light: L): ShadowVolume
+
     @Suppress("DEPRECATION")
-    fun getLightFaces(
+    open fun getLightFaces(
         level: ClientLevel,
-        lightBlockPos: BlockPos,
+        light: L,
         pos: BlockPos,
         out: Consumer<LightFace>
     ) {
@@ -99,7 +96,7 @@ open class ShadowManager(
         val offset = state.getOffset(level, pos)
 
         for (dir in Direction.entries) {
-            if (shouldCastFace(dir, lightBlockPos, pos, level, state)) {
+            if (shouldCastFace(dir, light, pos, level, state)) {
                 for (quad in model.getQuads(state, dir, random)) {
                     out.accept(
                         quad.toLightFace(
@@ -127,63 +124,15 @@ open class ShadowManager(
         }
     }
 
-    fun rebuildBlock(manager: LightManager, pos: BlockPos, light: PointLight) {
-        shadows.removeIf { shadow -> shadow.caster.blockPos?.equals(pos) ?: false }
-
-        val lightPos = light.getPosition()
-        val lightBlockPos = light.getBlockPos()
-
-        getLightFaces(
-            manager.getLevel(),
-            lightBlockPos,
-            pos
-        ) { face ->
-            shadows.add(face.toVolumePoint(lightPos, light.getRadius()))
-        }
-        shadowsDirty = true
-    }
-
-    fun fullRebuild(manager: LightManager, box: BlockBox, light: PointLight): MutableList<ShadowVolume> {
-        val lightPos = light.getPosition()
-        val lightBlockPos = light.getBlockPos()
-        val radius = light.getShadowRadius(manager)
-        val radiusSq = radius * radius
-        val volumes = LinkedList<ShadowVolume>()
-
-        for (x in box.min.x..box.max.x) {
-            for (y in box.min.y..box.max.y) {
-                for (z in box.min.z..box.max.z) {
-                    val pos = BlockPos(x, y, z)
-
-                    if (pos != lightBlockPos && pos.distSqr(lightBlockPos) <= radiusSq) {
-                        getLightFaces(
-                            manager.getLevel(),
-                            lightBlockPos,
-                            pos
-                        ) { face ->
-                            volumes.add(face.toVolumePoint(lightPos, light.getRadius()))
-                        }
-                    }
-                }
-            }
-        }
-
-        shadowsDirty = true
-
-        return volumes
-    }
-
-    fun fullRebuildAsync(manager: LightManager, box: BlockBox, light: PointLight) {
-        fullRebuildTask?.cancel(true)
-        fullRebuildTask = CompletableFuture.supplyAsync {
-            return@supplyAsync fullRebuild(manager, box, light)
-        }
-    }
-
-    private fun uploadShadows(light: PointLight, shadowMesh: VertexBuffer?, quadBuffer: ShaderStorageBuffer?, shadows: Collection<ShadowVolume>) {
+    protected open fun uploadShadows(
+        light: L,
+        shadowMesh: VertexBuffer,
+        quadBuffer: ShaderStorageBuffer,
+        shadows: Collection<ShadowVolume>
+    ) {
         if (shadows.isNotEmpty()) {
             val builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION)
-            val quads = MemoryUtil.memAlloc(shadows.size * LightFace.Companion.BYTES)
+            val quads = MemoryUtil.memAlloc(shadows.size * LightFace.BYTES)
 
             for (shadow in shadows) {
                 shadow.buildGeometry(builder)
@@ -192,37 +141,19 @@ open class ShadowManager(
 
             val built = builder.build()!!
 
-            shadowMesh!!.bind()
-            shadowMesh!!.upload(built)
+            shadowMesh.bind()
+            shadowMesh.upload(built)
             VertexBuffer.unbind()
 
-            quadBuffer!!.bind()
-            quadBuffer!!.upload(quads.flip())
-            ShaderStorageBuffer.Companion.unbind()
+            quadBuffer.bind()
+            quadBuffer.upload(quads.flip())
+            ShaderStorageBuffer.unbind()
 
             MemoryUtil.memFree(quads)
-
-            /*
-            debugMesh?.let {
-                val lightBlockPos = light.getBlockPos()
-                val debugBuilder =
-                    Tesselator.getInstance().begin(VertexFormat.Mode.LINES, DefaultVertexFormat.POSITION_COLOR)
-
-                for (shadow in shadows) {
-                    shadow.buildDebug(lightBlockPos, debugBuilder)
-                }
-
-                val debugBuilt = debugBuilder.build()!!
-
-                it.bind()
-                it.upload(debugBuilt)
-                VertexBuffer.unbind()
-            }
-             */
         }
     }
 
-    fun castEntities(manager: LightManager, box: BlockBox, light: PointLight): Boolean {
+    protected open fun castEntities(manager: LightManager, box: BlockBox, light: L): Boolean {
         val level = manager.getLevel()
         val poseStack = PoseStack()
         var any = false
@@ -266,18 +197,17 @@ open class ShadowManager(
         return any
     }
 
-    fun render(manager: LightManager, raytrace: Boolean, light: PointLight) {
-        if (fullRebuildTask?.isDone ?: false) {
-            shadows = fullRebuildTask!!.get()
-            fullRebuildTask = null
-        }
+    abstract fun initializeUniforms(manager: LightManager, light: L, shader: ShaderInstance)
 
+    abstract fun getEntityBox(manager: LightManager, light: L): BlockBox?
+
+    open fun render(manager: LightManager, raytrace: Boolean, light: L) {
         if (raytrace) {
             val shader = RenderSystem.getShader()!!
-            shader.safeGetUniform("LightPos").set(light.getPosition())
+            initializeUniforms(manager, light, shader)
 
             if (shadowsDirty) {
-                uploadShadows(light, shadowMesh, quadBuffer, shadows)
+                uploadShadows(light, shadowMesh!!, quadBuffer!!, shadows)
                 shadowsDirty = false
             }
 
@@ -297,20 +227,18 @@ open class ShadowManager(
                 )
             }
 
-            for (builder in buffers.values) {
+            for (builder in shadowBuilders.values) {
                 builder.vertices.clear()
             }
 
-            val anyEntities = castEntities(
-                manager,
-                BlockBox.of(light.getBlockPos()).expand(light.getShadowRadius(manager)),
-                light
-            )
+            val anyEntities = false
+
+            getEntityBox(manager, light)?.let { castEntities(manager, it, light) }
 
             if (anyEntities) {
                 val entityShadows = HashMap<ResourceLocation, MutableList<ShadowVolume>>()
 
-                for (entry in buffers) {
+                for (entry in shadowBuilders) {
                     entry.value.endVertex()
 
                     if (entry.key.mode() == VertexFormat.Mode.QUADS && !entry.value.vertices.isEmpty()) {
@@ -325,18 +253,23 @@ open class ShadowManager(
                             val v4 = iterator.next()
 
                             output.add(
-                                LightFace(
-                                    null,
-                                    null,
-                                    v1.vertex,
-                                    v2.vertex,
-                                    v3.vertex,
-                                    v4.vertex,
-                                    v1.uv,
-                                    v2.uv,
-                                    v3.uv,
-                                    v4.uv
-                                ).toVolumePoint(light.getPosition(), light.getRadius()))
+                                lightFaceToVolume(
+                                    LightFace(
+                                        null,
+                                        null,
+                                        v1.vertex,
+                                        v2.vertex,
+                                        v3.vertex,
+                                        v4.vertex,
+                                        v1.uv,
+                                        v2.uv,
+                                        v3.uv,
+                                        v4.uv
+                                    ),
+                                    manager,
+                                    light
+                                )
+                            )
                         }
                     }
                 }
@@ -349,31 +282,14 @@ open class ShadowManager(
                         Minecraft.getInstance().textureManager.getTexture(entry.key)
                     )
 
-                    DYNAMIC_QUAD_BUFFER!!.bindBase(0)
+                    DYNAMIC_QUAD_BUFFER.bindBase(0)
 
-                    DYNAMIC_SHADOW_MESH!!.bind()
-                    DYNAMIC_SHADOW_MESH!!.drawWithShader(
+                    DYNAMIC_SHADOW_MESH.bind()
+                    DYNAMIC_SHADOW_MESH.drawWithShader(
                         manager.viewMatrix!!,
                         RenderSystem.getProjectionMatrix(),
                         shader
                     )
-                }
-            }
-
-            if ((shadows.isNotEmpty() || anyEntities) && Vibrancy.RENDER_DEBUG_LINES) {
-                debugMesh?.let {
-                    val lineRenderType = VeilRenderType.get(Vibrancy.id("debug"))!!
-                    lineRenderType.setupRenderState()
-
-                    it.bind()
-                    it.drawWithShader(
-                        manager.viewMatrix!!,
-                        RenderSystem.getProjectionMatrix(),
-                        RenderSystem.getShader()!!
-                    )
-                    VertexBuffer.unbind()
-
-                    lineRenderType.clearRenderState()
                 }
             }
         }
