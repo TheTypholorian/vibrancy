@@ -35,9 +35,9 @@ versionRange = "*"
 ordering = "NONE"
 side = "BOTH"
 [[dependencies."${mod_id}"]]
-modId = "veil"
+modId = "iris"
 type="required"
-versionRange = "[{veil_version_range},)"
+versionRange = "[{iris_version},)"
 ordering = "NONE"
 side = "BOTH"
 

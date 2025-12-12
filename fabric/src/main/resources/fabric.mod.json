@@ -29,7 +29,7 @@
     "java": ">=${java_version}",
     "fabric-language-kotlin": ">=${flk_version}",
     "sodium": "*",
-    "veil": ">=${veil_version}"
+    "iris": ">=${iris_version}"
   },
   "suggests": {
     "another-mod": "*"

@@ -22,7 +22,7 @@ dependencies {
     modImplementation(libs.fabricApi)
 
     modImplementation(libs.flk)
-    modImplementation(libs.veil.fabric)
+    modImplementation(libs.iris)
     modImplementation(libs.sodium)
 }
 

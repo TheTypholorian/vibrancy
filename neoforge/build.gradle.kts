@@ -51,6 +51,6 @@ repositories {
 
 dependencies {
     implementation(libs.kff)
-    implementation(libs.veil.neoforge)
+    implementation(libs.iris)
     implementation(libs.sodium)
 }
