@@ -36,6 +36,7 @@ object Vibrancy {
 
     val DIRTY_BLOCKS = LinkedList<GlobalPos>()
     var LIGHT_BRIGHTNESS: Float = 1f
+    var ENTITY_SHADOWS: Boolean = true
     val LIGHT_MANAGER = LightManager(DIRTY_BLOCKS, 16, 32, 200, 100, 6)
 
     var RENDER_DEBUG_LINES = false
@@ -74,6 +75,14 @@ object Vibrancy {
             .mapToInt { if (it.shadows.isTaskActive()) 1 else 0 }
             .sum()
         out.accept("$tasks async tasks")
+        val entities = BlockLight.LIGHTS.values.stream()
+            .mapToInt { it.shadows.numEntities() }
+            .sum()
+        out.accept("$entities entity shadows")
+        val blockEntities = BlockLight.LIGHTS.values.stream()
+            .mapToInt { it.shadows.numBlockEntities() }
+            .sum()
+        out.accept("$blockEntities block entity shadows")
     }
 
     fun render() {
@@ -147,6 +156,7 @@ object Vibrancy {
             json.get("maxRaytraced")?.let { LIGHT_MANAGER.maxRaytraced = it.asInt }
             json.get("shadowRadius")?.let { LIGHT_MANAGER.shadowRadius = it.asInt }
             json.get("lightBrightness")?.let { LIGHT_BRIGHTNESS = it.asFloat }
+            json.get("entityShadows")?.let { ENTITY_SHADOWS = it.asBoolean }
         }
     }
 
@@ -160,6 +170,7 @@ object Vibrancy {
             json.addProperty("maxRaytraced", LIGHT_MANAGER.maxRaytraced)
             json.addProperty("shadowRadius", LIGHT_MANAGER.shadowRadius)
             json.addProperty("lightBrightness", LIGHT_BRIGHTNESS)
+            json.addProperty("entityShadows", ENTITY_SHADOWS)
 
             writer.write(GsonBuilder().setPrettyPrinting().create().toJson(json))
         }

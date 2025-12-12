@@ -6,6 +6,7 @@ import net.caffeinemc.mods.sodium.client.gui.options.OptionImpact
 import net.caffeinemc.mods.sodium.client.gui.options.OptionImpl
 import net.caffeinemc.mods.sodium.client.gui.options.OptionPage
 import net.caffeinemc.mods.sodium.client.gui.options.control.SliderControl
+import net.caffeinemc.mods.sodium.client.gui.options.control.TickBoxControl
 import net.caffeinemc.mods.sodium.client.gui.options.storage.MinecraftOptionsStorage
 import net.minecraft.client.Options
 import net.minecraft.network.chat.Component
@@ -170,6 +171,21 @@ object SodiumCompat {
                                 Vibrancy.saveConfig()
                             },
                             { options: Options -> (Vibrancy.LIGHT_BRIGHTNESS * 5).toInt() }
+                        )
+                        .setImpact(OptionImpact.HIGH)
+                        .build()
+                )
+                .add(
+                    OptionImpl.createBuilder(Boolean::class.java, vanillaOpts)
+                        .setName(Component.translatable("options.vibrancy.entity_shadows"))
+                        .setTooltip(Component.translatable("options.vibrancy.entity_shadows.tooltip"))
+                        .setControl { TickBoxControl(it) }
+                        .setBinding(
+                            { options: Options, value: Boolean ->
+                                Vibrancy.ENTITY_SHADOWS = value
+                                Vibrancy.saveConfig()
+                            },
+                            { options: Options -> Vibrancy.ENTITY_SHADOWS }
                         )
                         .setImpact(OptionImpact.HIGH)
                         .build()

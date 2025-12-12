@@ -10,7 +10,7 @@ import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.world.phys.Vec3
 import net.typho.vibrancy.Vibrancy
-import net.typho.vibrancy.shadows.ShadowManager
+import net.typho.vibrancy.shadows.PointShadowManager
 import net.typho.vibrancy.util.boxOfRadius
 import net.typho.vibrancy.util.cube
 import net.typho.vibrancy.util.expand
@@ -23,7 +23,7 @@ import kotlin.math.floor
 
 abstract class PointLight : Light, NativeResource {
     val boxMesh = VertexBuffer(if (isStatic()) VertexBuffer.Usage.STATIC else VertexBuffer.Usage.DYNAMIC)
-    val shadows = ShadowManager(isStatic())
+    val shadows = PointShadowManager(isStatic())
     var boxDirty = true
     var shadowsDirty = true
 

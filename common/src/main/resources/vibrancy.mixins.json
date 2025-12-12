@@ -9,7 +9,8 @@
     "OptionsMixin",
     "ShaderImportProcessorMixin",
     "SodiumGameOptionsPagesAccessor",
-    "VeilRendererMixin"
+    "VeilRendererMixin",
+    "VertexConsumerTrackerMixin"
   ],
   "client": [
     "ClientChunkCacheStorageMixin",

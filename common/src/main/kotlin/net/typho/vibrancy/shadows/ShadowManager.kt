@@ -16,7 +16,9 @@ import net.minecraft.util.Mth
 import net.minecraft.util.RandomSource
 import net.minecraft.world.inventory.InventoryMenu
 import net.minecraft.world.level.BlockGetter
+import net.minecraft.world.level.block.RenderShape
 import net.minecraft.world.level.block.state.BlockState
+import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.light.Light
 import net.typho.vibrancy.light.LightManager
 import net.typho.vibrancy.platform.Services
@@ -36,6 +38,8 @@ abstract class ShadowManager<L : Light>(
     protected var shadows: MutableList<ShadowVolume> = LinkedList()
     protected var shadowsDirty = false
     protected val shadowBuilders = LinkedHashMap<RenderType, ShadowBuilder>()
+    protected var numBlockEntities: Int = 0
+    protected var numEntities: Int = 0
 
     companion object {
         val DYNAMIC_SHADOW_MESH: VertexBuffer = VertexBuffer(VertexBuffer.Usage.DYNAMIC)
@@ -54,6 +58,10 @@ abstract class ShadowManager<L : Light>(
         .sum()
 
     open fun numShadows() = shadows.size
+
+    open fun numBlockEntities() = numBlockEntities
+
+    open fun numEntities() = numEntities
 
     open fun isTaskActive() = false
 
@@ -153,45 +161,52 @@ abstract class ShadowManager<L : Light>(
         }
     }
 
-    protected open fun castEntities(manager: LightManager, box: BlockBox, light: L): Boolean {
+    protected open fun castEntities(manager: LightManager, blockEntityBox: BlockBox?, entityBox: BlockBox?, light: L): Boolean {
         val level = manager.getLevel()
         val poseStack = PoseStack()
         var any = false
         val tickDelta = manager.tickDelta()
 
-        for (pos in box) {
-            val blockEntity = level.getBlockEntity(pos)
+        blockEntityBox?.let {
+            for (pos in it) {
+                val blockEntity = level.getBlockEntity(pos)
 
-            if (blockEntity != null) {
-                poseStack.pushPose()
-                poseStack.translate(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
+                if (blockEntity != null && level.getBlockState(pos).renderShape == RenderShape.ENTITYBLOCK_ANIMATED) {
+                    poseStack.pushPose()
+                    poseStack.translate(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble())
 
-                Minecraft.getInstance().blockEntityRenderDispatcher.render(
-                    blockEntity,
-                    tickDelta,
-                    poseStack,
-                    this
-                )
+                    Minecraft.getInstance().blockEntityRenderDispatcher.render(
+                        blockEntity,
+                        tickDelta,
+                        poseStack,
+                        this
+                    )
 
-                poseStack.popPose()
+                    poseStack.popPose()
 
-                any = true
+                    any = true
+                    numBlockEntities++
+                }
             }
         }
 
-        for (entity in level.getEntities(null, box.aabb())) {
-            val pos = entity.getPosition(tickDelta)
-            Minecraft.getInstance().entityRenderDispatcher.render(
-                entity,
-                pos.x,
-                pos.y,
-                pos.z,
-                Mth.lerp(tickDelta, entity.yRotO, entity.yRot),
-                tickDelta,
-                poseStack,
-                this,
-                LightTexture.FULL_BRIGHT
-            )
+        entityBox?.let {
+            for (entity in level.getEntities(null, it.aabb())) {
+                val pos = entity.getPosition(tickDelta)
+                Minecraft.getInstance().entityRenderDispatcher.render(
+                    entity,
+                    pos.x,
+                    pos.y,
+                    pos.z,
+                    Mth.lerp(tickDelta, entity.yRotO, entity.yRot),
+                    tickDelta,
+                    poseStack,
+                    this,
+                    LightTexture.FULL_BRIGHT
+                )
+                any = true
+                numEntities++
+            }
         }
 
         return any
@@ -201,7 +216,12 @@ abstract class ShadowManager<L : Light>(
 
     abstract fun getEntityBox(manager: LightManager, light: L): BlockBox?
 
+    abstract fun getBlockEntityBox(manager: LightManager, light: L): BlockBox?
+
     open fun render(manager: LightManager, raytrace: Boolean, light: L) {
+        numBlockEntities = 0
+        numEntities = 0
+
         if (raytrace) {
             val shader = RenderSystem.getShader()!!
             initializeUniforms(manager, light, shader)
@@ -231,65 +251,65 @@ abstract class ShadowManager<L : Light>(
                 builder.vertices.clear()
             }
 
-            val anyEntities = false
+            if (Vibrancy.ENTITY_SHADOWS) {
+                var anyEntities = castEntities(manager, getBlockEntityBox(manager, light), getEntityBox(manager, light), light)
 
-            getEntityBox(manager, light)?.let { castEntities(manager, it, light) }
+                if (anyEntities) {
+                    val entityShadows = HashMap<ResourceLocation, MutableList<ShadowVolume>>()
 
-            if (anyEntities) {
-                val entityShadows = HashMap<ResourceLocation, MutableList<ShadowVolume>>()
+                    for (entry in shadowBuilders) {
+                        entry.value.endVertex()
 
-                for (entry in shadowBuilders) {
-                    entry.value.endVertex()
+                        if (entry.key.mode() == VertexFormat.Mode.QUADS && !entry.value.vertices.isEmpty()) {
+                            val texture = Services.PLATFORM.getRenderTypeTexture(entry.key)
+                            val output = entityShadows.computeIfAbsent(texture) { LinkedList() }
+                            val iterator = entry.value.vertices.iterator()
 
-                    if (entry.key.mode() == VertexFormat.Mode.QUADS && !entry.value.vertices.isEmpty()) {
-                        val texture = Services.PLATFORM.getRenderTypeTexture(entry.key)
-                        val output = entityShadows.computeIfAbsent(texture) { LinkedList() }
-                        val iterator = entry.value.vertices.iterator()
+                            while (iterator.hasNext()) {
+                                val v1 = iterator.next()
+                                val v2 = iterator.next()
+                                val v3 = iterator.next()
+                                val v4 = iterator.next()
 
-                        while (iterator.hasNext()) {
-                            val v1 = iterator.next()
-                            val v2 = iterator.next()
-                            val v3 = iterator.next()
-                            val v4 = iterator.next()
-
-                            output.add(
-                                lightFaceToVolume(
-                                    LightFace(
-                                        null,
-                                        null,
-                                        v1.vertex,
-                                        v2.vertex,
-                                        v3.vertex,
-                                        v4.vertex,
-                                        v1.uv,
-                                        v2.uv,
-                                        v3.uv,
-                                        v4.uv
-                                    ),
-                                    manager,
-                                    light
+                                output.add(
+                                    lightFaceToVolume(
+                                        LightFace(
+                                            null,
+                                            null,
+                                            v1.vertex,
+                                            v2.vertex,
+                                            v3.vertex,
+                                            v4.vertex,
+                                            v1.uv,
+                                            v2.uv,
+                                            v3.uv,
+                                            v4.uv
+                                        ),
+                                        manager,
+                                        light
+                                    )
                                 )
-                            )
+                            }
                         }
                     }
-                }
 
-                for (entry in entityShadows) {
-                    uploadShadows(light, DYNAMIC_SHADOW_MESH, DYNAMIC_QUAD_BUFFER, entry.value)
+                    for (entry in entityShadows) {
+                        uploadShadows(light, DYNAMIC_SHADOW_MESH, DYNAMIC_QUAD_BUFFER, entry.value)
 
-                    shader.setSampler(
-                        "AtlasSampler",
-                        Minecraft.getInstance().textureManager.getTexture(entry.key)
-                    )
+                        shader.setSampler(
+                            "AtlasSampler",
+                            Minecraft.getInstance().textureManager.getTexture(entry.key)
+                        )
 
-                    DYNAMIC_QUAD_BUFFER.bindBase(0)
+                        DYNAMIC_QUAD_BUFFER.bindBase(0)
 
-                    DYNAMIC_SHADOW_MESH.bind()
-                    DYNAMIC_SHADOW_MESH.drawWithShader(
-                        manager.viewMatrix!!,
-                        RenderSystem.getProjectionMatrix(),
-                        shader
-                    )
+                        DYNAMIC_SHADOW_MESH.bind()
+                        DYNAMIC_SHADOW_MESH.drawWithShader(
+                            manager.viewMatrix!!,
+                            RenderSystem.getProjectionMatrix(),
+                            shader
+                        )
+                    }
                 }
             }
         }

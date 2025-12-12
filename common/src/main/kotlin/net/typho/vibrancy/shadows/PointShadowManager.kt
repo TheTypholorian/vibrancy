@@ -102,6 +102,10 @@ open class PointShadowManager(static: Boolean) : ShadowManager<PointLight>(stati
     }
 
     override fun getEntityBox(manager: LightManager, light: PointLight): BlockBox? {
+        return BlockBox.of(light.getBlockPos()).expand(light.getRadius().toInt())
+    }
+
+    override fun getBlockEntityBox(manager: LightManager, light: PointLight): BlockBox? {
         return BlockBox.of(light.getBlockPos()).expand(light.getShadowRadius(manager))
     }
 
