@@ -1,8 +1,6 @@
 package net.typho.vibrancy.shadows
 
 import com.mojang.blaze3d.vertex.VertexConsumer
-import net.minecraft.core.BlockPos
-import net.typho.vibrancy.Vibrancy
 import org.joml.Vector3f
 
 data class ShadowVolume(
@@ -16,6 +14,18 @@ data class ShadowVolume(
     fun numQuads(): Int = 6
 
     fun buildGeometry(consumer: VertexConsumer) {
+        val order = arrayOf(
+            vertices[0]!!,
+            vertices[1]!!,
+            vertices[2]!!,
+            vertices[3]!!
+        )
+
+        for (vec in order) {
+            consumer.addVertex(vec.x, vec.y, vec.z)
+        }
+
+        /*
         var i = 0
         var j = 0
 
@@ -34,48 +44,7 @@ data class ShadowVolume(
             i++
             j += 4
         }
-    }
-
-    fun buildDebug(lightPos: BlockPos, consumer: VertexConsumer) {
-        var i = 0
-        var j = 0
-
-        while (i < numQuads()) {
-                val color = if (caster.direction == null || caster.blockPos == null || Vibrancy.pointsToward(
-                        caster.direction,
-                        Vector3f(
-                            lightPos.x.toFloat() - caster.blockPos!!.x,
-                            lightPos.y.toFloat() - caster.blockPos!!.y,
-                            lightPos.z.toFloat() - caster.blockPos!!.z
-                        )
-                    )
-                ) Vector3f(0f, 1f, 0f) else Vector3f(1f, 0f, 0f)
-
-                if (i == 0) {
-                    color.z = 1f
-                }
-
-                val order = arrayOf(
-                    //vertices[INDICES[j]]!!,
-                    //vertices[INDICES[j + 1]]!!,
-                    //vertices[INDICES[j + 2]]!!,
-                    //vertices[INDICES[j + 3]]!!
-                    vertices[INDICES[j]]!!, vertices[INDICES[j + 1]]!!,
-                    vertices[INDICES[j + 1]]!!, vertices[INDICES[j + 2]]!!,
-                    vertices[INDICES[j + 2]]!!, vertices[INDICES[j + 3]]!!,
-                    vertices[INDICES[j + 3]]!!, vertices[INDICES[j]]!!,
-                    vertices[INDICES[j]]!!, vertices[INDICES[j + 2]]!!,
-                    vertices[INDICES[j + 1]]!!, vertices[INDICES[j + 3]]!!
-                )
-
-                for (vec in order) {
-                    consumer.addVertex(vec.x, vec.y, vec.z)
-                        .setColor(color.x, color.y, color.z, 1f)
-                }
-
-            i++
-            j += 4
-        }
+         */
     }
 
     companion object {

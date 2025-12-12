@@ -4,6 +4,7 @@ import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.mojang.blaze3d.vertex.VertexBuffer
+import com.mojang.blaze3d.vertex.VertexFormat
 import foundry.veil.api.client.render.VeilRenderSystem
 import foundry.veil.api.client.render.dynamicbuffer.DynamicBufferType
 import foundry.veil.api.client.render.rendertype.VeilRenderType
@@ -40,6 +41,8 @@ object Vibrancy {
     val LIGHT_MANAGER = LightManager(DIRTY_BLOCKS, 16, 32, 200, 100, 6)
 
     var RENDER_DEBUG_LINES = false
+
+    var PATCHES_MODE: VertexFormat.Mode? = null
 
     fun init() {
         loadConfig()

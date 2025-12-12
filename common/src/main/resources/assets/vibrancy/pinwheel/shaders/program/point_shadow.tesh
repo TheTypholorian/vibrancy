@@ -1,0 +1,25 @@
+#version 430
+
+layout(quads) in;
+
+in vec3 pos_tc[];
+out vec3 pos_te;
+
+void main(){
+    int id = int(gl_TessCoord.y);
+
+    vec3 a = pos_tc[0];
+    vec3 b = pos_tc[1];
+    vec3 c = pos_tc[2];
+    vec3 d = pos_tc[3];
+
+    vec3 e = a + 5;
+    vec3 f = b + 5;
+    vec3 g = c + 5;
+    vec3 h = d + 5;
+
+    vec3 v[8] = vec3[8](a, b, c, d, e, f, g, h);
+
+    pos_te = v[id];
+    gl_Position = vec4(pos_te, 1.0);
+}

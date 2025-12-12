@@ -12,13 +12,14 @@ uniform vec3 LightPos;
 uniform float LightRadius;
 uniform vec2 ScreenSize;
 
-in flat Quad quad;
+//in flat Quad quad;
 
 out vec4 fragColor;
 
 void main() {
-    fragColor = vec4(0);
+    fragColor = vec4(1);
 
+    /*
     vec3 Pos = getWorldPos(DiffuseDepthSampler, ScreenSize);
 
     vec3 delta = LightPos - Pos.xyz;
@@ -31,4 +32,5 @@ void main() {
     if (sampleQuad(AtlasSampler, Pos, dir, len, 1e-3, false, quad)) {
         discard;
     }
+    */
 }

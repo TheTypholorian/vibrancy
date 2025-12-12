@@ -24,6 +24,8 @@ import net.typho.vibrancy.light.LightManager
 import net.typho.vibrancy.platform.Services
 import net.typho.vibrancy.shadows.LightFace.Companion.toLightFace
 import net.typho.vibrancy.util.ShaderStorageBuffer
+import org.lwjgl.opengl.GL40.GL_PATCH_VERTICES
+import org.lwjgl.opengl.GL40.glPatchParameteri
 import org.lwjgl.system.MemoryUtil
 import org.lwjgl.system.NativeResource
 import java.util.*
@@ -139,7 +141,7 @@ abstract class ShadowManager<L : Light>(
         shadows: Collection<ShadowVolume>
     ) {
         if (shadows.isNotEmpty()) {
-            val builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION)
+            val builder = Tesselator.getInstance().begin(Vibrancy.PATCHES_MODE!!, DefaultVertexFormat.POSITION)
             val quads = MemoryUtil.memAlloc(shadows.size * LightFace.BYTES)
 
             for (shadow in shadows) {
@@ -223,6 +225,8 @@ abstract class ShadowManager<L : Light>(
         numEntities = 0
 
         if (raytrace) {
+            glPatchParameteri(GL_PATCH_VERTICES, 4);
+
             val shader = RenderSystem.getShader()!!
             initializeUniforms(manager, light, shader)
 
@@ -252,7 +256,7 @@ abstract class ShadowManager<L : Light>(
             }
 
             if (Vibrancy.ENTITY_SHADOWS) {
-                var anyEntities = castEntities(manager, getBlockEntityBox(manager, light), getEntityBox(manager, light), light)
+                val anyEntities = castEntities(manager, getBlockEntityBox(manager, light), getEntityBox(manager, light), light)
 
                 if (anyEntities) {
                     val entityShadows = HashMap<ResourceLocation, MutableList<ShadowVolume>>()

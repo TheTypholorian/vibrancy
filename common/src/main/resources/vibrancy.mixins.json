@@ -16,7 +16,8 @@
     "ClientChunkCacheStorageMixin",
     "LevelRendererMixin",
     "MinecraftMixin",
-    "SodiumOptionsGUIMixin"
+    "SodiumOptionsGUIMixin",
+    "VertexFormatModeMixin"
   ],
   "injectors": {
     "defaultRequire": 1
