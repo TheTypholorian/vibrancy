@@ -17,7 +17,7 @@ uniform vec2 ScreenSize;
 out vec4 fragColor;
 
 void main() {
-    fragColor = vec4(1);
+    fragColor = vec4(1, 0, 0, 1);
 
     /*
     vec3 Pos = getWorldPos(DiffuseDepthSampler, ScreenSize);

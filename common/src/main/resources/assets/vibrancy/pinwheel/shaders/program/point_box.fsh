@@ -17,7 +17,8 @@ uniform float LightRadius;
 out vec4 fragColor;
 
 void main() {
-    vec3 pos = getWorldPos(DiffuseDepthSampler, ScreenSize);
+    discard;
+    //vec3 pos = getWorldPos(DiffuseDepthSampler, ScreenSize);
 
-    fragColor = sampleLight(VeilDynamicNormalSampler, LightPos, pos, LightRadius, LightColor);
+    //fragColor = sampleLight(VeilDynamicNormalSampler, LightPos, pos, LightRadius, LightColor);
 }

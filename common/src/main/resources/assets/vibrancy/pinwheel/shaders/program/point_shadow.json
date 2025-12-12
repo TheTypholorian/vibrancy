@@ -1,7 +1,5 @@
 {
   "vertex": "vibrancy:point_shadow",
-  "tesselation_control": "vibrancy:point_shadow",
-  "tesselation_evaluation": "vibrancy:point_shadow",
   "geometry": "vibrancy:point_shadow",
   "fragment": "vibrancy:point_shadow",
   "textures": {

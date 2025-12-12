@@ -11,10 +11,8 @@ uniform mat4 ProjMat;
 
 in vec3 Position;
 
-out vec3 pos_vs;
-
 void main() {
-    gl_Position = ProjMat * ModelViewMat * vec4(Position, 1);
-    pos_vs = Position;
+    // ProjMat * ModelViewMat *
+    gl_Position = vec4(Position / 100, 1);
     //quad = quads[gl_VertexID / 24];
 }
