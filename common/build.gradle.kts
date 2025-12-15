@@ -30,7 +30,7 @@ dependencies {
     annotationProcessor(libs.mixinExtras.common)
     implementation(libs.iris)
     implementation(libs.sodium)
-    implementation(fileTree("libs") {
+    implementation(fileTree("../libs/common") {
         include("*.jar")
     })
 }

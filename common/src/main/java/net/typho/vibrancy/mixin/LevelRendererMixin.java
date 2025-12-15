@@ -1,11 +1,12 @@
 package net.typho.vibrancy.mixin;
 
+import net.irisshaders.iris.Iris;
 import net.minecraft.client.Camera;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.LightTexture;
-import net.typho.vibrancy.Vibrancy;
+import net.typho.vibrancy.VibrancyRenderingPipeline;
 import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -24,7 +25,11 @@ public class LevelRendererMixin {
             )
     )
     private void render(DeltaTracker deltaTracker, boolean renderBlockOutline, Camera camera, GameRenderer gameRenderer, LightTexture lightTexture, Matrix4f frustumMatrix, Matrix4f projectionMatrix, CallbackInfo ci) {
-        Vibrancy.INSTANCE.render();
+        Iris.getPipelineManager().getPipeline().ifPresent(pipeline -> {
+            if (pipeline instanceof VibrancyRenderingPipeline vibrancyPipeline) {
+                vibrancyPipeline.renderLights();
+            }
+        });
     }
 
     @ModifyConstant(

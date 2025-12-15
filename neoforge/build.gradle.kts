@@ -53,7 +53,7 @@ dependencies {
     implementation(libs.kff)
     implementation(libs.iris)
     implementation(libs.sodium)
-    implementation(fileTree("libs") {
+    implementation(fileTree("../libs/neoforge") {
         include("*.jar")
     })
 }

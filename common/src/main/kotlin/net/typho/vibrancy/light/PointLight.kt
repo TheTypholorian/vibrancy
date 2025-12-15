@@ -9,7 +9,7 @@ import net.minecraft.core.BlockPos
 import net.minecraft.world.phys.Vec3
 import net.typho.big_shot_lib.BigShotLib.cube
 import net.typho.big_shot_lib.api.IShader
-import net.typho.big_shot_lib.api.NeoShader
+import net.typho.big_shot_lib.api.impl.NeoShader
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.shadows.PointShadowManager
 import net.typho.vibrancy.util.boxOfRadius

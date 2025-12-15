@@ -18,13 +18,12 @@ import net.minecraft.world.level.block.RenderShape
 import net.minecraft.world.level.block.state.BlockState
 import net.typho.big_shot_lib.api.IBuffer
 import net.typho.big_shot_lib.api.IShader
-import net.typho.big_shot_lib.api.NeoIndexedBuffer
-import net.typho.big_shot_lib.gl.BufferUsage
-import net.typho.big_shot_lib.gl.GlResourceType
+import net.typho.big_shot_lib.api.impl.NeoIndexedBuffer
+import net.typho.big_shot_lib.gl.resource.BufferUsage
+import net.typho.big_shot_lib.gl.resource.GlResourceType
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.light.Light
 import net.typho.vibrancy.light.LightManager
-import net.typho.vibrancy.platform.Services
 import net.typho.vibrancy.shadows.LightFace.Companion.toLightFace
 import org.lwjgl.system.MemoryUtil
 import org.lwjgl.system.NativeResource
@@ -275,7 +274,7 @@ abstract class ShadowManager<L : Light>(
                         entry.value.endVertex()
 
                         if (entry.key.mode() == VertexFormat.Mode.QUADS && !entry.value.vertices.isEmpty()) {
-                            val texture = Services.PLATFORM.getRenderTypeTexture(entry.key)
+                            val texture = Vibrancy.getRenderTypeTexture(entry.key)
                             val output = entityShadows.computeIfAbsent(texture) { LinkedList() }
                             val iterator = entry.value.vertices.iterator()
 

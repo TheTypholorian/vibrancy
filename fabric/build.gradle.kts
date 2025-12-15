@@ -24,7 +24,7 @@ dependencies {
     modImplementation(libs.flk)
     modImplementation(libs.iris)
     modImplementation(libs.sodium)
-    modImplementation(fileTree("libs") {
+    modImplementation(fileTree("../libs/fabric") {
         include("*.jar")
     })
 }

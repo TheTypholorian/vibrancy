@@ -7,8 +7,8 @@ import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.GlobalPos
 import net.minecraft.resources.ResourceLocation
 import net.typho.big_shot_lib.BigShotLib
-import net.typho.big_shot_lib.api.NeoFramebuffer
-import net.typho.big_shot_lib.api.NeoShader
+import net.typho.big_shot_lib.api.impl.NeoFramebuffer
+import net.typho.big_shot_lib.api.impl.NeoShader
 import net.typho.vibrancy.Vibrancy
 import org.joml.Matrix4f
 import org.lwjgl.opengl.GL11.*
