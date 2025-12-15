@@ -1,13 +1,11 @@
 package net.typho.vibrancy.shadows
 
-import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.*
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.client.renderer.LightTexture
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.RenderType
-import net.minecraft.client.renderer.ShaderInstance
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -18,12 +16,16 @@ import net.minecraft.world.inventory.InventoryMenu
 import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.block.RenderShape
 import net.minecraft.world.level.block.state.BlockState
+import net.typho.big_shot_lib.api.IBuffer
+import net.typho.big_shot_lib.api.IShader
+import net.typho.big_shot_lib.api.NeoIndexedBuffer
+import net.typho.big_shot_lib.gl.BufferUsage
+import net.typho.big_shot_lib.gl.GlResourceType
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.light.Light
 import net.typho.vibrancy.light.LightManager
 import net.typho.vibrancy.platform.Services
 import net.typho.vibrancy.shadows.LightFace.Companion.toLightFace
-import net.typho.vibrancy.util.ShaderStorageBuffer
 import org.lwjgl.system.MemoryUtil
 import org.lwjgl.system.NativeResource
 import java.util.*
@@ -32,9 +34,14 @@ import java.util.function.Consumer
 abstract class ShadowManager<L : Light>(
     static: Boolean
 ) : NativeResource, MultiBufferSource {
-    var shadowMesh: VertexBuffer? = VertexBuffer(if (static) VertexBuffer.Usage.STATIC else VertexBuffer.Usage.DYNAMIC)
-    var quadBuffer: ShaderStorageBuffer? =
-        ShaderStorageBuffer(if (static) ShaderStorageBuffer.Usage.STATIC else ShaderStorageBuffer.Usage.STREAM)
+    val shadowMesh by lazy { VertexBuffer(if (static) VertexBuffer.Usage.STATIC else VertexBuffer.Usage.DYNAMIC) }
+    val quadBuffer by lazy {
+        NeoIndexedBuffer(
+            null,
+            GlResourceType.SHADER_STORAGE_BUFFER,
+            if (static) BufferUsage.STATIC_DRAW else BufferUsage.STREAM_DRAW
+        )
+    }
     protected var shadows: MutableList<ShadowVolume> = LinkedList()
     protected var shadowsDirty = false
     protected val shadowBuilders = LinkedHashMap<RenderType, ShadowBuilder>()
@@ -42,15 +49,19 @@ abstract class ShadowManager<L : Light>(
     protected var numEntities: Int = 0
 
     companion object {
-        val DYNAMIC_SHADOW_MESH: VertexBuffer = VertexBuffer(VertexBuffer.Usage.DYNAMIC)
-        val DYNAMIC_QUAD_BUFFER: ShaderStorageBuffer = ShaderStorageBuffer(ShaderStorageBuffer.Usage.STREAM)
+        val DYNAMIC_SHADOW_MESH by lazy { VertexBuffer(VertexBuffer.Usage.DYNAMIC) }
+        val DYNAMIC_QUAD_BUFFER by lazy {
+            NeoIndexedBuffer(
+                Vibrancy.id("dynamic_shadow_quads"),
+                GlResourceType.SHADER_STORAGE_BUFFER,
+                BufferUsage.STREAM_DRAW
+            )
+        }
     }
 
     override fun free() {
-        shadowMesh?.close()
-        shadowMesh = null
-        quadBuffer?.close()
-        quadBuffer = null
+        shadowMesh.close()
+        quadBuffer.release()
     }
 
     open fun numQuads() = shadows.stream()
@@ -135,7 +146,7 @@ abstract class ShadowManager<L : Light>(
     protected open fun uploadShadows(
         light: L,
         shadowMesh: VertexBuffer,
-        quadBuffer: ShaderStorageBuffer,
+        quadBuffer: IBuffer,
         shadows: Collection<ShadowVolume>
     ) {
         if (shadows.isNotEmpty()) {
@@ -153,15 +164,20 @@ abstract class ShadowManager<L : Light>(
             shadowMesh.upload(built)
             VertexBuffer.unbind()
 
-            quadBuffer.bind()
-            quadBuffer.upload(quads.flip())
-            ShaderStorageBuffer.unbind()
+            quadBuffer.bind().use {
+                quadBuffer.upload(MemoryUtil.memAddress(quads.flip()))
+            }
 
             MemoryUtil.memFree(quads)
         }
     }
 
-    protected open fun castEntities(manager: LightManager, blockEntityBox: BlockBox?, entityBox: BlockBox?, light: L): Boolean {
+    protected open fun castEntities(
+        manager: LightManager,
+        blockEntityBox: BlockBox?,
+        entityBox: BlockBox?,
+        light: L
+    ): Boolean {
         val level = manager.getLevel()
         val poseStack = PoseStack()
         var any = false
@@ -212,24 +228,23 @@ abstract class ShadowManager<L : Light>(
         return any
     }
 
-    abstract fun initializeUniforms(manager: LightManager, light: L, shader: ShaderInstance)
+    abstract fun initializeUniforms(manager: LightManager, light: L, shader: IShader)
 
     abstract fun getEntityBox(manager: LightManager, light: L): BlockBox?
 
     abstract fun getBlockEntityBox(manager: LightManager, light: L): BlockBox?
 
-    open fun render(manager: LightManager, raytrace: Boolean, light: L) {
+    open fun render(manager: LightManager, raytrace: Boolean, light: L, shader: IShader) {
         numBlockEntities = 0
         numEntities = 0
 
         if (raytrace) {
             //glPatchParameteri(GL_PATCH_VERTICES, 4);
 
-            val shader = RenderSystem.getShader()!!
             initializeUniforms(manager, light, shader)
 
             if (shadowsDirty) {
-                uploadShadows(light, shadowMesh!!, quadBuffer!!, shadows)
+                uploadShadows(light, shadowMesh, quadBuffer, shadows)
                 shadowsDirty = false
             }
 
@@ -239,14 +254,10 @@ abstract class ShadowManager<L : Light>(
                     Minecraft.getInstance().modelManager.getAtlas(InventoryMenu.BLOCK_ATLAS)
                 )
 
-                quadBuffer!!.bindBase(0)
+                quadBuffer.bindBase(0)
 
-                shadowMesh!!.bind()
-                shadowMesh!!.drawWithShader(
-                    manager.viewMatrix!!,
-                    RenderSystem.getProjectionMatrix(),
-                    shader
-                )
+                shadowMesh.bind()
+                shadowMesh.draw()
             }
 
             for (builder in shadowBuilders.values) {
@@ -254,7 +265,8 @@ abstract class ShadowManager<L : Light>(
             }
 
             if (Vibrancy.ENTITY_SHADOWS) {
-                val anyEntities = castEntities(manager, getBlockEntityBox(manager, light), getEntityBox(manager, light), light)
+                val anyEntities =
+                    castEntities(manager, getBlockEntityBox(manager, light), getEntityBox(manager, light), light)
 
                 if (anyEntities) {
                     val entityShadows = HashMap<ResourceLocation, MutableList<ShadowVolume>>()
@@ -306,11 +318,7 @@ abstract class ShadowManager<L : Light>(
                         DYNAMIC_QUAD_BUFFER.bindBase(0)
 
                         DYNAMIC_SHADOW_MESH.bind()
-                        DYNAMIC_SHADOW_MESH.drawWithShader(
-                            manager.viewMatrix!!,
-                            RenderSystem.getProjectionMatrix(),
-                            shader
-                        )
+                        DYNAMIC_SHADOW_MESH.draw()
                     }
                 }
             }

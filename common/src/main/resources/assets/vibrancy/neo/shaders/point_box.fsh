@@ -1,10 +1,10 @@
 #version 430
 
-#include "vibrancy:common"
-#include "vibrancy:fragment"
-#include "veil:common"
-#include "veil:space_helper"
-#include "veil:light"
+#include "vibrancy:include/common"
+#include "vibrancy:include/fragment"
+//#include "veil:common"
+//#include "veil:space_helper"
+//#include "veil:light"
 
 uniform sampler2D DiffuseDepthSampler;
 uniform sampler2D VeilDynamicNormalSampler;
@@ -17,7 +17,7 @@ uniform float LightRadius;
 out vec4 fragColor;
 
 void main() {
-    discard;
+    fragColor = vec4(LightColor, 1);
     //vec3 pos = getWorldPos(DiffuseDepthSampler, ScreenSize);
 
     //fragColor = sampleLight(VeilDynamicNormalSampler, LightPos, pos, LightRadius, LightColor);

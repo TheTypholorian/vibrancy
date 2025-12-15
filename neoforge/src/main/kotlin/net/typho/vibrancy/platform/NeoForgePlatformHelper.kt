@@ -1,6 +1,5 @@
 package net.typho.vibrancy.platform
 
-import foundry.veil.api.client.render.rendertype.VeilRenderType
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.resources.ResourceLocation
 import net.neoforged.fml.loading.FMLLoader
@@ -23,12 +22,6 @@ class NeoForgePlatformHelper : PlatformHelper {
         return when (renderType) {
             is RenderType.CompositeRenderType -> {
                 renderType.state().textureState.cutoutTexture().orElseThrow()
-            }
-            is VeilRenderType.LayeredRenderType -> {
-                getRenderTypeTexture(renderType.layers.first())
-            }
-            is VeilRenderType.RenderTypeWrapper -> {
-                getRenderTypeTexture(renderType.get()!!)
             }
             else -> throw UnsupportedOperationException("Unable to get texture for render type ${renderType.javaClass} $renderType")
         }

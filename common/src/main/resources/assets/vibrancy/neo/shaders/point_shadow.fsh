@@ -1,10 +1,10 @@
 #version 430
 
-#include "vibrancy:common"
-#include "vibrancy:fragment"
-#include "veil:common"
-#include "veil:space_helper"
-#include "veil:light"
+#include "vibrancy:include/common"
+#include "vibrancy:include/fragment"
+//#include "veil:common"
+//#include "veil:space_helper"
+//#include "veil:light"
 
 uniform sampler2D AtlasSampler;
 uniform sampler2D DiffuseDepthSampler;

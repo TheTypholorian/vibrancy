@@ -1,7 +1,5 @@
 package net.typho.vibrancy.light
 
-import foundry.veil.api.client.color.Color
-import foundry.veil.api.client.color.Colorc
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.resources.ResourceKey
@@ -11,10 +9,11 @@ import net.minecraft.world.level.block.state.BlockState
 import net.typho.vibrancy.util.BlockStateFunction
 import net.typho.vibrancy.util.getKey
 import org.joml.Vector3f
+import java.awt.Color
 import java.util.*
 
 data class DynamicLightInfo(
-    val color: Optional<BlockStateFunction<Colorc>>,
+    val color: Optional<BlockStateFunction<Color>>,
     val radius: Optional<BlockStateFunction<Float>>,
     val brightness: Optional<BlockStateFunction<Float>>,
     val offset: Optional<BlockStateFunction<Vector3f>>

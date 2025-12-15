@@ -24,6 +24,9 @@ dependencies {
     modImplementation(libs.flk)
     modImplementation(libs.iris)
     modImplementation(libs.sodium)
+    modImplementation(fileTree("libs") {
+        include("*.jar")
+    })
 }
 
 loom {

@@ -1,0 +1,4 @@
+{
+  "vertex": "big_shot_lib:blit",
+  "fragment": "vibrancy:post"
+}

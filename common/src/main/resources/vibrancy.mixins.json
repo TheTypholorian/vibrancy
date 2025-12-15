@@ -7,13 +7,12 @@
   "mixins": [
     "LevelMixin",
     "OptionsMixin",
-    "ShaderImportProcessorMixin",
     "SodiumGameOptionsPagesAccessor",
-    "VeilRendererMixin",
     "VertexConsumerTrackerMixin"
   ],
   "client": [
     "ClientChunkCacheStorageMixin",
+    "DebugScreenOverlayMixin",
     "LevelRendererMixin",
     "MinecraftMixin",
     "SodiumOptionsGUIMixin",

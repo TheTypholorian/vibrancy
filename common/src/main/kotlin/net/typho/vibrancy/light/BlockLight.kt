@@ -1,7 +1,5 @@
 package net.typho.vibrancy.light
 
-import foundry.veil.api.client.color.Color
-import foundry.veil.api.client.color.Colorc
 import net.minecraft.client.Camera
 import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
@@ -13,13 +11,14 @@ import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.util.getKey
 import net.typho.vibrancy.util.withBrightness
 import org.joml.Vector3f
+import java.awt.Color
 import java.util.function.Supplier
 
 data class BlockLight(
     private val blockPos: BlockPos,
     var offset: Supplier<Vector3f>,
     private var radius: Supplier<Float>,
-    private var color: Supplier<Colorc>
+    private var color: Supplier<Color>
 ) : PointLight() {
     constructor(blockPos: BlockPos, info: DynamicLightInfo, state: BlockState) : this(
         blockPos,
@@ -72,7 +71,7 @@ data class BlockLight(
     override fun getShadowRadius(manager: LightManager): Int =
         getRadius().coerceAtMost(manager.shadowRadius.toFloat()).toInt()
 
-    override fun getColor(): Colorc = color.get()
+    override fun getColor(): Color = color.get()
 
     override fun testCullingDistance(camera: Camera, chunks: Int): Boolean =
         getPosition().distanceSquared(camera.position.toVector3f()) <= (chunks * chunks * 256)

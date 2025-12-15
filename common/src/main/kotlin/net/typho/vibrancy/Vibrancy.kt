@@ -5,19 +5,20 @@ import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.mojang.blaze3d.vertex.VertexBuffer
 import com.mojang.blaze3d.vertex.VertexFormat
-import foundry.veil.api.client.render.VeilRenderSystem
-import foundry.veil.api.client.render.dynamicbuffer.DynamicBufferType
-import foundry.veil.api.client.render.rendertype.VeilRenderType
-import foundry.veil.platform.VeilEventPlatform
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
 import net.minecraft.core.Direction
 import net.minecraft.core.GlobalPos
 import net.minecraft.resources.ResourceLocation
+import net.typho.big_shot_lib.BigShotLib
+import net.typho.big_shot_lib.api.ITexture
+import net.typho.big_shot_lib.api.NeoFramebuffer
+import net.typho.big_shot_lib.api.NeoShader
+import net.typho.big_shot_lib.gl.GlResourceType
+import net.typho.big_shot_lib.gl.TextureFormat
 import net.typho.vibrancy.light.BlockLight
 import net.typho.vibrancy.light.LightManager
 import net.typho.vibrancy.platform.Services
-import net.typho.vibrancy.util.ShaderStorageBuffer
 import net.typho.vibrancy.util.glClear
 import org.joml.Vector3f
 import org.lwjgl.opengl.GL11.*
@@ -39,17 +40,23 @@ object Vibrancy {
     var LIGHT_BRIGHTNESS: Float = 1f
     var ENTITY_SHADOWS: Boolean = true
     val LIGHT_MANAGER = LightManager(DIRTY_BLOCKS, 16, 32, 200, 100, 6)
-
-    var RENDER_DEBUG_LINES = false
+    val OUTPUT_FBO by lazy {
+        val fbo = NeoFramebuffer.TextureBacked(
+            id("output"),
+            arrayOf(TextureFormat.RGB16F),
+            TextureFormat.DEPTH24_STENCIL8,
+            Minecraft.getInstance().window.width,
+            Minecraft.getInstance().window.height
+        )
+        NeoFramebuffer.AUTO_RESIZE.add(fbo)
+        NeoFramebuffer.register(fbo)
+        fbo
+    }
 
     var PATCHES_MODE: VertexFormat.Mode? = null
 
     fun init() {
         loadConfig()
-        ModRenderTypeLayers.init()
-        VeilEventPlatform.INSTANCE.onVeilRendererAvailable { renderer ->
-            renderer.postProcessingManager.add(id("post"))
-        }
     }
 
     fun pointsToward(face: Direction, offset: Vector3f?): Boolean {
@@ -89,41 +96,58 @@ object Vibrancy {
     }
 
     fun render() {
-        LIGHT_MANAGER.viewMatrix = LIGHT_MANAGER.createViewMatrix()
+        LIGHT_MANAGER.viewMatrix = LIGHT_MANAGER.getViewMatrix()
         LIGHT_MANAGER.lightsRendered = 0
         LIGHT_MANAGER.lightsRaytraced = 0
 
-        VeilRenderSystem.renderer()
-            .enableBuffers(id("light"), DynamicBufferType.NORMAL, DynamicBufferType.ALBEDO, DynamicBufferType.LIGHT_UV)
+        OUTPUT_FBO.glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT or GL_STENCIL_BUFFER_BIT)
+        OUTPUT_FBO.bind().use {
+            LIGHT_MANAGER.setupStencil(id("output"))
 
-        val outputFramebuffer = VeilRenderSystem.renderer().framebufferManager.getFramebuffer(id("output"))!!
+            glColorMask(true, true, true, true)
+            glDisable(GL_DEPTH_TEST)
+            glCullFace(GL_FRONT)
+            glEnable(GL_BLEND)
+            glBlendFunc(GL_ONE, GL_ONE)
+            glEnable(GL_STENCIL_TEST)
+            glStencilMask(1)
+            glStencilFunc(GL_ALWAYS, 0, 0xFF)
+            glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP)
 
-        outputFramebuffer.glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT or GL_STENCIL_BUFFER_BIT)
+            BlockLight.LIGHTS.values.stream()
+                .sorted(Comparator.comparingDouble {
+                    it.getPosition().distanceSquared(LIGHT_MANAGER.getCamera().position.toVector3f()).toDouble()
+                })
+                .forEachOrdered { light ->
+                    if (LIGHT_MANAGER.shouldRender(light)) {
+                        val raytrace = LIGHT_MANAGER.shouldRaytrace(light)
 
-        LIGHT_MANAGER.setupStencil(id("output"))
-
-        val pointRenderType = VeilRenderType.get(id("point_common"))!!
-        pointRenderType.setupRenderState()
-
-        BlockLight.LIGHTS.values.stream()
-            .sorted(Comparator.comparingDouble {
-                it.getPosition().distanceSquared(LIGHT_MANAGER.getCamera().position.toVector3f()).toDouble()
-            })
-            .forEachOrdered { light ->
-                if (LIGHT_MANAGER.shouldRender(light)) {
-                    val raytrace = LIGHT_MANAGER.shouldRaytrace(light)
-
-                    light.render(LIGHT_MANAGER, raytrace)
-                    LIGHT_MANAGER.postRender(light, raytrace)
+                        light.render(LIGHT_MANAGER, raytrace)
+                        LIGHT_MANAGER.postRender(light, raytrace)
+                    }
                 }
-            }
 
-        pointRenderType.clearRenderState()
+            GlResourceType.SHADER_STORAGE_BUFFER.unbindBase(0)
+            VertexBuffer.unbind()
 
-        ShaderStorageBuffer.unbindBase(0)
-        VertexBuffer.unbind()
+            glDisable(GL_STENCIL_TEST)
 
-        DIRTY_BLOCKS.clear()
+            DIRTY_BLOCKS.clear()
+        }
+
+        // TODO albedo
+        glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+        NeoShader.get(id("post"))!!.bind().use {
+            val shader = it.resource()
+            shader.setCommonUniforms()
+            shader.setSampler("VibrancyOutputSampler", OUTPUT_FBO.colorAttachments[0] as ITexture)
+
+            BigShotLib.SCREEN_VBO.bind()
+            BigShotLib.SCREEN_VBO.draw()
+            VertexBuffer.unbind()
+        }
+
+        glCullFace(GL_BACK)
     }
 
     fun reloadShadows() {

@@ -1,19 +1,17 @@
 package net.typho.vibrancy.light
 
-import com.mojang.blaze3d.systems.RenderSystem
-import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.mojang.blaze3d.vertex.VertexBuffer
-import com.mojang.blaze3d.vertex.VertexFormat
-import foundry.veil.api.client.render.VeilRenderSystem
-import foundry.veil.api.client.render.rendertype.VeilRenderType
 import net.minecraft.client.Camera
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.GlobalPos
 import net.minecraft.resources.ResourceLocation
+import net.typho.big_shot_lib.BigShotLib
+import net.typho.big_shot_lib.api.NeoFramebuffer
+import net.typho.big_shot_lib.api.NeoShader
 import net.typho.vibrancy.Vibrancy
-import net.typho.vibrancy.util.invert
 import org.joml.Matrix4f
+import org.lwjgl.opengl.GL11.*
 
 open class LightManager(
     var dirtyBlocks: Iterable<GlobalPos>,
@@ -30,24 +28,6 @@ open class LightManager(
         const val SKY_STENCIL_MASK: Int = 0b01000000
         const val BLOCK_STENCIL_MASK: Int = 0b10000000
         const val SHADOW_MASK: Int = 0b1
-
-        var SCREEN_VBO: VertexBuffer? = null
-
-        init {
-            RenderSystem.recordRenderCall {
-                val builder = RenderSystem.renderThreadTesselator()
-                    .begin(VertexFormat.Mode.TRIANGLE_STRIP, DefaultVertexFormat.POSITION_TEX)
-                builder.addVertex(-1f, 1f, 0f).setUv(0f, 1f)
-                builder.addVertex(-1f, -1f, 0f).setUv(0f, 0f)
-                builder.addVertex(1f, 1f, 0f).setUv(1f, 1f)
-                builder.addVertex(1f, -1f, 0f).setUv(1f, 0f)
-
-                SCREEN_VBO = VertexBuffer(VertexBuffer.Usage.STATIC)
-                SCREEN_VBO!!.bind()
-                SCREEN_VBO!!.upload(builder.buildOrThrow())
-                VertexBuffer.unbind()
-            }
-        }
     }
 
     var lightsRendered: Int = 0
@@ -60,25 +40,31 @@ open class LightManager(
 
     fun getCamera(): Camera = Minecraft.getInstance().gameRenderer.mainCamera
 
-    fun createViewMatrix(camera: Camera = getCamera()): Matrix4f = RenderSystem.getModelViewMatrix()
-        .translate(camera.position.toVector3f().invert())
+    fun getViewMatrix(camera: Camera = getCamera()): Matrix4f = BigShotLib.getViewMatrix(camera)
 
     fun setupStencil(framebuffer: ResourceLocation) {
-        val block = VeilRenderType.get(Vibrancy.id("stencil_setup_block"), framebuffer.toString())!!
-        block.setupRenderState()
+        NeoShader.get(Vibrancy.id("stencil_setup"))!!.bind().use {
+            NeoFramebuffer.get(framebuffer)!!.bind().use {
+                glColorMask(false, false, false, false)
+                glDepthMask(false)
+                glEnable(GL_STENCIL_TEST)
+                glStencilMask(BLOCK_STENCIL_MASK)
+                glStencilFunc(GL_ALWAYS, BLOCK_STENCIL_MASK, BLOCK_STENCIL_MASK)
+                glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE)
 
-        SCREEN_VBO!!.bind()
-        @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
-        SCREEN_VBO!!.drawWithShader(null, null, RenderSystem.getShader()!!)
-        VertexBuffer.unbind()
-
-        block.clearRenderState()
+                BigShotLib.SCREEN_VBO.bind()
+                @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
+                BigShotLib.SCREEN_VBO.draw()
+                VertexBuffer.unbind()
+            }
+        }
     }
 
     fun shouldRender(light: Light, camera: Camera = getCamera()): Boolean {
         return (maxRendered > 400 || lightsRendered < maxRendered)
                 && light.testCullingDistance(camera, lightCullDistance)
-                && VeilRenderSystem.getCullingFrustum().testAab(light.getCullingBox())
+                // TODO reimplement frustum culling
+                //&& VeilRenderSystem.getCullingFrustum().testAab(light.getCullingBox())
     }
 
     fun shouldRaytrace(light: Light, camera: Camera = getCamera()): Boolean {

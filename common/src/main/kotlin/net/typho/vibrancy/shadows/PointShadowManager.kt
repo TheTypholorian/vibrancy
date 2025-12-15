@@ -1,11 +1,11 @@
 package net.typho.vibrancy.shadows
 
-import net.minecraft.client.renderer.ShaderInstance
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.block.state.BlockState
+import net.typho.big_shot_lib.api.IShader
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.light.LightManager
 import net.typho.vibrancy.light.PointLight
@@ -97,8 +97,9 @@ open class PointShadowManager(static: Boolean) : ShadowManager<PointLight>(stati
         }
     }
 
-    override fun initializeUniforms(manager: LightManager, light: PointLight, shader: ShaderInstance) {
-        shader.safeGetUniform("LightPos").set(light.getPosition())
+    override fun initializeUniforms(manager: LightManager, light: PointLight, shader: IShader) {
+        shader.setCommonUniforms()
+        shader.getUniform("LightPos")?.set(light.getPosition())
     }
 
     override fun getEntityBox(manager: LightManager, light: PointLight): BlockBox? {
@@ -109,12 +110,12 @@ open class PointShadowManager(static: Boolean) : ShadowManager<PointLight>(stati
         return BlockBox.of(light.getBlockPos()).expand(light.getShadowRadius(manager))
     }
 
-    override fun render(manager: LightManager, raytrace: Boolean, light: PointLight) {
+    override fun render(manager: LightManager, raytrace: Boolean, light: PointLight, shader: IShader) {
         if (fullRebuildTask?.isDone ?: false) {
             shadows = fullRebuildTask!!.get()
             fullRebuildTask = null
         }
 
-        super.render(manager, raytrace, light)
+        super.render(manager, raytrace, light, shader)
     }
 }

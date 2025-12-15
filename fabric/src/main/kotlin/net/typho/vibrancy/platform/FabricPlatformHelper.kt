@@ -1,7 +1,9 @@
 package net.typho.vibrancy.platform
 
-import foundry.veil.api.client.render.rendertype.VeilRenderType
 import net.fabricmc.loader.api.FabricLoader
+import net.irisshaders.batchedentityrendering.impl.wrappers.TaggingRenderTypeWrapper
+import net.irisshaders.iris.layer.InnerWrappedRenderType
+import net.irisshaders.iris.layer.OuterWrappedRenderType
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.resources.ResourceLocation
 import net.typho.vibrancy.platform.services.PlatformHelper
@@ -23,11 +25,14 @@ class FabricPlatformHelper : PlatformHelper {
             is RenderType.CompositeRenderType -> {
                 renderType.state().textureState.cutoutTexture().orElseThrow()
             }
-            is VeilRenderType.LayeredRenderType -> {
-                getRenderTypeTexture(renderType.layers.first())
+            is OuterWrappedRenderType -> {
+                getRenderTypeTexture(renderType.unwrap())
             }
-            is VeilRenderType.RenderTypeWrapper -> {
-                getRenderTypeTexture(renderType.get()!!)
+            is InnerWrappedRenderType -> {
+                getRenderTypeTexture(renderType.unwrap())
+            }
+            is TaggingRenderTypeWrapper -> {
+                getRenderTypeTexture(renderType.unwrap())
             }
             else -> throw UnsupportedOperationException("Unable to get texture for render type ${renderType.javaClass} $renderType")
         }

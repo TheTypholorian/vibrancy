@@ -4,20 +4,21 @@ import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.mojang.blaze3d.vertex.VertexBuffer
 import com.mojang.blaze3d.vertex.VertexFormat
-import foundry.veil.api.client.color.Colorc
-import foundry.veil.api.client.render.VeilRenderSystem
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.world.phys.Vec3
+import net.typho.big_shot_lib.BigShotLib.cube
+import net.typho.big_shot_lib.api.IShader
+import net.typho.big_shot_lib.api.NeoShader
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.shadows.PointShadowManager
 import net.typho.vibrancy.util.boxOfRadius
-import net.typho.vibrancy.util.cube
 import net.typho.vibrancy.util.expand
 import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.lwjgl.opengl.GL11.*
 import org.lwjgl.system.NativeResource
+import java.awt.Color
 import kotlin.math.ceil
 import kotlin.math.floor
 
@@ -41,20 +42,16 @@ abstract class PointLight : Light, NativeResource {
         VertexBuffer.unbind()
     }
 
-    fun renderMesh(vbo: VertexBuffer, view: Matrix4f) {
-        val shader = RenderSystem.getShader()!!
+    fun renderMesh(vbo: VertexBuffer, view: Matrix4f, shader: IShader) {
         val color = getColor()
 
-        shader.safeGetUniform("LightPos").set(getPosition())
-        shader.safeGetUniform("LightColor").set(Vector3f(color.red(), color.green(), color.blue()))
-        shader.safeGetUniform("LightRadius").set(getRadius())
+        shader.setCommonUniforms(modelViewMat = view)
+        shader.getUniform("LightPos")?.set(getPosition())
+        shader.getUniform("LightColor")?.set(Vector3f(color.red / 255f, color.green / 255f, color.blue / 255f))
+        shader.getUniform("LightRadius")?.set(getRadius())
 
         vbo.bind()
-        vbo.drawWithShader(
-            view,
-            RenderSystem.getProjectionMatrix(),
-            shader
-        )
+        vbo.draw()
     }
 
     override fun render(manager: LightManager, raytrace: Boolean) {
@@ -81,19 +78,24 @@ abstract class PointLight : Light, NativeResource {
 
         glClear(GL_STENCIL_BUFFER_BIT)
 
-        VeilRenderSystem.setShader(Vibrancy.id("point_shadow"))
-        glStencilFunc(GL_NOTEQUAL,
-            LightManager.Companion.SHADOW_MASK, LightManager.Companion.BLOCK_STENCIL_MASK or LightManager.Companion.SHADOW_MASK
-        )
-        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE)
+        /*
+        NeoShader.get(Vibrancy.id("point_shadow"))!!.bind().use {
+            glStencilFunc(GL_NOTEQUAL,
+                LightManager.Companion.SHADOW_MASK, LightManager.Companion.BLOCK_STENCIL_MASK or LightManager.Companion.SHADOW_MASK
+            )
+            glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE)
 
-        shadows.render(manager, raytrace, this)
+            shadows.render(manager, raytrace, this, it.resource())
+        }
+         */
 
-        VeilRenderSystem.setShader(Vibrancy.id("point_box"))
-        glStencilFunc(GL_EQUAL, 0, LightManager.Companion.SHADOW_MASK)
-        glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP)
+        NeoShader.get(Vibrancy.id("point_box"))!!.bind().use {
+            glDisable(GL_STENCIL_TEST)
+            //glStencilFunc(GL_EQUAL, 0, LightManager.Companion.SHADOW_MASK)
+            //glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP)
 
-        renderMesh(boxMesh, manager.viewMatrix!!)
+            renderMesh(boxMesh, manager.viewMatrix!!, it.resource())
+        }
     }
 
     override fun getCullingBox() = getBoundingBox()
@@ -116,7 +118,7 @@ abstract class PointLight : Light, NativeResource {
 
     abstract fun getShadowRadius(manager: LightManager): Int
 
-    abstract fun getColor(): Colorc
+    abstract fun getColor(): Color
 
     protected fun isStatic() = true
 }
