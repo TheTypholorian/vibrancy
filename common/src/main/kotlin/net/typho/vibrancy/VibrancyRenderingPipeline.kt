@@ -11,6 +11,7 @@ import net.irisshaders.iris.targets.Blaze3dRenderTargetExt
 import net.irisshaders.iris.targets.RenderTargets
 import net.minecraft.client.Minecraft
 import net.typho.big_shot_lib.BigShotLib
+import net.typho.big_shot_lib.api.ITexture
 import net.typho.big_shot_lib.api.impl.NeoShader
 import net.typho.big_shot_lib.gl.GlStack
 import net.typho.big_shot_lib.gl.resource.GlResourceType
@@ -106,8 +107,7 @@ open class VibrancyRenderingPipeline : VanillaRenderingPipeline() {
             val shader = NeoShader.get(id("post"))!!
             shader.bind(stack)
             shader.setCommonUniforms()
-            shader.setSampler("VibrancyOutputSampler", renderTargets.get(0).mainTexture)
-            //shader.setSampler("VibrancyOutputSampler", OUTPUT_FBO.colorAttachments[0] as ITexture)
+            shader.setSampler("VibrancyOutputSampler", OUTPUT_FBO.colorAttachments[0] as ITexture)
 
             BigShotLib.SCREEN_VBO.bind()
             BigShotLib.SCREEN_VBO.draw()
