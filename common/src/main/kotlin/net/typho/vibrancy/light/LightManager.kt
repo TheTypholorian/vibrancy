@@ -1,17 +1,15 @@
 package net.typho.vibrancy.light
 
-import com.mojang.blaze3d.vertex.VertexBuffer
 import net.minecraft.client.Camera
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.GlobalPos
-import net.minecraft.resources.ResourceLocation
 import net.typho.big_shot_lib.BigShotLib
-import net.typho.big_shot_lib.api.impl.NeoFramebuffer
 import net.typho.big_shot_lib.api.impl.NeoShader
+import net.typho.big_shot_lib.gl.GlStack
+import net.typho.big_shot_lib.gl.state.*
 import net.typho.vibrancy.Vibrancy
 import org.joml.Matrix4f
-import org.lwjgl.opengl.GL11.*
 
 open class LightManager(
     var dirtyBlocks: Iterable<GlobalPos>,
@@ -42,22 +40,29 @@ open class LightManager(
 
     fun getViewMatrix(camera: Camera = getCamera()): Matrix4f = BigShotLib.getViewMatrix(camera)
 
-    fun setupStencil(framebuffer: ResourceLocation) {
-        NeoShader.get(Vibrancy.id("stencil_setup"))!!.bind().use {
-            NeoFramebuffer.get(framebuffer)!!.bind().use {
-                glColorMask(false, false, false, false)
-                glDepthMask(false)
-                glEnable(GL_STENCIL_TEST)
-                glStencilMask(BLOCK_STENCIL_MASK)
-                glStencilFunc(GL_ALWAYS, BLOCK_STENCIL_MASK, BLOCK_STENCIL_MASK)
-                glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE)
+    fun setupStencil(stack: GlStack) {
+        NeoShader.get(Vibrancy.id("stencil_setup"))!!.bind(stack)
 
-                BigShotLib.SCREEN_VBO.bind()
-                @Suppress("NULLABILITY_MISMATCH_BASED_ON_JAVA_ANNOTATIONS")
-                BigShotLib.SCREEN_VBO.draw()
-                VertexBuffer.unbind()
-            }
-        }
+        stack.set(ColorMask, ColorMask.Mask(false, false, false, false))
+        stack.enable(GlCapability.STENCIL_TEST)
+        stack.set(StencilMask, BLOCK_STENCIL_MASK)
+        stack.set(
+            StencilFunc, StencilFunc.Mode(
+                ComparisonMode.ALWAYS,
+                BLOCK_STENCIL_MASK,
+                BLOCK_STENCIL_MASK
+            )
+        )
+        stack.set(
+            StencilOp, StencilOp.Mode(
+                IntAction.KEEP,
+                IntAction.KEEP,
+                IntAction.REPLACE
+            )
+        )
+
+        BigShotLib.SCREEN_VBO.bind()
+        BigShotLib.SCREEN_VBO.draw()
     }
 
     fun shouldRender(light: Light, camera: Camera = getCamera()): Boolean {

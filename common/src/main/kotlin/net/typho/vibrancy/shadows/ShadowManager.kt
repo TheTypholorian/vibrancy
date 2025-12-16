@@ -19,6 +19,7 @@ import net.minecraft.world.level.block.state.BlockState
 import net.typho.big_shot_lib.api.IBuffer
 import net.typho.big_shot_lib.api.IShader
 import net.typho.big_shot_lib.api.impl.NeoIndexedBuffer
+import net.typho.big_shot_lib.gl.GlStack
 import net.typho.big_shot_lib.gl.resource.BufferUsage
 import net.typho.big_shot_lib.gl.resource.GlResourceType
 import net.typho.vibrancy.Vibrancy
@@ -161,7 +162,6 @@ abstract class ShadowManager<L : Light>(
 
             shadowMesh.bind()
             shadowMesh.upload(built)
-            VertexBuffer.unbind()
 
             quadBuffer.bind().use {
                 quadBuffer.upload(MemoryUtil.memAddress(quads.flip()))
@@ -233,7 +233,7 @@ abstract class ShadowManager<L : Light>(
 
     abstract fun getBlockEntityBox(manager: LightManager, light: L): BlockBox?
 
-    open fun render(manager: LightManager, raytrace: Boolean, light: L, shader: IShader) {
+    open fun render(manager: LightManager, raytrace: Boolean, light: L, shader: IShader, stack: GlStack) {
         numBlockEntities = 0
         numEntities = 0
 
@@ -253,7 +253,7 @@ abstract class ShadowManager<L : Light>(
                     Minecraft.getInstance().modelManager.getAtlas(InventoryMenu.BLOCK_ATLAS)
                 )
 
-                quadBuffer.bindBase(0)
+                quadBuffer.bindBase(stack, 0)
 
                 shadowMesh.bind()
                 shadowMesh.draw()
@@ -314,7 +314,7 @@ abstract class ShadowManager<L : Light>(
                             Minecraft.getInstance().textureManager.getTexture(entry.key)
                         )
 
-                        DYNAMIC_QUAD_BUFFER.bindBase(0)
+                        DYNAMIC_QUAD_BUFFER.bindBase(stack, 0)
 
                         DYNAMIC_SHADOW_MESH.bind()
                         DYNAMIC_SHADOW_MESH.draw()

@@ -8,6 +8,7 @@
     "IrisMixin",
     "LevelMixin",
     "OptionsMixin",
+    "RenderTargetMixin",
     "SodiumGameOptionsPagesAccessor",
     "VertexConsumerTrackerMixin"
   ],

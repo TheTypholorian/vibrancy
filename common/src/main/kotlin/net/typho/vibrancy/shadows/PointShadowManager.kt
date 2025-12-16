@@ -6,6 +6,7 @@ import net.minecraft.core.Direction
 import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.block.state.BlockState
 import net.typho.big_shot_lib.api.IShader
+import net.typho.big_shot_lib.gl.GlStack
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.light.LightManager
 import net.typho.vibrancy.light.PointLight
@@ -110,12 +111,12 @@ open class PointShadowManager(static: Boolean) : ShadowManager<PointLight>(stati
         return BlockBox.of(light.getBlockPos()).expand(light.getShadowRadius(manager))
     }
 
-    override fun render(manager: LightManager, raytrace: Boolean, light: PointLight, shader: IShader) {
+    override fun render(manager: LightManager, raytrace: Boolean, light: PointLight, shader: IShader, stack: GlStack) {
         if (fullRebuildTask?.isDone ?: false) {
             shadows = fullRebuildTask!!.get()
             fullRebuildTask = null
         }
 
-        super.render(manager, raytrace, light, shader)
+        super.render(manager, raytrace, light, shader, stack)
     }
 }

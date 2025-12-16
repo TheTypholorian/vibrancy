@@ -10,6 +10,8 @@ import net.minecraft.world.phys.Vec3
 import net.typho.big_shot_lib.BigShotLib.cube
 import net.typho.big_shot_lib.api.IShader
 import net.typho.big_shot_lib.api.impl.NeoShader
+import net.typho.big_shot_lib.gl.GlStack
+import net.typho.big_shot_lib.gl.state.GlCapability
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.shadows.PointShadowManager
 import net.typho.vibrancy.util.boxOfRadius
@@ -42,7 +44,7 @@ abstract class PointLight : Light, NativeResource {
         VertexBuffer.unbind()
     }
 
-    fun renderMesh(vbo: VertexBuffer, view: Matrix4f, shader: IShader) {
+    fun renderMesh(vbo: VertexBuffer, view: Matrix4f, shader: IShader, stack: GlStack) {
         val color = getColor()
 
         shader.setCommonUniforms(modelViewMat = view)
@@ -54,7 +56,7 @@ abstract class PointLight : Light, NativeResource {
         vbo.draw()
     }
 
-    override fun render(manager: LightManager, raytrace: Boolean) {
+    override fun render(manager: LightManager, raytrace: Boolean, stack: GlStack) {
         val shadowRadius = getShadowRadius(manager)
         val shadowRadiusSq = shadowRadius * shadowRadius
 
@@ -89,13 +91,13 @@ abstract class PointLight : Light, NativeResource {
         }
          */
 
-        NeoShader.get(Vibrancy.id("point_box"))!!.bind().use {
-            glDisable(GL_STENCIL_TEST)
-            //glStencilFunc(GL_EQUAL, 0, LightManager.Companion.SHADOW_MASK)
-            //glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP)
+        val shader = NeoShader.get(Vibrancy.id("point_box"))!!
+        shader.bind(stack)
+        stack.enable(GlCapability.STENCIL_TEST)
+        glStencilFunc(GL_EQUAL, 0, LightManager.Companion.SHADOW_MASK)
+        glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP)
 
-            renderMesh(boxMesh, manager.viewMatrix!!, it.resource())
-        }
+        renderMesh(boxMesh, manager.viewMatrix!!, shader, stack)
     }
 
     override fun getCullingBox() = getBoundingBox()
