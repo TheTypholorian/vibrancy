@@ -29,9 +29,6 @@
     "java": ">=${java_version}",
     "fabric-language-kotlin": ">=${flk_version}",
     "sodium": "*",
-    "iris": ">=${iris_version}"
-  },
-  "suggests": {
-    "another-mod": "*"
+    "big_shot_lib": "*"
   }
 }

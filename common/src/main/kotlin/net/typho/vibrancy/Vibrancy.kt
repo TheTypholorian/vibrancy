@@ -3,28 +3,34 @@ package net.typho.vibrancy
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
+import com.mojang.blaze3d.vertex.VertexBuffer
 import com.mojang.blaze3d.vertex.VertexFormat
-import net.irisshaders.batchedentityrendering.impl.wrappers.TaggingRenderTypeWrapper
-import net.irisshaders.iris.layer.InnerWrappedRenderType
-import net.irisshaders.iris.layer.OuterWrappedRenderType
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.core.Direction
 import net.minecraft.core.GlobalPos
 import net.minecraft.resources.ResourceLocation
+import net.typho.big_shot_lib.BigShotLib
+import net.typho.big_shot_lib.api.ITexture
 import net.typho.big_shot_lib.api.impl.NeoFramebuffer
+import net.typho.big_shot_lib.api.impl.NeoShader
+import net.typho.big_shot_lib.gl.GlStack
+import net.typho.big_shot_lib.gl.resource.GlResourceType
 import net.typho.big_shot_lib.gl.resource.TextureFormat
+import net.typho.big_shot_lib.gl.state.*
 import net.typho.vibrancy.light.BlockLight
 import net.typho.vibrancy.light.LightManager
 import net.typho.vibrancy.platform.Services
 import org.joml.Vector3f
+import org.lwjgl.opengl.GL11.*
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
 import java.util.function.Consumer
+import kotlin.use
 
 object Vibrancy {
     const val MOD_ID = "vibrancy"
@@ -56,22 +62,87 @@ object Vibrancy {
         loadConfig()
     }
 
+    fun render() {
+        LIGHT_MANAGER.viewMatrix = LIGHT_MANAGER.getViewMatrix()
+        LIGHT_MANAGER.lightsRendered = 0
+        LIGHT_MANAGER.lightsRaytraced = 0
+
+        GlStack().use { stack ->
+            OUTPUT_FBO.bind(stack)
+
+            glClearColor(0f, 0f, 0f, 0f)
+            glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT or GL_STENCIL_BUFFER_BIT)
+
+            //LIGHT_MANAGER.setupStencil(stack)
+
+            stack.set(ColorMask, ColorMask.Mask(true, true, true, true))
+            stack.disable(GlCapability.DEPTH_TEST)
+            stack.set(CullFace, Face.FRONT)
+            stack.enable(GlCapability.BLEND)
+            stack.set(
+                BlendFunction, BlendFunction.Mode(
+                    BlendFunction.Factor.ONE,
+                    BlendFunction.Factor.ONE
+                )
+            )
+            stack.set(StencilMask, 1)
+            stack.set(
+                StencilFunc, StencilFunc.Mode(
+                    ComparisonMode.ALWAYS,
+                    0,
+                    0xFF
+                )
+            )
+            stack.set(
+                StencilOp, StencilOp.Mode(
+                    IntAction.KEEP,
+                    IntAction.KEEP,
+                    IntAction.KEEP
+                )
+            )
+
+            BlockLight.LIGHTS.values.stream()
+                .sorted(Comparator.comparingDouble {
+                    it.getPosition().distanceSquared(LIGHT_MANAGER.getCamera().position.toVector3f()).toDouble()
+                })
+                .forEachOrdered { light ->
+                    if (LIGHT_MANAGER.shouldRender(light)) {
+                        val raytrace = LIGHT_MANAGER.shouldRaytrace(light)
+
+                        light.render(LIGHT_MANAGER, raytrace, stack)
+                        LIGHT_MANAGER.postRender(light, raytrace)
+                    }
+                }
+
+            stack.boundMap[GlResourceType.FRAMEBUFFER]?.unbind()
+
+            // TODO albedo
+            stack.disable(GlCapability.CULL_FACE)
+            stack.enable(GlCapability.BLEND)
+            stack.set(
+                BlendFunction, BlendFunction.Mode(
+                    BlendFunction.Factor.ONE,
+                    BlendFunction.Factor.ONE
+                )
+            )
+            val shader = NeoShader.get(id("post"))!!
+            shader.bind(stack)
+            shader.setCommonUniforms()
+            shader.setSampler("VibrancyOutputSampler", OUTPUT_FBO.colorAttachments[0] as ITexture)
+
+            BigShotLib.SCREEN_VBO.bind()
+            BigShotLib.SCREEN_VBO.draw()
+
+            DIRTY_BLOCKS.clear()
+        }
+
+        VertexBuffer.unbind()
+    }
+
     fun getRenderTypeTexture(renderType: RenderType): ResourceLocation {
         return when (renderType) {
             is RenderType.CompositeRenderType -> {
                 renderType.state().textureState.cutoutTexture().orElseThrow()
-            }
-
-            is OuterWrappedRenderType -> {
-                getRenderTypeTexture(renderType.unwrap())
-            }
-
-            is InnerWrappedRenderType -> {
-                getRenderTypeTexture(renderType.unwrap())
-            }
-
-            is TaggingRenderTypeWrapper -> {
-                getRenderTypeTexture(renderType.unwrap())
             }
 
             else -> throw UnsupportedOperationException("Unable to get texture for render type ${renderType.javaClass} $renderType")

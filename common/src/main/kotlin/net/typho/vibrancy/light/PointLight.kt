@@ -93,7 +93,7 @@ abstract class PointLight : Light, NativeResource {
 
         val shader = NeoShader.get(Vibrancy.id("point_box"))!!
         shader.bind(stack)
-        stack.enable(GlCapability.STENCIL_TEST)
+        stack.disable(GlCapability.STENCIL_TEST) // TODO
         glStencilFunc(GL_EQUAL, 0, LightManager.Companion.SHADOW_MASK)
         glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP)
 

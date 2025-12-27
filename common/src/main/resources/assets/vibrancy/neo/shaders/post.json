@@ -1,4 +1,5 @@
 {
   "vertex": "big_shot_lib:blit",
-  "fragment": "vibrancy:post"
+  "fragment": "vibrancy:post",
+  "format": "POSITION_TEX"
 }

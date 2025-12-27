@@ -22,9 +22,9 @@ dependencies {
     modImplementation(libs.fabricApi)
 
     modImplementation(libs.flk)
-    modImplementation(libs.iris)
     modImplementation(libs.sodium)
-    modImplementation(fileTree("../libs/fabric") {
+    //modImplementation(libs.bigShot)
+    implementation(fileTree("../libs") {
         include("*.jar")
     })
 }

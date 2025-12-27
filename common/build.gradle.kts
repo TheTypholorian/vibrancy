@@ -28,9 +28,9 @@ dependencies {
     // fabric and neoforge both bundle mixinextras, so it is safe to use it in common
     compileOnly(libs.mixinExtras.common)
     annotationProcessor(libs.mixinExtras.common)
-    implementation(libs.iris)
     implementation(libs.sodium)
-    implementation(fileTree("../libs/common") {
+    //implementation(libs.bigShot)
+    implementation(fileTree("../libs") {
         include("*.jar")
     })
 }

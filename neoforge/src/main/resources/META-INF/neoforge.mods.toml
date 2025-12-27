@@ -35,9 +35,9 @@ versionRange = "*"
 ordering = "NONE"
 side = "BOTH"
 [[dependencies."${mod_id}"]]
-modId = "iris"
+modId = "big_shot_lib"
 type="required"
-versionRange = "[{iris_version},)"
+versionRange = "*"
 ordering = "NONE"
 side = "BOTH"
 
