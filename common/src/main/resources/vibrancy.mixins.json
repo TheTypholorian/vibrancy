@@ -14,7 +14,9 @@
     "ClientChunkCacheStorageMixin",
     "DebugScreenOverlayMixin",
     "LevelRendererMixin",
+    "MainTargetMixin",
     "MinecraftMixin",
+    "RenderTargetMixin",
     "SodiumOptionsGUIMixin",
     "VertexFormatModeMixin"
   ],
