@@ -238,7 +238,12 @@ abstract class ShadowManager<L : Light>(
         numEntities = 0
 
         if (raytrace) {
-            //glPatchParameteri(GL_PATCH_VERTICES, 4);
+            val cameraPos = manager.getCamera().position
+            shader.getUniform("CameraPos")?.set(cameraPos.x.toFloat(), cameraPos.y.toFloat(), cameraPos.z.toFloat())
+            shader.setSampler(
+                "DiffuseDepthSampler",
+                Minecraft.getInstance().mainRenderTarget.depthTextureId
+            )
 
             initializeUniforms(manager, light, shader)
 

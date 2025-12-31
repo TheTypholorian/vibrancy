@@ -75,7 +75,7 @@ object Vibrancy {
             glClearColor(0f, 0f, 0f, 0f)
             glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT or GL_STENCIL_BUFFER_BIT)
 
-            //LIGHT_MANAGER.setupStencil(stack)
+            LIGHT_MANAGER.setupStencil(stack)
 
             stack.set(ColorMask(true, true, true, true))
             stack.disable(GlCapability.DEPTH_TEST)
@@ -118,20 +118,15 @@ object Vibrancy {
 
             stack.boundMap[GlResourceType.FRAMEBUFFER]?.unbind()
 
-            // TODO albedo
             stack.disable(GlCapability.CULL_FACE)
             stack.disable(GlCapability.BLEND)
-            //stack.set(
-            //    BlendFunction(
-            //        BlendFactor.ONE,
-            //        BlendFactor.ONE
-            //    )
-            //)
+
             val shader = NeoShader.get(id("post"))!!
             shader.bind(stack)
             shader.setCommonUniforms()
+            shader.setSampler("DiffuseSampler0", Minecraft.getInstance().mainRenderTarget)
             shader.setSampler("VibrancyOutputSampler", OUTPUT_FBO.colorAttachments[0] as ITexture)
-            shader.setSampler("VibrancyNormalsSampler", VibrancyDynamicBuffers.albedoTexture!!)
+            shader.setSampler("VibrancyAlbedoSampler", VibrancyDynamicBuffers.albedoTexture!!)
 
             BigShotLib.SCREEN_VBO.bind()
             BigShotLib.SCREEN_VBO.draw()

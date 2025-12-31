@@ -7,7 +7,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.typho.vibrancy.Vibrancy;
 import net.typho.vibrancy.light.BlockLight;
-import net.typho.vibrancy.light.DynamicLightInfo;
+import net.typho.vibrancy.light.BlockLightInfo;
 import net.typho.vibrancy.util.UtilKt;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -27,7 +27,7 @@ public class LevelMixin {
             at = @At("TAIL")
     )
     private void onBlockStateChange(BlockPos pos, BlockState oldBlock, BlockState newBlock, CallbackInfo ci) {
-        DynamicLightInfo info = DynamicLightInfo.Companion.getMAP().get(UtilKt.getKey(newBlock.getBlock()));
+        BlockLightInfo info = BlockLightInfo.Companion.getMAP().get(UtilKt.getKey(newBlock.getBlock()));
 
         if (info != null) {
             info.addBlockLight(pos, newBlock);

@@ -8,19 +8,21 @@
 
 uniform sampler2D AtlasSampler;
 uniform sampler2D DiffuseDepthSampler;
+
+uniform mat4 ProjMat;
+uniform mat4 ModelViewMat;
+
 uniform vec3 LightPos;
 uniform float LightRadius;
 uniform vec2 ScreenSize;
+uniform vec3 CameraPos;
 
-//in flat Quad quad;
+in flat Quad quad;
 
 out vec4 fragColor;
 
 void main() {
-    fragColor = vec4(1, 0, 0, 1);
-
-    /*
-    vec3 Pos = getWorldPos(DiffuseDepthSampler, ScreenSize);
+    vec3 Pos = getWorldPos(DiffuseDepthSampler, ScreenSize, ProjMat, ModelViewMat, CameraPos).xyz;
 
     vec3 delta = LightPos - Pos.xyz;
     float len = length(delta);
@@ -32,5 +34,4 @@ void main() {
     if (sampleQuad(AtlasSampler, Pos, dir, len, 1e-3, false, quad)) {
         discard;
     }
-    */
 }

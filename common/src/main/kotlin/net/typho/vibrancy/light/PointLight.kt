@@ -4,6 +4,7 @@ import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.mojang.blaze3d.vertex.VertexBuffer
 import com.mojang.blaze3d.vertex.VertexFormat
+import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.world.phys.Vec3
@@ -11,14 +12,19 @@ import net.typho.big_shot_lib.BigShotLib.cube
 import net.typho.big_shot_lib.api.IShader
 import net.typho.big_shot_lib.api.impl.NeoShader
 import net.typho.big_shot_lib.gl.GlStack
-import net.typho.big_shot_lib.gl.state.GlCapability
+import net.typho.big_shot_lib.gl.state.ComparisonMode
+import net.typho.big_shot_lib.gl.state.IntAction
+import net.typho.big_shot_lib.gl.state.StencilFunc
+import net.typho.big_shot_lib.gl.state.StencilOp
 import net.typho.vibrancy.Vibrancy
+import net.typho.vibrancy.VibrancyDynamicBuffers
 import net.typho.vibrancy.shadows.PointShadowManager
 import net.typho.vibrancy.util.boxOfRadius
 import net.typho.vibrancy.util.expand
 import org.joml.Matrix4f
 import org.joml.Vector3f
-import org.lwjgl.opengl.GL11.*
+import org.lwjgl.opengl.GL11.GL_STENCIL_BUFFER_BIT
+import org.lwjgl.opengl.GL11.glClear
 import org.lwjgl.system.NativeResource
 import java.awt.Color
 import kotlin.math.ceil
@@ -44,7 +50,7 @@ abstract class PointLight : Light, NativeResource {
         VertexBuffer.unbind()
     }
 
-    fun renderMesh(vbo: VertexBuffer, view: Matrix4f, shader: IShader, stack: GlStack) {
+    fun renderMesh(vbo: VertexBuffer, view: Matrix4f, shader: IShader) {
         val color = getColor()
 
         shader.setCommonUniforms(modelViewMat = view)
@@ -80,24 +86,29 @@ abstract class PointLight : Light, NativeResource {
 
         glClear(GL_STENCIL_BUFFER_BIT)
 
-        /*
         NeoShader.get(Vibrancy.id("point_shadow"))!!.bind().use {
-            glStencilFunc(GL_NOTEQUAL,
-                LightManager.Companion.SHADOW_MASK, LightManager.Companion.BLOCK_STENCIL_MASK or LightManager.Companion.SHADOW_MASK
-            )
-            glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE)
+            stack.set(StencilFunc(
+                ComparisonMode.NOTEQUAL, 
+                LightManager.SHADOW_MASK, 
+                LightManager.BLOCK_STENCIL_MASK or LightManager.SHADOW_MASK
+            ))
+            stack.set(StencilOp(IntAction.KEEP, IntAction.KEEP, IntAction.REPLACE))
 
-            shadows.render(manager, raytrace, this, it.resource())
+            shadows.render(manager, raytrace, this, it.resource(), stack)
         }
-         */
 
         val shader = NeoShader.get(Vibrancy.id("point_box"))!!
         shader.bind(stack)
-        stack.disable(GlCapability.STENCIL_TEST) // TODO
-        glStencilFunc(GL_EQUAL, 0, LightManager.Companion.SHADOW_MASK)
-        glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP)
 
-        renderMesh(boxMesh, manager.viewMatrix!!, shader, stack)
+        val cameraPos = manager.getCamera().position
+        shader.getUniform("CameraPos")?.set(cameraPos.x.toFloat(), cameraPos.y.toFloat(), cameraPos.z.toFloat())
+        shader.setSampler("DiffuseDepthSampler", Minecraft.getInstance().mainRenderTarget.depthTextureId)
+        shader.setSampler("VibrancyNormalSampler", VibrancyDynamicBuffers.normalsTexture!!)
+
+        stack.set(StencilFunc(ComparisonMode.EQUAL, 0, LightManager.SHADOW_MASK))
+        stack.set(StencilOp(IntAction.KEEP, IntAction.KEEP, IntAction.KEEP))
+
+        renderMesh(boxMesh, manager.viewMatrix!!, shader)
     }
 
     override fun getCullingBox() = getBoundingBox()

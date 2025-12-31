@@ -17,7 +17,7 @@ import java.util.concurrent.CompletableFuture
 open class PointShadowManager(static: Boolean) : ShadowManager<PointLight>(static) {
     protected var fullRebuildTask: CompletableFuture<MutableList<ShadowVolume>>? = null
 
-    override fun isTaskActive(): Boolean = !(fullRebuildTask?.isDone ?: false)
+    override fun isTaskActive(): Boolean = !(fullRebuildTask?.isDone ?: true)
 
     override fun shouldCastFace(
         face: Direction,

@@ -9,6 +9,7 @@ import net.typho.big_shot_lib.api.impl.NeoShader
 import net.typho.big_shot_lib.gl.GlStack
 import net.typho.big_shot_lib.gl.state.*
 import net.typho.vibrancy.Vibrancy
+import net.typho.vibrancy.VibrancyDynamicBuffers
 import org.joml.Matrix4f
 
 open class LightManager(
@@ -41,7 +42,9 @@ open class LightManager(
     fun getViewMatrix(camera: Camera = getCamera()): Matrix4f = BigShotLib.getViewMatrix(camera)
 
     fun setupStencil(stack: GlStack) {
-        NeoShader.get(Vibrancy.id("stencil_setup"))!!.bind(stack)
+        val shader = NeoShader.get(Vibrancy.id("stencil_setup"))!!
+        shader.bind(stack)
+        shader.setSampler("VibrancyLightSampler", VibrancyDynamicBuffers.lightUVTexture!!)
 
         stack.set(ColorMask(false, false, false, false))
         stack.enable(GlCapability.STENCIL_TEST)

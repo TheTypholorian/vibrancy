@@ -7,18 +7,21 @@
 //#include "veil:light"
 
 uniform sampler2D DiffuseDepthSampler;
-uniform sampler2D VeilDynamicNormalSampler;
+uniform sampler2D VibrancyNormalSampler;
+
+uniform mat4 ProjMat;
+uniform mat4 ModelViewMat;
 
 uniform vec2 ScreenSize;
 uniform vec3 LightPos;
 uniform vec3 LightColor;
 uniform float LightRadius;
+uniform vec3 CameraPos;
 
 out vec4 fragColor;
 
 void main() {
-    fragColor = vec4(LightColor, 1);
-    //vec3 pos = getWorldPos(DiffuseDepthSampler, ScreenSize);
+    vec3 pos = getWorldPos(DiffuseDepthSampler, ScreenSize, ProjMat, ModelViewMat, CameraPos).xyz;
 
-    //fragColor = sampleLight(VeilDynamicNormalSampler, LightPos, pos, LightRadius, LightColor);
+    fragColor = sampleLight(VibrancyNormalSampler, LightPos, pos, LightRadius, LightColor);
 }
