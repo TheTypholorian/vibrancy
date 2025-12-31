@@ -43,18 +43,18 @@ open class LightManager(
     fun setupStencil(stack: GlStack) {
         NeoShader.get(Vibrancy.id("stencil_setup"))!!.bind(stack)
 
-        stack.set(ColorMask, ColorMask.Mask(false, false, false, false))
+        stack.set(ColorMask(false, false, false, false))
         stack.enable(GlCapability.STENCIL_TEST)
         stack.set(StencilMask, BLOCK_STENCIL_MASK)
         stack.set(
-            StencilFunc, StencilFunc.Mode(
+            StencilFunc(
                 ComparisonMode.ALWAYS,
                 BLOCK_STENCIL_MASK,
                 BLOCK_STENCIL_MASK
             )
         )
         stack.set(
-            StencilOp, StencilOp.Mode(
+            StencilOp(
                 IntAction.KEEP,
                 IntAction.KEEP,
                 IntAction.REPLACE

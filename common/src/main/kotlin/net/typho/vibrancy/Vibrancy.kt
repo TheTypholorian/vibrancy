@@ -77,26 +77,26 @@ object Vibrancy {
 
             //LIGHT_MANAGER.setupStencil(stack)
 
-            stack.set(ColorMask, ColorMask.Mask(true, true, true, true))
+            stack.set(ColorMask(true, true, true, true))
             stack.disable(GlCapability.DEPTH_TEST)
-            stack.set(CullFace, Face.FRONT)
+            stack.set(CullFace.FRONT)
             stack.enable(GlCapability.BLEND)
             stack.set(
-                BlendFunction, BlendFunction.Mode(
-                    BlendFunction.Factor.ONE,
-                    BlendFunction.Factor.ONE
+                BlendFunction(
+                    BlendFactor.ONE,
+                    BlendFactor.ONE
                 )
             )
             stack.set(StencilMask, 1)
             stack.set(
-                StencilFunc, StencilFunc.Mode(
+                StencilFunc(
                     ComparisonMode.ALWAYS,
                     0,
                     0xFF
                 )
             )
             stack.set(
-                StencilOp, StencilOp.Mode(
+                StencilOp(
                     IntAction.KEEP,
                     IntAction.KEEP,
                     IntAction.KEEP
@@ -120,17 +120,18 @@ object Vibrancy {
 
             // TODO albedo
             stack.disable(GlCapability.CULL_FACE)
-            stack.enable(GlCapability.BLEND)
-            stack.set(
-                BlendFunction, BlendFunction.Mode(
-                    BlendFunction.Factor.ONE,
-                    BlendFunction.Factor.ONE
-                )
-            )
+            stack.disable(GlCapability.BLEND)
+            //stack.set(
+            //    BlendFunction(
+            //        BlendFactor.ONE,
+            //        BlendFactor.ONE
+            //    )
+            //)
             val shader = NeoShader.get(id("post"))!!
             shader.bind(stack)
             shader.setCommonUniforms()
             shader.setSampler("VibrancyOutputSampler", OUTPUT_FBO.colorAttachments[0] as ITexture)
+            shader.setSampler("VibrancyNormalsSampler", VibrancyDynamicBuffers.lightUVTexture!!)
 
             BigShotLib.SCREEN_VBO.bind()
             BigShotLib.SCREEN_VBO.draw()
