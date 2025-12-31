@@ -131,7 +131,7 @@ object Vibrancy {
             shader.bind(stack)
             shader.setCommonUniforms()
             shader.setSampler("VibrancyOutputSampler", OUTPUT_FBO.colorAttachments[0] as ITexture)
-            shader.setSampler("VibrancyNormalsSampler", VibrancyDynamicBuffers.lightUVTexture!!)
+            shader.setSampler("VibrancyNormalsSampler", VibrancyDynamicBuffers.albedoTexture!!)
 
             BigShotLib.SCREEN_VBO.bind()
             BigShotLib.SCREEN_VBO.draw()
