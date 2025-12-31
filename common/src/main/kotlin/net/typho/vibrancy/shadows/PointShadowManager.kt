@@ -11,6 +11,7 @@ import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.light.LightManager
 import net.typho.vibrancy.light.PointLight
 import net.typho.vibrancy.util.expand
+import org.joml.Vector3f
 import java.util.*
 import java.util.concurrent.CompletableFuture
 
@@ -99,8 +100,11 @@ open class PointShadowManager(static: Boolean) : ShadowManager<PointLight>(stati
     }
 
     override fun initializeUniforms(manager: LightManager, light: PointLight, shader: IShader) {
-        shader.setCommonUniforms()
+        shader.setCommonUniforms(modelViewMat = manager.viewMatrix!!)
         shader.getUniform("LightPos")?.set(light.getPosition())
+        val color = light.getColor()
+        shader.getUniform("LightColor")?.set(Vector3f(color.red / 255f, color.green / 255f, color.blue / 255f))
+        shader.getUniform("LightRadius")?.set(light.getRadius())
     }
 
     override fun getEntityBox(manager: LightManager, light: PointLight): BlockBox? {

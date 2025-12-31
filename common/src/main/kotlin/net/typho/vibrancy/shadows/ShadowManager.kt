@@ -164,7 +164,7 @@ abstract class ShadowManager<L : Light>(
             shadowMesh.upload(built)
 
             quadBuffer.bind().use {
-                quadBuffer.upload(MemoryUtil.memAddress(quads.flip()))
+                quadBuffer.upload(quads.flip())
             }
 
             MemoryUtil.memFree(quads)
@@ -311,6 +311,7 @@ abstract class ShadowManager<L : Light>(
                         }
                     }
 
+                    /*
                     for (entry in entityShadows) {
                         uploadShadows(light, DYNAMIC_SHADOW_MESH, DYNAMIC_QUAD_BUFFER, entry.value)
 
@@ -324,6 +325,7 @@ abstract class ShadowManager<L : Light>(
                         DYNAMIC_SHADOW_MESH.bind()
                         DYNAMIC_SHADOW_MESH.draw()
                     }
+                     */
                 }
             }
         }

@@ -21,7 +21,6 @@ import net.typho.vibrancy.VibrancyDynamicBuffers
 import net.typho.vibrancy.shadows.PointShadowManager
 import net.typho.vibrancy.util.boxOfRadius
 import net.typho.vibrancy.util.expand
-import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.lwjgl.opengl.GL11.GL_STENCIL_BUFFER_BIT
 import org.lwjgl.opengl.GL11.glClear
@@ -50,13 +49,8 @@ abstract class PointLight : Light, NativeResource {
         VertexBuffer.unbind()
     }
 
-    fun renderMesh(vbo: VertexBuffer, view: Matrix4f, shader: IShader) {
-        val color = getColor()
-
-        shader.setCommonUniforms(modelViewMat = view)
-        shader.getUniform("LightPos")?.set(getPosition())
-        shader.getUniform("LightColor")?.set(Vector3f(color.red / 255f, color.green / 255f, color.blue / 255f))
-        shader.getUniform("LightRadius")?.set(getRadius())
+    fun renderMesh(lightManager: LightManager, vbo: VertexBuffer, shader: IShader) {
+        shadows.initializeUniforms(lightManager, this, shader)
 
         vbo.bind()
         vbo.draw()
@@ -108,7 +102,7 @@ abstract class PointLight : Light, NativeResource {
         stack.set(StencilFunc(ComparisonMode.EQUAL, 0, LightManager.SHADOW_MASK))
         stack.set(StencilOp(IntAction.KEEP, IntAction.KEEP, IntAction.KEEP))
 
-        renderMesh(boxMesh, manager.viewMatrix!!, shader)
+        renderMesh(manager, boxMesh, shader)
     }
 
     override fun getCullingBox() = getBoundingBox()
