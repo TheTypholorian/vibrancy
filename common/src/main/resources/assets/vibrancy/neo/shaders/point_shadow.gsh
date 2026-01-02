@@ -32,7 +32,7 @@ vec4 projectVertex(vec3 v) {
 }
 
 void main() {
-    quad = quads[gl_PrimitiveIDIn / 6];
+    quad = quads[gl_PrimitiveIDIn / 2];
 
     float len = LightRadius;
 
