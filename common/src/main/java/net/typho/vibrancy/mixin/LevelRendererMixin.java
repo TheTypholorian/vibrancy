@@ -1,5 +1,6 @@
 package net.typho.vibrancy.mixin;
 
+import com.mojang.blaze3d.systems.RenderSystem;
 import net.minecraft.client.Camera;
 import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.renderer.GameRenderer;
@@ -25,10 +26,6 @@ public class LevelRendererMixin {
             )
     )
     private void render(DeltaTracker deltaTracker, boolean renderBlockOutline, Camera camera, GameRenderer gameRenderer, LightTexture lightTexture, Matrix4f frustumMatrix, Matrix4f projectionMatrix, CallbackInfo ci) {
-        Vibrancy.iProjMat = projectionMatrix.invertPerspective(new Matrix4f());
-        Vibrancy.iModelMat = frustumMatrix.invert(new Matrix4f());
-        Vibrancy.camera = camera.getPosition().toVector3f();
-
         Vibrancy.INSTANCE.render();
     }
 
@@ -37,6 +34,11 @@ public class LevelRendererMixin {
             at = @At("HEAD")
     )
     private void prepareCullFrustum(Vec3 cameraPosition, Matrix4f frustumMatrix, Matrix4f projectionMatrix, CallbackInfo ci) {
+        Vibrancy.iProjMat = projectionMatrix.invertPerspective(new Matrix4f());
+        Vibrancy.iModelMat = frustumMatrix
+                .mulLocal(Vibrancy.iProjMat.mul(RenderSystem.getProjectionMatrix(), new Matrix4f()), new Matrix4f())
+                .invert();
+        Vibrancy.camera = cameraPosition.toVector3f();
     }
 
     @ModifyConstant(

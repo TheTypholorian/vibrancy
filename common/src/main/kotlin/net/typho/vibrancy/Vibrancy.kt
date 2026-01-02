@@ -4,7 +4,6 @@ import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.mojang.blaze3d.vertex.VertexBuffer
-import com.mojang.blaze3d.vertex.VertexFormat
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.RenderType
@@ -63,8 +62,6 @@ object Vibrancy {
     var iModelMat = Matrix4f()
     @JvmField
     var camera = Vector3f()
-
-    var PATCHES_MODE: VertexFormat.Mode? = null
 
     fun init() {
         loadConfig()

@@ -17,8 +17,7 @@
     "MainTargetMixin",
     "MinecraftMixin",
     "RenderTargetMixin",
-    "SodiumOptionsGUIMixin",
-    "VertexFormatModeMixin"
+    "SodiumOptionsGUIMixin"
   ],
   "injectors": {
     "defaultRequire": 1
