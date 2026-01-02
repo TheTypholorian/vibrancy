@@ -20,7 +20,7 @@ data class BlockLight(
     private var radius: Supplier<Float>,
     private var color: Supplier<Color>
 ) : PointLight() {
-    constructor(blockPos: BlockPos, info: BlockLightInfo, state: BlockState) : this(
+    constructor(blockPos: BlockPos, info: DynamicLightInfo, state: BlockState) : this(
         blockPos,
         {
             info.offset.map { it.apply(state) }
@@ -37,7 +37,7 @@ data class BlockLight(
         }
     )
 
-    fun set(info: BlockLightInfo, state: BlockState) {
+    fun set(info: DynamicLightInfo, state: BlockState) {
         offset = Supplier {
             info.offset.map { it.apply(state) }
                 .orElse(Vector3f(0.5f))
@@ -98,7 +98,7 @@ data class BlockLight(
             for (i in chunk.minSection until chunk.maxSection) {
                 val section = chunk.getSection(chunk.getSectionIndexFromSectionY(i))
 
-                if (section.maybeHas { BlockLightInfo.MAP.containsKey(it.block.getKey()) }) {
+                if (section.maybeHas { DynamicLightInfo.MAP.containsKey(it.block.getKey()) }) {
                     val minPos = SectionPos.of(chunk.pos, i).origin()
 
                     for (x in 0 until LevelChunkSection.SECTION_WIDTH) {
@@ -106,7 +106,7 @@ data class BlockLight(
                             for (z in 0 until LevelChunkSection.SECTION_WIDTH) {
                                 val state = section.getBlockState(x, y, z)
 
-                                BlockLightInfo.MAP[state.block.getKey()]?.addBlockLight(
+                                DynamicLightInfo.MAP[state.block.getKey()]?.addBlockLight(
                                     BlockPos(
                                         x + minPos.x,
                                         y + minPos.y,

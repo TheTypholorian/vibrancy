@@ -9,8 +9,8 @@
 uniform sampler2D DiffuseDepthSampler;
 uniform sampler2D VibrancyNormalSampler;
 
-uniform mat4 ProjMat;
-uniform mat4 ModelViewMat;
+uniform mat4 IProjMat;
+uniform mat4 IModelMat;
 
 uniform vec2 ScreenSize;
 uniform vec3 LightPos;
@@ -21,7 +21,7 @@ uniform vec3 CameraPos;
 out vec4 fragColor;
 
 void main() {
-    vec3 pos = getWorldPos(DiffuseDepthSampler, ScreenSize, ProjMat, ModelViewMat, CameraPos).xyz;
+    vec3 pos = getWorldPos(DiffuseDepthSampler, ScreenSize, IProjMat, IModelMat, CameraPos).xyz;
 
-    fragColor = sampleLight(VibrancyNormalSampler, LightPos, pos, LightRadius, LightColor);
+    fragColor = sampleLight(VibrancyNormalSampler, ScreenSize, LightPos, pos, LightRadius, LightColor);
 }

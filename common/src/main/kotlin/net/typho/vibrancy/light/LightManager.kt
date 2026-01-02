@@ -44,6 +44,7 @@ open class LightManager(
     fun setupStencil(stack: GlStack) {
         val shader = NeoShader.get(Vibrancy.id("stencil_setup"))!!
         shader.bind(stack)
+        shader.setCommonUniforms()
         shader.setSampler("VibrancyLightSampler", VibrancyDynamicBuffers.lightUVTexture!!)
 
         stack.set(ColorMask(false, false, false, false))

@@ -23,6 +23,7 @@ import net.typho.big_shot_lib.spirv.ShaderMixinCallback
 import net.typho.vibrancy.light.BlockLight
 import net.typho.vibrancy.light.LightManager
 import net.typho.vibrancy.platform.Services
+import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.lwjgl.opengl.GL11.*
 import org.slf4j.Logger
@@ -56,6 +57,12 @@ object Vibrancy {
         NeoFramebuffer.register(fbo)
         fbo
     }
+    @JvmField
+    var iProjMat = Matrix4f()
+    @JvmField
+    var iModelMat = Matrix4f()
+    @JvmField
+    var camera = Vector3f()
 
     var PATCHES_MODE: VertexFormat.Mode? = null
 
@@ -79,7 +86,6 @@ object Vibrancy {
 
             stack.set(ColorMask(true, true, true, true))
             stack.disable(GlCapability.DEPTH_TEST)
-            stack.enable(GlCapability.CULL_FACE)
             stack.set(CullFace.FRONT)
             stack.enable(GlCapability.BLEND)
             stack.set(
@@ -121,11 +127,10 @@ object Vibrancy {
 
             stack.disable(GlCapability.CULL_FACE)
             stack.disable(GlCapability.BLEND)
-
             val shader = NeoShader.get(id("post"))!!
             shader.bind(stack)
             shader.setCommonUniforms()
-            shader.setSampler("DiffuseSampler0", Minecraft.getInstance().mainRenderTarget)
+            shader.setSampler("DiffuseSampler0", Minecraft.getInstance().mainRenderTarget.colorTextureId)
             shader.setSampler("VibrancyOutputSampler", OUTPUT_FBO.colorAttachments[0] as ITexture)
             shader.setSampler("VibrancyAlbedoSampler", VibrancyDynamicBuffers.albedoTexture!!)
 

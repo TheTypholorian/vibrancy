@@ -5,6 +5,7 @@ import net.minecraft.client.DeltaTracker;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.LightTexture;
+import net.minecraft.world.phys.Vec3;
 import net.typho.vibrancy.Vibrancy;
 import org.joml.Matrix4f;
 import org.spongepowered.asm.mixin.Mixin;
@@ -24,7 +25,18 @@ public class LevelRendererMixin {
             )
     )
     private void render(DeltaTracker deltaTracker, boolean renderBlockOutline, Camera camera, GameRenderer gameRenderer, LightTexture lightTexture, Matrix4f frustumMatrix, Matrix4f projectionMatrix, CallbackInfo ci) {
+        Vibrancy.iProjMat = projectionMatrix.invertPerspective(new Matrix4f());
+        Vibrancy.iModelMat = frustumMatrix.invert(new Matrix4f());
+        Vibrancy.camera = camera.getPosition().toVector3f();
+
         Vibrancy.INSTANCE.render();
+    }
+
+    @Inject(
+            method = "prepareCullFrustum",
+            at = @At("HEAD")
+    )
+    private void prepareCullFrustum(Vec3 cameraPosition, Matrix4f frustumMatrix, Matrix4f projectionMatrix, CallbackInfo ci) {
     }
 
     @ModifyConstant(

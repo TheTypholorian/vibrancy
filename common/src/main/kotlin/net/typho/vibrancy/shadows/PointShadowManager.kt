@@ -1,5 +1,6 @@
 package net.typho.vibrancy.shadows
 
+import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -11,14 +12,13 @@ import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.light.LightManager
 import net.typho.vibrancy.light.PointLight
 import net.typho.vibrancy.util.expand
-import org.joml.Vector3f
 import java.util.*
 import java.util.concurrent.CompletableFuture
 
 open class PointShadowManager(static: Boolean) : ShadowManager<PointLight>(static) {
     protected var fullRebuildTask: CompletableFuture<MutableList<ShadowVolume>>? = null
 
-    override fun isTaskActive(): Boolean = !(fullRebuildTask?.isDone ?: true)
+    override fun isTaskActive(): Boolean = !(fullRebuildTask?.isDone ?: false)
 
     override fun shouldCastFace(
         face: Direction,
@@ -100,11 +100,12 @@ open class PointShadowManager(static: Boolean) : ShadowManager<PointLight>(stati
     }
 
     override fun initializeUniforms(manager: LightManager, light: PointLight, shader: IShader) {
-        shader.setCommonUniforms(modelViewMat = manager.viewMatrix!!)
+        shader.setCommonUniforms()
         shader.getUniform("LightPos")?.set(light.getPosition())
-        val color = light.getColor()
-        shader.getUniform("LightColor")?.set(Vector3f(color.red / 255f, color.green / 255f, color.blue / 255f))
-        shader.getUniform("LightRadius")?.set(light.getRadius())
+        shader.setSampler(
+            "DiffuseDepthSampler",
+            Minecraft.getInstance().mainRenderTarget.depthTextureId
+        )
     }
 
     override fun getEntityBox(manager: LightManager, light: PointLight): BlockBox? {

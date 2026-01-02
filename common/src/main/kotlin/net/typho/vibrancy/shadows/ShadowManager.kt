@@ -238,13 +238,6 @@ abstract class ShadowManager<L : Light>(
         numEntities = 0
 
         if (raytrace) {
-            val cameraPos = manager.getCamera().position
-            shader.getUniform("CameraPos")?.set(cameraPos.x.toFloat(), cameraPos.y.toFloat(), cameraPos.z.toFloat())
-            shader.setSampler(
-                "DiffuseDepthSampler",
-                Minecraft.getInstance().mainRenderTarget.depthTextureId
-            )
-
             initializeUniforms(manager, light, shader)
 
             if (shadowsDirty) {
@@ -311,7 +304,6 @@ abstract class ShadowManager<L : Light>(
                         }
                     }
 
-                    /*
                     for (entry in entityShadows) {
                         uploadShadows(light, DYNAMIC_SHADOW_MESH, DYNAMIC_QUAD_BUFFER, entry.value)
 
@@ -325,7 +317,6 @@ abstract class ShadowManager<L : Light>(
                         DYNAMIC_SHADOW_MESH.bind()
                         DYNAMIC_SHADOW_MESH.draw()
                     }
-                     */
                 }
             }
         }

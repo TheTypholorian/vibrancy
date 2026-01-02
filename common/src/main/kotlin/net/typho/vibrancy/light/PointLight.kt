@@ -9,21 +9,16 @@ import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.world.phys.Vec3
 import net.typho.big_shot_lib.BigShotLib.cube
-import net.typho.big_shot_lib.api.IShader
 import net.typho.big_shot_lib.api.impl.NeoShader
 import net.typho.big_shot_lib.gl.GlStack
-import net.typho.big_shot_lib.gl.state.ComparisonMode
-import net.typho.big_shot_lib.gl.state.IntAction
-import net.typho.big_shot_lib.gl.state.StencilFunc
-import net.typho.big_shot_lib.gl.state.StencilOp
+import net.typho.big_shot_lib.gl.state.GlCapability
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyDynamicBuffers
 import net.typho.vibrancy.shadows.PointShadowManager
 import net.typho.vibrancy.util.boxOfRadius
 import net.typho.vibrancy.util.expand
 import org.joml.Vector3f
-import org.lwjgl.opengl.GL11.GL_STENCIL_BUFFER_BIT
-import org.lwjgl.opengl.GL11.glClear
+import org.lwjgl.opengl.GL11.*
 import org.lwjgl.system.NativeResource
 import java.awt.Color
 import kotlin.math.ceil
@@ -49,19 +44,14 @@ abstract class PointLight : Light, NativeResource {
         VertexBuffer.unbind()
     }
 
-    fun renderMesh(lightManager: LightManager, vbo: VertexBuffer, shader: IShader) {
-        shadows.initializeUniforms(lightManager, this, shader)
-
-        vbo.bind()
-        vbo.draw()
-    }
-
     override fun render(manager: LightManager, raytrace: Boolean, stack: GlStack) {
         val shadowRadius = getShadowRadius(manager)
         val shadowRadiusSq = shadowRadius * shadowRadius
 
         for (pos in manager.dirtyBlocks) {
-            if (manager.getLevel().dimension().equals(pos.dimension()) && pos.pos.distToCenterSqr(Vec3(getPosition())) < shadowRadiusSq) {
+            if (manager.getLevel().dimension()
+                    .equals(pos.dimension()) && pos.pos.distToCenterSqr(Vec3(getPosition())) < shadowRadiusSq
+            ) {
                 shadows.rebuildBlock(manager, pos.pos, this)
             }
         }
@@ -80,29 +70,43 @@ abstract class PointLight : Light, NativeResource {
 
         glClear(GL_STENCIL_BUFFER_BIT)
 
-        NeoShader.get(Vibrancy.id("point_shadow"))!!.bind().use {
-            stack.set(StencilFunc(
-                ComparisonMode.NOTEQUAL, 
-                LightManager.SHADOW_MASK, 
-                LightManager.BLOCK_STENCIL_MASK or LightManager.SHADOW_MASK
-            ))
-            stack.set(StencilOp(IntAction.KEEP, IntAction.KEEP, IntAction.REPLACE))
+        /*
+        val shadowShader = NeoShader.get(Vibrancy.id("point_shadow"))!!
+        shadowShader.bind(stack)
+        shadowShader.setCommonUniforms(modelViewMat = manager.viewMatrix!!)
+        shadowShader.getUniform("CameraPos")?.set(cameraPos)
+        glStencilFunc(
+            GL_NOTEQUAL,
+            LightManager.Companion.SHADOW_MASK,
+            LightManager.Companion.BLOCK_STENCIL_MASK or LightManager.Companion.SHADOW_MASK
+        )
+        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE)
 
-            shadows.render(manager, raytrace, this, it.resource(), stack)
-        }
+        shadows.render(manager, raytrace, this, shadowShader, stack)
+         */
 
-        val shader = NeoShader.get(Vibrancy.id("point_box"))!!
-        shader.bind(stack)
+        val boxShader = NeoShader.get(Vibrancy.id("point_box"))!!
 
-        val cameraPos = manager.getCamera().position
-        shader.getUniform("CameraPos")?.set(cameraPos.x.toFloat(), cameraPos.y.toFloat(), cameraPos.z.toFloat())
-        shader.setSampler("DiffuseDepthSampler", Minecraft.getInstance().mainRenderTarget.depthTextureId)
-        shader.setSampler("VibrancyNormalSampler", VibrancyDynamicBuffers.normalsTexture!!)
+        boxShader.bind(stack)
+        boxShader.setCommonUniforms(modelViewMat = manager.viewMatrix!!)
 
-        stack.set(StencilFunc(ComparisonMode.EQUAL, 0, LightManager.SHADOW_MASK))
-        stack.set(StencilOp(IntAction.KEEP, IntAction.KEEP, IntAction.KEEP))
+        boxShader.getUniform("LightPos")?.set(getPosition())
+        val color = getColor()
+        boxShader.getUniform("LightColor")?.set(Vector3f(color.red / 255f, color.green / 255f, color.blue / 255f))
+        boxShader.getUniform("LightRadius")?.set(getRadius())
+        boxShader.getUniform("CameraPos")?.set(Vibrancy.camera)
 
-        renderMesh(manager, boxMesh, shader)
+        boxShader.getUniform("IProjMat")?.set(Vibrancy.iProjMat)
+        boxShader.getUniform("IModelMat")?.set(Vibrancy.iModelMat)
+        boxShader.setSampler("DiffuseDepthSampler", Minecraft.getInstance().mainRenderTarget.depthTextureId)
+        boxShader.setSampler("VibrancyNormalSampler", VibrancyDynamicBuffers.normalsTexture!!)
+
+        stack.enable(GlCapability.STENCIL_TEST) // TODO
+        glStencilFunc(GL_EQUAL, 0, LightManager.Companion.SHADOW_MASK)
+        glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP)
+
+        boxMesh.bind()
+        boxMesh.draw()
     }
 
     override fun getCullingBox() = getBoundingBox()
