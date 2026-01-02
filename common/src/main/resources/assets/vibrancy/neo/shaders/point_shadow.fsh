@@ -9,8 +9,8 @@
 uniform sampler2D AtlasSampler;
 uniform sampler2D DiffuseDepthSampler;
 
-uniform mat4 ProjMat;
-uniform mat4 ModelViewMat;
+uniform mat4 IProjMat;
+uniform mat4 IModelMat;
 
 uniform vec3 LightPos;
 uniform float LightRadius;
@@ -22,9 +22,9 @@ in flat Quad quad;
 out vec4 fragColor;
 
 void main() {
-    vec3 Pos = getWorldPos(DiffuseDepthSampler, ScreenSize, ProjMat, ModelViewMat, CameraPos).xyz;
+    vec3 Pos = getWorldPos(DiffuseDepthSampler, ScreenSize, IProjMat, IModelMat, CameraPos).xyz;
 
-    vec3 delta = LightPos - Pos.xyz;
+    vec3 delta = LightPos - Pos;
     float len = length(delta);
 
     vec3 dir = delta / len;

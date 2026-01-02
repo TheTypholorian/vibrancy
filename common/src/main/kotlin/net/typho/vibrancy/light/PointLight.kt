@@ -70,11 +70,14 @@ abstract class PointLight : Light, NativeResource {
 
         glClear(GL_STENCIL_BUFFER_BIT)
 
-        /*
         val shadowShader = NeoShader.get(Vibrancy.id("point_shadow"))!!
         shadowShader.bind(stack)
         shadowShader.setCommonUniforms(modelViewMat = manager.viewMatrix!!)
-        shadowShader.getUniform("CameraPos")?.set(cameraPos)
+
+        shadowShader.getUniform("IProjMat")?.set(Vibrancy.iProjMat)
+        shadowShader.getUniform("IModelMat")?.set(Vibrancy.iModelMat)
+        shadowShader.getUniform("CameraPos")?.set(Vibrancy.camera)
+
         glStencilFunc(
             GL_NOTEQUAL,
             LightManager.Companion.SHADOW_MASK,
@@ -83,7 +86,6 @@ abstract class PointLight : Light, NativeResource {
         glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE)
 
         shadows.render(manager, raytrace, this, shadowShader, stack)
-         */
 
         val boxShader = NeoShader.get(Vibrancy.id("point_box"))!!
 

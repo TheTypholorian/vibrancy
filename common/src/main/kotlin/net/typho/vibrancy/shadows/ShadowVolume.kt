@@ -14,37 +14,10 @@ data class ShadowVolume(
     fun numQuads(): Int = 6
 
     fun buildGeometry(consumer: VertexConsumer) {
-        val order = arrayOf(
-            vertices[0]!!,
-            vertices[1]!!,
-            vertices[2]!!,
-            vertices[3]!!
-        )
-
-        for (vec in order) {
+        for (i in INDICES) {
+            val vec = vertices[i]!!
             consumer.addVertex(vec.x, vec.y, vec.z)
         }
-
-        /*
-        var i = 0
-        var j = 0
-
-        while (i < numQuads()) {
-            val order = arrayOf(
-                vertices[INDICES[j]]!!,
-                vertices[INDICES[j + 1]]!!,
-                vertices[INDICES[j + 2]]!!,
-                vertices[INDICES[j + 3]]!!
-            )
-
-            for (vec in order) {
-                consumer.addVertex(vec.x, vec.y, vec.z)
-            }
-
-            i++
-            j += 4
-        }
-         */
     }
 
     companion object {

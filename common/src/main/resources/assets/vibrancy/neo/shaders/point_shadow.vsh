@@ -14,6 +14,6 @@ in vec3 Position;
 out flat Quad quad;
 
 void main() {
-    gl_Position = ProjMat * ModelViewMat * vec4(Position, 1);
+    gl_Position = ProjMat * ModelViewMat * vec4(Position * 3, 1); // TODO why have to multiply by 3?
     quad = quads[gl_VertexID / 24];
 }
