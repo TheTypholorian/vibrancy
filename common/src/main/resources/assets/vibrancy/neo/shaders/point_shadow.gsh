@@ -1,27 +1,65 @@
 #version 450
 
+#include "vibrancy:include/common"
+
+layout(std430, binding = 0) buffer Quads {
+    Quad quads[];
+};
+
 layout(triangles) in;
-layout(triangle_strip, max_vertices = 24) out;
+layout(triangle_strip, max_vertices = 8) out;
+
+uniform mat4 ModelViewMat;
+uniform mat4 ProjMat;
+
+uniform vec3 LightPos;
+uniform float LightRadius;
+
+out flat Quad quad;
 
 void vertex(vec4 v) {
     gl_Position = v;
     EmitVertex();
 }
 
-void face(vec4 v0, vec4 v1, vec4 v2, vec4 v3) {
-    vertex(v0);
-    vertex(v1);
-    vertex(v2);
-    vertex(v3);
+vec3 interpolateVertex(vec3 v, float len) {
+    return v + normalize(v - LightPos) * len;
+}
 
-    EndPrimitive();
+vec4 projectVertex(vec3 v) {
+    // TODO why have to multiply by 3?
+    return ProjMat * ModelViewMat * vec4(v * 3, 1);
 }
 
 void main() {
-    vec4 v0 = gl_in[0].gl_Position;
-    vec4 v1 = gl_in[1].gl_Position;
-    vec4 v2 = gl_in[2].gl_Position;
-    vec4 v3 = gl_in[3].gl_Position;
+    quad = quads[gl_PrimitiveIDIn / 6];
 
-    face(v3, v0, v2, v1);
+    float len = LightRadius;
+
+    vec3 v0 = gl_in[0].gl_Position.xyz;
+    vec3 v1 = gl_in[1].gl_Position.xyz;
+    vec3 v2 = gl_in[2].gl_Position.xyz;
+
+    vec3 v3 = interpolateVertex(v0, len);
+    vec3 v4 = interpolateVertex(v1, len);
+    vec3 v5 = interpolateVertex(v2, len);
+
+    vec4 p0 = projectVertex(v0);
+    vec4 p1 = projectVertex(v1);
+    vec4 p2 = projectVertex(v2);
+
+    vec4 p3 = projectVertex(v3);
+    vec4 p4 = projectVertex(v4);
+    vec4 p5 = projectVertex(v5);
+
+    vertex(p0);
+    vertex(p2);
+    vertex(p1);
+    vertex(p5);
+    vertex(p4);
+    vertex(p3);
+    vertex(p1);
+    vertex(p0);
+
+    EndPrimitive();
 }

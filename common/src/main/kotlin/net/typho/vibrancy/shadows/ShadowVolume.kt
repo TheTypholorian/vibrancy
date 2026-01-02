@@ -23,11 +23,11 @@ data class ShadowVolume(
     companion object {
         val INDICES: IntArray = intArrayOf(
             0, 1, 2, 3,
-            1, 5, 6, 2,
-            5, 4, 7, 6,
-            4, 0, 3, 7,
-            1, 0, 4, 5,
-            3, 2, 6, 7
+            //1, 5, 6, 2,
+            //5, 4, 7, 6,
+            //4, 0, 3, 7,
+            //1, 0, 4, 5,
+            //3, 2, 6, 7
         )
     }
 

@@ -1,5 +1,6 @@
 package net.typho.vibrancy.shadows
 
+import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.*
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
@@ -149,7 +150,7 @@ abstract class ShadowManager<L : Light>(
         shadows: Collection<ShadowVolume>
     ) {
         if (shadows.isNotEmpty()) {
-            val builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION)
+            val builder = RenderSystem.renderThreadTesselator().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION)
             val quads = MemoryUtil.memAlloc(shadows.size * LightFace.BYTES)
 
             for (shadow in shadows) {

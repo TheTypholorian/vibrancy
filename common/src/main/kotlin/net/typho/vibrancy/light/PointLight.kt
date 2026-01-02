@@ -76,7 +76,12 @@ abstract class PointLight : Light, NativeResource {
 
         shadowShader.getUniform("IProjMat")?.set(Vibrancy.iProjMat)
         shadowShader.getUniform("IModelMat")?.set(Vibrancy.iModelMat)
+
+        shadowShader.getUniform("LightPos")?.set(getPosition())
+        shadowShader.getUniform("LightRadius")?.set(getRadius())
         shadowShader.getUniform("CameraPos")?.set(Vibrancy.camera)
+
+        shadowShader.setSampler("DiffuseDepthSampler", Minecraft.getInstance().mainRenderTarget.depthTextureId)
 
         glStencilFunc(
             GL_NOTEQUAL,
@@ -92,18 +97,19 @@ abstract class PointLight : Light, NativeResource {
         boxShader.bind(stack)
         boxShader.setCommonUniforms(modelViewMat = manager.viewMatrix!!)
 
+        boxShader.getUniform("IProjMat")?.set(Vibrancy.iProjMat)
+        boxShader.getUniform("IModelMat")?.set(Vibrancy.iModelMat)
+
         boxShader.getUniform("LightPos")?.set(getPosition())
         val color = getColor()
         boxShader.getUniform("LightColor")?.set(Vector3f(color.red / 255f, color.green / 255f, color.blue / 255f))
         boxShader.getUniform("LightRadius")?.set(getRadius())
         boxShader.getUniform("CameraPos")?.set(Vibrancy.camera)
 
-        boxShader.getUniform("IProjMat")?.set(Vibrancy.iProjMat)
-        boxShader.getUniform("IModelMat")?.set(Vibrancy.iModelMat)
         boxShader.setSampler("DiffuseDepthSampler", Minecraft.getInstance().mainRenderTarget.depthTextureId)
         boxShader.setSampler("VibrancyNormalSampler", VibrancyDynamicBuffers.normalsTexture!!)
 
-        stack.enable(GlCapability.STENCIL_TEST) // TODO
+        stack.enable(GlCapability.STENCIL_TEST)
         glStencilFunc(GL_EQUAL, 0, LightManager.Companion.SHADOW_MASK)
         glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP)
 

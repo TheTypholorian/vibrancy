@@ -115,6 +115,20 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
         context: ShaderMixinContext,
         locations: ShaderLocationsInfo
     ) {
+        if (locations.hasGeometryShader) {
+            if (format != null) {
+                if (
+                    format.contains(VertexFormatElement.NORMAL) ||
+                    format.contains(VertexFormatElement.UV0) ||
+                    format.contains(VertexFormatElement.UV2)
+                ) {
+                    Vibrancy.LOGGER.warn("Vibrancy dynamic buffers cannot apply to shader $shader with format $format because it has a geometry shader, skipping")
+                }
+            }
+
+            return
+        }
+
         format?.let {
             when (type) {
                 ShaderType.VERTEX -> {
@@ -260,6 +274,7 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
                         }
                     }
                 }
+                ShaderType.GEOMETRY -> throw AssertionError()
                 ShaderType.FRAGMENT -> {
                     if (format.contains(VertexFormatElement.NORMAL)) {
                         val mapper = locations.getMapper(1, type)!!
