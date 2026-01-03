@@ -10,6 +10,7 @@ import net.typho.big_shot_lib.gl.GlStack
 import net.typho.big_shot_lib.gl.state.*
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyDynamicBuffers
+import net.typho.vibrancy.mixin.LevelRendererAccessor
 import org.joml.Matrix4f
 
 open class LightManager(
@@ -72,6 +73,7 @@ open class LightManager(
     fun shouldRender(light: Light, camera: Camera = getCamera()): Boolean {
         return (maxRendered > 400 || lightsRendered < maxRendered)
                 && light.testCullingDistance(camera, lightCullDistance)
+                && (Minecraft.getInstance().levelRenderer as LevelRendererAccessor).cullingFrustum.isVisible(light.getCullingBox()!!)
                 // TODO reimplement frustum culling
                 //&& VeilRenderSystem.getCullingFrustum().testAab(light.getCullingBox())
     }

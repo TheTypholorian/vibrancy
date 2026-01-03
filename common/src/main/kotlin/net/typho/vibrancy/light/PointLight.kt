@@ -1,7 +1,7 @@
 package net.typho.vibrancy.light
 
-import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
+import com.mojang.blaze3d.vertex.Tesselator
 import com.mojang.blaze3d.vertex.VertexBuffer
 import com.mojang.blaze3d.vertex.VertexFormat
 import net.minecraft.client.Minecraft
@@ -35,7 +35,7 @@ abstract class PointLight : Light, NativeResource {
     }
 
     protected fun uploadBoxMesh() {
-        val builder = RenderSystem.renderThreadTesselator().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION)
+        val builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION)
         builder.cube(getBoundingBox())
 
         boxMesh.bind()

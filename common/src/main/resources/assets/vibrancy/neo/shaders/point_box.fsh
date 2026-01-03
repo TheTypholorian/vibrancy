@@ -23,5 +23,7 @@ out vec4 fragColor;
 void main() {
     vec3 pos = getWorldPos(DiffuseDepthSampler, ScreenSize, IProjMat, IModelMat, CameraPos).xyz;
 
+    //fragColor = vec4(1, 0.5, 0.25, 1);
+
     fragColor = sampleLight(VibrancyNormalSampler, ScreenSize, LightPos, pos, LightRadius, LightColor);
 }

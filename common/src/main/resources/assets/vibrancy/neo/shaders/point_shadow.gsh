@@ -28,7 +28,8 @@ vec3 interpolateVertex(vec3 v, float len) {
 
 vec4 projectVertex(vec3 v) {
     // TODO why have to multiply by 3?
-    return ProjMat * ModelViewMat * vec4(v * 3, 1);
+    vec4 h = ProjMat * ModelViewMat * vec4(v * 3, 1);
+    return h;
 }
 
 void main() {

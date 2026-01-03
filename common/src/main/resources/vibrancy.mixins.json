@@ -14,6 +14,7 @@
     "ClientChunkCacheStorageMixin",
     "DebugScreenOverlayMixin",
     "GlStateManagerMixin",
+    "LevelRendererAccessor",
     "LevelRendererMixin",
     "MainTargetMixin",
     "MinecraftMixin",
