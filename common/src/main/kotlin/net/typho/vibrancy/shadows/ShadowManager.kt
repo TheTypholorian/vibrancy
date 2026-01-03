@@ -10,6 +10,7 @@ import net.minecraft.client.renderer.RenderType
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
+import net.minecraft.resources.ResourceLocation
 import net.minecraft.util.Mth
 import net.minecraft.util.RandomSource
 import net.minecraft.world.inventory.InventoryMenu
@@ -261,7 +262,6 @@ abstract class ShadowManager<L : Light>(
                 builder.vertices.clear()
             }
 
-            /*
             if (Vibrancy.ENTITY_SHADOWS) {
                 val anyEntities =
                     castEntities(manager, getBlockEntityBox(manager, light), getEntityBox(manager, light), light)
@@ -320,7 +320,6 @@ abstract class ShadowManager<L : Light>(
                     }
                 }
             }
-             */
         }
     }
 }

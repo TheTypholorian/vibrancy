@@ -9,16 +9,14 @@ import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.level.chunk.LevelChunkSection
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.util.getKey
-import net.typho.vibrancy.util.withBrightness
 import org.joml.Vector3f
-import java.awt.Color
 import java.util.function.Supplier
 
 data class BlockLight(
     private val blockPos: BlockPos,
     var offset: Supplier<Vector3f>,
     private var radius: Supplier<Float>,
-    private var color: Supplier<Color>
+    private var color: Supplier<Vector3f>
 ) : PointLight() {
     constructor(blockPos: BlockPos, info: DynamicLightInfo, state: BlockState) : this(
         blockPos,
@@ -33,7 +31,7 @@ data class BlockLight(
         {
             info.color.map { it.apply(state) }
                 .orElse(DEFAULT_COLOR)
-                .withBrightness(info.brightness.map { it.apply(state) }.orElse(1f) * Vibrancy.LIGHT_BRIGHTNESS)
+                .mul(info.brightness.map { it.apply(state) }.orElse(1f) * Vibrancy.LIGHT_BRIGHTNESS, Vector3f())
         }
     )
 
@@ -49,7 +47,7 @@ data class BlockLight(
         color = Supplier {
             info.color.map { it.apply(state) }
                 .orElse(DEFAULT_COLOR)
-                .withBrightness(info.brightness.map { it.apply(state) }.orElse(1f) * Vibrancy.LIGHT_BRIGHTNESS)
+                .mul(info.brightness.map { it.apply(state) }.orElse(1f) * Vibrancy.LIGHT_BRIGHTNESS, Vector3f())
         }
         boxDirty = true
         shadowsDirty = true
@@ -71,14 +69,14 @@ data class BlockLight(
     override fun getShadowRadius(manager: LightManager): Int =
         getRadius().coerceAtMost(manager.shadowRadius.toFloat()).toInt()
 
-    override fun getColor(): Color = color.get()
+    override fun getColor(): Vector3f = color.get()
 
     override fun testCullingDistance(camera: Camera, chunks: Int): Boolean =
         getPosition().distanceSquared(camera.position.toVector3f()) <= (chunks * chunks * 256)
 
     companion object {
         val LIGHTS = HashMap<BlockPos, BlockLight>()
-        val DEFAULT_COLOR = Color(0xFFFF97)
+        val DEFAULT_COLOR = Vector3f(1f, 1f, 0.6f)
 
         fun clearChunk(chunk: LevelChunk) {
             LIGHTS.entries.removeIf { entry ->

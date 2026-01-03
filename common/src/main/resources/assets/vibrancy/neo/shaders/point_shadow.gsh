@@ -52,14 +52,14 @@ void main() {
     vec4 p4 = projectVertex(v4);
     vec4 p5 = projectVertex(v5);
 
-    vertex(p0);
     vertex(p2);
-    vertex(p1);
-    vertex(p5);
-    vertex(p4);
-    vertex(p3);
-    vertex(p1);
     vertex(p0);
+    vertex(p1);
+    vertex(p3);
+    vertex(p4);
+    vertex(p5);
+    vertex(p1);
+    vertex(p2);
 
     EndPrimitive();
 }

@@ -7,11 +7,8 @@ import net.minecraft.resources.ResourceKey
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.phys.AABB
 import org.joml.Vector3f
-import java.awt.Color
 
 fun Block.getKey(): ResourceKey<Block> = BuiltInRegistries.BLOCK.getResourceKey(this).orElseThrow()
-
-fun Color.withBrightness(b: Float) = Color((red * b).toInt(), (green * b).toInt(), (blue * b).toInt())
 
 fun boxOfRadius(center: Vector3f, radius: Float) = AABB(
     (center.x - radius).toDouble(),
@@ -26,10 +23,3 @@ fun BlockBox.expand(v: Int) = BlockBox(
     BlockPos(min.x - v, min.y - v, min.z - v),
     BlockPos(min.x + v, min.y + v, min.z + v)
 )
-
-fun Vector3f.invert(): Vector3f {
-    x = -x
-    y = -y
-    z = -z
-    return this
-}

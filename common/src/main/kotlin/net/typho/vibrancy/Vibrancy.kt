@@ -83,7 +83,7 @@ object Vibrancy {
 
             stack.set(ColorMask(true, true, true, true))
             stack.disable(GlCapability.DEPTH_TEST)
-            stack.disable(GlCapability.CULL_FACE) // TODO
+            stack.enable(GlCapability.CULL_FACE) // TODO
             stack.set(CullFace.FRONT)
             stack.enable(GlCapability.BLEND)
             stack.set(
@@ -130,6 +130,7 @@ object Vibrancy {
             shader.setCommonUniforms()
             shader.setSampler("DiffuseSampler0", Minecraft.getInstance().mainRenderTarget.colorTextureId)
             shader.setSampler("VibrancyOutputSampler", OUTPUT_FBO.colorAttachments[0] as ITexture)
+            shader.setSampler("VibrancyNormalSampler", VibrancyDynamicBuffers.normalsTexture!!)
             shader.setSampler("VibrancyAlbedoSampler", VibrancyDynamicBuffers.albedoTexture!!)
 
             BigShotLib.SCREEN_VBO.bind()

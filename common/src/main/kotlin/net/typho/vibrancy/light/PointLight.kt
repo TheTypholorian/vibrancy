@@ -20,7 +20,6 @@ import net.typho.vibrancy.util.expand
 import org.joml.Vector3f
 import org.lwjgl.opengl.GL11.*
 import org.lwjgl.system.NativeResource
-import java.awt.Color
 import kotlin.math.ceil
 import kotlin.math.floor
 
@@ -101,13 +100,12 @@ abstract class PointLight : Light, NativeResource {
         boxShader.getUniform("IModelMat")?.set(Vibrancy.iModelMat)
 
         boxShader.getUniform("LightPos")?.set(getPosition())
-        val color = getColor()
-        boxShader.getUniform("LightColor")?.set(Vector3f(color.red / 255f, color.green / 255f, color.blue / 255f))
+        boxShader.getUniform("LightColor")?.set(getColor())
         boxShader.getUniform("LightRadius")?.set(getRadius())
         boxShader.getUniform("CameraPos")?.set(Vibrancy.camera)
 
-        boxShader.setSampler("DiffuseDepthSampler", Minecraft.getInstance().mainRenderTarget.depthTextureId)
         boxShader.setSampler("VibrancyNormalSampler", VibrancyDynamicBuffers.normalsTexture!!)
+        boxShader.setSampler("DiffuseDepthSampler", Minecraft.getInstance().mainRenderTarget.depthTextureId)
 
         stack.enable(GlCapability.STENCIL_TEST)
         glStencilFunc(GL_EQUAL, 0, LightManager.Companion.SHADOW_MASK)
@@ -137,7 +135,7 @@ abstract class PointLight : Light, NativeResource {
 
     abstract fun getShadowRadius(manager: LightManager): Int
 
-    abstract fun getColor(): Color
+    abstract fun getColor(): Vector3f
 
     protected fun isStatic() = true
 }

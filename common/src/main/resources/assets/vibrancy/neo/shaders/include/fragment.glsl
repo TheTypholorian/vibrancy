@@ -22,9 +22,9 @@ float attenuateNoCusp(float distance, float radius) {
 
 vec4 sampleLight(sampler2D normalSampler, vec2 screenSize, vec3 lightPos, vec3 fragPos, float radius, vec3 lightColor) {
     return vec4(
-        getNormalDot(normalSampler, normalize(lightPos - fragPos), screenSize)
-        * attenuateNoCusp(distance(lightPos, fragPos), radius)
-        * lightColor,
+        getNormalDot(normalSampler, normalize(lightPos - fragPos), screenSize) *
+        attenuateNoCusp(distance(lightPos, fragPos), radius) *
+        lightColor,
         1
     );
 }
