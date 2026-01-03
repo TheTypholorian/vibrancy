@@ -11,6 +11,5 @@ out vec4 fragColor;
 
 void main() {
     fragColor = texture(DiffuseSampler0, uv);
-    // texture(VibrancyNormalSampler, uv).rgb;
     fragColor.rgb += texture(VibrancyOutputSampler, uv).rgb * texture(VibrancyAlbedoSampler, uv).rgb;
 }

@@ -13,6 +13,7 @@
   "client": [
     "ClientChunkCacheStorageMixin",
     "DebugScreenOverlayMixin",
+    "GlStateManagerMixin",
     "LevelRendererMixin",
     "MainTargetMixin",
     "MinecraftMixin",

@@ -87,6 +87,15 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
             GL_COLOR_ATTACHMENT0 + albedoLocation,
             GL_COLOR_ATTACHMENT0 + lightUVLocation
         ))
+        disableBlend()
+    }
+
+    @ApiStatus.Internal
+    @JvmStatic
+    fun disableBlend() {
+        glDisablei(GL_BLEND, normalsLocation)
+        glDisablei(GL_BLEND, albedoLocation)
+        glDisablei(GL_BLEND, lightUVLocation)
     }
 
     @JvmStatic
