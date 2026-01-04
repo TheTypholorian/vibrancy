@@ -40,6 +40,7 @@ data class DynamicLightInfo(
     }
 
     companion object {
+        @JvmField
         val MAP = HashMap<ResourceKey<Block>, DynamicLightInfo>()
 
         fun put(block: Block, info: DynamicLightInfo) {

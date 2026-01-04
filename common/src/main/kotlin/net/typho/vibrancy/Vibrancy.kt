@@ -83,7 +83,7 @@ object Vibrancy {
 
             stack.set(ColorMask(true, true, true, true))
             stack.disable(GlCapability.DEPTH_TEST)
-            stack.enable(GlCapability.CULL_FACE) // TODO
+            stack.enable(GlCapability.CULL_FACE)
             stack.set(CullFace.FRONT)
             stack.enable(GlCapability.BLEND)
             stack.set(

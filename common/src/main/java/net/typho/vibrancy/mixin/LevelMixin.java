@@ -27,12 +27,12 @@ public class LevelMixin {
             at = @At("TAIL")
     )
     private void onBlockStateChange(BlockPos pos, BlockState oldBlock, BlockState newBlock, CallbackInfo ci) {
-        DynamicLightInfo info = DynamicLightInfo.Companion.getMAP().get(UtilKt.getKey(newBlock.getBlock()));
+        DynamicLightInfo info = DynamicLightInfo.MAP.get(UtilKt.getKey(newBlock.getBlock()));
 
         if (info != null) {
             info.addBlockLight(pos, newBlock);
         } else {
-            BlockLight light = BlockLight.Companion.getLIGHTS().remove(pos);
+            BlockLight light = BlockLight.LIGHTS.remove(pos);
 
             if (light != null) {
                 light.close();

@@ -11,14 +11,18 @@ import net.minecraft.world.phys.Vec3
 import net.typho.big_shot_lib.BigShotLib.cube
 import net.typho.big_shot_lib.api.impl.NeoShader
 import net.typho.big_shot_lib.gl.GlStack
-import net.typho.big_shot_lib.gl.state.GlCapability
+import net.typho.big_shot_lib.gl.state.ComparisonMode
+import net.typho.big_shot_lib.gl.state.IntAction
+import net.typho.big_shot_lib.gl.state.StencilFunc
+import net.typho.big_shot_lib.gl.state.StencilOp
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyDynamicBuffers
 import net.typho.vibrancy.shadows.PointShadowManager
 import net.typho.vibrancy.util.boxOfRadius
 import net.typho.vibrancy.util.expand
 import org.joml.Vector3f
-import org.lwjgl.opengl.GL11.*
+import org.lwjgl.opengl.GL11.GL_STENCIL_BUFFER_BIT
+import org.lwjgl.opengl.GL11.glClear
 import org.lwjgl.system.NativeResource
 import kotlin.math.ceil
 import kotlin.math.floor
@@ -82,12 +86,16 @@ abstract class PointLight : Light, NativeResource {
 
         shadowShader.setSampler("DiffuseDepthSampler", Minecraft.getInstance().mainRenderTarget.depthTextureId)
 
-        glStencilFunc(
-            GL_NOTEQUAL,
-            LightManager.Companion.SHADOW_MASK,
-            LightManager.Companion.BLOCK_STENCIL_MASK or LightManager.Companion.SHADOW_MASK
-        )
-        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE)
+        stack.set(StencilFunc(
+            ComparisonMode.NOTEQUAL,
+            LightManager.SHADOW_MASK,
+            LightManager.BLOCK_STENCIL_MASK or LightManager.SHADOW_MASK
+        ))
+        stack.set(StencilOp(
+            IntAction.KEEP,
+            IntAction.KEEP,
+            IntAction.REPLACE,
+        ))
 
         shadows.render(manager, raytrace, this, shadowShader, stack)
 
@@ -107,9 +115,16 @@ abstract class PointLight : Light, NativeResource {
         boxShader.setSampler("VibrancyNormalSampler", VibrancyDynamicBuffers.normalsTexture!!)
         boxShader.setSampler("DiffuseDepthSampler", Minecraft.getInstance().mainRenderTarget.depthTextureId)
 
-        stack.enable(GlCapability.STENCIL_TEST)
-        glStencilFunc(GL_EQUAL, 0, LightManager.Companion.SHADOW_MASK)
-        glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP)
+        stack.set(StencilFunc(
+            ComparisonMode.EQUAL,
+            0,
+            LightManager.SHADOW_MASK
+        ))
+        stack.set(StencilOp(
+            IntAction.KEEP,
+            IntAction.KEEP,
+            IntAction.KEEP,
+        ))
 
         boxMesh.bind()
         boxMesh.draw()
