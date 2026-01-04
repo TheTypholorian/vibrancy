@@ -14,6 +14,6 @@ public class GlStateManagerMixin {
             at = @At("TAIL")
     )
     private static void enableBlend(CallbackInfo ci) {
-        VibrancyDynamicBuffers.disableBlend();
+        VibrancyDynamicBuffers.initState();
     }
 }
