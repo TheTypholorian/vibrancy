@@ -34,9 +34,9 @@ public class LevelRendererMixin {
             at = @At("HEAD")
     )
     private void prepareCullFrustum(Vec3 cameraPosition, Matrix4f frustumMatrix, Matrix4f projectionMatrix, CallbackInfo ci) {
-        Vibrancy.iProjMat = projectionMatrix.invertPerspective(new Matrix4f());
-        Vibrancy.iModelMat = frustumMatrix
-                .mulLocal(Vibrancy.iProjMat.mul(RenderSystem.getProjectionMatrix(), new Matrix4f()), new Matrix4f())
+        Vibrancy.iProjMat = new Matrix4f(projectionMatrix).invertPerspective();
+        Vibrancy.iModelMat = new Matrix4f(frustumMatrix)
+                .mulLocal(new Matrix4f(Vibrancy.iProjMat).mul(RenderSystem.getProjectionMatrix()))
                 .invert();
         Vibrancy.camera = cameraPosition.toVector3f();
     }

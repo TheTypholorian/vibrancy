@@ -11,15 +11,13 @@ import net.minecraft.world.phys.Vec3
 import net.typho.big_shot_lib.BigShotLib.cube
 import net.typho.big_shot_lib.api.impl.NeoShader
 import net.typho.big_shot_lib.gl.GlStack
-import net.typho.big_shot_lib.gl.state.ComparisonMode
-import net.typho.big_shot_lib.gl.state.IntAction
-import net.typho.big_shot_lib.gl.state.StencilFunc
-import net.typho.big_shot_lib.gl.state.StencilOp
+import net.typho.big_shot_lib.gl.state.*
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyDynamicBuffers
 import net.typho.vibrancy.shadows.PointShadowManager
 import net.typho.vibrancy.util.boxOfRadius
 import net.typho.vibrancy.util.expand
+import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.lwjgl.opengl.GL11.GL_STENCIL_BUFFER_BIT
 import org.lwjgl.opengl.GL11.glClear
@@ -74,11 +72,12 @@ abstract class PointLight : Light, NativeResource {
         glClear(GL_STENCIL_BUFFER_BIT)
 
         val shadowShader = NeoShader.get(Vibrancy.id("point_shadow"))!!
-        shadowShader.bind(stack)
-        shadowShader.setCommonUniforms(modelViewMat = manager.viewMatrix!!)
 
-        shadowShader.getUniform("IProjMat")?.set(Vibrancy.iProjMat)
-        shadowShader.getUniform("IModelMat")?.set(Vibrancy.iModelMat)
+        shadowShader.bind(stack)
+        shadowShader.setCommonUniforms(modelViewMat = Matrix4f(manager.viewMatrix!!))
+
+        shadowShader.getUniform("IProjMat")?.set(Matrix4f(Vibrancy.iProjMat))
+        shadowShader.getUniform("IModelMat")?.set(Matrix4f(Vibrancy.iModelMat))
 
         shadowShader.getUniform("LightPos")?.set(getPosition())
         shadowShader.getUniform("LightRadius")?.set(getRadius())
@@ -96,16 +95,17 @@ abstract class PointLight : Light, NativeResource {
             IntAction.KEEP,
             IntAction.REPLACE,
         ))
+        stack.disable(GlCapability.CULL_FACE)
 
         shadows.render(manager, raytrace, this, shadowShader, stack)
 
         val boxShader = NeoShader.get(Vibrancy.id("point_box"))!!
 
         boxShader.bind(stack)
-        boxShader.setCommonUniforms(modelViewMat = manager.viewMatrix!!)
+        boxShader.setCommonUniforms(modelViewMat = Matrix4f(manager.viewMatrix!!))
 
-        boxShader.getUniform("IProjMat")?.set(Vibrancy.iProjMat)
-        boxShader.getUniform("IModelMat")?.set(Vibrancy.iModelMat)
+        boxShader.getUniform("IProjMat")?.set(Matrix4f(Vibrancy.iProjMat))
+        boxShader.getUniform("IModelMat")?.set(Matrix4f(Vibrancy.iModelMat))
 
         boxShader.getUniform("LightPos")?.set(getPosition())
         boxShader.getUniform("LightColor")?.set(getColor())
@@ -125,6 +125,7 @@ abstract class PointLight : Light, NativeResource {
             IntAction.KEEP,
             IntAction.KEEP,
         ))
+        stack.enable(GlCapability.CULL_FACE)
 
         boxMesh.bind()
         boxMesh.draw()

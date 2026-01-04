@@ -1,6 +1,5 @@
 package net.typho.vibrancy.shadows
 
-import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.ItemBlockRenderTypes
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.core.BlockBox
@@ -107,12 +106,7 @@ open class PointShadowManager(static: Boolean) : ShadowManager<PointLight>(stati
     }
 
     override fun initializeUniforms(manager: LightManager, light: PointLight, shader: IShader) {
-        shader.setCommonUniforms()
         shader.getUniform("LightPos")?.set(light.getPosition())
-        shader.setSampler(
-            "DiffuseDepthSampler",
-            Minecraft.getInstance().mainRenderTarget.depthTextureId
-        )
     }
 
     override fun getEntityBox(manager: LightManager, light: PointLight): BlockBox? {

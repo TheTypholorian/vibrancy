@@ -31,7 +31,6 @@
     "big_shot_lib": ">=1.4.0"
   },
   "breaks": {
-    "sodium": "*",
     "iris": "*"
   }
 }

@@ -69,7 +69,7 @@ object Vibrancy {
     }
 
     fun render() {
-        LIGHT_MANAGER.viewMatrix = LIGHT_MANAGER.getViewMatrix()
+        LIGHT_MANAGER.viewMatrix = Matrix4f(LIGHT_MANAGER.getViewMatrix())
         LIGHT_MANAGER.lightsRendered = 0
         LIGHT_MANAGER.lightsRaytraced = 0
 

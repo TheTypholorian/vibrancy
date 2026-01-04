@@ -25,8 +25,7 @@ vec3 interpolateVertex(vec3 v, float len) {
 }
 
 vec4 projectVertex(vec3 v) {
-    // TODO why have to multiply by 3?
-    vec4 h = ProjMat * ModelViewMat * vec4(v * 3, 1);
+    vec4 h = ProjMat * ModelViewMat * vec4(v, 1);
     return h;
 }
 
@@ -42,8 +41,8 @@ void main() {
     // 1 2 0 X
     // 2 0 1 X
     triangle = Triangle(
-            v0, v1, v2,
-            uv[0], uv[1], uv[2]
+        v0, v1, v2,
+        uv[0], uv[1], uv[2]
     );
 
     float len = LightRadius;
