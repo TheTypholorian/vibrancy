@@ -16,7 +16,7 @@ import java.util.*
 import java.util.concurrent.CompletableFuture
 
 open class PointShadowManager(static: Boolean) : ShadowManager<PointLight>(static) {
-    protected var fullRebuildTask: CompletableFuture<MutableList<ShadowVolume>>? = null
+    protected var fullRebuildTask: CompletableFuture<MutableList<LightFace>>? = null
 
     override fun isTaskActive(): Boolean = !(fullRebuildTask?.isDone ?: false)
 
@@ -44,30 +44,22 @@ open class PointShadowManager(static: Boolean) : ShadowManager<PointLight>(stati
     }
 
     override fun rebuildBlock(manager: LightManager, pos: BlockPos, light: PointLight) {
-        shadows.removeIf { shadow -> shadow.caster.blockPos?.equals(pos) ?: false }
-
-        val lightPos = light.getPosition()
+        shadows.removeIf { shadow -> shadow.blockPos?.equals(pos) ?: false }
 
         getLightFaces(
             manager.getLevel(),
             light,
-            pos
-        ) { face ->
-            shadows.add(face.toVolumePoint(lightPos, light.getRadius()))
-        }
+            pos,
+            shadows::add
+        )
         shadowsDirty = true
     }
 
-    override fun lightFaceToVolume(face: LightFace, manager: LightManager, light: PointLight): ShadowVolume {
-        return face.toVolumePoint(light.getPosition(), light.getRadius())
-    }
-
-    fun fullRebuild(manager: LightManager, box: BlockBox, light: PointLight): MutableList<ShadowVolume> {
-        val lightPos = light.getPosition()
+    fun fullRebuild(manager: LightManager, box: BlockBox, light: PointLight): MutableList<LightFace> {
         val lightBlockPos = light.getBlockPos()
         val radius = light.getShadowRadius(manager)
         val radiusSq = radius * radius
-        val volumes = LinkedList<ShadowVolume>()
+        val shadows = LinkedList<LightFace>()
 
         for (x in box.min.x..box.max.x) {
             for (y in box.min.y..box.max.y) {
@@ -78,10 +70,9 @@ open class PointShadowManager(static: Boolean) : ShadowManager<PointLight>(stati
                         getLightFaces(
                             manager.getLevel(),
                             light,
-                            pos
-                        ) { face ->
-                            volumes.add(face.toVolumePoint(lightPos, light.getRadius()))
-                        }
+                            pos,
+                            shadows::add
+                        )
                     }
                 }
             }
@@ -89,7 +80,7 @@ open class PointShadowManager(static: Boolean) : ShadowManager<PointLight>(stati
 
         shadowsDirty = true
 
-        return volumes
+        return shadows
     }
 
     fun fullRebuildAsync(manager: LightManager, box: BlockBox, light: PointLight) {

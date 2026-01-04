@@ -2,10 +2,6 @@
 
 #include "vibrancy:include/common"
 
-layout(std430, binding = 0) buffer Quads {
-    Quad quads[];
-};
-
 layout(triangles) in;
 layout(triangle_strip, max_vertices = 8) out;
 
@@ -15,7 +11,9 @@ uniform mat4 ProjMat;
 uniform vec3 LightPos;
 uniform float LightRadius;
 
-out flat Quad quad;
+in vec2 uv[];
+
+out flat Triangle triangle;
 
 void vertex(vec4 v) {
     gl_Position = v;
@@ -33,13 +31,16 @@ vec4 projectVertex(vec3 v) {
 }
 
 void main() {
-    quad = quads[gl_PrimitiveIDIn / 2];
-
-    float len = LightRadius;
-
     vec3 v0 = gl_in[0].gl_Position.xyz;
     vec3 v1 = gl_in[1].gl_Position.xyz;
     vec3 v2 = gl_in[2].gl_Position.xyz;
+
+    triangle = Triangle(
+            v0, v1, v2,
+            uv[0], uv[1], uv[2]
+    );
+
+    float len = LightRadius;
 
     vec3 v3 = interpolateVertex(v0, len);
     vec3 v4 = interpolateVertex(v1, len);

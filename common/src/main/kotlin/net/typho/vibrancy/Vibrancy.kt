@@ -170,10 +170,6 @@ object Vibrancy {
             .mapToInt { it.shadows.numShadows() }
             .sum()
         out.accept("$shadows shadows")
-        val quads = BlockLight.LIGHTS.values.stream()
-            .mapToInt { it.shadows.numQuads() }
-            .sum()
-        out.accept("$quads quads")
         val tasks = BlockLight.LIGHTS.values.stream()
             .mapToInt { if (it.shadows.isTaskActive()) 1 else 0 }
             .sum()

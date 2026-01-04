@@ -17,7 +17,7 @@ uniform float LightRadius;
 uniform vec2 ScreenSize;
 uniform vec3 CameraPos;
 
-in flat Quad quad;
+in flat Triangle triangle;
 
 out vec4 fragColor;
 
@@ -31,10 +31,7 @@ void main() {
 
     // max((Pos.w - 16) / 128, 1e-3)
 
-    if (sampleQuad(AtlasSampler, Pos, dir, len, 1e-3, false, quad)) {
-        //fragColor = vec4(1, 0, 0, 1);
+    if (sampleTriangle(AtlasSampler, Pos, dir, len, 1e-3, false, triangle)) {
         discard;
-    } else {
-        //fragColor = vec4(0, 1, 0, 1);
     }
 }
