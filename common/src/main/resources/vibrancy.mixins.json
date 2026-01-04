@@ -3,21 +3,23 @@
   "minVersion": "0.8",
   "package": "net.typho.vibrancy.mixin",
   "refmap": "${mod_id}.refmap.json",
-  "compatibilityLevel": "JAVA_18",
+  "compatibilityLevel": "JAVA_21",
   "mixins": [
     "LevelMixin",
     "OptionsMixin",
-    "ShaderImportProcessorMixin",
     "SodiumGameOptionsPagesAccessor",
-    "VeilRendererMixin",
     "VertexConsumerTrackerMixin"
   ],
   "client": [
     "ClientChunkCacheStorageMixin",
+    "DebugScreenOverlayMixin",
+    "GlStateManagerMixin",
+    "LevelRendererAccessor",
     "LevelRendererMixin",
+    "MainTargetMixin",
     "MinecraftMixin",
-    "SodiumOptionsGUIMixin",
-    "VertexFormatModeMixin"
+    "RenderTargetMixin",
+    "SodiumOptionsGUIMixin"
   ],
   "injectors": {
     "defaultRequire": 1

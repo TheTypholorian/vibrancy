@@ -22,8 +22,11 @@ dependencies {
     modImplementation(libs.fabricApi)
 
     modImplementation(libs.flk)
-    modImplementation(libs.veil.fabric)
     modImplementation(libs.sodium)
+    //modImplementation(libs.bigShot)
+    implementation(fileTree("../libs") {
+        include("*.jar")
+    })
 }
 
 loom {

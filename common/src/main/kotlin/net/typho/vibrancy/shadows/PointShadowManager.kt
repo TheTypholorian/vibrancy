@@ -1,11 +1,14 @@
 package net.typho.vibrancy.shadows
 
-import net.minecraft.client.renderer.ShaderInstance
+import net.minecraft.client.renderer.ItemBlockRenderTypes
+import net.minecraft.client.renderer.RenderType
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.block.state.BlockState
+import net.typho.big_shot_lib.api.IShader
+import net.typho.big_shot_lib.gl.GlStack
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.light.LightManager
 import net.typho.vibrancy.light.PointLight
@@ -14,7 +17,17 @@ import java.util.*
 import java.util.concurrent.CompletableFuture
 
 open class PointShadowManager(static: Boolean) : ShadowManager<PointLight>(static) {
-    protected var fullRebuildTask: CompletableFuture<MutableList<ShadowVolume>>? = null
+    companion object {
+        @JvmField
+        val cutoutBlockRenderTypes = listOf(
+            RenderType.cutout(),
+            RenderType.cutoutMipped(),
+            RenderType.translucent(),
+            RenderType.tripwire()
+        )
+    }
+
+    protected var fullRebuildTask: CompletableFuture<MutableList<LightFace>>? = null
 
     override fun isTaskActive(): Boolean = !(fullRebuildTask?.isDone ?: false)
 
@@ -25,6 +38,10 @@ open class PointShadowManager(static: Boolean) : ShadowManager<PointLight>(stati
         level: BlockGetter,
         state: BlockState
     ): Boolean {
+        if (cutoutBlockRenderTypes.contains(ItemBlockRenderTypes.getChunkRenderType(state))) {
+            return true
+        }
+
         val otherPos = pos.relative(face)
         val lightBlockPos = light.getBlockPos()
 
@@ -42,30 +59,22 @@ open class PointShadowManager(static: Boolean) : ShadowManager<PointLight>(stati
     }
 
     override fun rebuildBlock(manager: LightManager, pos: BlockPos, light: PointLight) {
-        shadows.removeIf { shadow -> shadow.caster.blockPos?.equals(pos) ?: false }
-
-        val lightPos = light.getPosition()
+        shadows.removeIf { shadow -> shadow.blockPos?.equals(pos) ?: false }
 
         getLightFaces(
             manager.getLevel(),
             light,
-            pos
-        ) { face ->
-            shadows.add(face.toVolumePoint(lightPos, light.getRadius()))
-        }
+            pos,
+            shadows::add
+        )
         shadowsDirty = true
     }
 
-    override fun lightFaceToVolume(face: LightFace, manager: LightManager, light: PointLight): ShadowVolume {
-        return face.toVolumePoint(light.getPosition(), light.getRadius())
-    }
-
-    fun fullRebuild(manager: LightManager, box: BlockBox, light: PointLight): MutableList<ShadowVolume> {
-        val lightPos = light.getPosition()
+    fun fullRebuild(manager: LightManager, box: BlockBox, light: PointLight): MutableList<LightFace> {
         val lightBlockPos = light.getBlockPos()
         val radius = light.getShadowRadius(manager)
         val radiusSq = radius * radius
-        val volumes = LinkedList<ShadowVolume>()
+        val shadows = LinkedList<LightFace>()
 
         for (x in box.min.x..box.max.x) {
             for (y in box.min.y..box.max.y) {
@@ -76,10 +85,9 @@ open class PointShadowManager(static: Boolean) : ShadowManager<PointLight>(stati
                         getLightFaces(
                             manager.getLevel(),
                             light,
-                            pos
-                        ) { face ->
-                            volumes.add(face.toVolumePoint(lightPos, light.getRadius()))
-                        }
+                            pos,
+                            shadows::add
+                        )
                     }
                 }
             }
@@ -87,7 +95,7 @@ open class PointShadowManager(static: Boolean) : ShadowManager<PointLight>(stati
 
         shadowsDirty = true
 
-        return volumes
+        return shadows
     }
 
     fun fullRebuildAsync(manager: LightManager, box: BlockBox, light: PointLight) {
@@ -97,8 +105,8 @@ open class PointShadowManager(static: Boolean) : ShadowManager<PointLight>(stati
         }
     }
 
-    override fun initializeUniforms(manager: LightManager, light: PointLight, shader: ShaderInstance) {
-        shader.safeGetUniform("LightPos").set(light.getPosition())
+    override fun initializeUniforms(manager: LightManager, light: PointLight, shader: IShader) {
+        shader.getUniform("LightPos")?.set(light.getPosition())
     }
 
     override fun getEntityBox(manager: LightManager, light: PointLight): BlockBox? {
@@ -109,12 +117,12 @@ open class PointShadowManager(static: Boolean) : ShadowManager<PointLight>(stati
         return BlockBox.of(light.getBlockPos()).expand(light.getShadowRadius(manager))
     }
 
-    override fun render(manager: LightManager, raytrace: Boolean, light: PointLight) {
+    override fun render(manager: LightManager, raytrace: Boolean, light: PointLight, shader: IShader, stack: GlStack) {
         if (fullRebuildTask?.isDone ?: false) {
             shadows = fullRebuildTask!!.get()
             fullRebuildTask = null
         }
 
-        super.render(manager, raytrace, light)
+        super.render(manager, raytrace, light, shader, stack)
     }
 }

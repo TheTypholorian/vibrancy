@@ -16,7 +16,7 @@ public class MinecraftMixin {
             at = @At("TAIL")
     )
     private void setLevel(ClientLevel level, ReceivingLevelScreen.Reason reason, CallbackInfo ci) {
-        BlockLight.Companion.getLIGHTS().values().forEach(BlockLight::free);
-        BlockLight.Companion.getLIGHTS().clear();
+        BlockLight.LIGHTS.values().forEach(BlockLight::free);
+        BlockLight.LIGHTS.clear();
     }
 }

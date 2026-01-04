@@ -1,13 +1,11 @@
 package net.typho.vibrancy.shadows
 
-import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.*
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.client.renderer.LightTexture
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.RenderType
-import net.minecraft.client.renderer.ShaderInstance
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -18,13 +16,12 @@ import net.minecraft.world.inventory.InventoryMenu
 import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.block.RenderShape
 import net.minecraft.world.level.block.state.BlockState
+import net.typho.big_shot_lib.api.IShader
+import net.typho.big_shot_lib.gl.GlStack
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.light.Light
 import net.typho.vibrancy.light.LightManager
-import net.typho.vibrancy.platform.Services
 import net.typho.vibrancy.shadows.LightFace.Companion.toLightFace
-import net.typho.vibrancy.util.ShaderStorageBuffer
-import org.lwjgl.system.MemoryUtil
 import org.lwjgl.system.NativeResource
 import java.util.*
 import java.util.function.Consumer
@@ -32,30 +29,20 @@ import java.util.function.Consumer
 abstract class ShadowManager<L : Light>(
     static: Boolean
 ) : NativeResource, MultiBufferSource {
-    var shadowMesh: VertexBuffer? = VertexBuffer(if (static) VertexBuffer.Usage.STATIC else VertexBuffer.Usage.DYNAMIC)
-    var quadBuffer: ShaderStorageBuffer? =
-        ShaderStorageBuffer(if (static) ShaderStorageBuffer.Usage.STATIC else ShaderStorageBuffer.Usage.STREAM)
-    protected var shadows: MutableList<ShadowVolume> = LinkedList()
+    val shadowMesh by lazy { VertexBuffer(if (static) VertexBuffer.Usage.STATIC else VertexBuffer.Usage.DYNAMIC) }
+    protected var shadows: MutableList<LightFace> = LinkedList()
     protected var shadowsDirty = false
     protected val shadowBuilders = LinkedHashMap<RenderType, ShadowBuilder>()
     protected var numBlockEntities: Int = 0
     protected var numEntities: Int = 0
 
     companion object {
-        val DYNAMIC_SHADOW_MESH: VertexBuffer = VertexBuffer(VertexBuffer.Usage.DYNAMIC)
-        val DYNAMIC_QUAD_BUFFER: ShaderStorageBuffer = ShaderStorageBuffer(ShaderStorageBuffer.Usage.STREAM)
+        val DYNAMIC_SHADOW_MESH by lazy { VertexBuffer(VertexBuffer.Usage.DYNAMIC) }
     }
 
     override fun free() {
-        shadowMesh?.close()
-        shadowMesh = null
-        quadBuffer?.close()
-        quadBuffer = null
+        shadowMesh.close()
     }
-
-    open fun numQuads() = shadows.stream()
-        .mapToInt { it.numQuads() }
-        .sum()
 
     open fun numShadows() = shadows.size
 
@@ -77,19 +64,16 @@ abstract class ShadowManager<L : Light>(
     ): Boolean
 
     open fun rebuildBlock(manager: LightManager, pos: BlockPos, light: L) {
-        shadows.removeIf { shadow -> shadow.caster.blockPos?.equals(pos) ?: false }
+        shadows.removeIf { shadow -> shadow.blockPos?.equals(pos) ?: false }
 
         getLightFaces(
             manager.getLevel(),
             light,
-            pos
-        ) { face ->
-            shadows.add(lightFaceToVolume(face, manager, light))
-        }
+            pos,
+            shadows::add
+        )
         shadowsDirty = true
     }
-
-    abstract fun lightFaceToVolume(face: LightFace, manager: LightManager, light: L): ShadowVolume
 
     @Suppress("DEPRECATION")
     open fun getLightFaces(
@@ -135,33 +119,28 @@ abstract class ShadowManager<L : Light>(
     protected open fun uploadShadows(
         light: L,
         shadowMesh: VertexBuffer,
-        quadBuffer: ShaderStorageBuffer,
-        shadows: Collection<ShadowVolume>
+        shadows: Collection<LightFace>
     ) {
         if (shadows.isNotEmpty()) {
-            val builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION)
-            val quads = MemoryUtil.memAlloc(shadows.size * LightFace.BYTES)
+            val builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX)
 
             for (shadow in shadows) {
                 shadow.buildGeometry(builder)
-                shadow.toLightFace().put(quads)
             }
 
             val built = builder.build()!!
 
             shadowMesh.bind()
             shadowMesh.upload(built)
-            VertexBuffer.unbind()
-
-            quadBuffer.bind()
-            quadBuffer.upload(quads.flip())
-            ShaderStorageBuffer.unbind()
-
-            MemoryUtil.memFree(quads)
         }
     }
 
-    protected open fun castEntities(manager: LightManager, blockEntityBox: BlockBox?, entityBox: BlockBox?, light: L): Boolean {
+    protected open fun castEntities(
+        manager: LightManager,
+        blockEntityBox: BlockBox?,
+        entityBox: BlockBox?,
+        light: L
+    ): Boolean {
         val level = manager.getLevel()
         val poseStack = PoseStack()
         var any = false
@@ -212,24 +191,21 @@ abstract class ShadowManager<L : Light>(
         return any
     }
 
-    abstract fun initializeUniforms(manager: LightManager, light: L, shader: ShaderInstance)
+    abstract fun initializeUniforms(manager: LightManager, light: L, shader: IShader)
 
     abstract fun getEntityBox(manager: LightManager, light: L): BlockBox?
 
     abstract fun getBlockEntityBox(manager: LightManager, light: L): BlockBox?
 
-    open fun render(manager: LightManager, raytrace: Boolean, light: L) {
+    open fun render(manager: LightManager, raytrace: Boolean, light: L, shader: IShader, stack: GlStack) {
         numBlockEntities = 0
         numEntities = 0
 
         if (raytrace) {
-            //glPatchParameteri(GL_PATCH_VERTICES, 4);
-
-            val shader = RenderSystem.getShader()!!
             initializeUniforms(manager, light, shader)
 
             if (shadowsDirty) {
-                uploadShadows(light, shadowMesh!!, quadBuffer!!, shadows)
+                uploadShadows(light, shadowMesh, shadows)
                 shadowsDirty = false
             }
 
@@ -239,14 +215,8 @@ abstract class ShadowManager<L : Light>(
                     Minecraft.getInstance().modelManager.getAtlas(InventoryMenu.BLOCK_ATLAS)
                 )
 
-                quadBuffer!!.bindBase(0)
-
-                shadowMesh!!.bind()
-                shadowMesh!!.drawWithShader(
-                    manager.viewMatrix!!,
-                    RenderSystem.getProjectionMatrix(),
-                    shader
-                )
+                shadowMesh.bind()
+                shadowMesh.draw()
             }
 
             for (builder in shadowBuilders.values) {
@@ -254,16 +224,17 @@ abstract class ShadowManager<L : Light>(
             }
 
             if (Vibrancy.ENTITY_SHADOWS) {
-                val anyEntities = castEntities(manager, getBlockEntityBox(manager, light), getEntityBox(manager, light), light)
+                val anyEntities =
+                    castEntities(manager, getBlockEntityBox(manager, light), getEntityBox(manager, light), light)
 
                 if (anyEntities) {
-                    val entityShadows = HashMap<ResourceLocation, MutableList<ShadowVolume>>()
+                    val entityShadows = HashMap<ResourceLocation, MutableList<LightFace>>()
 
                     for (entry in shadowBuilders) {
                         entry.value.endVertex()
 
                         if (entry.key.mode() == VertexFormat.Mode.QUADS && !entry.value.vertices.isEmpty()) {
-                            val texture = Services.PLATFORM.getRenderTypeTexture(entry.key)
+                            val texture = Vibrancy.getRenderTypeTexture(entry.key)
                             val output = entityShadows.computeIfAbsent(texture) { LinkedList() }
                             val iterator = entry.value.vertices.iterator()
 
@@ -274,21 +245,17 @@ abstract class ShadowManager<L : Light>(
                                 val v4 = iterator.next()
 
                                 output.add(
-                                    lightFaceToVolume(
-                                        LightFace(
-                                            null,
-                                            null,
-                                            v1.vertex,
-                                            v2.vertex,
-                                            v3.vertex,
-                                            v4.vertex,
-                                            v1.uv,
-                                            v2.uv,
-                                            v3.uv,
-                                            v4.uv
-                                        ),
-                                        manager,
-                                        light
+                                    LightFace(
+                                        null,
+                                        null,
+                                        v1.vertex,
+                                        v2.vertex,
+                                        v3.vertex,
+                                        v4.vertex,
+                                        v1.uv,
+                                        v2.uv,
+                                        v3.uv,
+                                        v4.uv
                                     )
                                 )
                             }
@@ -296,21 +263,15 @@ abstract class ShadowManager<L : Light>(
                     }
 
                     for (entry in entityShadows) {
-                        uploadShadows(light, DYNAMIC_SHADOW_MESH, DYNAMIC_QUAD_BUFFER, entry.value)
+                        uploadShadows(light, DYNAMIC_SHADOW_MESH, entry.value)
 
                         shader.setSampler(
                             "AtlasSampler",
                             Minecraft.getInstance().textureManager.getTexture(entry.key)
                         )
 
-                        DYNAMIC_QUAD_BUFFER.bindBase(0)
-
                         DYNAMIC_SHADOW_MESH.bind()
-                        DYNAMIC_SHADOW_MESH.drawWithShader(
-                            manager.viewMatrix!!,
-                            RenderSystem.getProjectionMatrix(),
-                            shader
-                        )
+                        DYNAMIC_SHADOW_MESH.draw()
                     }
                 }
             }

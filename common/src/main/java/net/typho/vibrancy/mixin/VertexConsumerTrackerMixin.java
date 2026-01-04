@@ -16,7 +16,8 @@ public class VertexConsumerTrackerMixin {
                     value = "INVOKE",
                     target = "Lorg/slf4j/Logger;warn(Ljava/lang/String;Ljava/lang/Object;)V"
             ),
-            cancellable = true
+            cancellable = true,
+            remap = false
     )
     private static void logBadConsumer(VertexConsumer consumer, CallbackInfo ci) {
         if (consumer instanceof ShadowBuilder) {

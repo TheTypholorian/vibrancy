@@ -1,7 +1,5 @@
 package net.typho.vibrancy.light
 
-import foundry.veil.api.client.color.Color
-import foundry.veil.api.client.color.Colorc
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.resources.ResourceKey
@@ -14,7 +12,7 @@ import org.joml.Vector3f
 import java.util.*
 
 data class DynamicLightInfo(
-    val color: Optional<BlockStateFunction<Colorc>>,
+    val color: Optional<BlockStateFunction<Vector3f>>,
     val radius: Optional<BlockStateFunction<Float>>,
     val brightness: Optional<BlockStateFunction<Float>>,
     val offset: Optional<BlockStateFunction<Vector3f>>
@@ -42,6 +40,7 @@ data class DynamicLightInfo(
     }
 
     companion object {
+        @JvmField
         val MAP = HashMap<ResourceKey<Block>, DynamicLightInfo>()
 
         fun put(block: Block, info: DynamicLightInfo) {
@@ -50,7 +49,7 @@ data class DynamicLightInfo(
 
         init {
             put(Blocks.TORCH, DynamicLightInfo(
-                Optional.of(BlockStateFunction(Color(1f, 1f, 0.59f))),
+                Optional.of(BlockStateFunction(Vector3f(1f, 1f, 0.59f))),
                 Optional.empty(),
                 Optional.of(BlockStateFunction(0.5f)),
                 Optional.of(BlockStateFunction(Vector3f(0.5f, 0.5625f, 0.5f)))
@@ -82,13 +81,13 @@ data class DynamicLightInfo(
                 Optional.empty()
             ).copy(Blocks.TORCH))
             put(Blocks.SOUL_TORCH, DynamicLightInfo(
-                Optional.of(BlockStateFunction(Color(0.48f, 1f, 1f))),
+                Optional.of(BlockStateFunction(Vector3f(0.48f, 1f, 1f))),
                 Optional.empty(),
                 Optional.of(BlockStateFunction(0.3f)),
                 Optional.empty()
             ).copy(Blocks.TORCH))
             put(Blocks.SOUL_WALL_TORCH, DynamicLightInfo(
-                Optional.of(BlockStateFunction(Color(0.48f, 1f, 1f))),
+                Optional.of(BlockStateFunction(Vector3f(0.48f, 1f, 1f))),
                 Optional.empty(),
                 Optional.empty(),
                 Optional.empty()
@@ -106,13 +105,13 @@ data class DynamicLightInfo(
                 Optional.empty()
             ).copy(Blocks.SOUL_TORCH))
             put(Blocks.END_ROD, DynamicLightInfo(
-                Optional.of(BlockStateFunction(Color(0.96f, 0.88f, 0.8f))),
+                Optional.of(BlockStateFunction(Vector3f(0.96f, 0.88f, 0.8f))),
                 Optional.empty(),
                 Optional.of(BlockStateFunction(0.4f)),
                 Optional.empty()
             ))
             put(Blocks.COPPER_BULB, DynamicLightInfo(
-                Optional.of(BlockStateFunction(Color(1f, 0.86f, 0.6f))),
+                Optional.of(BlockStateFunction(Vector3f(1f, 0.86f, 0.6f))),
                 Optional.empty(),
                 Optional.of(
                     BlockStateFunction(
@@ -160,44 +159,44 @@ data class DynamicLightInfo(
             put(Blocks.WAXED_WEATHERED_COPPER_BULB, DynamicLightInfo().copy(Blocks.WEATHERED_COPPER_BULB))
             put(Blocks.WAXED_OXIDIZED_COPPER_BULB, DynamicLightInfo().copy(Blocks.OXIDIZED_COPPER_BULB))
             put(Blocks.REDSTONE_LAMP, DynamicLightInfo(
-                Optional.of(BlockStateFunction(Color(0.94f, 0.74f, 0.45f))),
+                Optional.of(BlockStateFunction(Vector3f(0.94f, 0.74f, 0.45f))),
                 Optional.empty(),
                 Optional.empty(),
                 Optional.empty()
             ).copy(Blocks.COPPER_BULB))
             put(Blocks.BEACON, DynamicLightInfo(
-                Optional.of(BlockStateFunction(Color(1f, 1f, 1f))),
+                Optional.of(BlockStateFunction(Vector3f(1f, 1f, 1f))),
                 Optional.empty(),
                 Optional.empty(),
                 Optional.empty()
             ))
             put(Blocks.SEA_LANTERN, DynamicLightInfo(
-                Optional.of(BlockStateFunction(Color(0.79f, 0.89f, 0.86f))),
+                Optional.of(BlockStateFunction(Vector3f(0.79f, 0.89f, 0.86f))),
                 Optional.empty(),
                 Optional.of(BlockStateFunction(0.3f)),
                 Optional.empty()
             ))
             put(Blocks.CONDUIT, DynamicLightInfo().copy(Blocks.SEA_LANTERN))
             put(Blocks.OCHRE_FROGLIGHT, DynamicLightInfo(
-                Optional.of(BlockStateFunction(Color(0.98f, 0.93f, 0.69f))),
+                Optional.of(BlockStateFunction(Vector3f(0.98f, 0.93f, 0.69f))),
                 Optional.empty(),
                 Optional.of(BlockStateFunction(0.5f)),
                 Optional.empty()
             ))
             put(Blocks.VERDANT_FROGLIGHT, DynamicLightInfo(
-                Optional.of(BlockStateFunction(Color(0.84f, 0.93f, 0.69f))),
+                Optional.of(BlockStateFunction(Vector3f(0.84f, 0.93f, 0.69f))),
                 Optional.empty(),
                 Optional.of(BlockStateFunction(0.5f)),
                 Optional.empty()
             ))
             put(Blocks.PEARLESCENT_FROGLIGHT, DynamicLightInfo(
-                Optional.of(BlockStateFunction(Color(0.93f, 0.9f, 0.88f))),
+                Optional.of(BlockStateFunction(Vector3f(0.93f, 0.9f, 0.88f))),
                 Optional.empty(),
                 Optional.of(BlockStateFunction(0.5f)),
                 Optional.empty()
             ))
             put(Blocks.JACK_O_LANTERN, DynamicLightInfo(
-                Optional.of(BlockStateFunction(Color(1f, 1f, 0.63f))),
+                Optional.of(BlockStateFunction(Vector3f(1f, 1f, 0.63f))),
                 Optional.empty(),
                 Optional.of(BlockStateFunction(0.3f)),
                 Optional.empty()

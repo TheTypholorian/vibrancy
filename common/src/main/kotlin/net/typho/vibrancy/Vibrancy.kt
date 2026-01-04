@@ -4,21 +4,25 @@ import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
 import com.mojang.blaze3d.vertex.VertexBuffer
-import com.mojang.blaze3d.vertex.VertexFormat
-import foundry.veil.api.client.render.VeilRenderSystem
-import foundry.veil.api.client.render.dynamicbuffer.DynamicBufferType
-import foundry.veil.api.client.render.rendertype.VeilRenderType
-import foundry.veil.platform.VeilEventPlatform
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
+import net.minecraft.client.renderer.RenderType
 import net.minecraft.core.Direction
 import net.minecraft.core.GlobalPos
 import net.minecraft.resources.ResourceLocation
+import net.typho.big_shot_lib.BigShotLib
+import net.typho.big_shot_lib.api.ITexture
+import net.typho.big_shot_lib.api.impl.NeoFramebuffer
+import net.typho.big_shot_lib.api.impl.NeoShader
+import net.typho.big_shot_lib.gl.GlStack
+import net.typho.big_shot_lib.gl.resource.GlResourceType
+import net.typho.big_shot_lib.gl.resource.TextureFormat
+import net.typho.big_shot_lib.gl.state.*
+import net.typho.big_shot_lib.spirv.ShaderMixinCallback
 import net.typho.vibrancy.light.BlockLight
 import net.typho.vibrancy.light.LightManager
 import net.typho.vibrancy.platform.Services
-import net.typho.vibrancy.util.ShaderStorageBuffer
-import net.typho.vibrancy.util.glClear
+import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.lwjgl.opengl.GL11.*
 import org.slf4j.Logger
@@ -27,6 +31,7 @@ import java.nio.file.Files
 import java.nio.file.Path
 import java.util.*
 import java.util.function.Consumer
+import kotlin.use
 
 object Vibrancy {
     const val MOD_ID = "vibrancy"
@@ -39,16 +44,111 @@ object Vibrancy {
     var LIGHT_BRIGHTNESS: Float = 1f
     var ENTITY_SHADOWS: Boolean = true
     val LIGHT_MANAGER = LightManager(DIRTY_BLOCKS, 16, 32, 200, 100, 6)
-
-    var RENDER_DEBUG_LINES = false
-
-    var PATCHES_MODE: VertexFormat.Mode? = null
+    val OUTPUT_FBO by lazy {
+        val fbo = NeoFramebuffer.TextureBacked(
+            id("output"),
+            arrayOf(TextureFormat.RGB16F),
+            TextureFormat.DEPTH24_STENCIL8,
+            Minecraft.getInstance().window.width,
+            Minecraft.getInstance().window.height
+        )
+        NeoFramebuffer.AUTO_RESIZE.add(fbo)
+        NeoFramebuffer.register(fbo)
+        fbo
+    }
+    @JvmField
+    var iProjMat = Matrix4f()
+    @JvmField
+    var iModelMat = Matrix4f()
+    @JvmField
+    var camera = Vector3f()
 
     fun init() {
         loadConfig()
-        ModRenderTypeLayers.init()
-        VeilEventPlatform.INSTANCE.onVeilRendererAvailable { renderer ->
-            renderer.postProcessingManager.add(id("post"))
+        ShaderMixinCallback.register(VibrancyDynamicBuffers)
+    }
+
+    fun render() {
+        LIGHT_MANAGER.viewMatrix = Matrix4f(LIGHT_MANAGER.getViewMatrix())
+        LIGHT_MANAGER.lightsRendered = 0
+        LIGHT_MANAGER.lightsRaytraced = 0
+
+        GlStack().use { stack ->
+            OUTPUT_FBO.bind(stack)
+
+            glClearColor(0f, 0f, 0f, 0f)
+            glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT or GL_STENCIL_BUFFER_BIT)
+
+            LIGHT_MANAGER.setupStencil(stack)
+
+            stack.set(ColorMask(true, true, true, true))
+            stack.disable(GlCapability.DEPTH_TEST)
+            stack.disable(GlCapability.CULL_FACE)
+            stack.set(CullFace.FRONT)
+            stack.enable(GlCapability.BLEND)
+            stack.set(
+                BlendFunction(
+                    BlendFactor.ONE,
+                    BlendFactor.ONE
+                )
+            )
+            stack.set(StencilMask, 1)
+            stack.set(
+                StencilFunc(
+                    ComparisonMode.ALWAYS,
+                    0,
+                    0xFF
+                )
+            )
+            stack.set(
+                StencilOp(
+                    IntAction.KEEP,
+                    IntAction.KEEP,
+                    IntAction.KEEP
+                )
+            )
+
+            BlockLight.LIGHTS.values.stream()
+                .sorted(Comparator.comparingDouble {
+                    it.getPosition().distanceSquared(LIGHT_MANAGER.getCamera().position.toVector3f()).toDouble()
+                })
+                .forEachOrdered { light ->
+                    if (LIGHT_MANAGER.shouldRender(light)) {
+                        val raytrace = LIGHT_MANAGER.shouldRaytrace(light)
+
+                        light.render(LIGHT_MANAGER, raytrace, stack)
+                        LIGHT_MANAGER.postRender(light, raytrace)
+                    }
+                }
+
+            stack.boundMap[GlResourceType.FRAMEBUFFER]?.unbind()
+
+            stack.disable(GlCapability.CULL_FACE)
+            stack.disable(GlCapability.BLEND)
+            val shader = NeoShader.get(id("post"))!!
+            shader.bind(stack)
+            shader.setCommonUniforms()
+            shader.setSampler("DiffuseSampler0", Minecraft.getInstance().mainRenderTarget.colorTextureId)
+            shader.setSampler("VibrancyOutputSampler", OUTPUT_FBO.colorAttachments[0] as ITexture)
+            shader.setSampler("VibrancyNormalSampler", VibrancyDynamicBuffers.normalsTexture!!)
+            shader.setSampler("VibrancyAlbedoSampler", VibrancyDynamicBuffers.albedoTexture!!)
+
+            BigShotLib.SCREEN_VBO.bind()
+            BigShotLib.SCREEN_VBO.draw()
+
+            DIRTY_BLOCKS.clear()
+        }
+
+        VertexBuffer.unbind()
+    }
+
+    fun getRenderTypeTexture(renderType: RenderType): ResourceLocation {
+        return when (renderType) {
+            is RenderType.CompositeRenderType -> {
+                renderType.state().textureState.cutoutTexture().orElseThrow()
+            }
+
+            else -> throw UnsupportedOperationException("Unable to get texture for render type ${renderType.javaClass} $renderType")
         }
     }
 
@@ -70,10 +170,6 @@ object Vibrancy {
             .mapToInt { it.shadows.numShadows() }
             .sum()
         out.accept("$shadows shadows")
-        val quads = BlockLight.LIGHTS.values.stream()
-            .mapToInt { it.shadows.numQuads() }
-            .sum()
-        out.accept("$quads quads")
         val tasks = BlockLight.LIGHTS.values.stream()
             .mapToInt { if (it.shadows.isTaskActive()) 1 else 0 }
             .sum()
@@ -86,44 +182,6 @@ object Vibrancy {
             .mapToInt { it.shadows.numBlockEntities() }
             .sum()
         out.accept("$blockEntities block entity shadows")
-    }
-
-    fun render() {
-        LIGHT_MANAGER.viewMatrix = LIGHT_MANAGER.createViewMatrix()
-        LIGHT_MANAGER.lightsRendered = 0
-        LIGHT_MANAGER.lightsRaytraced = 0
-
-        VeilRenderSystem.renderer()
-            .enableBuffers(id("light"), DynamicBufferType.NORMAL, DynamicBufferType.ALBEDO, DynamicBufferType.LIGHT_UV)
-
-        val outputFramebuffer = VeilRenderSystem.renderer().framebufferManager.getFramebuffer(id("output"))!!
-
-        outputFramebuffer.glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT or GL_STENCIL_BUFFER_BIT)
-
-        LIGHT_MANAGER.setupStencil(id("output"))
-
-        val pointRenderType = VeilRenderType.get(id("point_common"))!!
-        pointRenderType.setupRenderState()
-
-        BlockLight.LIGHTS.values.stream()
-            .sorted(Comparator.comparingDouble {
-                it.getPosition().distanceSquared(LIGHT_MANAGER.getCamera().position.toVector3f()).toDouble()
-            })
-            .forEachOrdered { light ->
-                if (LIGHT_MANAGER.shouldRender(light)) {
-                    val raytrace = LIGHT_MANAGER.shouldRaytrace(light)
-
-                    light.render(LIGHT_MANAGER, raytrace)
-                    LIGHT_MANAGER.postRender(light, raytrace)
-                }
-            }
-
-        pointRenderType.clearRenderState()
-
-        ShaderStorageBuffer.unbindBase(0)
-        VertexBuffer.unbind()
-
-        DIRTY_BLOCKS.clear()
     }
 
     fun reloadShadows() {

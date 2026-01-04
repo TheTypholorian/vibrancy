@@ -1,22 +1,26 @@
 package net.typho.vibrancy.light
 
-import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
+import com.mojang.blaze3d.vertex.Tesselator
 import com.mojang.blaze3d.vertex.VertexBuffer
 import com.mojang.blaze3d.vertex.VertexFormat
-import foundry.veil.api.client.color.Colorc
-import foundry.veil.api.client.render.VeilRenderSystem
+import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.world.phys.Vec3
+import net.typho.big_shot_lib.BigShotLib.cube
+import net.typho.big_shot_lib.api.impl.NeoShader
+import net.typho.big_shot_lib.gl.GlStack
+import net.typho.big_shot_lib.gl.state.*
 import net.typho.vibrancy.Vibrancy
+import net.typho.vibrancy.VibrancyDynamicBuffers
 import net.typho.vibrancy.shadows.PointShadowManager
 import net.typho.vibrancy.util.boxOfRadius
-import net.typho.vibrancy.util.cube
 import net.typho.vibrancy.util.expand
 import org.joml.Matrix4f
 import org.joml.Vector3f
-import org.lwjgl.opengl.GL11.*
+import org.lwjgl.opengl.GL11.GL_STENCIL_BUFFER_BIT
+import org.lwjgl.opengl.GL11.glClear
 import org.lwjgl.system.NativeResource
 import kotlin.math.ceil
 import kotlin.math.floor
@@ -33,7 +37,7 @@ abstract class PointLight : Light, NativeResource {
     }
 
     protected fun uploadBoxMesh() {
-        val builder = RenderSystem.renderThreadTesselator().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION)
+        val builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION)
         builder.cube(getBoundingBox())
 
         boxMesh.bind()
@@ -41,28 +45,14 @@ abstract class PointLight : Light, NativeResource {
         VertexBuffer.unbind()
     }
 
-    fun renderMesh(vbo: VertexBuffer, view: Matrix4f) {
-        val shader = RenderSystem.getShader()!!
-        val color = getColor()
-
-        shader.safeGetUniform("LightPos").set(getPosition())
-        shader.safeGetUniform("LightColor").set(Vector3f(color.red(), color.green(), color.blue()))
-        shader.safeGetUniform("LightRadius").set(getRadius())
-
-        vbo.bind()
-        vbo.drawWithShader(
-            view,
-            RenderSystem.getProjectionMatrix(),
-            shader
-        )
-    }
-
-    override fun render(manager: LightManager, raytrace: Boolean) {
+    override fun render(manager: LightManager, raytrace: Boolean, stack: GlStack) {
         val shadowRadius = getShadowRadius(manager)
         val shadowRadiusSq = shadowRadius * shadowRadius
 
         for (pos in manager.dirtyBlocks) {
-            if (manager.getLevel().dimension().equals(pos.dimension()) && pos.pos.distToCenterSqr(Vec3(getPosition())) < shadowRadiusSq) {
+            if (manager.getLevel().dimension()
+                    .equals(pos.dimension()) && pos.pos.distToCenterSqr(Vec3(getPosition())) < shadowRadiusSq
+            ) {
                 shadows.rebuildBlock(manager, pos.pos, this)
             }
         }
@@ -81,19 +71,64 @@ abstract class PointLight : Light, NativeResource {
 
         glClear(GL_STENCIL_BUFFER_BIT)
 
-        VeilRenderSystem.setShader(Vibrancy.id("point_shadow"))
-        glStencilFunc(GL_NOTEQUAL,
-            LightManager.Companion.SHADOW_MASK, LightManager.Companion.BLOCK_STENCIL_MASK or LightManager.Companion.SHADOW_MASK
-        )
-        glStencilOp(GL_KEEP, GL_KEEP, GL_REPLACE)
+        val shadowShader = NeoShader.get(Vibrancy.id("point_shadow"))!!
 
-        shadows.render(manager, raytrace, this)
+        shadowShader.bind(stack)
+        shadowShader.setCommonUniforms(modelViewMat = Matrix4f(manager.viewMatrix!!))
 
-        VeilRenderSystem.setShader(Vibrancy.id("point_box"))
-        glStencilFunc(GL_EQUAL, 0, LightManager.Companion.SHADOW_MASK)
-        glStencilOp(GL_KEEP, GL_KEEP, GL_KEEP)
+        shadowShader.getUniform("IProjMat")?.set(Matrix4f(Vibrancy.iProjMat))
+        shadowShader.getUniform("IModelMat")?.set(Matrix4f(Vibrancy.iModelMat))
 
-        renderMesh(boxMesh, manager.viewMatrix!!)
+        shadowShader.getUniform("LightPos")?.set(getPosition())
+        shadowShader.getUniform("LightRadius")?.set(getRadius())
+        shadowShader.getUniform("CameraPos")?.set(Vibrancy.camera)
+
+        shadowShader.setSampler("DiffuseDepthSampler", Minecraft.getInstance().mainRenderTarget.depthTextureId)
+
+        stack.set(StencilFunc(
+            ComparisonMode.NOTEQUAL,
+            LightManager.SHADOW_MASK,
+            LightManager.BLOCK_STENCIL_MASK or LightManager.SHADOW_MASK
+        ))
+        stack.set(StencilOp(
+            IntAction.KEEP,
+            IntAction.KEEP,
+            IntAction.REPLACE,
+        ))
+        stack.disable(GlCapability.CULL_FACE)
+
+        shadows.render(manager, raytrace, this, shadowShader, stack)
+
+        val boxShader = NeoShader.get(Vibrancy.id("point_box"))!!
+
+        boxShader.bind(stack)
+        boxShader.setCommonUniforms(modelViewMat = Matrix4f(manager.viewMatrix!!))
+
+        boxShader.getUniform("IProjMat")?.set(Matrix4f(Vibrancy.iProjMat))
+        boxShader.getUniform("IModelMat")?.set(Matrix4f(Vibrancy.iModelMat))
+
+        boxShader.getUniform("LightPos")?.set(getPosition())
+        boxShader.getUniform("LightColor")?.set(getColor())
+        boxShader.getUniform("LightRadius")?.set(getRadius())
+        boxShader.getUniform("CameraPos")?.set(Vibrancy.camera)
+
+        boxShader.setSampler("VibrancyNormalSampler", VibrancyDynamicBuffers.normalsTexture!!)
+        boxShader.setSampler("DiffuseDepthSampler", Minecraft.getInstance().mainRenderTarget.depthTextureId)
+
+        stack.set(StencilFunc(
+            ComparisonMode.EQUAL,
+            0,
+            LightManager.SHADOW_MASK
+        ))
+        stack.set(StencilOp(
+            IntAction.KEEP,
+            IntAction.KEEP,
+            IntAction.KEEP,
+        ))
+        stack.enable(GlCapability.CULL_FACE)
+
+        boxMesh.bind()
+        boxMesh.draw()
     }
 
     override fun getCullingBox() = getBoundingBox()
@@ -116,7 +151,7 @@ abstract class PointLight : Light, NativeResource {
 
     abstract fun getShadowRadius(manager: LightManager): Int
 
-    abstract fun getColor(): Colorc
+    abstract fun getColor(): Vector3f
 
     protected fun isStatic() = true
 }

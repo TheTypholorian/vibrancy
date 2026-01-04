@@ -51,6 +51,9 @@ repositories {
 
 dependencies {
     implementation(libs.kff)
-    implementation(libs.veil.neoforge)
     implementation(libs.sodium)
+    //implementation(libs.bigShot)
+    implementation(fileTree("../libs") {
+        include("*.jar")
+    })
 }

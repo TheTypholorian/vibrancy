@@ -28,10 +28,9 @@
     "minecraft": "${minecraft_version}",
     "java": ">=${java_version}",
     "fabric-language-kotlin": ">=${flk_version}",
-    "sodium": "*",
-    "veil": ">=${veil_version}"
+    "big_shot_lib": ">=1.4.0"
   },
-  "suggests": {
-    "another-mod": "*"
+  "breaks": {
+    "iris": "*"
   }
 }

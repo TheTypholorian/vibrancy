@@ -23,10 +23,10 @@ public class ClientChunkCacheStorageMixin {
 
         if (newValue == null) {
             if (chunk instanceof LevelChunk levelChunk) {
-                BlockLight.Companion.clearChunk(levelChunk);
+                BlockLight.clearChunk(levelChunk);
             }
         } else if (newValue instanceof LevelChunk levelChunk) {
-            BlockLight.Companion.scanChunk(levelChunk);
+            BlockLight.scanChunk(levelChunk);
         }
 
         return chunk;
@@ -44,9 +44,9 @@ public class ClientChunkCacheStorageMixin {
 
         if (r) {
             if (newValue instanceof LevelChunk levelChunk) {
-                BlockLight.Companion.scanChunk(levelChunk);
+                BlockLight.scanChunk(levelChunk);
             } else if (expectedValue instanceof LevelChunk levelChunk) {
-                BlockLight.Companion.clearChunk(levelChunk);
+                BlockLight.clearChunk(levelChunk);
             }
         }
 

@@ -1,7 +1,5 @@
 package net.typho.vibrancy.light
 
-import foundry.veil.api.client.color.Color
-import foundry.veil.api.client.color.Colorc
 import net.minecraft.client.Camera
 import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
@@ -11,7 +9,6 @@ import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.level.chunk.LevelChunkSection
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.util.getKey
-import net.typho.vibrancy.util.withBrightness
 import org.joml.Vector3f
 import java.util.function.Supplier
 
@@ -19,7 +16,7 @@ data class BlockLight(
     private val blockPos: BlockPos,
     var offset: Supplier<Vector3f>,
     private var radius: Supplier<Float>,
-    private var color: Supplier<Colorc>
+    private var color: Supplier<Vector3f>
 ) : PointLight() {
     constructor(blockPos: BlockPos, info: DynamicLightInfo, state: BlockState) : this(
         blockPos,
@@ -34,7 +31,7 @@ data class BlockLight(
         {
             info.color.map { it.apply(state) }
                 .orElse(DEFAULT_COLOR)
-                .withBrightness(info.brightness.map { it.apply(state) }.orElse(1f) * Vibrancy.LIGHT_BRIGHTNESS)
+                .mul(info.brightness.map { it.apply(state) }.orElse(1f) * Vibrancy.LIGHT_BRIGHTNESS, Vector3f())
         }
     )
 
@@ -50,7 +47,7 @@ data class BlockLight(
         color = Supplier {
             info.color.map { it.apply(state) }
                 .orElse(DEFAULT_COLOR)
-                .withBrightness(info.brightness.map { it.apply(state) }.orElse(1f) * Vibrancy.LIGHT_BRIGHTNESS)
+                .mul(info.brightness.map { it.apply(state) }.orElse(1f) * Vibrancy.LIGHT_BRIGHTNESS, Vector3f())
         }
         boxDirty = true
         shadowsDirty = true
@@ -72,15 +69,18 @@ data class BlockLight(
     override fun getShadowRadius(manager: LightManager): Int =
         getRadius().coerceAtMost(manager.shadowRadius.toFloat()).toInt()
 
-    override fun getColor(): Colorc = color.get()
+    override fun getColor(): Vector3f = color.get()
 
     override fun testCullingDistance(camera: Camera, chunks: Int): Boolean =
         getPosition().distanceSquared(camera.position.toVector3f()) <= (chunks * chunks * 256)
 
     companion object {
+        @JvmField
         val LIGHTS = HashMap<BlockPos, BlockLight>()
-        val DEFAULT_COLOR = Color(0xFFFF97)
+        @JvmField
+        val DEFAULT_COLOR = Vector3f(1f, 1f, 0.6f)
 
+        @JvmStatic
         fun clearChunk(chunk: LevelChunk) {
             LIGHTS.entries.removeIf { entry ->
                 val removed = ChunkPos(entry.key) == chunk.pos
@@ -93,6 +93,7 @@ data class BlockLight(
             }
         }
 
+        @JvmStatic
         fun scanChunk(chunk: LevelChunk) {
             clearChunk(chunk)
 
