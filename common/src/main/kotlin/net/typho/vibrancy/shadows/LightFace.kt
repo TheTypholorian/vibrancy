@@ -5,43 +5,20 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import org.joml.Vector2f
 import org.joml.Vector3f
-import org.joml.Vector4f
 import java.nio.ByteBuffer
 
 data class LightFace(
     val blockPos: BlockPos?, val direction: Direction?, val relative: BlockPos?,
     val vertex1: Vector3f, val vertex2: Vector3f, val vertex3: Vector3f, val vertex4: Vector3f,
     val texCoord1: Vector2f, val texCoord2: Vector2f, val texCoord3: Vector2f, val texCoord4: Vector2f,
-    val normal: Vector3f, val dot: Float,
-    val diagonal1: Vector3f, val diagonal2: Vector3f,
-    var inverse: Vector4f?
 ) : LightFaceConvertible {
     constructor(
         blockPos: BlockPos?, direction: Direction?, v1: Vector3f, v2: Vector3f, v3: Vector3f, v4: Vector3f,
         uv1: Vector2f, uv2: Vector2f, uv3: Vector2f, uv4: Vector2f
     ) : this(
         blockPos, direction, if (direction == null || blockPos == null) null else blockPos.relative(direction),
-        v1, v2, v3, v4, uv1, uv2, uv3, uv4,
-        Vector3f(v2).sub(v1).cross(Vector3f(v4).sub(v1)).normalize(),
-        Vector3f(v2).sub(v1).cross(Vector3f(v4).sub(v1)).normalize().dot(v1),
-        Vector3f(v2).sub(v1),
-        Vector3f(v4).sub(v1),
-        null
+        v1, v2, v3, v4, uv1, uv2, uv3, uv4
     )
-
-    init {
-        val d11 = diagonal1.dot(diagonal1)
-        val d12 = diagonal1.dot(diagonal2)
-        val d22 = diagonal2.dot(diagonal2)
-        val invDet = 1.0f / (d11 * d22 - d12 * d12)
-
-        val inv11 = d22 * invDet
-        val inv12 = -d12 * invDet
-        val inv21 = -d12 * invDet
-        val inv22 = d11 * invDet
-
-        inverse = Vector4f(inv11, inv12, inv21, inv22)
-    }
 
     override fun toLightFace(): LightFace {
         return this
@@ -57,12 +34,6 @@ data class LightFace(
         buf.putFloat(texCoord2.x).putFloat(texCoord2.y)
         buf.putFloat(texCoord3.x).putFloat(texCoord3.y)
         buf.putFloat(texCoord4.x).putFloat(texCoord4.y)
-
-        buf.putFloat(normal.x).putFloat(normal.y).putFloat(normal.z).putFloat(dot)
-        buf.putFloat(diagonal1.x).putFloat(diagonal1.y).putFloat(diagonal1.z).putFloat(diagonal1.dot(diagonal1))
-        buf.putFloat(diagonal2.x).putFloat(diagonal2.y).putFloat(diagonal2.z).putFloat(diagonal2.dot(diagonal2))
-
-        buf.putFloat(inverse!!.x).putFloat(inverse!!.y).putFloat(inverse!!.z).putFloat(inverse!!.w)
     }
 
     fun toVolumePoint(origin: Vector3f?, radius: Float): ShadowVolume {
@@ -97,7 +68,7 @@ data class LightFace(
     }
 
     companion object {
-        const val BYTES: Int = 40 * Float.SIZE_BYTES
+        const val BYTES: Int = 24 * Float.SIZE_BYTES
 
         fun BakedQuad.toLightFace(x: Float, y: Float, z: Float, origin: BlockPos, direction: Direction?): LightFace {
             val vertices = arrayOfNulls<Vector3f>(4)
