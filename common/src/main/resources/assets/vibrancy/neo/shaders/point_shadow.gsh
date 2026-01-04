@@ -35,6 +35,12 @@ void main() {
     vec3 v1 = gl_in[1].gl_Position.xyz;
     vec3 v2 = gl_in[2].gl_Position.xyz;
 
+    // 0 1 2 X
+    // 0 2 1 X
+    // 1 0 2 X
+    // 2 1 0 X
+    // 1 2 0 X
+    // 2 0 1 X
     triangle = Triangle(
             v0, v1, v2,
             uv[0], uv[1], uv[2]

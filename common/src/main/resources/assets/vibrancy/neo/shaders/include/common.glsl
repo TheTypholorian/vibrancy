@@ -70,13 +70,12 @@ struct Triangle {
     vec2 uv1, uv2, uv3;
 };
 
-bool raycastTriangle(vec3 origin, vec3 dir, float len, float margin, bool front, Triangle t, out vec2 uv) {
+bool raycastTriangle(vec3 origin, vec3 dir, float len, float margin, Triangle t, out vec2 uv) {
     vec3 edge1 = t.v2 - t.v1;
     vec3 edge2 = t.v3 - t.v1;
 
     vec3 pvec = cross(dir, edge2);
     float det = dot(edge1, pvec);
-    if (det >= 0.0 == front) return false;
 
     float invDet = 1.0 / det;
     vec3 tvec = origin - t.v1;
@@ -96,18 +95,15 @@ bool raycastTriangle(vec3 origin, vec3 dir, float len, float margin, bool front,
     return true;
 }
 
-bool sampleTriangle(sampler2D AtlasSampler, vec3 origin, vec3 dir, float len, float margin, bool front, Triangle t) {
+bool sampleTriangle(sampler2D AtlasSampler, vec3 origin, vec3 dir, float len, float margin, Triangle t) {
     vec2 uv;
 
-    if (raycastTriangle(origin, dir, len, margin, front, t, uv)) {
+    if (raycastTriangle(origin, dir, len, margin, t, uv)) {
         vec4 color = texture(AtlasSampler, uv);
 
-        if (color.a == 0) {
-            return true;
-        }
+        return color.a == 0;
+        //return false;
     } else {
         return true;
     }
-
-    return false;
 }

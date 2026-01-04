@@ -124,6 +124,10 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
         context: ShaderMixinContext,
         locations: ShaderLocationsInfo
     ) {
+        if (shader == ResourceLocation.withDefaultNamespace("rendertype_lines")) {
+            return
+        }
+
         if (locations.hasGeometryShader) {
             if (format != null) {
                 if (

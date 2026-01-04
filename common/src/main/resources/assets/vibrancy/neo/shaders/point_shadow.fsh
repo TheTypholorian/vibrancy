@@ -31,7 +31,7 @@ void main() {
 
     // max((Pos.w - 16) / 128, 1e-3)
 
-    if (sampleTriangle(AtlasSampler, Pos, dir, len, 1e-3, false, triangle)) {
+    if (sampleTriangle(AtlasSampler, Pos, dir, len, 1e-3, triangle)) {
         discard;
     }
 }

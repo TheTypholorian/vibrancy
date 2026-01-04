@@ -1,6 +1,8 @@
 package net.typho.vibrancy.shadows
 
 import net.minecraft.client.Minecraft
+import net.minecraft.client.renderer.ItemBlockRenderTypes
+import net.minecraft.client.renderer.RenderType
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -16,6 +18,16 @@ import java.util.*
 import java.util.concurrent.CompletableFuture
 
 open class PointShadowManager(static: Boolean) : ShadowManager<PointLight>(static) {
+    companion object {
+        @JvmField
+        val cutoutBlockRenderTypes = listOf(
+            RenderType.cutout(),
+            RenderType.cutoutMipped(),
+            RenderType.translucent(),
+            RenderType.tripwire()
+        )
+    }
+
     protected var fullRebuildTask: CompletableFuture<MutableList<LightFace>>? = null
 
     override fun isTaskActive(): Boolean = !(fullRebuildTask?.isDone ?: false)
@@ -27,6 +39,10 @@ open class PointShadowManager(static: Boolean) : ShadowManager<PointLight>(stati
         level: BlockGetter,
         state: BlockState
     ): Boolean {
+        if (cutoutBlockRenderTypes.contains(ItemBlockRenderTypes.getChunkRenderType(state))) {
+            return true
+        }
+
         val otherPos = pos.relative(face)
         val lightBlockPos = light.getBlockPos()
 
