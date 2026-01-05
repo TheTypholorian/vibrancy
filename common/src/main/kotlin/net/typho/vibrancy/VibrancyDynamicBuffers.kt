@@ -16,6 +16,7 @@ import net.typho.big_shot_lib.spirv.at.AtOpcode
 import net.typho.big_shot_lib.spirv.at.AtVoidReturn
 import net.typho.big_shot_lib.spirv.at.BeforeFirstFunction
 import net.typho.big_shot_lib.spirv.vars.ShaderPrimitiveType
+import net.typho.big_shot_lib.spirv.vars.ShaderVariable
 import net.typho.big_shot_lib.spirv.vars.ShaderVectorType
 import org.jetbrains.annotations.ApiStatus
 import org.lwjgl.opengl.GL11.GL_NONE
@@ -145,14 +146,55 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
         format?.let {
             when (type) {
                 ShaderType.VERTEX -> {
-                    if (format.contains(VertexFormatElement.NORMAL)) {
-                        val normalVar = context.locateVariable(
-                            name = format.getElementName(VertexFormatElement.NORMAL)
-                        )
+                    if (format.contains(VertexFormatElement.NORMAL) || shader.namespace == "sodium") {
+                        var normalVar: ShaderVariable? = null
+
+                        if (format.contains(VertexFormatElement.NORMAL)) {
+                            normalVar = context.locateVariable(
+                                name = format.getElementName(VertexFormatElement.NORMAL)
+                            )
+                        }
+
+                        if (normalVar == null && shader.namespace == "sodium") {
+                            normalVar = context.locateVariable(
+                                name = "a_Normal"
+                            )
+
+                            if (normalVar == null) {
+                                normalVar = context.locateVariable(
+                                    name = "VeilNormal"
+                                )
+
+                                if (normalVar == null) {
+                                    val vec4 = ShaderVectorType(ShaderPrimitiveType.FLOAT_32, 4).findOrInject(context)
+                                    val input = context.addStaticVar(1, vec4, "VibrancyInputNormal")
+                                    context.addEntrypointVars(input.id)
+
+                                    val location = locations.getMapper(1, type)!!.map("VibrancyInputNormal")
+                                    context.inject(
+                                        AtOpcode(71), // OpDecorate
+                                        ByteBuffer.allocate(4 * WORD_SIZE_BYTES)
+                                            .order(ShaderMixinContext.BYTE_ORDER)
+                                            .putInt(0x00_04_00_47)
+                                            .putInt(input.id)
+                                            .putInt(30) // Location
+                                            .putInt(location)
+                                    )
+
+                                    normalVar = ShaderVariable(
+                                        input.id,
+                                        input.name,
+                                        location,
+                                        input.typePointer,
+                                        input.type
+                                    )
+                                }
+                            }
+                        }
 
                         if (normalVar != null) {
                             val output = context.addStaticVar(3, normalVar.type, "VibrancyVertexNormal")
-                            context.addEntrypointVars(output)
+                            context.addEntrypointVars(output.id)
 
                             val location = locations.getMapper(3, type)!!.map("VibrancyVertexNormal")
                             context.inject(
@@ -160,7 +202,7 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
                                 ByteBuffer.allocate(4 * WORD_SIZE_BYTES)
                                     .order(ShaderMixinContext.BYTE_ORDER)
                                     .putInt(0x00_04_00_47)
-                                    .putInt(output)
+                                    .putInt(output.id)
                                     .putInt(30) // Location
                                     .putInt(location)
                             )
@@ -178,7 +220,7 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
                                     .putInt(normalVar.id)
 
                                     .putInt(0x00_03_00_3E) // OpStore
-                                    .putInt(output)
+                                    .putInt(output.id)
                                     .putInt(tempVar)
                             )
                         }
@@ -194,7 +236,7 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
                             val vec2 = ShaderVectorType(ShaderPrimitiveType.FLOAT_32, 2).findOrInject(context)
 
                             val output = context.addStaticVar(3, vec2, "VibrancyVertexLight")
-                            context.addEntrypointVars(output)
+                            context.addEntrypointVars(output.id)
 
                             val location = locations.getMapper(3, type)!!.map("VibrancyVertexLight")
                             context.inject(
@@ -202,7 +244,7 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
                                 ByteBuffer.allocate(4 * WORD_SIZE_BYTES)
                                     .order(ShaderMixinContext.BYTE_ORDER)
                                     .putInt(0x00_04_00_47)
-                                    .putInt(output)
+                                    .putInt(output.id)
                                     .putInt(30) // Location
                                     .putInt(location)
                             )
@@ -240,7 +282,7 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
                                     .putInt(constantVar)
 
                                     .putInt(0x00_03_00_3E) // OpStore
-                                    .putInt(output)
+                                    .putInt(output.id)
                                     .putInt(tempVar2)
                             )
                         }
@@ -255,7 +297,7 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
                             val vec2 = ShaderVectorType(ShaderPrimitiveType.FLOAT_32, 2).findOrInject(context)
 
                             val output = context.addStaticVar(3, vec2, "VibrancyVertexTexCoord")
-                            context.addEntrypointVars(output)
+                            context.addEntrypointVars(output.id)
 
                             val location = locations.getMapper(3, type)!!.map("VibrancyVertexTexCoord")
                             context.inject(
@@ -263,7 +305,7 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
                                 ByteBuffer.allocate(4 * WORD_SIZE_BYTES)
                                     .order(ShaderMixinContext.BYTE_ORDER)
                                     .putInt(0x00_04_00_47)
-                                    .putInt(output)
+                                    .putInt(output.id)
                                     .putInt(30) // Location
                                     .putInt(location)
                             )
@@ -281,7 +323,7 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
                                     .putInt(uvVar.id)
 
                                     .putInt(0x00_03_00_3E) // OpStore
-                                    .putInt(output)
+                                    .putInt(output.id)
                                     .putInt(tempVar)
                             )
                         }
@@ -303,21 +345,21 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
                                 ByteBuffer.allocate(4 * WORD_SIZE_BYTES)
                                     .order(ShaderMixinContext.BYTE_ORDER)
                                     .putInt(0x00_04_00_47)
-                                    .putInt(input)
+                                    .putInt(input.id)
                                     .putInt(30) // Location
                                     .putInt(inputLocation)
                             )
 
                             val output = context.addStaticVar(3, vec3, "VibrancyFragmentNormal")
 
-                            context.addEntrypointVars(input, output)
+                            context.addEntrypointVars(input.id, output.id)
 
                             context.inject(
                                 AtOpcode(71), // OpDecorate
                                 ByteBuffer.allocate(4 * WORD_SIZE_BYTES)
                                     .order(ShaderMixinContext.BYTE_ORDER)
                                     .putInt(0x00_04_00_47)
-                                    .putInt(output)
+                                    .putInt(output.id)
                                     .putInt(30) // Location
                                     .putInt(normalsLocation)
                             )
@@ -332,10 +374,10 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
                                     .putInt(0x00_04_00_3D) // OpLoad
                                     .putInt(vec3)
                                     .putInt(tempVar)
-                                    .putInt(input)
+                                    .putInt(input.id)
 
                                     .putInt(0x00_03_00_3E) // OpStore
-                                    .putInt(output)
+                                    .putInt(output.id)
                                     .putInt(tempVar)
                             )
                         }
@@ -355,21 +397,21 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
                                 ByteBuffer.allocate(4 * WORD_SIZE_BYTES)
                                     .order(ShaderMixinContext.BYTE_ORDER)
                                     .putInt(0x00_04_00_47)
-                                    .putInt(input)
+                                    .putInt(input.id)
                                     .putInt(30) // Location
                                     .putInt(inputLocation)
                             )
 
                             val output = context.addStaticVar(3, vec2, "VibrancyFragmentLight")
 
-                            context.addEntrypointVars(input, output)
+                            context.addEntrypointVars(input.id, output.id)
 
                             context.inject(
                                 AtOpcode(71), // OpDecorate
                                 ByteBuffer.allocate(4 * WORD_SIZE_BYTES)
                                     .order(ShaderMixinContext.BYTE_ORDER)
                                     .putInt(0x00_04_00_47)
-                                    .putInt(output)
+                                    .putInt(output.id)
                                     .putInt(30) // Location
                                     .putInt(lightUVLocation)
                             )
@@ -384,10 +426,10 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
                                     .putInt(0x00_04_00_3D) // OpLoad
                                     .putInt(vec2)
                                     .putInt(tempVar)
-                                    .putInt(input)
+                                    .putInt(input.id)
 
                                     .putInt(0x00_03_00_3E) // OpStore
-                                    .putInt(output)
+                                    .putInt(output.id)
                                     .putInt(tempVar)
                             )
                         }
@@ -413,21 +455,21 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
                                     ByteBuffer.allocate(4 * WORD_SIZE_BYTES)
                                         .order(ShaderMixinContext.BYTE_ORDER)
                                         .putInt(0x00_04_00_47)
-                                        .putInt(input)
+                                        .putInt(input.id)
                                         .putInt(30) // Location
                                         .putInt(inputLocation)
                                 )
 
                                 val output = context.addStaticVar(3, vec4, "VibrancyFragmentAlbedo")
 
-                                context.addEntrypointVars(input, output)
+                                context.addEntrypointVars(input.id, output.id)
 
                                 context.inject(
                                     AtOpcode(71), // OpDecorate
                                     ByteBuffer.allocate(4 * WORD_SIZE_BYTES)
                                         .order(ShaderMixinContext.BYTE_ORDER)
                                         .putInt(0x00_04_00_47)
-                                        .putInt(output)
+                                        .putInt(output.id)
                                         .putInt(30) // Location
                                         .putInt(albedoLocation)
                                 )
@@ -449,7 +491,7 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
                                         .putInt(0x00_04_00_3D) // OpLoad
                                         .putInt(vec4)
                                         .putInt(tempTexCoordVar)
-                                        .putInt(input)
+                                        .putInt(input.id)
 
                                         .putInt(0x00_05_00_57) // OpImageSampleImplicitLod
                                         .putInt(vec4)
@@ -458,7 +500,7 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
                                         .putInt(tempTexCoordVar)
 
                                         .putInt(0x00_03_00_3E) // OpStore
-                                        .putInt(output)
+                                        .putInt(output.id)
                                         .putInt(tempResultVar)
                                 )
                             }
