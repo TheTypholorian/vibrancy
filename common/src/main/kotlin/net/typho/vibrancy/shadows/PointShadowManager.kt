@@ -1,6 +1,5 @@
 package net.typho.vibrancy.shadows
 
-import net.minecraft.client.renderer.ItemBlockRenderTypes
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
@@ -38,9 +37,9 @@ open class PointShadowManager(static: Boolean) : ShadowManager<PointLight>(stati
         level: BlockGetter,
         state: BlockState
     ): Boolean {
-        if (cutoutBlockRenderTypes.contains(ItemBlockRenderTypes.getChunkRenderType(state))) {
-            return true
-        }
+        //if (cutoutBlockRenderTypes.contains(ItemBlockRenderTypes.getChunkRenderType(state))) {
+        //    return true
+        //}
 
         val otherPos = pos.relative(face)
         val lightBlockPos = light.getBlockPos()

@@ -10,51 +10,29 @@ import net.minecraft.world.level.chunk.LevelChunkSection
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.util.getKey
 import org.joml.Vector3f
-import java.util.function.Supplier
 
 data class BlockLight(
     private val blockPos: BlockPos,
-    var offset: Supplier<Vector3f>,
-    private var radius: Supplier<Float>,
-    private var color: Supplier<Vector3f>
+    var offset: Vector3f,
+    private var radius: Float,
+    private var color: Vector3f
 ) : PointLight() {
-    constructor(blockPos: BlockPos, info: DynamicLightInfo, state: BlockState) : this(
+    constructor(blockPos: BlockPos, info: BlockLightInfo, state: BlockState) : this(
         blockPos,
-        {
-            info.offset.map { it.apply(state) }
-                .orElse(Vector3f(0.5f))
-        },
-        {
-            info.radius.map { it.apply(state) }
-                .orElse(15f)
-        },
-        {
-            info.color.map { it.apply(state) }
-                .orElse(DEFAULT_COLOR)
-                .mul(info.brightness.map { it.apply(state) }.orElse(1f) * Vibrancy.LIGHT_BRIGHTNESS, Vector3f())
-        }
+        info.offset.apply(state),
+        info.radius.apply(state),
+        Vector3f(info.color.apply(state)).mul(info.brightness.apply(state))
     )
 
-    fun set(info: DynamicLightInfo, state: BlockState) {
-        offset = Supplier {
-            info.offset.map { it.apply(state) }
-                .orElse(Vector3f(0.5f))
-        }
-        radius = Supplier {
-            info.radius.map { it.apply(state) }
-                .orElse(15f)
-        }
-        color = Supplier {
-            info.color.map { it.apply(state) }
-                .orElse(DEFAULT_COLOR)
-                .mul(info.brightness.map { it.apply(state) }.orElse(1f) * Vibrancy.LIGHT_BRIGHTNESS, Vector3f())
-        }
+    fun set(info: BlockLightInfo, state: BlockState) {
+        offset = info.offset.apply(state)
+        radius = info.radius.apply(state)
+        color = Vector3f(info.color.apply(state)).mul(info.brightness.apply(state))
         boxDirty = true
         shadowsDirty = true
     }
 
     override fun getPosition(): Vector3f {
-        val offset = this.offset.get()
         return Vector3f(
             blockPos.x + offset.x,
             blockPos.y + offset.y,
@@ -64,12 +42,12 @@ data class BlockLight(
 
     override fun getBlockPos(): BlockPos = blockPos
 
-    override fun getRadius(): Float = radius.get()
+    override fun getRadius(): Float = radius
 
     override fun getShadowRadius(manager: LightManager): Int =
         getRadius().coerceAtMost(manager.shadowRadius.toFloat()).toInt()
 
-    override fun getColor(): Vector3f = color.get()
+    override fun getColor(): Vector3f = Vector3f(color).mul(Vibrancy.LIGHT_BRIGHTNESS)
 
     override fun testCullingDistance(camera: Camera, chunks: Int): Boolean =
         getPosition().distanceSquared(camera.position.toVector3f()) <= (chunks * chunks * 256)
@@ -77,8 +55,6 @@ data class BlockLight(
     companion object {
         @JvmField
         val LIGHTS = HashMap<BlockPos, BlockLight>()
-        @JvmField
-        val DEFAULT_COLOR = Vector3f(1f, 1f, 0.6f)
 
         @JvmStatic
         fun clearChunk(chunk: LevelChunk) {
@@ -100,7 +76,7 @@ data class BlockLight(
             for (i in chunk.minSection until chunk.maxSection) {
                 val section = chunk.getSection(chunk.getSectionIndexFromSectionY(i))
 
-                if (section.maybeHas { DynamicLightInfo.MAP.containsKey(it.block.getKey()) }) {
+                if (section.maybeHas { BlockLightInfo.MAP.containsKey(it.block.getKey()) }) {
                     val minPos = SectionPos.of(chunk.pos, i).origin()
 
                     for (x in 0 until LevelChunkSection.SECTION_WIDTH) {
@@ -108,7 +84,7 @@ data class BlockLight(
                             for (z in 0 until LevelChunkSection.SECTION_WIDTH) {
                                 val state = section.getBlockState(x, y, z)
 
-                                DynamicLightInfo.MAP[state.block.getKey()]?.addBlockLight(
+                                BlockLightInfo.get(state.block)?.addBlockLight(
                                     BlockPos(
                                         x + minPos.x,
                                         y + minPos.y,

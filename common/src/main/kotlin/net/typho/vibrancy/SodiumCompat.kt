@@ -167,10 +167,10 @@ object SodiumCompat {
                         }
                         .setBinding(
                             { options: Options, value: Int ->
-                                Vibrancy.LIGHT_BRIGHTNESS = value / 5f
+                                Vibrancy.LIGHT_BRIGHTNESS = value / 10f
                                 Vibrancy.saveConfig()
                             },
-                            { options: Options -> (Vibrancy.LIGHT_BRIGHTNESS * 5).toInt() }
+                            { options: Options -> (Vibrancy.LIGHT_BRIGHTNESS * 10).toInt() }
                         )
                         .setImpact(OptionImpact.HIGH)
                         .build()
