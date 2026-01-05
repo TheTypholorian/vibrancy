@@ -32,5 +32,8 @@
   },
   "breaks": {
     "iris": "*"
+  },
+  "custom": {
+    "big_shot_lib:require_shader_mixins": true
   }
 }
