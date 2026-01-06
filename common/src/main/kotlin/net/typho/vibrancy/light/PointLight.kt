@@ -11,7 +11,11 @@ import net.minecraft.world.phys.Vec3
 import net.typho.big_shot_lib.BigShotLib.cube
 import net.typho.big_shot_lib.api.impl.NeoShader
 import net.typho.big_shot_lib.gl.GlStack
-import net.typho.big_shot_lib.gl.state.*
+import net.typho.big_shot_lib.gl.resource.GlResourceType
+import net.typho.big_shot_lib.gl.state.ComparisonMode
+import net.typho.big_shot_lib.gl.state.IntAction
+import net.typho.big_shot_lib.gl.state.StencilFunc
+import net.typho.big_shot_lib.gl.state.StencilOp
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyDynamicBuffers
 import net.typho.vibrancy.shadows.PointShadowManager
@@ -95,9 +99,10 @@ abstract class PointLight : Light, NativeResource {
             IntAction.KEEP,
             IntAction.REPLACE,
         ))
-        stack.disable(GlCapability.CULL_FACE)
 
         shadows.render(manager, raytrace, this, shadowShader, stack)
+
+        stack.boundMap[GlResourceType.PROGRAM]?.unbind()
 
         val boxShader = NeoShader.get(Vibrancy.id("point_box"))!!
 
@@ -125,10 +130,11 @@ abstract class PointLight : Light, NativeResource {
             IntAction.KEEP,
             IntAction.KEEP,
         ))
-        stack.enable(GlCapability.CULL_FACE)
 
         boxMesh.bind()
         boxMesh.draw()
+
+        stack.boundMap[GlResourceType.PROGRAM]?.unbind()
     }
 
     override fun getCullingBox() = getBoundingBox()

@@ -3,6 +3,7 @@ package net.typho.vibrancy
 import com.google.gson.GsonBuilder
 import com.google.gson.JsonObject
 import com.google.gson.JsonParser
+import com.mojang.blaze3d.platform.GlStateManager
 import com.mojang.blaze3d.vertex.VertexBuffer
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
@@ -76,14 +77,14 @@ object Vibrancy {
         GlStack().use { stack ->
             OUTPUT_FBO.bind(stack)
 
-            glClearColor(0f, 0f, 0f, 0f)
-            glClear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT or GL_STENCIL_BUFFER_BIT)
+            GlStateManager._clearColor(0f, 0f, 0f, 0f)
+            GlStateManager._clear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT or GL_STENCIL_BUFFER_BIT, false)
 
             LIGHT_MANAGER.setupStencil(stack)
 
             stack.set(ColorMask(true, true, true, true))
             stack.disable(GlCapability.DEPTH_TEST)
-            stack.disable(GlCapability.CULL_FACE)
+            stack.enable(GlCapability.CULL_FACE)
             stack.set(CullFace.FRONT)
             stack.enable(GlCapability.BLEND)
             stack.set(

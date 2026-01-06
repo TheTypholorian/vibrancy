@@ -12,6 +12,7 @@ logoFile="${mod_id}.png" #optional
 credits="${credits}" #optional
 authors = "${mod_author}" #optional
 description = '''${description}''' #mandatory (Supports multiline text)
+modproperties = "{big_shot_lib:require_shader_mixins=true}"
 [[mixins]]
 config = "${mod_id}.mixins.json"
 [[mixins]]

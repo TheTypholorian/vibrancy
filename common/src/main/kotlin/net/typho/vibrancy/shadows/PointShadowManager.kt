@@ -106,6 +106,8 @@ open class PointShadowManager(static: Boolean) : ShadowManager<PointLight>(stati
 
     override fun initializeUniforms(manager: LightManager, light: PointLight, shader: IShader) {
         shader.getUniform("LightPos")?.set(light.getPosition())
+        shader.getUniform("LightRadius")?.set(light.getRadius())
+        shader.getUniform("LightColor")?.set(light.getColor())
     }
 
     override fun getEntityBox(manager: LightManager, light: PointLight): BlockBox? {
