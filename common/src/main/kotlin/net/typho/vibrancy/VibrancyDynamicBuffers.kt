@@ -1,5 +1,6 @@
 package net.typho.vibrancy
 
+import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.VertexFormat
 import com.mojang.blaze3d.vertex.VertexFormatElement
 import net.minecraft.resources.ResourceLocation
@@ -34,6 +35,14 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
     var lightUVLocation: Int = 0
     @JvmField
     var lightUVTexture: ITexture? = null
+
+    init {
+        RenderSystem.recordRenderCall {
+            if (glGetInteger(GL_MAX_DRAW_BUFFERS) < 4) {
+                throw UnsupportedOperationException("Vibrancy needs GL_MAX_DRAW_BUFFERS to be at least 4 to run")
+            }
+        }
+    }
 
     @ApiStatus.Internal
     @JvmStatic
