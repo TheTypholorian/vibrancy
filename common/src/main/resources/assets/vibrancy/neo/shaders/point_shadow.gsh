@@ -3,7 +3,7 @@
 #include "vibrancy:include/common"
 
 layout(triangles) in;
-layout(triangle_strip, max_vertices = 8) out;
+layout(triangle_strip, max_vertices = 12) out;
 
 uniform mat4 ModelViewMat;
 uniform mat4 ProjMat;
@@ -63,10 +63,18 @@ void main() {
     vertex(p0);
     vertex(p1);
     vertex(p3);
+
     vertex(p4);
     vertex(p5);
     vertex(p1);
     vertex(p2);
+
+    EndPrimitive();
+
+    vertex(p5);
+    vertex(p3);
+    vertex(p2);
+    vertex(p0);
 
     EndPrimitive();
 }

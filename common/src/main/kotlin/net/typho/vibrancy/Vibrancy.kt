@@ -19,6 +19,7 @@ import net.typho.big_shot_lib.gl.GlStack
 import net.typho.big_shot_lib.gl.resource.GlResourceType
 import net.typho.big_shot_lib.gl.resource.TextureFormat
 import net.typho.big_shot_lib.gl.state.*
+import net.typho.big_shot_lib.spirv.ShaderMixinCallback
 import net.typho.vibrancy.light.BlockLight
 import net.typho.vibrancy.light.LightManager
 import net.typho.vibrancy.platform.Services
@@ -65,7 +66,7 @@ object Vibrancy {
 
     fun init() {
         loadConfig()
-        //ShaderMixinCallback.register(VibrancyDynamicBuffers)
+        ShaderMixinCallback.register(VibrancyDynamicBuffers)
     }
 
     fun render() {
@@ -82,7 +83,7 @@ object Vibrancy {
             LIGHT_MANAGER.setupStencil(stack)
 
             stack.set(ColorMask(true, true, true, true))
-            stack.set(DepthMask, 0)
+            stack.set(DepthMask, false)
             stack.disable(GlCapability.DEPTH_TEST)
             stack.enable(GlCapability.CULL_FACE)
             stack.set(CullFace.FRONT)
@@ -93,6 +94,7 @@ object Vibrancy {
                     BlendFactor.ONE
                 )
             )
+            stack.set(BlendEquation.ADD)
             stack.set(StencilMask, 1)
             stack.set(
                 StencilFunc(

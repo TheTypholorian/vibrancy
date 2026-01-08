@@ -28,8 +28,6 @@ data class LightFace(
     }
 
     companion object {
-        const val BYTES: Int = 24 * Float.SIZE_BYTES
-
         fun BakedQuad.toLightFace(x: Float, y: Float, z: Float, origin: BlockPos, direction: Direction?): LightFace {
             val vertices = arrayOfNulls<Vector3f>(4)
             val texCoords = arrayOfNulls<Vector2f>(4)

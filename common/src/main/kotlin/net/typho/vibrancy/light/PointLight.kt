@@ -90,7 +90,7 @@ abstract class PointLight : Light, NativeResource {
         shadowShader.setSampler("DiffuseDepthSampler", Minecraft.getInstance().mainRenderTarget.depthTextureId)
 
         stack.set(StencilFunc(
-            ComparisonMode.NOTEQUAL,
+            ComparisonMode.ALWAYS,
             LightManager.SHADOW_MASK,
             LightManager.BLOCK_STENCIL_MASK or LightManager.SHADOW_MASK
         ))
