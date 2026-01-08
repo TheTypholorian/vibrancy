@@ -56,7 +56,7 @@ abstract class ShadowManager<L : Light>(
         shadowBuilders.computeIfAbsent(renderType) { ShadowBuilder() }
 
     abstract fun shouldCastFace(
-        face: Direction,
+        face: Direction?,
         light: L,
         pos: BlockPos,
         level: BlockGetter,
@@ -64,7 +64,7 @@ abstract class ShadowManager<L : Light>(
     ): Boolean
 
     open fun rebuildBlock(manager: LightManager, pos: BlockPos, light: L) {
-        shadows.removeIf { shadow -> shadow.blockPos?.equals(pos) ?: false }
+        shadows.removeIf { shadow -> shadow.blockPos == pos }
 
         getLightFaces(
             manager.getLevel(),
@@ -95,8 +95,7 @@ abstract class ShadowManager<L : Light>(
                             offset.x.toFloat(),
                             offset.y.toFloat(),
                             offset.z.toFloat(),
-                            pos,
-                            dir
+                            pos
                         )
                     )
                 }
@@ -109,8 +108,7 @@ abstract class ShadowManager<L : Light>(
                     offset.x.toFloat(),
                     offset.y.toFloat(),
                     offset.z.toFloat(),
-                    pos,
-                    null
+                    pos
                 )
             )
         }
@@ -246,7 +244,6 @@ abstract class ShadowManager<L : Light>(
 
                                 output.add(
                                     LightFace(
-                                        null,
                                         null,
                                         v1.vertex,
                                         v2.vertex,

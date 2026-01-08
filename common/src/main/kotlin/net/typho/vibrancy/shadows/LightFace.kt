@@ -3,23 +3,14 @@ package net.typho.vibrancy.shadows
 import com.mojang.blaze3d.vertex.VertexConsumer
 import net.minecraft.client.renderer.block.model.BakedQuad
 import net.minecraft.core.BlockPos
-import net.minecraft.core.Direction
 import org.joml.Vector2f
 import org.joml.Vector3f
 
 data class LightFace(
-    val blockPos: BlockPos?, val direction: Direction?, val relative: BlockPos?,
+    val blockPos: BlockPos?,
     val vertex1: Vector3f, val vertex2: Vector3f, val vertex3: Vector3f, val vertex4: Vector3f,
     val texCoord1: Vector2f, val texCoord2: Vector2f, val texCoord3: Vector2f, val texCoord4: Vector2f,
 ) {
-    constructor(
-        blockPos: BlockPos?, direction: Direction?, v1: Vector3f, v2: Vector3f, v3: Vector3f, v4: Vector3f,
-        uv1: Vector2f, uv2: Vector2f, uv3: Vector2f, uv4: Vector2f
-    ) : this(
-        blockPos, direction, if (direction == null || blockPos == null) null else blockPos.relative(direction),
-        v1, v2, v3, v4, uv1, uv2, uv3, uv4
-    )
-
     fun buildGeometry(consumer: VertexConsumer) {
         consumer.addVertex(vertex1).setUv(texCoord1.x, texCoord1.y)
         consumer.addVertex(vertex2).setUv(texCoord2.x, texCoord2.y)
@@ -28,7 +19,7 @@ data class LightFace(
     }
 
     companion object {
-        fun BakedQuad.toLightFace(x: Float, y: Float, z: Float, origin: BlockPos, direction: Direction?): LightFace {
+        fun BakedQuad.toLightFace(x: Float, y: Float, z: Float, origin: BlockPos): LightFace {
             val vertices = arrayOfNulls<Vector3f>(4)
             val texCoords = arrayOfNulls<Vector2f>(4)
             val data = this.vertices
@@ -51,7 +42,6 @@ data class LightFace(
 
             return LightFace(
                 origin,
-                direction,
                 vertices[0]!!,
                 vertices[1]!!,
                 vertices[2]!!,

@@ -28,12 +28,12 @@
     "minecraft": "${minecraft_version}",
     "java": ">=${java_version}",
     "fabric-language-kotlin": ">=${flk_version}",
-    "big_shot_lib": ">=1.4.0"
+    "big_shot_lib": ">=2.0.2"
   },
   "breaks": {
     "iris": "*"
   },
   "custom": {
-    "big_shot_lib:require_shader_mixins": true
+    "big_shot_lib:require_shader_mixins": false
   }
 }
