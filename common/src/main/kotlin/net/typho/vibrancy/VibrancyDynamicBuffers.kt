@@ -64,18 +64,20 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
     @ApiStatus.Internal
     @JvmStatic
     fun attach(width: Int, height: Int) {
-        normalsTexture!!.bind().use {
-            normalsTexture!!.resize2D(width, height)
-            normalsTexture!!.attach2D(GL_COLOR_ATTACHMENT0 + normalsLocation, GL_FRAMEBUFFER)
-        }
-        albedoTexture!!.bind().use {
-            albedoTexture!!.resize2D(width, height)
-            albedoTexture!!.attach2D(GL_COLOR_ATTACHMENT0 + albedoLocation, GL_FRAMEBUFFER)
-        }
-        lightUVTexture!!.bind().use {
-            lightUVTexture!!.resize2D(width, height)
-            lightUVTexture!!.attach2D(GL_COLOR_ATTACHMENT0 + lightUVLocation, GL_FRAMEBUFFER)
-        }
+        normalsTexture!!.bind()
+        normalsTexture!!.resize2D(width, height)
+        normalsTexture!!.attach2D(GL_COLOR_ATTACHMENT0 + normalsLocation, GL_FRAMEBUFFER)
+        normalsTexture!!.unbind()
+
+        albedoTexture!!.bind()
+        albedoTexture!!.resize2D(width, height)
+        albedoTexture!!.attach2D(GL_COLOR_ATTACHMENT0 + albedoLocation, GL_FRAMEBUFFER)
+        albedoTexture!!.unbind()
+
+        lightUVTexture!!.bind()
+        lightUVTexture!!.resize2D(width, height)
+        lightUVTexture!!.attach2D(GL_COLOR_ATTACHMENT0 + lightUVLocation, GL_FRAMEBUFFER)
+        lightUVTexture!!.unbind()
     }
 
     @ApiStatus.Internal
