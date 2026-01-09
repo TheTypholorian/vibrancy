@@ -254,10 +254,9 @@ abstract class ShadowManager<L : Light>(
                                         v2.vertex,
                                         v3.vertex,
                                         v4.vertex,
-                                        v1.uv,
-                                        v2.uv,
-                                        v3.uv,
-                                        v4.uv
+                                        null,
+                                        1,
+                                        1
                                     )
                                 )
                             }

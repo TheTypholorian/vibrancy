@@ -10,7 +10,6 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.Vec3
 import net.typho.vibrancy.shadows.LightFace.Companion.toLightFace
-import org.joml.Vector2f
 import org.joml.Vector3f
 import java.util.function.Consumer
 
@@ -129,11 +128,11 @@ interface ShadowMesher {
 
             return LightFace(
                 pos,
-                vertices[0], vertices[1], vertices[2], vertices[3],
-                Vector2f(sprite.u0, sprite.v0),
-                Vector2f(sprite.u1, sprite.v0),
-                Vector2f(sprite.u1, sprite.v1),
-                Vector2f(sprite.u0, sprite.v1),
+                vertices[0],
+                vertices[1],
+                vertices[2],
+                vertices[3],
+                sprite,
                 width,
                 height
             )

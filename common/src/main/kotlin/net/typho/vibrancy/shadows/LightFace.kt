@@ -2,6 +2,7 @@ package net.typho.vibrancy.shadows
 
 import com.mojang.blaze3d.vertex.VertexConsumer
 import net.minecraft.client.renderer.block.model.BakedQuad
+import net.minecraft.client.renderer.texture.TextureAtlasSprite
 import net.minecraft.core.BlockPos
 import org.joml.Vector2f
 import org.joml.Vector3f
@@ -9,14 +10,14 @@ import org.joml.Vector3f
 data class LightFace(
     val blockPos: BlockPos?,
     val vertex1: Vector3f, val vertex2: Vector3f, val vertex3: Vector3f, val vertex4: Vector3f,
-    val texCoord1: Vector2f, val texCoord2: Vector2f, val texCoord3: Vector2f, val texCoord4: Vector2f,
+    val sprite: TextureAtlasSprite?,
     val width: Int, val height: Int
 ) {
     fun buildGeometry(consumer: VertexConsumer) {
-        consumer.addVertex(vertex1).setUv(texCoord1.x, texCoord1.y)
-        consumer.addVertex(vertex2).setUv(texCoord2.x, texCoord2.y)
-        consumer.addVertex(vertex3).setUv(texCoord3.x, texCoord3.y)
-        consumer.addVertex(vertex4).setUv(texCoord4.x, texCoord4.y)
+        consumer.addVertex(vertex1).setUv(sprite?.u0 ?: 0f, sprite?.v0 ?: 0f)
+        consumer.addVertex(vertex2).setUv(sprite?.u1 ?: 1f, sprite?.v0 ?: 0f)
+        consumer.addVertex(vertex3).setUv(sprite?.u1 ?: 1f, sprite?.v1 ?: 1f)
+        consumer.addVertex(vertex4).setUv(sprite?.u0 ?: 0f, sprite?.v1 ?: 1f)
     }
 
     companion object {
@@ -47,10 +48,7 @@ data class LightFace(
                 vertices[1]!!,
                 vertices[2]!!,
                 vertices[3]!!,
-                texCoords[0]!!,
-                texCoords[1]!!,
-                texCoords[2]!!,
-                texCoords[3]!!,
+                sprite,
                 1,
                 1
             )

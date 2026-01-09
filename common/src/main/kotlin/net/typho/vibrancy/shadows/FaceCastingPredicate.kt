@@ -12,4 +12,6 @@ interface FaceCastingPredicate {
         level: Level,
         pos: BlockPos
     ): Boolean
+
+    fun isInRange(pos: BlockPos): Boolean
 }

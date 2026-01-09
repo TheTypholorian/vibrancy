@@ -67,7 +67,7 @@ open class ShadowGreedyMesher : ShadowMesher {
         var start: BlockPos? = null
         var length = 0
         var sprite: TextureAtlasSprite? = null
-        val faces = LinkedList<LightFace>()
+        val faces = HashMap<Direction, MutableMap<BlockPos, LightFace>>()
 
         fun start(pos: BlockPos, quad: BakedQuad) {
             start = pos
@@ -77,7 +77,8 @@ open class ShadowGreedyMesher : ShadowMesher {
 
         fun end(direction: Direction) {
             if (length > 0) {
-                faces.add(
+                faces.computeIfAbsent(direction) { HashMap() }.put(
+                    start!!,
                     if (direction.axis == Direction.Axis.Y) {
                         direction.createFace(
                             start!!,
@@ -161,15 +162,114 @@ open class ShadowGreedyMesher : ShadowMesher {
             }
         }
 
+        val extraGreedy = LinkedList<LightFace>()
+        val removed = LinkedList<LightFace>()
+
+        for (entry in faces) {
+            val sideAxis = if (entry.key.axis == Direction.Axis.Y) Direction.Axis.X else Direction.Axis.Y
+
+            entry.value.entries.forEach { entry1 ->
+                if (removed.contains(entry1.value)) {
+                    return@forEach
+                }
+
+                val doubleGreedy = LinkedList(listOf(entry1.value))
+                var pos = entry1.value.blockPos!!
+
+                while (true) {
+                    pos = pos.relative(sideAxis, 1)
+
+                    val other = entry.value[pos]
+
+                    if (other == null) {
+                        break
+                    }
+
+                    if (entry.key.axis == Direction.Axis.Y) {
+                        if (other.height != entry1.value.height) {
+                            break
+                        }
+                    } else {
+                        if (other.width != entry1.value.width) {
+                            break
+                        }
+                    }
+
+                    doubleGreedy.add(other)
+                }
+
+                pos = entry1.value.blockPos!!
+
+                while (true) {
+                    pos = pos.relative(sideAxis, -1)
+
+                    val other = entry.value[pos]
+
+                    if (other == null) {
+                        break
+                    }
+
+                    if (entry.key.axis == Direction.Axis.Y) {
+                        if (other.height != entry1.value.height) {
+                            break
+                        }
+                    } else {
+                        if (other.width != entry1.value.width) {
+                            break
+                        }
+                    }
+
+                    doubleGreedy.addFirst(other)
+                }
+
+                if (doubleGreedy.size > 1) {
+                    removed.addAll(doubleGreedy)
+                    extraGreedy.add(
+                        if (entry.key.axis == Direction.Axis.Y) {
+                            entry.key.createFace(
+                                doubleGreedy.first().blockPos!!,
+                                entry1.value.sprite!!,
+                                width = doubleGreedy.size,
+                                height = entry1.value.height
+                            )
+                        } else {
+                            entry.key.createFace(
+                                doubleGreedy.first().blockPos!!,
+                                entry1.value.sprite!!,
+                                width = entry1.value.width,
+                                height = doubleGreedy.size
+                            )
+                        }
+                    )
+                }
+            }
+        }
+
         // TODO double greedy mesh
 
-        faces.forEach(out::accept)
+        extraGreedy.forEach(out::accept)
+
+        for (map in faces.values) {
+            for (face in map.values) {
+                if (!removed.contains(face)) {
+                    out.accept(face)
+                }
+            }
+        }
 
         for (voxel in allVoxels) {
-            for (direction in Direction.entries) {
-                voxel.quads[direction.ordinal]?.let { quad ->
-                    out.accept(quad.toLightFace(0f, 0f, 0f, voxel.pos))
+            if (predicate.isInRange(voxel.pos)) {
+                for (direction in Direction.entries) {
+                    voxel.quads[direction.ordinal]?.let { quad ->
+                        out.accept(quad.toLightFace(0f, 0f, 0f, voxel.pos))
+                    }
                 }
+            }
+        }
+
+        for (face in nonGreedy) {
+            if (predicate.isInRange(face.blockPos!!)) {
+                out.accept(face)
             }
         }
     }

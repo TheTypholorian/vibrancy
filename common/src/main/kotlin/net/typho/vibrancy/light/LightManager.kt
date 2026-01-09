@@ -70,12 +70,13 @@ open class LightManager(
         BigShotLib.SCREEN_VBO.draw()
     }
 
-    fun shouldRender(light: Light, camera: Camera = getCamera()): Boolean {
-        return (maxRendered > 400 || lightsRendered < maxRendered)
-                && light.testCullingDistance(camera, lightCullDistance)
+    fun inRenderDistance(light: Light, camera: Camera = getCamera()): Boolean {
+        return light.testCullingDistance(camera, lightCullDistance)
                 && (Minecraft.getInstance().levelRenderer as LevelRendererAccessor).cullingFrustum.isVisible(light.getCullingBox()!!)
-                // TODO reimplement frustum culling
-                //&& VeilRenderSystem.getCullingFrustum().testAab(light.getCullingBox())
+    }
+
+    fun shouldRender(light: Light, camera: Camera = getCamera()): Boolean {
+        return (maxRendered > 400 || lightsRendered < maxRendered) && inRenderDistance(light, camera)
     }
 
     fun shouldRaytrace(light: Light, camera: Camera = getCamera()): Boolean {

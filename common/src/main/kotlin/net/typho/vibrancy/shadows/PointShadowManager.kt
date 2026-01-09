@@ -70,6 +70,10 @@ open class PointShadowManager(static: Boolean) : ShadowManager<PointLight>(stati
             ): Boolean {
                 return shouldCastFace(face, light, pos, level, state)
             }
+
+            override fun isInRange(pos: BlockPos): Boolean {
+                return pos.distSqr(lightBlockPos) <= radiusSq
+            }
         }
 
         for (x in box.min.x..box.max.x) {
@@ -77,7 +81,7 @@ open class PointShadowManager(static: Boolean) : ShadowManager<PointLight>(stati
                 for (z in box.min.z..box.max.z) {
                     val pos = BlockPos(x, y, z)
 
-                    if (pos != lightBlockPos && pos.distSqr(lightBlockPos) <= radiusSq) {
+                    if (pos != lightBlockPos) {
                         mesher.submit(
                             level.getBlockState(pos),
                             level,

@@ -170,18 +170,22 @@ object Vibrancy {
         out.accept("${LIGHT_MANAGER.lightsRaytraced}/${LIGHT_MANAGER.maxRaytraced} raytraced")
 
         val shadows = BlockLight.LIGHTS.values.stream()
+            .filter { LIGHT_MANAGER.inRenderDistance(it) }
             .mapToInt { it.shadows.numShadows() }
             .sum()
         out.accept("$shadows shadows")
         val tasks = BlockLight.LIGHTS.values.stream()
+            .filter { LIGHT_MANAGER.inRenderDistance(it) }
             .mapToInt { if (it.shadows.isTaskActive()) 1 else 0 }
             .sum()
         out.accept("$tasks async tasks")
         val entities = BlockLight.LIGHTS.values.stream()
+            .filter { LIGHT_MANAGER.inRenderDistance(it) }
             .mapToInt { it.shadows.numEntities() }
             .sum()
         out.accept("$entities entity shadows")
         val blockEntities = BlockLight.LIGHTS.values.stream()
+            .filter { LIGHT_MANAGER.inRenderDistance(it) }
             .mapToInt { it.shadows.numBlockEntities() }
             .sum()
         out.accept("$blockEntities block entity shadows")
