@@ -30,6 +30,7 @@ abstract class ShadowManager<L : Light>(
     static: Boolean
 ) : NativeResource, MultiBufferSource {
     val shadowMesh by lazy { VertexBuffer(if (static) VertexBuffer.Usage.STATIC else VertexBuffer.Usage.DYNAMIC) }
+    protected var numShadows = 0
     protected var shadows: MutableList<LightFace> = LinkedList()
     protected var shadowsDirty = false
     protected val shadowBuilders = LinkedHashMap<RenderType, ShadowBuilder>()
@@ -44,7 +45,7 @@ abstract class ShadowManager<L : Light>(
         shadowMesh.close()
     }
 
-    open fun numShadows() = shadows.size
+    open fun numShadows() = numShadows
 
     open fun numBlockEntities() = numBlockEntities
 
@@ -73,6 +74,8 @@ abstract class ShadowManager<L : Light>(
             shadows::add
         )
         shadowsDirty = true
+
+        numShadows = shadows.size
     }
 
     @Suppress("DEPRECATION")
@@ -120,6 +123,8 @@ abstract class ShadowManager<L : Light>(
         shadows: Collection<LightFace>
     ) {
         if (shadows.isNotEmpty()) {
+            numShadows = shadows.size
+
             val builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX)
 
             for (shadow in shadows) {

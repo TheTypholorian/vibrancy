@@ -26,7 +26,6 @@ import org.joml.Vector3f
 import org.lwjgl.opengl.GL11.GL_STENCIL_BUFFER_BIT
 import org.lwjgl.opengl.GL11.glClear
 import org.lwjgl.system.NativeResource
-import kotlin.math.ceil
 import kotlin.math.floor
 
 abstract class PointLight : Light, NativeResource {
@@ -54,8 +53,7 @@ abstract class PointLight : Light, NativeResource {
         val shadowRadiusSq = shadowRadius * shadowRadius
 
         for (pos in manager.dirtyBlocks) {
-            if (manager.getLevel().dimension()
-                    .equals(pos.dimension()) && pos.pos.distToCenterSqr(Vec3(getPosition())) < shadowRadiusSq
+            if (manager.getLevel().dimension().equals(pos.dimension()) && pos.pos.distToCenterSqr(Vec3(getPosition())) < shadowRadiusSq
             ) {
                 shadows.rebuildBlock(manager, pos.pos, this)
             }
@@ -68,7 +66,7 @@ abstract class PointLight : Light, NativeResource {
         }
 
         if (shadowsDirty && raytrace) {
-            shadows.fullRebuildAsync(manager, getShadowBox(), this)
+            shadows.fullRebuildAsync(manager, getShadowBox(manager), this)
 
             shadowsDirty = false
         }
@@ -90,7 +88,7 @@ abstract class PointLight : Light, NativeResource {
         shadowShader.setSampler("DiffuseDepthSampler", Minecraft.getInstance().mainRenderTarget.depthTextureId)
 
         stack.set(StencilFunc(
-            ComparisonMode.NOTEQUAL,
+            ComparisonMode.ALWAYS, // TODO
             LightManager.SHADOW_MASK,
             LightManager.BLOCK_STENCIL_MASK or LightManager.SHADOW_MASK
         ))
@@ -141,13 +139,13 @@ abstract class PointLight : Light, NativeResource {
 
     fun getBoundingBox() = boxOfRadius(getPosition(), getRadius())
 
-    fun getShadowBox() = BlockBox.of(
+    fun getShadowBox(manager: LightManager) = BlockBox.of(
         BlockPos(
             floor(getPosition().x.toDouble()).toInt(),
             floor(getPosition().y.toDouble()).toInt(),
             floor(getPosition().z.toDouble()).toInt()
         )
-    ).expand(ceil(getRadius()).toInt())
+    ).expand(getShadowRadius(manager))
 
     abstract fun getPosition(): Vector3f
 

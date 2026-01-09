@@ -10,6 +10,7 @@ data class LightFace(
     val blockPos: BlockPos?,
     val vertex1: Vector3f, val vertex2: Vector3f, val vertex3: Vector3f, val vertex4: Vector3f,
     val texCoord1: Vector2f, val texCoord2: Vector2f, val texCoord3: Vector2f, val texCoord4: Vector2f,
+    val width: Int, val height: Int
 ) {
     fun buildGeometry(consumer: VertexConsumer) {
         consumer.addVertex(vertex1).setUv(texCoord1.x, texCoord1.y)
@@ -49,7 +50,9 @@ data class LightFace(
                 texCoords[0]!!,
                 texCoords[1]!!,
                 texCoords[2]!!,
-                texCoords[3]!!
+                texCoords[3]!!,
+                1,
+                1
             )
         }
     }

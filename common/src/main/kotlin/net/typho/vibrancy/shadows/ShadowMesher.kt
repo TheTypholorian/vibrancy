@@ -19,10 +19,15 @@ interface ShadowMesher {
         state: BlockState,
         level: Level,
         pos: BlockPos,
+        random: RandomSource,
         predicate: FaceCastingPredicate
     )
 
-    fun finish(out: Consumer<LightFace>)
+    fun finish(
+        predicate: FaceCastingPredicate,
+        level: Level,
+        out: Consumer<LightFace>
+    )
 
     companion object {
         @JvmStatic
@@ -76,46 +81,49 @@ interface ShadowMesher {
         fun Direction.createFace(
             pos: BlockPos,
             sprite: TextureAtlasSprite,
-            width: Float = 1f,
-            height: Float = 1f
+            width: Int = 1,
+            height: Int = 1
         ): LightFace {
+            val w = width.toFloat()
+            val h = height.toFloat()
+
             val origin = Vec3.atLowerCornerOf(pos).toVector3f()
             val vertices: Array<Vector3f> = when (this) {
                 Direction.NORTH -> arrayOf(
                     Vector3f(origin),
-                    Vector3f(origin).add(width, 0f, 0f),
-                    Vector3f(origin).add(width, height, 0f),
-                    Vector3f(origin).add(0f, height, 0f)
+                    Vector3f(origin).add(w, 0f, 0f),
+                    Vector3f(origin).add(w, h, 0f),
+                    Vector3f(origin).add(0f, h, 0f)
                 )
                 Direction.SOUTH -> arrayOf(
-                    Vector3f(origin).add(width, 0f, 1f),
+                    Vector3f(origin).add(w, 0f, 1f),
                     Vector3f(origin).add(0f, 0f, 1f),
-                    Vector3f(origin).add(0f, height, 1f),
-                    Vector3f(origin).add(width, height, 1f)
+                    Vector3f(origin).add(0f, h, 1f),
+                    Vector3f(origin).add(w, h, 1f)
                 )
                 Direction.WEST -> arrayOf(
-                    Vector3f(origin).add(0f, 0f, width),
+                    Vector3f(origin).add(0f, 0f, w),
                     Vector3f(origin),
-                    Vector3f(origin).add(0f, height, 0f),
-                    Vector3f(origin).add(0f, height, width)
+                    Vector3f(origin).add(0f, h, 0f),
+                    Vector3f(origin).add(0f, h, w)
                 )
                 Direction.EAST -> arrayOf(
                     Vector3f(origin).add(1f, 0f, 0f),
-                    Vector3f(origin).add(1f, 0f, width),
-                    Vector3f(origin).add(1f, height, width),
-                    Vector3f(origin).add(1f, height, 0f)
+                    Vector3f(origin).add(1f, 0f, w),
+                    Vector3f(origin).add(1f, h, w),
+                    Vector3f(origin).add(1f, h, 0f)
                 )
                 Direction.DOWN -> arrayOf(
-                    Vector3f(origin).add(0f, 0f, height),
-                    Vector3f(origin).add(width, 0f, height),
-                    Vector3f(origin).add(width, 0f, 0f),
+                    Vector3f(origin).add(0f, 0f, h),
+                    Vector3f(origin).add(w, 0f, h),
+                    Vector3f(origin).add(w, 0f, 0f),
                     Vector3f(origin)
                 )
                 Direction.UP -> arrayOf(
                     Vector3f(origin).add(0f, 1f, 0f),
-                    Vector3f(origin).add(width, 1f, 0f),
-                    Vector3f(origin).add(width, 1f, height),
-                    Vector3f(origin).add(0f, 1f, height)
+                    Vector3f(origin).add(w, 1f, 0f),
+                    Vector3f(origin).add(w, 1f, h),
+                    Vector3f(origin).add(0f, 1f, h)
                 )
             }
 
@@ -125,7 +133,9 @@ interface ShadowMesher {
                 Vector2f(sprite.u0, sprite.v0),
                 Vector2f(sprite.u1, sprite.v0),
                 Vector2f(sprite.u1, sprite.v1),
-                Vector2f(sprite.u0, sprite.v1)
+                Vector2f(sprite.u0, sprite.v1),
+                width,
+                height
             )
         }
     }

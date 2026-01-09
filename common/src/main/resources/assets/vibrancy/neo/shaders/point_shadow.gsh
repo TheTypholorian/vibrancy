@@ -63,7 +63,6 @@ void main() {
     vertex(p0);
     vertex(p1);
     vertex(p3);
-
     vertex(p4);
     vertex(p5);
     vertex(p1);

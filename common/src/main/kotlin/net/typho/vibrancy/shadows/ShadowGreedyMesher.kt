@@ -8,6 +8,7 @@ import net.minecraft.client.renderer.texture.TextureAtlasSprite
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
+import net.minecraft.util.RandomSource
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.typho.vibrancy.shadows.LightFace.Companion.toLightFace
@@ -42,6 +43,7 @@ open class ShadowGreedyMesher : ShadowMesher {
         state: BlockState,
         level: Level,
         pos: BlockPos,
+        random: RandomSource,
         predicate: FaceCastingPredicate
     ) {
         if (shouldGreedyMesh(state, level, pos)) {
@@ -49,7 +51,9 @@ open class ShadowGreedyMesher : ShadowMesher {
             val model = Minecraft.getInstance().blockRenderer.getBlockModel(state)
 
             for (direction in Direction.entries) {
-                voxel.faces[direction.ordinal] = model.getQuads(state, direction, level.random).first()
+                if (predicate.shouldCast(direction, level.getBlockState(voxel.pos), level, voxel.pos)) {
+                    voxel.quads[direction.ordinal] = model.getQuads(state, direction, random).first()
+                }
             }
 
             grid[pos.x - box.min.x][pos.y - box.min.y][pos.z - box.min.z] = voxel
@@ -59,87 +63,118 @@ open class ShadowGreedyMesher : ShadowMesher {
         }
     }
 
-    override fun finish(out: Consumer<LightFace>) {
+    override fun finish(predicate: FaceCastingPredicate, level: Level, out: Consumer<LightFace>) {
+        var start: BlockPos? = null
+        var length = 0
+        var sprite: TextureAtlasSprite? = null
+        val faces = LinkedList<LightFace>()
+
+        fun start(pos: BlockPos, quad: BakedQuad) {
+            start = pos
+            length = 1
+            sprite = quad.sprite
+        }
+
+        fun end(direction: Direction) {
+            if (length > 0) {
+                faces.add(
+                    if (direction.axis == Direction.Axis.Y) {
+                        direction.createFace(
+                            start!!,
+                            sprite!!,
+                            height = length
+                        )
+                    } else {
+                        direction.createFace(
+                            start!!,
+                            sprite!!,
+                            width = length
+                        )
+                    }
+                )
+            }
+
+            start = null
+            length = 0
+            sprite = null
+        }
+
+        fun mesh(voxel: Voxel, direction: Direction) {
+            if (voxel.solid) {
+                val quad = voxel.quads[direction.ordinal]
+
+                if (quad == null) {
+                    end(direction)
+                } else {
+                    if (length == 0) {
+                        start(voxel.pos, quad)
+                    } else {
+                        length++
+                    }
+
+                    voxel.quads[direction.ordinal] = null
+                }
+            } else {
+                end(direction)
+            }
+        }
+
         for (x in box.min.x..box.max.x) {
-            val grid1 = grid[x - box.min.x]
-
             for (y in box.min.y..box.max.y) {
-                val grid2 = grid1[y - box.min.y]
-
                 val directions = arrayOf(Direction.UP, Direction.DOWN, Direction.WEST, Direction.EAST)
 
                 for (direction in directions) {
-                    var startZ = -1
-                    var length = 0
-                    var sprite: TextureAtlasSprite? = null
-                    var solid = false
-
-                    fun start(z: Int, quad: BakedQuad, s: Boolean) {
-                        startZ = z
-                        length = 1
-                        sprite = quad.sprite
-                        solid = s
-                    }
-
-                    fun end() {
-                        if (length > 0) {
-                            if (direction.axis == Direction.Axis.Y) {
-                                out.accept(direction.createFace(
-                                    BlockPos(x, y, startZ),
-                                    sprite!!,
-                                    height = length.toFloat()
-                                ))
-                            } else {
-                                out.accept(direction.createFace(
-                                    BlockPos(x, y, startZ),
-                                    sprite!!,
-                                    width = length.toFloat()
-                                ))
-                            }
-                        }
-
-                        startZ = -1
-                        length = 0
-                        sprite = null
-                        solid = false
-                    }
-
-                    fun shouldContinue(quad: BakedQuad, s: Boolean): Boolean {
-                        return (solid && s) || sprite!! == quad.sprite
-                    }
-
                     for (z in box.min.z..box.max.z) {
-                        grid2[z - box.min.z]?.let { voxel ->
-                            voxel.faces[direction.ordinal]?.let { quad ->
-                                if (startZ == -1) {
-                                    start(z, quad, voxel.solid)
-                                } else if (shouldContinue(quad, voxel.solid)) {
-                                    length++
-                                } else {
-                                    end()
-                                    start(z, quad, voxel.solid)
-                                }
-
-                                voxel.faces[direction.ordinal] = null
-                            }
-                        }
+                        grid[x - box.min.x][y - box.min.y][z - box.min.z]?.let { voxel -> mesh(voxel, direction) }
                     }
 
-                    end()
+                    end(direction)
                 }
             }
         }
 
+        for (z in box.min.z..box.max.z) {
+            for (y in box.min.y..box.max.y) {
+                val directions = arrayOf(Direction.UP, Direction.DOWN, Direction.NORTH, Direction.SOUTH)
+
+                for (direction in directions) {
+                    for (x in box.min.x..box.max.x) {
+                        grid[x - box.min.x][y - box.min.y][z - box.min.z]?.let { voxel -> mesh(voxel, direction) }
+                    }
+
+                    end(direction)
+                }
+            }
+        }
+
+        for (x in box.min.x..box.max.x) {
+            for (z in box.min.z..box.max.z) {
+                val directions = arrayOf(Direction.NORTH, Direction.SOUTH, Direction.WEST, Direction.EAST)
+
+                for (direction in directions) {
+                    for (y in box.min.y..box.max.y) {
+                        grid[x - box.min.x][y - box.min.y][z - box.min.z]?.let { voxel -> mesh(voxel, direction) }
+                    }
+
+                    end(direction)
+                }
+            }
+        }
+
+        // TODO double greedy mesh
+
+        faces.forEach(out::accept)
+
         for (voxel in allVoxels) {
             for (direction in Direction.entries) {
-                voxel.faces[direction.ordinal]?.let { face ->
-                    out.accept(face.toLightFace(0f, 0f, 0f, voxel.pos))
+                voxel.quads[direction.ordinal]?.let { quad ->
+                    out.accept(quad.toLightFace(0f, 0f, 0f, voxel.pos))
                 }
             }
         }
     }
 
     class Voxel(val pos: BlockPos, val solid: Boolean) {
-        val faces = arrayOfNulls<BakedQuad?>(Direction.entries.size)
+        val quads = arrayOfNulls<BakedQuad?>(Direction.entries.size)
     }
 }

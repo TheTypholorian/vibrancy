@@ -19,6 +19,7 @@ import net.typho.big_shot_lib.gl.GlStack
 import net.typho.big_shot_lib.gl.resource.GlResourceType
 import net.typho.big_shot_lib.gl.resource.TextureFormat
 import net.typho.big_shot_lib.gl.state.*
+import net.typho.big_shot_lib.spirv.ShaderMixinCallback
 import net.typho.vibrancy.light.BlockLight
 import net.typho.vibrancy.light.LightManager
 import net.typho.vibrancy.platform.Services
@@ -65,7 +66,7 @@ object Vibrancy {
 
     fun init() {
         loadConfig()
-        //ShaderMixinCallback.register(VibrancyDynamicBuffers)
+        ShaderMixinCallback.register(VibrancyDynamicBuffers)
     }
 
     fun render() {
@@ -154,7 +155,7 @@ object Vibrancy {
         }
     }
 
-    fun pointsToward(face: Direction, offset: Vector3f?): Boolean {
+    fun pointsToward(face: Direction, offset: Vector3f): Boolean {
         val normal = face.normal
         return Vector3f(normal.x.toFloat(), normal.y.toFloat(), normal.z.toFloat()).dot(offset) > 0
     }

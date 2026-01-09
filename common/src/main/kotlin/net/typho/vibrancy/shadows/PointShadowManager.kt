@@ -3,6 +3,7 @@ package net.typho.vibrancy.shadows
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
+import net.minecraft.util.RandomSource
 import net.minecraft.world.level.BlockGetter
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
@@ -18,7 +19,13 @@ import java.util.concurrent.CompletableFuture
 open class PointShadowManager(static: Boolean) : ShadowManager<PointLight>(static) {
     protected var fullRebuildTask: CompletableFuture<MutableList<LightFace>>? = null
 
-    override fun isTaskActive(): Boolean = !(fullRebuildTask?.isDone ?: false)
+    override fun isTaskActive(): Boolean {
+        fullRebuildTask?.let { task ->
+            return !task.isDone
+        }
+
+        return false
+    }
 
     override fun shouldCastFace(
         face: Direction?,
@@ -38,7 +45,7 @@ open class PointShadowManager(static: Boolean) : ShadowManager<PointLight>(stati
             return true
         }
 
-        if (!Vibrancy.pointsToward(face, lightBlockPos.subtract(pos).center.toVector3f())) {
+        if (!Vibrancy.pointsToward(face, lightBlockPos.center.subtract(pos.center).toVector3f())) {
             return false
         }
 
@@ -53,27 +60,30 @@ open class PointShadowManager(static: Boolean) : ShadowManager<PointLight>(stati
         val radius = light.getShadowRadius(manager)
         val radiusSq = radius * radius
         val level = manager.getLevel()
+        val random = RandomSource.create()
+        val predicate = object : FaceCastingPredicate {
+            override fun shouldCast(
+                face: Direction?,
+                state: BlockState,
+                level: Level,
+                pos: BlockPos
+            ): Boolean {
+                return shouldCastFace(face, light, pos, level, state)
+            }
+        }
 
         for (x in box.min.x..box.max.x) {
             for (y in box.min.y..box.max.y) {
                 for (z in box.min.z..box.max.z) {
                     val pos = BlockPos(x, y, z)
 
-                    if (pos.distSqr(lightBlockPos) <= radiusSq) {
+                    if (pos != lightBlockPos && pos.distSqr(lightBlockPos) <= radiusSq) {
                         mesher.submit(
                             level.getBlockState(pos),
                             level,
                             pos,
-                            object : FaceCastingPredicate {
-                                override fun shouldCast(
-                                    face: Direction?,
-                                    state: BlockState,
-                                    level: Level,
-                                    pos: BlockPos
-                                ): Boolean {
-                                    return shouldCastFace(face, light, pos, level, state)
-                                }
-                            }
+                            random,
+                            predicate
                         )
                     }
                 }
@@ -81,7 +91,7 @@ open class PointShadowManager(static: Boolean) : ShadowManager<PointLight>(stati
         }
 
         val shadows = LinkedList<LightFace>()
-        mesher.finish(shadows::add)
+        mesher.finish(predicate, level, shadows::add)
         return shadows
     }
 
@@ -107,10 +117,10 @@ open class PointShadowManager(static: Boolean) : ShadowManager<PointLight>(stati
     }
 
     override fun render(manager: LightManager, raytrace: Boolean, light: PointLight, shader: IShader, stack: GlStack) {
-        if (fullRebuildTask?.isDone ?: false) {
-            shadows = fullRebuildTask!!.get()
-            fullRebuildTask = null
+        fullRebuildTask?.let { task ->
+            shadows = task.get()
             shadowsDirty = true
+            fullRebuildTask = null
         }
 
         super.render(manager, raytrace, light, shader, stack)
