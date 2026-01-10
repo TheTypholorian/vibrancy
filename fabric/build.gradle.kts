@@ -5,13 +5,6 @@ plugins {
 
 val modId: String by project
 
-repositories {
-    maven {
-        name = "Modrinth"
-        url = uri("https://api.modrinth.com/maven")
-    }
-}
-
 dependencies {
     minecraft(libs.minecraft)
     mappings(loom.layered {
@@ -23,10 +16,8 @@ dependencies {
 
     modImplementation(libs.flk)
     modImplementation(libs.sodium)
-    //modImplementation(libs.bigShot)
-    implementation(fileTree("../libs") {
-        include("*.jar")
-    })
+    modImplementation(libs.bigShot)
+    modImplementation(libs.fzzyConfig.common)
 }
 
 loom {

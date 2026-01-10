@@ -42,18 +42,9 @@ neoForge {
 
 sourceSets.main.get().resources { srcDir("src/generated/resources") }
 
-repositories {
-    maven {
-        name = "Modrinth"
-        url = uri("https://api.modrinth.com/maven")
-    }
-}
-
 dependencies {
     implementation(libs.kff)
     implementation(libs.sodium)
-    //implementation(libs.bigShot)
-    implementation(fileTree("../libs") {
-        include("*.jar")
-    })
+    implementation(libs.bigShot)
+    implementation(libs.fzzyConfig.neoforge)
 }
