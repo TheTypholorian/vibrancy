@@ -27,7 +27,7 @@ void main() {
     vec3 delta = LightPos - Pos;
     float len = length(delta);
 
-    vec3 dir = delta / len;
+    vec3 dir = normalize(delta);
 
     // max((Pos.w - 16) / 128, 1e-3)
 

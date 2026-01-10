@@ -21,7 +21,7 @@ void vertex(vec4 v) {
 }
 
 vec3 interpolateVertex(vec3 v, float len) {
-    return v + normalize(v - LightPos) * len;
+    return LightPos + normalize(v - LightPos) * len;
 }
 
 vec4 projectVertex(vec3 v) {
