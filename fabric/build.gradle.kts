@@ -16,7 +16,7 @@ dependencies {
 
     modImplementation(libs.flk)
     modImplementation(libs.sodium)
-    modImplementation(libs.bigShot.fabric)
+    modCompileOnly(libs.bigShot.fabric)
     modImplementation(libs.fzzyConfig.fabric)
 }
 

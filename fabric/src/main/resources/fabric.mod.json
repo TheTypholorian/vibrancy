@@ -7,6 +7,9 @@
   "authors": [
     "${mod_author}"
   ],
+  "contact": {
+    "sources": "https://github.com/TheTypholorian/vibrancy"
+  },
   "license": "${license}",
   "icon": "${mod_id}.png",
   "environment": "client",
@@ -29,7 +32,7 @@
     "java": ">=${java_version}",
     "fabric-language-kotlin": ">=${flk_version}",
     "big_shot_lib": ">=2.0.3",
-    "fzzy-config": "*",
+    "fzzy_config": "*",
     "modmenu": "*"
   },
   "breaks": {
