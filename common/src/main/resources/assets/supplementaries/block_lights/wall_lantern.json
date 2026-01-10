@@ -1,0 +1,134 @@
+{
+  "color": [ 1, 1, 0.59 ],
+  "brightness": 0.5,
+  "radius": {
+    "default": 15,
+    "entries": [
+      {
+        "matches": {
+          "light_level": "15"
+        },
+        "value": 15
+      },
+      {
+        "matches": {
+          "light_level": "14"
+        },
+        "value": 14
+      },
+      {
+        "matches": {
+          "light_level": "13"
+        },
+        "value": 13
+      },
+      {
+        "matches": {
+          "light_level": "12"
+        },
+        "value": 12
+      },
+      {
+        "matches": {
+          "light_level": "11"
+        },
+        "value": 11
+      },
+      {
+        "matches": {
+          "light_level": "10"
+        },
+        "value": 10
+      },
+      {
+        "matches": {
+          "light_level": "9"
+        },
+        "value": 9
+      },
+      {
+        "matches": {
+          "light_level": "8"
+        },
+        "value": 8
+      },
+      {
+        "matches": {
+          "light_level": "7"
+        },
+        "value": 7
+      },
+      {
+        "matches": {
+          "light_level": "6"
+        },
+        "value": 6
+      },
+      {
+        "matches": {
+          "light_level": "5"
+        },
+        "value": 5
+      },
+      {
+        "matches": {
+          "light_level": "4"
+        },
+        "value": 4
+      },
+      {
+        "matches": {
+          "light_level": "3"
+        },
+        "value": 3
+      },
+      {
+        "matches": {
+          "light_level": "2"
+        },
+        "value": 2
+      },
+      {
+        "matches": {
+          "light_level": "1"
+        },
+        "value": 1
+      },
+      {
+        "matches": {
+          "light_level": "0"
+        },
+        "value": 0
+      }
+    ]
+  },
+  "offset": {
+    "default": [ 0.5, 0.3125, 0.5 ],
+    "entries": [
+      {
+        "matches": {
+          "facing": "east"
+        },
+        "value": [ 0.3725, 0.3125, 0.5 ]
+      },
+      {
+        "matches": {
+          "facing": "west"
+        },
+        "value": [ 0.6275, 0.3125, 0.5 ]
+      },
+      {
+        "matches": {
+          "facing": "south"
+        },
+        "value": [ 0.5, 0.3125, 0.3725 ]
+      },
+      {
+        "matches": {
+          "facing": "north"
+        },
+        "value": [ 0.5, 0.3125, 0.6275 ]
+      }
+    ]
+  }
+}
