@@ -26,9 +26,9 @@ public class LevelMixin {
             at = @At("TAIL")
     )
     private void onBlockStateChange(BlockPos pos, BlockState oldBlock, BlockState newBlock, CallbackInfo ci) {
-        BlockLightInfo info = BlockLightInfo.get(newBlock.getBlock());
+        BlockLightInfo info = BlockLightInfo.MAP.get(newBlock.getBlock());
 
-        if (info != null) {
+        if (info != null && info.getEnabled().apply(newBlock)) {
             info.addBlockLight(pos, newBlock);
         } else {
             BlockLight light = BlockLight.LIGHTS.remove(pos);

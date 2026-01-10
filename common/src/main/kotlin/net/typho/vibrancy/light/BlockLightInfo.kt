@@ -1,20 +1,22 @@
 package net.typho.vibrancy.light
 
+import com.mojang.serialization.Codec
+import com.mojang.serialization.MapCodec
+import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.core.BlockPos
-import net.minecraft.core.Direction
-import net.minecraft.resources.ResourceKey
+import net.minecraft.util.ExtraCodecs
 import net.minecraft.world.level.block.Block
-import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.block.state.StateDefinition
 import net.typho.vibrancy.util.BlockStateFunction
-import net.typho.vibrancy.util.getKey
 import org.joml.Vector3f
 
 data class BlockLightInfo(
-    val color: BlockStateFunction<Vector3f> = BlockStateFunction(DEFAULT_COLOR),
-    val radius: BlockStateFunction<Float> = BlockStateFunction(15f),
-    val brightness: BlockStateFunction<Float> = BlockStateFunction(1f),
-    val offset: BlockStateFunction<Vector3f> = BlockStateFunction(Vector3f(0.5f))
+    val color: BlockStateFunction<Vector3f>,
+    val radius: BlockStateFunction<Float>,
+    val brightness: BlockStateFunction<Float>,
+    val offset: BlockStateFunction<Vector3f>,
+    val enabled: BlockStateFunction<Boolean>
 ) {
     fun addBlockLight(pos: BlockPos, state: BlockState) {
         val old = BlockLight.LIGHTS[pos]
@@ -27,23 +29,34 @@ data class BlockLightInfo(
     }
 
     companion object {
-        @JvmField
-        val MAP = HashMap<ResourceKey<Block>, BlockLightInfo>()
-        @JvmField
-        val DEFAULT_COLOR = Vector3f(1f, 1f, 0.6f)
-
         @JvmStatic
-        fun put(block: Block, info: BlockLightInfo) {
-            MAP.put(block.getKey(), info)
+        fun codec(stateDefinition: StateDefinition<Block, BlockState>): MapCodec<BlockLightInfo> {
+            return RecordCodecBuilder.mapCodec {
+                it.group(
+                    BlockStateFunction.codec(ExtraCodecs.VECTOR3F, stateDefinition)
+                        .fieldOf("color")
+                        .forGetter { info -> info.color },
+                    BlockStateFunction.codec(Codec.FLOAT, stateDefinition)
+                        .fieldOf("radius")
+                        .forGetter { info -> info.radius },
+                    BlockStateFunction.codec(Codec.FLOAT, stateDefinition)
+                        .fieldOf("brightness")
+                        .forGetter { info -> info.brightness },
+                    BlockStateFunction.codec(ExtraCodecs.VECTOR3F, stateDefinition)
+                        .fieldOf("offset")
+                        .forGetter { info -> info.offset },
+                    BlockStateFunction.codec(Codec.BOOL, stateDefinition)
+                        .optionalFieldOf("enabled", BlockStateFunction(true))
+                        .forGetter { info -> info.enabled }
+                ).apply(it, ::BlockLightInfo)
+            }
         }
 
-        @JvmStatic
-        fun get(block: Block): BlockLightInfo? = get(block.getKey())
-
-        @JvmStatic
-        fun get(key: ResourceKey<Block>): BlockLightInfo? = MAP.get(key)
+        @JvmField
+        val MAP = HashMap<Block, BlockLightInfo>()
 
         init {
+            /*
             put(Blocks.TORCH, BlockLightInfo(
                 color = BlockStateFunction(Vector3f(1f, 1f, 0.59f)),
                 brightness = BlockStateFunction(0.5f),
@@ -178,6 +191,7 @@ data class BlockLightInfo(
                 color = BlockStateFunction(Vector3f(1f, 1f, 0.63f)),
                 brightness = BlockStateFunction(0.3f)
             ))
+             */
         }
     }
 }

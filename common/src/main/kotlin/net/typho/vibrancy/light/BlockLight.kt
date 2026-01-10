@@ -8,7 +8,6 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.level.chunk.LevelChunkSection
 import net.typho.vibrancy.Vibrancy
-import net.typho.vibrancy.util.getKey
 import org.joml.Vector3f
 
 data class BlockLight(
@@ -76,7 +75,7 @@ data class BlockLight(
             for (i in chunk.minSection until chunk.maxSection) {
                 val section = chunk.getSection(chunk.getSectionIndexFromSectionY(i))
 
-                if (section.maybeHas { BlockLightInfo.MAP.containsKey(it.block.getKey()) }) {
+                if (section.maybeHas { BlockLightInfo.MAP.containsKey(it.block) }) {
                     val minPos = SectionPos.of(chunk.pos, i).origin()
 
                     for (x in 0 until LevelChunkSection.SECTION_WIDTH) {
@@ -84,13 +83,18 @@ data class BlockLight(
                             for (z in 0 until LevelChunkSection.SECTION_WIDTH) {
                                 val state = section.getBlockState(x, y, z)
 
-                                BlockLightInfo.get(state.block)?.addBlockLight(
-                                    BlockPos(
-                                        x + minPos.x,
-                                        y + minPos.y,
-                                        z + minPos.z
-                                    ), state
-                                )
+                                BlockLightInfo.MAP[state.block]?.let { info ->
+                                    if (info.enabled.apply(state)) {
+                                        info.addBlockLight(
+                                            BlockPos(
+                                                x + minPos.x,
+                                                y + minPos.y,
+                                                z + minPos.z
+                                            ),
+                                            state
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
