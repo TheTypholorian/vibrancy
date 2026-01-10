@@ -1,31 +1,35 @@
 package net.typho.vibrancy.light
 
-import com.google.gson.JsonParser
+import com.google.gson.JsonElement
+import com.google.gson.JsonParser.parseReader
 import com.google.gson.JsonSyntaxException
-import com.mojang.serialization.JsonOps
+import com.mojang.serialization.JsonOps.INSTANCE
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.FileToIdConverter
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.server.packs.resources.ResourceManager
-import net.minecraft.tags.TagKey
+import net.minecraft.tags.TagKey.create
 import net.minecraft.world.level.block.Block
 import net.typho.big_shot_lib.resource.SynchronousReloadListener
 import net.typho.vibrancy.Vibrancy
-import java.io.Reader
+import kotlin.jvm.optionals.getOrNull
 
 object BlockLightInfoLoader : SynchronousReloadListener {
     @JvmField
-    val idConverter: FileToIdConverter = FileToIdConverter.json("block_lights")
+    val singleIdConverter: FileToIdConverter = FileToIdConverter.json("block_lights")
+    @JvmField
+    val tagIdConverter: FileToIdConverter = FileToIdConverter.json("block_light_tags")
 
-    fun load(block: Block, key: ResourceLocation, reader: Reader) {
+    @JvmStatic
+    fun load(block: Block, key: ResourceLocation?, json: JsonElement) {
         BlockLightInfo.MAP.put(
             block,
             BlockLightInfo.codec(block.stateDefinition)
                 .codec()
                 .parse(
-                    JsonOps.INSTANCE,
-                    JsonParser.parseReader(reader)
+                    INSTANCE,
+                    json
                 )
                 .getOrThrow { message -> JsonSyntaxException("Error parsing block light info for $key: $message") }
         )
@@ -34,28 +38,29 @@ object BlockLightInfoLoader : SynchronousReloadListener {
     override fun reload(manager: ResourceManager) {
         BlockLightInfo.MAP.clear()
 
-        for (entry in idConverter.listMatchingResources(manager)) {
+        for (entry in singleIdConverter.listMatchingResources(manager)) {
             entry.value.openAsReader().use { jsonReader ->
-                var blockKey = idConverter.fileToId(entry.key)
+                val blockKey = singleIdConverter.fileToId(entry.key)
 
-                if (blockKey.path.startsWith("tag/")) {
-                    blockKey = blockKey.withPath { path -> path.substring("tag/".length) }
-
-                    BuiltInRegistries.BLOCK.getTag(TagKey.create(Registries.BLOCK, blockKey))
-                        .ifPresent { tag ->
-                            tag.forEach { block ->
-                                load(
-                                    block.value(),
-                                    block.unwrapKey()
-                                        .map { key -> key.location() }
-                                        .orElse(blockKey),
-                                    jsonReader
-                                )
-                            }
-                        }
-                } else if (BuiltInRegistries.BLOCK.containsKey(blockKey)) {
-                    load(BuiltInRegistries.BLOCK.get(blockKey), blockKey, jsonReader)
+                if (BuiltInRegistries.BLOCK.containsKey(blockKey)) {
+                    val block = BuiltInRegistries.BLOCK.get(blockKey)
+                    load(block, blockKey, parseReader(jsonReader))
                 }
+            }
+        }
+
+        for (entry in tagIdConverter.listMatchingResources(manager)) {
+            entry.value.openAsReader().use { jsonReader ->
+                val blockKey = tagIdConverter.fileToId(entry.key)
+
+                BuiltInRegistries.BLOCK.getTag(create(Registries.BLOCK, blockKey))
+                    .ifPresent { tag ->
+                        val json = parseReader(jsonReader)
+
+                        tag.forEach { block ->
+                            load(block.value(), block.unwrapKey().map { key -> key.location() }.getOrNull(), json)
+                        }
+                    }
             }
         }
 

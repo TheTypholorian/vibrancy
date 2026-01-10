@@ -30,6 +30,7 @@ object Vibrancy {
     const val MOD_ID = "vibrancy"
     const val MOD_NAME = "Vibrancy"
 
+    @JvmField
     val LOGGER: Logger = LoggerFactory.getLogger(MOD_NAME)
 
     @JvmField

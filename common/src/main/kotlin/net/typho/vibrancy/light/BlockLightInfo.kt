@@ -53,6 +53,12 @@ data class BlockLightInfo(
         }
 
         @JvmField
-        val MAP = HashMap<Block, BlockLightInfo>()
+        internal val MAP = HashMap<Block, BlockLightInfo>()
+
+        @JvmStatic
+        fun get(block: Block): BlockLightInfo? = MAP.get(block)
+
+        @JvmStatic
+        fun has(block: Block): Boolean = MAP.containsKey(block)
     }
 }

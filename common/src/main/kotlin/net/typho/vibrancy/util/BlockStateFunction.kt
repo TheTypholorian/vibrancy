@@ -49,7 +49,7 @@ data class BlockStateFunction<T>(
                 it.group(
                     Codec.dispatchedMap(
                         Codec.STRING.xmap(
-                            { name -> stateDefinition.getProperty(name)!! },
+                            { name -> requireNotNull(stateDefinition.getProperty(name), { name }) },
                             { property -> property.name }
                         ),
                         { property -> property.codec() }

@@ -39,5 +39,7 @@ public class MinecraftMixin {
     private void setLevel(ClientLevel level, ReceivingLevelScreen.Reason reason, CallbackInfo ci) {
         BlockLight.LIGHTS.values().forEach(BlockLight::free);
         BlockLight.LIGHTS.clear();
+
+        BlockLightInfoLoader.INSTANCE.reload(resourceManager);
     }
 }

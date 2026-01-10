@@ -75,7 +75,7 @@ data class BlockLight(
             for (i in chunk.minSection until chunk.maxSection) {
                 val section = chunk.getSection(chunk.getSectionIndexFromSectionY(i))
 
-                if (section.maybeHas { BlockLightInfo.MAP.containsKey(it.block) }) {
+                if (section.maybeHas { BlockLightInfo.has(it.block) }) {
                     val minPos = SectionPos.of(chunk.pos, i).origin()
 
                     for (x in 0 until LevelChunkSection.SECTION_WIDTH) {
@@ -83,7 +83,7 @@ data class BlockLight(
                             for (z in 0 until LevelChunkSection.SECTION_WIDTH) {
                                 val state = section.getBlockState(x, y, z)
 
-                                BlockLightInfo.MAP[state.block]?.let { info ->
+                                BlockLightInfo.get(state.block)?.let { info ->
                                     if (info.enabled.apply(state)) {
                                         info.addBlockLight(
                                             BlockPos(
