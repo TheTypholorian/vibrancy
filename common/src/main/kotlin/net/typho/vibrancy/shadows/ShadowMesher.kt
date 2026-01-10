@@ -2,13 +2,13 @@ package net.typho.vibrancy.shadows
 
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.block.model.BakedQuad
-import net.minecraft.client.renderer.texture.TextureAtlasSprite
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.util.RandomSource
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.Vec3
+import net.typho.vibrancy.light.TextureCoordinates
 import net.typho.vibrancy.shadows.LightFace.Companion.toLightFace
 import org.joml.Vector3f
 import java.util.function.Consumer
@@ -79,7 +79,7 @@ interface ShadowMesher {
         @JvmStatic
         fun Direction.createFace(
             pos: BlockPos,
-            sprite: TextureAtlasSprite,
+            texture: TextureCoordinates,
             width: Int = 1,
             height: Int = 1
         ): LightFace {
@@ -132,7 +132,7 @@ interface ShadowMesher {
                 vertices[1],
                 vertices[2],
                 vertices[3],
-                sprite,
+                texture,
                 width,
                 height
             )

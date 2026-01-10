@@ -31,7 +31,7 @@ open class LightManager {
     @JvmField
     var viewMatrix: Matrix4f? = null
 
-    fun tickDelta(): Float = Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(false)
+    fun tickDelta(): Float = Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(true)
 
     fun getLevel(): ClientLevel = Minecraft.getInstance().level!!
 

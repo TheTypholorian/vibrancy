@@ -21,6 +21,7 @@ import net.typho.big_shot_lib.gl.GlStack
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.light.Light
 import net.typho.vibrancy.light.LightManager
+import net.typho.vibrancy.light.TextureCoordinates
 import net.typho.vibrancy.shadows.LightFace.Companion.toLightFace
 import org.lwjgl.system.NativeResource
 import java.util.*
@@ -227,8 +228,7 @@ abstract class ShadowManager<L : Light>(
             }
 
             if (Vibrancy.config.visuals.entityShadows) {
-                val anyEntities =
-                    castEntities(manager, getBlockEntityBox(manager, light), getEntityBox(manager, light), light)
+                val anyEntities = castEntities(manager, getBlockEntityBox(manager, light), getEntityBox(manager, light), light)
 
                 if (anyEntities) {
                     val entityShadows = HashMap<ResourceLocation, MutableList<LightFace>>()
@@ -254,7 +254,12 @@ abstract class ShadowManager<L : Light>(
                                         v2.vertex,
                                         v3.vertex,
                                         v4.vertex,
-                                        null,
+                                        TextureCoordinates(
+                                            v1.uv,
+                                            v2.uv,
+                                            v3.uv,
+                                            v4.uv,
+                                        ),
                                         1,
                                         1
                                     )

@@ -4,13 +4,13 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.ItemBlockRenderTypes
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.client.renderer.block.model.BakedQuad
-import net.minecraft.client.renderer.texture.TextureAtlasSprite
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.util.RandomSource
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
+import net.typho.vibrancy.light.TextureCoordinates
 import net.typho.vibrancy.shadows.LightFace.Companion.toLightFace
 import net.typho.vibrancy.shadows.ShadowMesher.Companion.createFace
 import java.util.*
@@ -60,13 +60,13 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
     override fun finish(predicate: FaceCastingPredicate, level: Level, out: Consumer<LightFace>) {
         var start: BlockPos? = null
         var length = 0
-        var sprite: TextureAtlasSprite? = null
+        var texture: TextureCoordinates? = null
         val faces = HashMap<Direction, MutableMap<BlockPos, LightFace>>()
 
         fun start(pos: BlockPos, quad: BakedQuad) {
             start = pos
             length = 1
-            sprite = quad.sprite
+            texture = TextureCoordinates(quad.sprite)
         }
 
         fun end(direction: Direction) {
@@ -76,13 +76,13 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
                     if (direction.axis == Direction.Axis.Y) {
                         direction.createFace(
                             start!!,
-                            sprite!!,
+                            texture!!,
                             height = length
                         )
                     } else {
                         direction.createFace(
                             start!!,
-                            sprite!!,
+                            texture!!,
                             width = length
                         )
                     }
@@ -91,7 +91,7 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
 
             start = null
             length = 0
-            sprite = null
+            texture = null
         }
 
         fun mesh(voxel: Voxel, direction: Direction) {
@@ -222,14 +222,14 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
                         if (entry.key.axis == Direction.Axis.Y) {
                             entry.key.createFace(
                                 doubleGreedy.first().blockPos!!,
-                                entry1.value.sprite!!,
+                                entry1.value.texture,
                                 width = doubleGreedy.size,
                                 height = entry1.value.height
                             )
                         } else {
                             entry.key.createFace(
                                 doubleGreedy.first().blockPos!!,
-                                entry1.value.sprite!!,
+                                entry1.value.texture,
                                 width = entry1.value.width,
                                 height = doubleGreedy.size
                             )
@@ -238,8 +238,6 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
                 }
             }
         }
-
-        // TODO double greedy mesh
 
         extraGreedy.forEach(out::accept)
 
