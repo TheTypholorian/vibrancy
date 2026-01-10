@@ -3,6 +3,7 @@ package net.typho.vibrancy.light
 import net.minecraft.client.Camera
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
+import net.minecraft.client.renderer.culling.Frustum
 import net.minecraft.core.GlobalPos
 import net.typho.big_shot_lib.BigShotLib
 import net.typho.big_shot_lib.api.impl.NeoShader
@@ -12,26 +13,22 @@ import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyDynamicBuffers
 import net.typho.vibrancy.mixin.LevelRendererAccessor
 import org.joml.Matrix4f
+import java.util.*
 
-open class LightManager(
-    var dirtyBlocks: Iterable<GlobalPos>,
-
-    var raytraceDistance: Int,
-    var lightCullDistance: Int,
-
-    var maxRendered: Int,
-    var maxRaytraced: Int,
-
-    var shadowRadius: Int
-) {
+open class LightManager {
     companion object {
         const val SKY_STENCIL_MASK: Int = 0b01000000
         const val BLOCK_STENCIL_MASK: Int = 0b10000000
         const val SHADOW_MASK: Int = 0b1
     }
 
+    @JvmField
+    val dirtyBlocks = LinkedList<GlobalPos>()
+    @JvmField
     var lightsRendered: Int = 0
+    @JvmField
     var lightsRaytraced: Int = 0
+    @JvmField
     var viewMatrix: Matrix4f? = null
 
     fun tickDelta(): Float = Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(false)
@@ -41,6 +38,8 @@ open class LightManager(
     fun getCamera(): Camera = Minecraft.getInstance().gameRenderer.mainCamera
 
     fun getViewMatrix(camera: Camera = getCamera()): Matrix4f = BigShotLib.getViewMatrix(camera)
+
+    fun getCullingFrustum(): Frustum = (Minecraft.getInstance().levelRenderer as LevelRendererAccessor).cullingFrustum
 
     fun setupStencil(stack: GlStack) {
         val shader = NeoShader.get(Vibrancy.id("stencil_setup"))!!
@@ -70,21 +69,25 @@ open class LightManager(
         BigShotLib.SCREEN_VBO.draw()
     }
 
+    fun postRender() {
+        dirtyBlocks.clear()
+    }
+
     fun inRenderDistance(light: Light, camera: Camera = getCamera()): Boolean {
-        return light.testCullingDistance(camera, lightCullDistance)
-                && (Minecraft.getInstance().levelRenderer as LevelRendererAccessor).cullingFrustum.isVisible(light.getCullingBox()!!)
+        return light.testCullingDistance(camera, Vibrancy.config.blockLights.lightCullDistance.get())
+                && (!Vibrancy.config.forNerds.useFrustumCulling || getCullingFrustum().isVisible(light.getCullingBox()!!))
     }
 
     fun shouldRender(light: Light, camera: Camera = getCamera()): Boolean {
-        return (maxRendered > 400 || lightsRendered < maxRendered) && inRenderDistance(light, camera)
+        return lightsRendered < Vibrancy.config.blockLights.maxRendered && inRenderDistance(light, camera)
     }
 
     fun shouldRaytrace(light: Light, camera: Camera = getCamera()): Boolean {
-        return (maxRendered > 400 || lightsRaytraced < maxRaytraced)
-                && light.testCullingDistance(camera, raytraceDistance)
+        return lightsRaytraced < Vibrancy.config.blockLights.maxRendered
+                && light.testCullingDistance(camera, Vibrancy.config.blockLights.raytraceDistance.get())
     }
 
-    fun postRender(light: Light, didRaytrace: Boolean) {
+    fun postRenderLight(didRaytrace: Boolean) {
         lightsRendered++
 
         if (didRaytrace) {

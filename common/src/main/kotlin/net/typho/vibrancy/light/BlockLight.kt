@@ -45,9 +45,9 @@ data class BlockLight(
     override fun getRadius(): Float = radius
 
     override fun getShadowRadius(manager: LightManager): Int =
-        getRadius().coerceAtMost(manager.shadowRadius.toFloat()).toInt()
+        getRadius().coerceAtMost(Vibrancy.config.blockLights.shadowRadius.toFloat()).toInt()
 
-    override fun getColor(): Vector3f = Vector3f(color).mul(Vibrancy.LIGHT_BRIGHTNESS)
+    override fun getColor(): Vector3f = Vector3f(color).mul(Vibrancy.config.visuals.lightBrightness.get())
 
     override fun testCullingDistance(camera: Camera, chunks: Int): Boolean =
         getPosition().distanceSquared(camera.position.toVector3f()) <= (chunks * chunks * 256)

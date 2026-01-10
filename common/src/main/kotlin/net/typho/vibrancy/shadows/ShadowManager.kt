@@ -226,7 +226,7 @@ abstract class ShadowManager<L : Light>(
                 builder.vertices.clear()
             }
 
-            if (Vibrancy.ENTITY_SHADOWS) {
+            if (Vibrancy.config.visuals.entityShadows) {
                 val anyEntities =
                     castEntities(manager, getBlockEntityBox(manager, light), getEntityBox(manager, light), light)
 

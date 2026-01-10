@@ -28,8 +28,9 @@ mixin = "0.8.5"
 mixinExtras = "0.3.5"
 
 sodium="mc1.21.1-0.6.13-neoforge"
-big_shot="mc1.21-2.0.2-neoforge"
-fzzyConfigCommon = "0.7.4-fix1+1.21"
+bigShotFabric="mc1.21-2.0.3-fabric"
+bigShotNeo="mc1.21-2.0.3-neoforge"
+fzzyConfigFabric = "0.7.4-fix1+1.21"
 fzzyConfigNeo = "0.7.4+1.21+neoforge"
 
 [libraries]
@@ -41,8 +42,9 @@ kff = { group = "thedarkcolour", name = "kotlinforforge-neoforge", version.ref =
 mixin = { group = "org.spongepowered", name = "mixin", version.ref = "mixin" }
 mixinExtras-common = { group = "io.github.llamalad7", name = "mixinextras-common", version.ref = "mixinExtras" }
 sodium = { group = "maven.modrinth", name = "sodium", version.ref = "sodium" }
-bigShot = { group = "maven.modrinth", name = "big-shot-lib", version.ref = "big_shot" }
-fzzyConfig-common = { group = "me.fzzyhmstrs", name = "fzzy_config", version.ref = "fzzyConfigCommon" }
+bigShot-fabric = { group = "maven.modrinth", name = "big-shot-lib", version.ref = "bigShotFabric" }
+bigShot-neoforge = { group = "maven.modrinth", name = "big-shot-lib", version.ref = "bigShotNeo" }
+fzzyConfig-fabric = { group = "me.fzzyhmstrs", name = "fzzy_config", version.ref = "fzzyConfigFabric" }
 fzzyConfig-neoforge = { group = "me.fzzyhmstrs", name = "fzzy_config", version.ref = "fzzyConfigNeo" }
 
 [plugins]

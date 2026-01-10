@@ -22,7 +22,7 @@ dependencies {
     compileOnly(libs.mixinExtras.common)
     annotationProcessor(libs.mixinExtras.common)
     implementation(libs.sodium)
-    implementation(libs.bigShot)
+    implementation(libs.bigShot.neoforge)
     implementation(libs.fzzyConfig.neoforge)
 }
 

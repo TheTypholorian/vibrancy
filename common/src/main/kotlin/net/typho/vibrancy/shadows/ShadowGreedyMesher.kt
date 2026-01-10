@@ -16,22 +16,16 @@ import net.typho.vibrancy.shadows.ShadowMesher.Companion.createFace
 import java.util.*
 import java.util.function.Consumer
 
-open class ShadowGreedyMesher : ShadowMesher {
-    val box: BlockBox
-    protected val grid: Array<Array<Array<Voxel?>>>
-    protected val allVoxels = LinkedList<Voxel>()
-    protected val nonGreedy = LinkedList<LightFace>()
-
-    constructor(box: BlockBox) {
-        this.box = box
-        grid = Array(box.max.x - box.min.x + 1) { x ->
-            Array(box.max.y - box.min.y + 1) { y ->
-                Array(box.max.z - box.min.z + 1) { z ->
-                    null
-                }
+open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
+    val grid: Array<Array<Array<Voxel?>>> = Array(box.max.x - box.min.x + 1) { x ->
+        Array(box.max.y - box.min.y + 1) { y ->
+            Array(box.max.z - box.min.z + 1) { z ->
+                null
             }
         }
     }
+    val allVoxels = LinkedList<Voxel>()
+    val nonGreedy = LinkedList<LightFace>()
 
     fun shouldGreedyMesh(
         state: BlockState,
@@ -58,7 +52,7 @@ open class ShadowGreedyMesher : ShadowMesher {
 
             grid[pos.x - box.min.x][pos.y - box.min.y][pos.z - box.min.z] = voxel
             allVoxels.add(voxel)
-        } else {
+        } else if (predicate.isInRange(pos)) {
             ShadowMesher.collectLightFaces(state, level, pos, predicate, nonGreedy::add)
         }
     }
@@ -268,9 +262,7 @@ open class ShadowGreedyMesher : ShadowMesher {
         }
 
         for (face in nonGreedy) {
-            if (predicate.isInRange(face.blockPos!!)) {
-                out.accept(face)
-            }
+            out.accept(face)
         }
     }
 

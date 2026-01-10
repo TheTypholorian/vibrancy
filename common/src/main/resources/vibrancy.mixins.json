@@ -11,7 +11,6 @@
     "DefaultFluidRendererMixin",
     "LevelMixin",
     "OptionsMixin",
-    "SodiumGameOptionsPagesAccessor",
     "VertexConsumerTrackerMixin"
   ],
   "client": [
@@ -22,8 +21,7 @@
     "LevelRendererMixin",
     "MainTargetMixin",
     "MinecraftMixin",
-    "RenderTargetMixin",
-    "SodiumOptionsGUIMixin"
+    "RenderTargetMixin"
   ],
   "injectors": {
     "defaultRequire": 1

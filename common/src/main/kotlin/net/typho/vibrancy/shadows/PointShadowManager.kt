@@ -55,7 +55,8 @@ open class PointShadowManager(static: Boolean) : ShadowManager<PointLight>(stati
     }
 
     fun fullRebuild(manager: LightManager, box: BlockBox, light: PointLight): MutableList<LightFace> {
-        val mesher = ShadowGreedyMesher(box)
+        val mesher = if (Vibrancy.config.forNerds.useGreedyMeshing) ShadowGreedyMesher(box) else BasicShadowMesher()
+
         val lightBlockPos = light.getBlockPos()
         val radius = light.getShadowRadius(manager)
         val radiusSq = radius * radius

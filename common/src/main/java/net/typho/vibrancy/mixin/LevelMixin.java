@@ -38,6 +38,6 @@ public class LevelMixin {
             }
         }
 
-        Vibrancy.INSTANCE.getDIRTY_BLOCKS().add(new GlobalPos(dimension, pos));
+        Vibrancy.LIGHT_MANAGER.dirtyBlocks.add(new GlobalPos(dimension, pos));
     }
 }
