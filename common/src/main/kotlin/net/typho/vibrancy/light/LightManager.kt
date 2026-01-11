@@ -49,7 +49,7 @@ open class LightManager {
     }
 
     fun shouldRaytrace(light: Light, camera: Camera = getCamera()): Boolean {
-        return lightsRaytraced < Vibrancy.config.blockLights.maxRendered
+        return lightsRaytraced < Vibrancy.config.blockLights.maxRaytraced
                 && light.testCullingDistance(camera, Vibrancy.config.blockLights.raytraceDistance.get())
     }
 
