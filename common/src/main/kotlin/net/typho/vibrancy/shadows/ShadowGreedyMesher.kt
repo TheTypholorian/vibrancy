@@ -40,20 +40,22 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
         random: RandomSource,
         predicate: FaceCastingPredicate
     ) {
-        if (shouldGreedyMesh(state, level, pos)) {
-            val voxel = Voxel(pos, ItemBlockRenderTypes.getChunkRenderType(state) == RenderType.solid())
-            val model = Minecraft.getInstance().blockRenderer.getBlockModel(state)
+        if (predicate.shouldCast(state, level, pos)) {
+            if (shouldGreedyMesh(state, level, pos)) {
+                val voxel = Voxel(pos, ItemBlockRenderTypes.getChunkRenderType(state) == RenderType.solid())
+                val model = Minecraft.getInstance().blockRenderer.getBlockModel(state)
 
-            for (direction in Direction.entries) {
-                if (predicate.shouldCast(direction, level.getBlockState(voxel.pos), level, voxel.pos)) {
-                    voxel.quads[direction.ordinal] = model.getQuads(state, direction, random).first()
+                for (direction in Direction.entries) {
+                    if (predicate.shouldCastFace(direction, level.getBlockState(voxel.pos), level, voxel.pos)) {
+                        voxel.quads[direction.ordinal] = model.getQuads(state, direction, random).first()
+                    }
                 }
-            }
 
-            grid[pos.x - box.min.x][pos.y - box.min.y][pos.z - box.min.z] = voxel
-            allVoxels.add(voxel)
-        } else if (predicate.isInRange(pos)) {
-            ShadowMesher.collectLightFaces(state, level, pos, predicate, nonGreedy::add)
+                grid[pos.x - box.min.x][pos.y - box.min.y][pos.z - box.min.z] = voxel
+                allVoxels.add(voxel)
+            } else if (predicate.isInRange(pos)) {
+                ShadowMesher.collectLightFaces(state, level, pos, predicate, nonGreedy::add)
+            }
         }
     }
 

@@ -7,6 +7,12 @@ import net.minecraft.world.level.block.state.BlockState
 
 interface FaceCastingPredicate {
     fun shouldCast(
+        state: BlockState,
+        level: Level,
+        pos: BlockPos
+    ): Boolean
+
+    fun shouldCastFace(
         face: Direction?,
         state: BlockState,
         level: Level,

@@ -39,9 +39,16 @@ open class LightManager {
         dirtyBlocks.clear()
     }
 
+    fun inFrustum(light: Light): Boolean {
+        return !Vibrancy.config.forNerds.useFrustumCulling || getCullingFrustum().isVisible(light.getCullingBox()!!)
+    }
+
     fun inRenderDistance(light: Light, camera: Camera = getCamera()): Boolean {
-        return light.testCullingDistance(camera, Vibrancy.config.blockLights.lightCullDistance.get())
-                && (!Vibrancy.config.forNerds.useFrustumCulling || getCullingFrustum().isVisible(light.getCullingBox()!!))
+        return light.testCullingDistance(camera, Vibrancy.config.blockLights.lightCullDistance.get()) && inFrustum(light)
+    }
+
+    fun inRaytraceDistance(light: Light, camera: Camera = getCamera()): Boolean {
+        return light.testCullingDistance(camera, Vibrancy.config.blockLights.raytraceDistance.get())
     }
 
     fun shouldRender(light: Light, camera: Camera = getCamera()): Boolean {
@@ -49,8 +56,7 @@ open class LightManager {
     }
 
     fun shouldRaytrace(light: Light, camera: Camera = getCamera()): Boolean {
-        return lightsRaytraced < Vibrancy.config.blockLights.maxRaytraced
-                && light.testCullingDistance(camera, Vibrancy.config.blockLights.raytraceDistance.get())
+        return lightsRaytraced < Vibrancy.config.blockLights.maxRaytraced && inRaytraceDistance(light, camera)
     }
 
     fun postRenderLight(didRaytrace: Boolean) {

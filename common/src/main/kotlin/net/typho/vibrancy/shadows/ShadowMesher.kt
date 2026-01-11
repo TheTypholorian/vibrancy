@@ -41,7 +41,7 @@ interface ShadowMesher {
             val random = RandomSource.create()
 
             for (dir in Direction.entries) {
-                if (predicate.shouldCast(dir, state, level, pos)) {
+                if (predicate.shouldCastFace(dir, state, level, pos)) {
                     for (quad in model.getQuads(state, dir, random)) {
                         out.accept(quad)
                     }
@@ -49,7 +49,7 @@ interface ShadowMesher {
             }
 
             for (quad in model.getQuads(state, null, random)) {
-                if (predicate.shouldCast(null, state, level, pos)) {
+                if (predicate.shouldCastFace(null, state, level, pos)) {
                     out.accept(quad)
                 }
             }

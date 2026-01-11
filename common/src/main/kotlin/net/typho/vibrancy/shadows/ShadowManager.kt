@@ -33,7 +33,7 @@ abstract class ShadowManager<L : Light>(
     val shadowMesh by lazy { VertexBuffer(if (static) VertexBuffer.Usage.STATIC else VertexBuffer.Usage.DYNAMIC) }
     protected var numShadows = 0
     protected var shadows: MutableList<LightFace> = LinkedList()
-    protected var shadowsDirty = false
+    protected var uploadShadows = false
     protected val shadowBuilders = LinkedHashMap<RenderType, ShadowBuilder>()
     protected var numBlockEntities: Int = 0
     protected var numEntities: Int = 0
@@ -68,13 +68,12 @@ abstract class ShadowManager<L : Light>(
     open fun rebuildBlock(manager: LightManager, pos: BlockPos, light: L) {
         shadows.removeIf { shadow -> shadow.blockPos == pos }
 
-        getLightFaces(
+        uploadShadows = uploadShadows or getLightFaces(
             manager.getLevel(),
             light,
             pos,
             shadows::add
         )
-        shadowsDirty = true
 
         numShadows = shadows.size
     }
@@ -85,8 +84,14 @@ abstract class ShadowManager<L : Light>(
         light: L,
         pos: BlockPos,
         out: Consumer<LightFace>
-    ) {
+    ): Boolean {
         val state = level.getBlockState(pos)
+
+        if (!light.shouldCastBlock(state, level, pos)) {
+            return false
+        }
+
+        var any = false
         val model = Minecraft.getInstance().blockRenderer.getBlockModel(state)
         val random = RandomSource.create()
         val offset = state.getOffset(level, pos)
@@ -102,6 +107,7 @@ abstract class ShadowManager<L : Light>(
                             pos
                         )
                     )
+                    any = true
                 }
             }
         }
@@ -115,7 +121,10 @@ abstract class ShadowManager<L : Light>(
                     pos
                 )
             )
+            any = true
         }
+
+        return any
     }
 
     protected open fun uploadShadows(
@@ -208,9 +217,9 @@ abstract class ShadowManager<L : Light>(
         if (raytrace) {
             initializeUniforms(manager, light, shader)
 
-            if (shadowsDirty) {
+            if (uploadShadows) {
                 uploadShadows(light, shadowMesh, shadows)
-                shadowsDirty = false
+                uploadShadows = false
             }
 
             if (shadows.isNotEmpty()) {

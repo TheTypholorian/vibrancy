@@ -54,6 +54,14 @@ open class PointShadowManager(static: Boolean) : ShadowManager<PointLight>(stati
         return !(state.isSolidRender(level, pos) && otherState.isSolidRender(level, otherPos))
     }
 
+    override fun rebuildBlock(manager: LightManager, pos: BlockPos, light: PointLight) {
+        if (Vibrancy.config.forNerds.useGreedyMeshing) {
+            fullRebuildAsync(manager, light.getShadowBox(manager), light)
+        } else {
+            super.rebuildBlock(manager, pos, light)
+        }
+    }
+
     fun fullRebuild(manager: LightManager, box: BlockBox, light: PointLight): MutableList<LightFace> {
         val mesher = if (Vibrancy.config.forNerds.useGreedyMeshing) ShadowGreedyMesher(box) else BasicShadowMesher()
 
@@ -63,7 +71,11 @@ open class PointShadowManager(static: Boolean) : ShadowManager<PointLight>(stati
         val level = manager.getLevel()
         val random = RandomSource.create()
         val predicate = object : FaceCastingPredicate {
-            override fun shouldCast(
+            override fun shouldCast(state: BlockState, level: Level, pos: BlockPos): Boolean {
+                return light.shouldCastBlock(state, level, pos)
+            }
+
+            override fun shouldCastFace(
                 face: Direction?,
                 state: BlockState,
                 level: Level,
@@ -124,7 +136,7 @@ open class PointShadowManager(static: Boolean) : ShadowManager<PointLight>(stati
     override fun render(manager: LightManager, raytrace: Boolean, light: PointLight, shader: IShader, stack: GlStack) {
         fullRebuildTask?.let { task ->
             shadows = task.get()
-            shadowsDirty = true
+            uploadShadows = true
             fullRebuildTask = null
         }
 
