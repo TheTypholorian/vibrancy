@@ -12,9 +12,7 @@ import net.typho.big_shot_lib.BigShotLib.cube
 import net.typho.big_shot_lib.api.impl.NeoShader
 import net.typho.big_shot_lib.gl.GlStack
 import net.typho.big_shot_lib.gl.resource.GlResourceType
-import net.typho.big_shot_lib.gl.state.ComparisonMode
 import net.typho.big_shot_lib.gl.state.IntAction
-import net.typho.big_shot_lib.gl.state.StencilFunc
 import net.typho.big_shot_lib.gl.state.StencilOp
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyDynamicBuffers
@@ -87,11 +85,6 @@ abstract class PointLight : Light, NativeResource {
 
         shadowShader.setSampler("DiffuseDepthSampler", Minecraft.getInstance().mainRenderTarget.depthTextureId)
 
-        stack.set(StencilFunc(
-            ComparisonMode.NOTEQUAL,
-            LightManager.SHADOW_MASK,
-            LightManager.BLOCK_STENCIL_MASK or LightManager.SHADOW_MASK
-        ))
         stack.set(StencilOp(
             IntAction.KEEP,
             IntAction.KEEP,
@@ -118,11 +111,6 @@ abstract class PointLight : Light, NativeResource {
         boxShader.setSampler("VibrancyNormalSampler", VibrancyDynamicBuffers.normalsTexture!!)
         boxShader.setSampler("DiffuseDepthSampler", Minecraft.getInstance().mainRenderTarget.depthTextureId)
 
-        stack.set(StencilFunc(
-            ComparisonMode.EQUAL,
-            0,
-            LightManager.SHADOW_MASK
-        ))
         stack.set(StencilOp(
             IntAction.KEEP,
             IntAction.KEEP,

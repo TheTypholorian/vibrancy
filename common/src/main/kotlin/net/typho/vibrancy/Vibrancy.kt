@@ -71,11 +71,10 @@ object Vibrancy {
             GlStateManager._clearColor(0f, 0f, 0f, 0f)
             GlStateManager._clear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT or GL_STENCIL_BUFFER_BIT, false)
 
-            LIGHT_MANAGER.setupStencil(stack)
-
             stack.set(ColorMask(true, true, true, true))
             stack.set(DepthMask, false)
             stack.disable(GlCapability.DEPTH_TEST)
+            stack.enable(GlCapability.STENCIL_TEST)
             stack.enable(GlCapability.CULL_FACE)
             stack.set(CullFace.FRONT)
             stack.enable(GlCapability.BLEND)
@@ -86,21 +85,12 @@ object Vibrancy {
                 )
             )
             stack.set(BlendEquation.ADD)
-            stack.set(StencilMask, 1)
-            stack.set(
-                StencilFunc(
-                    ComparisonMode.ALWAYS,
-                    0,
-                    0xFF
-                )
-            )
-            stack.set(
-                StencilOp(
-                    IntAction.KEEP,
-                    IntAction.KEEP,
-                    IntAction.KEEP
-                )
-            )
+            stack.set(StencilMask, LightManager.SHADOW_MASK)
+            stack.set(StencilFunc(
+                ComparisonMode.NOTEQUAL,
+                LightManager.SHADOW_MASK,
+                LightManager.SHADOW_MASK
+            ))
 
             BlockLight.LIGHTS.values.stream()
                 .sorted(Comparator.comparingDouble {
