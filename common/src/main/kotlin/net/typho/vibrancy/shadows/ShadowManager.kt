@@ -210,6 +210,8 @@ abstract class ShadowManager<L : Light>(
 
     abstract fun getBlockEntityBox(manager: LightManager, light: L): BlockBox?
 
+    abstract fun doEntityShadows(): Boolean
+
     open fun render(manager: LightManager, raytrace: Boolean, light: L, shader: IShader, stack: GlStack) {
         numBlockEntities = 0
         numEntities = 0
@@ -236,7 +238,7 @@ abstract class ShadowManager<L : Light>(
                 builder.vertices.clear()
             }
 
-            if (Vibrancy.config.visuals.entityShadows) {
+            if (doEntityShadows()) {
                 val anyEntities = castEntities(manager, getBlockEntityBox(manager, light), getEntityBox(manager, light), light)
 
                 if (anyEntities) {

@@ -12,10 +12,15 @@ import net.typho.vibrancy.util.BlockStateFunction
 import org.joml.Vector3f
 
 data class BlockLightInfo(
+    @JvmField
     val color: BlockStateFunction<Vector3f>,
+    @JvmField
     val radius: BlockStateFunction<Float>,
+    @JvmField
     val brightness: BlockStateFunction<Float>,
+    @JvmField
     val offset: BlockStateFunction<Vector3f>,
+    @JvmField
     val enabled: BlockStateFunction<Boolean>
 ) {
     fun addBlockLight(pos: BlockPos, state: BlockState) {

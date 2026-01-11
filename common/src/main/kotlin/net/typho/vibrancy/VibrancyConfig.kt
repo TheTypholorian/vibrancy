@@ -1,5 +1,7 @@
 package net.typho.vibrancy
 
+import me.fzzyhmstrs.fzzy_config.annotations.Action
+import me.fzzyhmstrs.fzzy_config.annotations.RequiresAction
 import me.fzzyhmstrs.fzzy_config.api.FileType
 import me.fzzyhmstrs.fzzy_config.config.Config
 import me.fzzyhmstrs.fzzy_config.config.ConfigSection
@@ -13,32 +15,45 @@ class VibrancyConfig : Config(
 ) {
     override fun fileType() = FileType.JSON
 
-    var visuals = VisualsSection()
-
-    class VisualsSection : ConfigSection() {
-        var lightBrightness = ValidatedFloat(1f, 2f, 0.5f)
-        var entityShadows = true
-    }
-
+    @JvmField
     var blockLights = BlockLightsSection()
 
     class BlockLightsSection : ConfigSection() {
-        var raytraceDistance = ValidatedInt(16, 32, 1)
-        var lightCullDistance = ValidatedInt(32, 32, 1)
-        var shadowRadius = 5
+        @JvmField
+        @RequiresAction(Action.RELOG)
+        var enabled = true
+        @JvmField
+        var brightness = ValidatedFloat(1f, 2f, 0.25f)
+        @JvmField
+        var entityShadows = true
+        @JvmField
+        var raytraceDistance = ValidatedInt(8, 64, 1)
+        @JvmField
+        var lightCullDistance = ValidatedInt(32, 64, 1)
+        @JvmField
+        var shadowRadius = 8
+        @JvmField
         var maxRendered = 200
+        @JvmField
         var maxRaytraced = 100
     }
 
+    @JvmField
     var skyLights = SkyLightsSection()
 
     class SkyLightsSection : ConfigSection() {
+        @JvmField
+        @RequiresAction(Action.RELOG)
+        var enabled = true
     }
 
+    @JvmField
     var forNerds = ForNerdsSection()
 
     class ForNerdsSection : ConfigSection() {
+        @JvmField
         var useFrustumCulling = true
+        @JvmField
         var useGreedyMeshing = true
     }
 

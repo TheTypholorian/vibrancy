@@ -46,7 +46,7 @@ data class BlockLight(
     override fun getShadowRadius(manager: LightManager): Int =
         getRadius().coerceAtMost(Vibrancy.config.blockLights.shadowRadius.toFloat()).toInt()
 
-    override fun getColor(): Vector3f = Vector3f(color).mul(Vibrancy.config.visuals.lightBrightness.get())
+    override fun getColor(): Vector3f = Vector3f(color).mul(Vibrancy.config.blockLights.brightness.get())
 
     override fun testCullingDistance(camera: Camera, chunks: Int): Boolean =
         getPosition().distanceSquared(camera.position.toVector3f()) <= (chunks * chunks * 256)
@@ -72,27 +72,29 @@ data class BlockLight(
         fun scanChunk(chunk: LevelChunk) {
             clearChunk(chunk)
 
-            for (i in chunk.minSection until chunk.maxSection) {
-                val section = chunk.getSection(chunk.getSectionIndexFromSectionY(i))
+            if (Vibrancy.config.blockLights.enabled) {
+                for (i in chunk.minSection until chunk.maxSection) {
+                    val section = chunk.getSection(chunk.getSectionIndexFromSectionY(i))
 
-                if (section.maybeHas { BlockLightInfo.has(it.block) }) {
-                    val minPos = SectionPos.of(chunk.pos, i).origin()
+                    if (section.maybeHas { BlockLightInfo.has(it.block) }) {
+                        val minPos = SectionPos.of(chunk.pos, i).origin()
 
-                    for (x in 0 until LevelChunkSection.SECTION_WIDTH) {
-                        for (y in 0 until LevelChunkSection.SECTION_HEIGHT) {
-                            for (z in 0 until LevelChunkSection.SECTION_WIDTH) {
-                                val state = section.getBlockState(x, y, z)
+                        for (x in 0 until LevelChunkSection.SECTION_WIDTH) {
+                            for (y in 0 until LevelChunkSection.SECTION_HEIGHT) {
+                                for (z in 0 until LevelChunkSection.SECTION_WIDTH) {
+                                    val state = section.getBlockState(x, y, z)
 
-                                BlockLightInfo.get(state.block)?.let { info ->
-                                    if (info.enabled.apply(state)) {
-                                        info.addBlockLight(
-                                            BlockPos(
-                                                x + minPos.x,
-                                                y + minPos.y,
-                                                z + minPos.z
-                                            ),
-                                            state
-                                        )
+                                    BlockLightInfo.get(state.block)?.let { info ->
+                                        if (info.enabled.apply(state)) {
+                                            info.addBlockLight(
+                                                BlockPos(
+                                                    x + minPos.x,
+                                                    y + minPos.y,
+                                                    z + minPos.z
+                                                ),
+                                                state
+                                            )
+                                        }
                                     }
                                 }
                             }

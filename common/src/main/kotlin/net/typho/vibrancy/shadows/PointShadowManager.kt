@@ -133,6 +133,10 @@ open class PointShadowManager(static: Boolean) : ShadowManager<PointLight>(stati
         return BlockBox.of(light.getBlockPos()).expand(light.getShadowRadius(manager))
     }
 
+    override fun doEntityShadows(): Boolean {
+        return Vibrancy.config.blockLights.entityShadows
+    }
+
     override fun render(manager: LightManager, raytrace: Boolean, light: PointLight, shader: IShader, stack: GlStack) {
         fullRebuildTask?.let { task ->
             shadows = task.get()
