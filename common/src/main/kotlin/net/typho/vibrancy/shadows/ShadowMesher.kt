@@ -8,8 +8,8 @@ import net.minecraft.util.RandomSource
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.Vec3
-import net.typho.vibrancy.block.TextureCoordinates
 import net.typho.vibrancy.shadows.LightFace.Companion.toLightFace
+import net.typho.vibrancy.util.TextureCoordinates
 import org.joml.Vector3f
 import java.util.function.Consumer
 
@@ -19,11 +19,11 @@ interface ShadowMesher {
         level: Level,
         pos: BlockPos,
         random: RandomSource,
-        predicate: FaceCastingPredicate
+        predicate: ShadowPredicate
     )
 
     fun finish(
-        predicate: FaceCastingPredicate,
+        predicate: ShadowPredicate,
         level: Level,
         out: Consumer<LightFace>
     )
@@ -34,7 +34,7 @@ interface ShadowMesher {
             state: BlockState,
             level: Level,
             pos: BlockPos,
-            predicate: FaceCastingPredicate,
+            predicate: ShadowPredicate,
             out: Consumer<BakedQuad>
         ) {
             val model = Minecraft.getInstance().blockRenderer.getBlockModel(state)
@@ -60,7 +60,7 @@ interface ShadowMesher {
             state: BlockState,
             level: Level,
             pos: BlockPos,
-            predicate: FaceCastingPredicate,
+            predicate: ShadowPredicate,
             out: Consumer<LightFace>
         ) {
             val offset = state.getOffset(level, pos)

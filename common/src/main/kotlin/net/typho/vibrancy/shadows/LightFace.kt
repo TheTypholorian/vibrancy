@@ -3,7 +3,7 @@ package net.typho.vibrancy.shadows
 import com.mojang.blaze3d.vertex.VertexConsumer
 import net.minecraft.client.renderer.block.model.BakedQuad
 import net.minecraft.core.BlockPos
-import net.typho.vibrancy.block.TextureCoordinates
+import net.typho.vibrancy.util.TextureCoordinates
 import org.joml.Vector2f
 import org.joml.Vector3f
 

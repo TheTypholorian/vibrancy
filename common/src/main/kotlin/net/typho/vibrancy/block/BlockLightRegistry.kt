@@ -31,13 +31,13 @@ object BlockLightRegistry {
     )
 
     @JvmField
-    val infos = HashMap<Block, BlockLightInfo>()
+    val blockMap = HashMap<Block, BlockLightInfo>()
 
     @JvmStatic
-    fun get(block: Block): BlockLightInfo? = infos[block]
+    fun get(block: Block): BlockLightInfo? = blockMap[block]
 
     @JvmStatic
-    fun has(block: Block): Boolean = infos.containsKey(block)
+    fun has(block: Block): Boolean = blockMap.containsKey(block)
 
     @JvmStatic
     fun infoCodec(stateDefinition: StateDefinition<*, *>): MapCodec<BlockLightInfo> {

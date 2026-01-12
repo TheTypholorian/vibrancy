@@ -1,4 +1,4 @@
-package net.typho.vibrancy.block
+package net.typho.vibrancy.util
 
 import com.mojang.datafixers.util.Either
 import com.mojang.serialization.Codec

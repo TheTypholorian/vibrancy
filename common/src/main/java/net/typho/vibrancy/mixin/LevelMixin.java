@@ -27,13 +27,14 @@ public class LevelMixin {
             at = @At("TAIL")
     )
     private void onBlockStateChange(BlockPos pos, BlockState oldBlock, BlockState newBlock, CallbackInfo ci) {
+        // TODO abstractify
         if (Vibrancy.config.blockLights.enabled) {
             BlockLightInfo info = BlockLightRegistry.get(newBlock.getBlock());
 
             if (info != null) {
                 info.addBlockLight(Vibrancy.LIGHT_MANAGER, newBlock, pos);
             } else {
-                BlockLight<?> light = Vibrancy.LIGHT_MANAGER.getBlockLights().remove(pos);
+                BlockLight<?> light = Vibrancy.LIGHT_MANAGER.blockLights.remove(pos);
 
                 if (light != null) {
                     light.close();
@@ -41,6 +42,6 @@ public class LevelMixin {
             }
         }
 
-        Vibrancy.LIGHT_MANAGER.getDirtyBlocks().add(new GlobalPos(dimension, pos));
+        Vibrancy.LIGHT_MANAGER.dirtyBlocks.add(new GlobalPos(dimension, pos));
     }
 }

@@ -15,7 +15,7 @@ open class BasicShadowMesher : ShadowMesher {
         level: Level,
         pos: BlockPos,
         random: RandomSource,
-        predicate: FaceCastingPredicate
+        predicate: ShadowPredicate
     ) {
         if (predicate.isInRange(pos)) {
             ShadowMesher.collectLightFaces(state, level, pos, predicate, shadows::add)
@@ -23,7 +23,7 @@ open class BasicShadowMesher : ShadowMesher {
     }
 
     override fun finish(
-        predicate: FaceCastingPredicate,
+        predicate: ShadowPredicate,
         level: Level,
         out: Consumer<LightFace>
     ) {

@@ -1,4 +1,4 @@
-package net.typho.vibrancy.block
+package net.typho.vibrancy.util
 
 import net.minecraft.client.renderer.texture.TextureAtlasSprite
 import org.joml.Vector2f

@@ -58,6 +58,6 @@ class VibrancyConfig : Config(
     }
 
     override fun onUpdateClient() {
-        Vibrancy.reloadShadows()
+        Vibrancy.LIGHT_MANAGER.rebuildAllShadows()
     }
 }

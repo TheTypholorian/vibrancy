@@ -5,8 +5,8 @@ import net.minecraft.client.gui.screens.ReceivingLevelScreen;
 import net.minecraft.client.main.GameConfig;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.server.packs.resources.ReloadableResourceManager;
+import net.typho.vibrancy.Vibrancy;
 import net.typho.vibrancy.block.BlockLightInfoLoader;
-import net.typho.vibrancy.old.BlockLight;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -37,8 +37,7 @@ public class MinecraftMixin {
             at = @At("TAIL")
     )
     private void setLevel(ClientLevel level, ReceivingLevelScreen.Reason reason, CallbackInfo ci) {
-        BlockLight.LIGHTS.values().forEach(BlockLight::free);
-        BlockLight.LIGHTS.clear();
+        Vibrancy.LIGHT_MANAGER.clear();
 
         BlockLightInfoLoader.INSTANCE.reload(resourceManager);
     }

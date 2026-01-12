@@ -6,13 +6,12 @@ import me.fzzyhmstrs.fzzy_config.api.ConfigApi
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.RenderType
-import net.minecraft.core.Direction
 import net.minecraft.resources.ResourceLocation
 import net.typho.big_shot_lib.api.ITexture
 import net.typho.big_shot_lib.api.impl.NeoFramebuffer
 import net.typho.big_shot_lib.gl.resource.TextureFormat
 import net.typho.big_shot_lib.spirv.ShaderMixinCallback
-import net.typho.vibrancy.old.BlockLight
+import net.typho.vibrancy.block.BlockLightRegistry
 import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.lwjgl.opengl.GL11.*
@@ -53,6 +52,7 @@ object Vibrancy {
     @JvmStatic
     fun init() {
         ShaderMixinCallback.register(VibrancyDynamicBuffers)
+        BlockLightRegistry.init()
     }
 
     @JvmStatic
@@ -82,23 +82,10 @@ object Vibrancy {
     }
 
     @JvmStatic
-    fun pointsToward(face: Direction, offset: Vector3f): Boolean {
-        val normal = face.normal
-        return Vector3f(normal.x.toFloat(), normal.y.toFloat(), normal.z.toFloat()).dot(offset) > 0
-    }
-
-    @JvmStatic
     fun addDebugInfo(out: Consumer<String>) {
         out.accept(ChatFormatting.UNDERLINE.toString() + "Vibrancy")
 
         LIGHT_MANAGER.getDebugOutput(out)
-    }
-
-    @JvmStatic
-    fun reloadShadows() {
-        for (light in BlockLight.LIGHTS.values) {
-            light.shadowsDirty = true
-        }
     }
 
     @JvmStatic

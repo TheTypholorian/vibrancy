@@ -1,18 +1,14 @@
 package net.typho.vibrancy.block
 
-import net.minecraft.core.BlockPos
 import net.minecraft.world.phys.AABB
-import org.joml.Vector3f
+import net.typho.vibrancy.LightManager
+import net.typho.vibrancy.point.PointLight
 import org.lwjgl.system.NativeResource
 
-interface BlockLight<I : BlockLightInfo> : NativeResource {
-    fun getBlockPos(): BlockPos
+interface BlockLight<I : BlockLightInfo> : NativeResource, PointLight {
+    fun getBoundingBox(): AABB
 
-    fun getAbsolutePos(): Vector3f
-
-    fun getCullingBox(): AABB
-
-    fun getShadowBox(): AABB
+    fun rebuildShadows(manager: LightManager)
 
     fun getType(): BlockLightType<I, *>
 

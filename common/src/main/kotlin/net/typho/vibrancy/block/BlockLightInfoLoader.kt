@@ -23,7 +23,7 @@ object BlockLightInfoLoader : SynchronousReloadListener {
 
     @JvmStatic
     fun load(block: Block, key: ResourceLocation?, json: JsonElement) {
-        BlockLightRegistry.infos.put(
+        BlockLightRegistry.blockMap.put(
             block,
             BlockLightRegistry.infoCodec(block.stateDefinition)
                 .codec()
@@ -36,7 +36,7 @@ object BlockLightInfoLoader : SynchronousReloadListener {
     }
 
     override fun reload(manager: ResourceManager) {
-        BlockLightRegistry.infos.clear()
+        BlockLightRegistry.blockMap.clear()
 
         for (entry in singleIdConverter.listMatchingResources(manager)) {
             entry.value.openAsReader().use { jsonReader ->
@@ -64,6 +64,6 @@ object BlockLightInfoLoader : SynchronousReloadListener {
             }
         }
 
-        Vibrancy.LOGGER.info("Loaded ${BlockLightRegistry.infos.size} block lights")
+        Vibrancy.LOGGER.info("Loaded ${BlockLightRegistry.blockMap.size} block lights")
     }
 }

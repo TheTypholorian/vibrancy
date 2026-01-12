@@ -22,6 +22,10 @@ import net.typho.vibrancy.block.BlockLightRegistry.has
 import net.typho.vibrancy.block.BlockLightType
 import net.typho.vibrancy.block.RenderingBlockLight
 import net.typho.vibrancy.mixin.LevelRendererAccessor
+import net.typho.vibrancy.point.PointLight
+import net.typho.vibrancy.shadows.BasicShadowMesher
+import net.typho.vibrancy.shadows.ShadowGreedyMesher
+import net.typho.vibrancy.shadows.ShadowMesher
 import org.joml.Matrix4f
 import java.util.*
 import java.util.function.Consumer
@@ -31,21 +35,41 @@ open class LightManager {
         const val SHADOW_STENCIL_MASK: Int = 0b1
     }
 
+    @JvmField
     protected var lightsRendered: Int = 0
+    @JvmField
     protected var lightsRaytraced: Int = 0
+    @JvmField
     protected var viewMatrix: Matrix4f? = null
+    @JvmField
     val dirtyBlocks = LinkedList<GlobalPos>()
+    @JvmField
     val blockLights = HashMap<BlockPos, BlockLight<*>>()
 
     fun tickDelta(whilePaused: Boolean = true): Float = Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(whilePaused)
 
     fun getLevel(): ClientLevel = Minecraft.getInstance().level!!
 
+    fun clear() {
+        blockLights.values.forEach { light -> light.free() }
+        blockLights.clear()
+    }
+
     fun getCamera(): Camera = Minecraft.getInstance().gameRenderer.mainCamera
 
     fun getViewMatrix() = Matrix4f(viewMatrix)
 
     fun getCullingFrustum(): Frustum = (Minecraft.getInstance().levelRenderer as LevelRendererAccessor).cullingFrustum
+
+    fun createShadowMesher(light: PointLight): ShadowMesher {
+        return if (Vibrancy.config.forNerds.useGreedyMeshing) ShadowGreedyMesher(light.getShadowBox()) else BasicShadowMesher()
+    }
+
+    fun rebuildAllShadows() {
+        for (light in blockLights.values) {
+            light.rebuildShadows(this)
+        }
+    }
 
     fun clearChunk(chunk: LevelChunk) {
         blockLights.entries.removeIf { entry ->
@@ -162,7 +186,7 @@ open class LightManager {
     }
 
     fun inFrustum(light: BlockLight<*>): Boolean {
-        return !Vibrancy.config.forNerds.useFrustumCulling || getCullingFrustum().isVisible(light.getCullingBox())
+        return !Vibrancy.config.forNerds.useFrustumCulling || getCullingFrustum().isVisible(light.getBoundingBox())
     }
 
     protected fun cullDistanceBlocksSquared(): Int {
@@ -176,15 +200,15 @@ open class LightManager {
     }
 
     fun getSortingOrder(light: BlockLight<*>): Double {
-        return light.getBlockPos().distSqr(getCamera().blockPosition)
+        return light.getBlockPos()?.distSqr(getCamera().blockPosition) ?: 0.0
     }
 
     fun inRenderDistance(light: BlockLight<*>): Boolean {
-        return light.getBlockPos().distSqr(getCamera().blockPosition) < cullDistanceBlocksSquared() && inFrustum(light)
+        return (light.getBlockPos()?.distSqr(getCamera().blockPosition) ?: 0.0) < cullDistanceBlocksSquared() && inFrustum(light)
     }
 
     fun inRaytraceDistance(light: BlockLight<*>): Boolean {
-        return light.getBlockPos().distSqr(getCamera().blockPosition) < raytraceDistanceBlocksSquared()
+        return (light.getBlockPos()?.distSqr(getCamera().blockPosition) ?: 0.0) < raytraceDistanceBlocksSquared()
     }
 
     fun shouldRender(light: BlockLight<*>): Boolean {

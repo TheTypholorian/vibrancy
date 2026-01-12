@@ -1,5 +1,6 @@
 package net.typho.vibrancy.block.impl
 
+import com.mojang.blaze3d.vertex.VertexBuffer
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
@@ -14,7 +15,7 @@ import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyDynamicBuffers
 import net.typho.vibrancy.block.BlockLightType
 import net.typho.vibrancy.block.RenderingBlockLight
-import net.typho.vibrancy.block.StateFunction
+import net.typho.vibrancy.util.StateFunction
 import org.joml.Matrix4f
 import org.lwjgl.opengl.GL11.GL_STENCIL_BUFFER_BIT
 import org.lwjgl.opengl.GL11.glClear
@@ -65,7 +66,11 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight> {
             lights.stream()
                 .sorted(Comparator.comparingDouble { manager.getSortingOrder(it.light) })
                 .forEachOrdered { light ->
-                    // TODO upload box and shadows here
+                    if (light.light.shadowsDirty) {
+                        light.light.rebuildShadows(manager)
+                    }
+
+                    light.light.shadows.checkIfFinished()
 
                     glClear(GL_STENCIL_BUFFER_BIT)
 
@@ -90,12 +95,12 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight> {
                         IntAction.REPLACE,
                     ))
 
-                    // TODO render shadows here
+                    light.light.shadows.render(shadowShader)
 
                     val boxShader = NeoShader.get(Vibrancy.id("point_box"))!!
 
                     boxShader.bind(stack)
-                    boxShader.setCommonUniforms(modelViewMat = Matrix4f(manager.viewMatrix!!))
+                    boxShader.setCommonUniforms(modelViewMat = manager.getViewMatrix())
 
                     boxShader.getUniform("IProjMat")?.set(Matrix4f(Vibrancy.iProjMat))
                     boxShader.getUniform("IModelMat")?.set(Matrix4f(Vibrancy.iModelMat))
@@ -114,7 +119,9 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight> {
                         IntAction.KEEP,
                     ))
 
-                    // TODO render box here
+                    light.light.box.bind()
+                    light.light.box.draw()
+                    VertexBuffer.unbind()
                 }
         }
     }

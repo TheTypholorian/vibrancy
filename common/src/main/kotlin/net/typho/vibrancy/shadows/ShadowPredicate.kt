@@ -5,8 +5,8 @@ import net.minecraft.core.Direction
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 
-interface FaceCastingPredicate {
-    fun shouldCast(
+interface ShadowPredicate {
+    fun shouldCastBlock(
         state: BlockState,
         level: Level,
         pos: BlockPos
