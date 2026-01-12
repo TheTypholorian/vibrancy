@@ -10,7 +10,7 @@ import net.minecraft.core.Direction
 import net.minecraft.util.RandomSource
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
-import net.typho.vibrancy.light.TextureCoordinates
+import net.typho.vibrancy.block.TextureCoordinates
 import net.typho.vibrancy.shadows.LightFace.Companion.toLightFace
 import net.typho.vibrancy.shadows.ShadowMesher.Companion.createFace
 import java.util.*

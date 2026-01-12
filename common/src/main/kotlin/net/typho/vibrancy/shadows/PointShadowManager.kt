@@ -9,9 +9,9 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.typho.big_shot_lib.api.IShader
 import net.typho.big_shot_lib.gl.GlStack
+import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
-import net.typho.vibrancy.light.LightManager
-import net.typho.vibrancy.light.PointLight
+import net.typho.vibrancy.old.PointLight
 import net.typho.vibrancy.util.expand
 import java.util.*
 import java.util.concurrent.CompletableFuture

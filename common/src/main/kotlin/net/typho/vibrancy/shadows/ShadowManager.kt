@@ -18,10 +18,10 @@ import net.minecraft.world.level.block.RenderShape
 import net.minecraft.world.level.block.state.BlockState
 import net.typho.big_shot_lib.api.IShader
 import net.typho.big_shot_lib.gl.GlStack
+import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
-import net.typho.vibrancy.light.Light
-import net.typho.vibrancy.light.LightManager
-import net.typho.vibrancy.light.TextureCoordinates
+import net.typho.vibrancy.block.TextureCoordinates
+import net.typho.vibrancy.old.Light
 import net.typho.vibrancy.shadows.LightFace.Companion.toLightFace
 import org.lwjgl.system.NativeResource
 import java.util.*

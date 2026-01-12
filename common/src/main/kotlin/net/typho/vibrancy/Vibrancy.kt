@@ -8,17 +8,11 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.core.Direction
 import net.minecraft.resources.ResourceLocation
-import net.typho.big_shot_lib.BigShotLib
 import net.typho.big_shot_lib.api.ITexture
 import net.typho.big_shot_lib.api.impl.NeoFramebuffer
-import net.typho.big_shot_lib.api.impl.NeoShader
-import net.typho.big_shot_lib.gl.GlStack
-import net.typho.big_shot_lib.gl.resource.GlResourceType
 import net.typho.big_shot_lib.gl.resource.TextureFormat
-import net.typho.big_shot_lib.gl.state.*
 import net.typho.big_shot_lib.spirv.ShaderMixinCallback
-import net.typho.vibrancy.light.BlockLight
-import net.typho.vibrancy.light.LightManager
+import net.typho.vibrancy.old.BlockLight
 import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.lwjgl.opengl.GL11.*
@@ -56,75 +50,27 @@ object Vibrancy {
     @JvmField
     val config = ConfigApi.registerAndLoadConfig(::VibrancyConfig)
 
+    @JvmStatic
     fun init() {
         ShaderMixinCallback.register(VibrancyDynamicBuffers)
     }
 
+    @JvmStatic
     fun render() {
-        LIGHT_MANAGER.viewMatrix = Matrix4f(LIGHT_MANAGER.getViewMatrix())
-        LIGHT_MANAGER.lightsRendered = 0
-        LIGHT_MANAGER.lightsRaytraced = 0
+        OUTPUT_FBO.bind()
 
-        GlStack().use { stack ->
-            OUTPUT_FBO.bind(stack)
+        GlStateManager._clearColor(0f, 0f, 0f, 0f)
+        GlStateManager._clear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT or GL_STENCIL_BUFFER_BIT, false)
 
-            GlStateManager._clearColor(0f, 0f, 0f, 0f)
-            GlStateManager._clear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT or GL_STENCIL_BUFFER_BIT, false)
+        LIGHT_MANAGER.render()
 
-            stack.set(ColorMask(true, true, true, true))
-            stack.set(DepthMask, false)
-            stack.disable(GlCapability.DEPTH_TEST)
-            stack.enable(GlCapability.STENCIL_TEST)
-            stack.enable(GlCapability.CULL_FACE)
-            stack.set(CullFace.FRONT)
-            stack.enable(GlCapability.BLEND)
-            stack.set(
-                BlendFunction(
-                    BlendFactor.ONE,
-                    BlendFactor.ONE
-                )
-            )
-            stack.set(BlendEquation.ADD)
-            stack.set(StencilMask, LightManager.SHADOW_MASK)
-            stack.set(StencilFunc(
-                ComparisonMode.NOTEQUAL,
-                LightManager.SHADOW_MASK,
-                LightManager.SHADOW_MASK
-            ))
-
-            BlockLight.LIGHTS.values.stream()
-                .sorted(Comparator.comparingDouble {
-                    it.getPosition().distanceSquared(LIGHT_MANAGER.getCamera().position.toVector3f()).toDouble()
-                })
-                .forEachOrdered { light ->
-                    if (LIGHT_MANAGER.shouldRender(light)) {
-                        val raytrace = LIGHT_MANAGER.shouldRaytrace(light)
-                        light.render(LIGHT_MANAGER, raytrace, stack)
-                        LIGHT_MANAGER.postRenderLight(raytrace)
-                    }
-                }
-
-            stack.boundMap[GlResourceType.FRAMEBUFFER]?.unbind()
-
-            stack.disable(GlCapability.CULL_FACE)
-            stack.disable(GlCapability.BLEND)
-            val shader = NeoShader.get(id("post"))!!
-            shader.bind(stack)
-            shader.setCommonUniforms()
-            shader.setSampler("DiffuseSampler0", Minecraft.getInstance().mainRenderTarget.colorTextureId)
-            shader.setSampler("VibrancyOutputSampler", OUTPUT_FBO.colorAttachments[0] as ITexture)
-            shader.setSampler("VibrancyNormalSampler", VibrancyDynamicBuffers.normalsTexture!!)
-            shader.setSampler("VibrancyAlbedoSampler", VibrancyDynamicBuffers.albedoTexture!!)
-
-            BigShotLib.SCREEN_VBO.bind()
-            BigShotLib.SCREEN_VBO.draw()
-
-            LIGHT_MANAGER.postRender()
-        }
-
+        OUTPUT_FBO.unbind()
         VertexBuffer.unbind()
+
+        LIGHT_MANAGER.blitOutput(OUTPUT_FBO.colorAttachments[0] as ITexture)
     }
 
+    @JvmStatic
     fun getRenderTypeTexture(renderType: RenderType): ResourceLocation {
         return when (renderType) {
             is RenderType.CompositeRenderType -> {
@@ -135,47 +81,26 @@ object Vibrancy {
         }
     }
 
+    @JvmStatic
     fun pointsToward(face: Direction, offset: Vector3f): Boolean {
         val normal = face.normal
         return Vector3f(normal.x.toFloat(), normal.y.toFloat(), normal.z.toFloat()).dot(offset) > 0
     }
 
+    @JvmStatic
     fun addDebugInfo(out: Consumer<String>) {
-        out.accept("")
         out.accept(ChatFormatting.UNDERLINE.toString() + "Vibrancy")
 
-        out.accept("Block Lights")
-        out.accept("${BlockLight.LIGHTS.size} lights in world")
-        out.accept("${LIGHT_MANAGER.lightsRendered}/${config.blockLights.maxRendered} rendered")
-        out.accept("${LIGHT_MANAGER.lightsRaytraced}/${config.blockLights.maxRaytraced} raytraced")
-
-        val shadows = BlockLight.LIGHTS.values.stream()
-            .filter { LIGHT_MANAGER.inRenderDistance(it) }
-            .mapToInt { it.shadows.numShadows() }
-            .sum()
-        out.accept("$shadows shadows")
-        val tasks = BlockLight.LIGHTS.values.stream()
-            .filter { LIGHT_MANAGER.inRenderDistance(it) }
-            .mapToInt { if (it.shadows.isTaskActive()) 1 else 0 }
-            .sum()
-        out.accept("$tasks async tasks")
-        val entities = BlockLight.LIGHTS.values.stream()
-            .filter { LIGHT_MANAGER.inRenderDistance(it) }
-            .mapToInt { it.shadows.numEntities() }
-            .sum()
-        out.accept("$entities entity shadows")
-        val blockEntities = BlockLight.LIGHTS.values.stream()
-            .filter { LIGHT_MANAGER.inRenderDistance(it) }
-            .mapToInt { it.shadows.numBlockEntities() }
-            .sum()
-        out.accept("$blockEntities block entity shadows")
+        LIGHT_MANAGER.getDebugOutput(out)
     }
 
+    @JvmStatic
     fun reloadShadows() {
         for (light in BlockLight.LIGHTS.values) {
             light.shadowsDirty = true
         }
     }
 
+    @JvmStatic
     fun id(path: String): ResourceLocation = ResourceLocation.fromNamespaceAndPath(MOD_ID, path)
 }

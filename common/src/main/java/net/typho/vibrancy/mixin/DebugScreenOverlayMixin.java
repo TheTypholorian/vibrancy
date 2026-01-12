@@ -21,6 +21,7 @@ public class DebugScreenOverlayMixin {
             )
     )
     private void getSystemInformation(CallbackInfoReturnable<List<String>> cir, @Local List<String> list) {
-        Vibrancy.INSTANCE.addDebugInfo(list::add);
+        list.add("");
+        Vibrancy.addDebugInfo(list::add);
     }
 }

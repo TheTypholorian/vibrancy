@@ -1,0 +1,19 @@
+{
+  "type": "vibrancy:raytraced_point",
+  "color": [ 1, 0.98, 0.89 ],
+  "brightness": 0.75,
+  "radius": 8,
+  "offset": [ 0.5, 0.5, 0.5 ],
+  "enabled": {
+    "default": false,
+    "entries": [
+      {
+        "matches": {
+          "lit": "true",
+          "active": "true"
+        },
+        "value": true
+      }
+    ]
+  }
+}

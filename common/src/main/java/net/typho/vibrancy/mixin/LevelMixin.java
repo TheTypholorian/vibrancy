@@ -6,8 +6,9 @@ import net.minecraft.resources.ResourceKey;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.level.block.state.BlockState;
 import net.typho.vibrancy.Vibrancy;
-import net.typho.vibrancy.light.BlockLight;
-import net.typho.vibrancy.light.BlockLightInfo;
+import net.typho.vibrancy.block.BlockLight;
+import net.typho.vibrancy.block.BlockLightInfo;
+import net.typho.vibrancy.block.BlockLightRegistry;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -27,12 +28,12 @@ public class LevelMixin {
     )
     private void onBlockStateChange(BlockPos pos, BlockState oldBlock, BlockState newBlock, CallbackInfo ci) {
         if (Vibrancy.config.blockLights.enabled) {
-            BlockLightInfo info = BlockLightInfo.get(newBlock.getBlock());
+            BlockLightInfo info = BlockLightRegistry.get(newBlock.getBlock());
 
-            if (info != null && info.enabled.apply(newBlock)) {
-                info.addBlockLight(pos, newBlock);
+            if (info != null) {
+                info.addBlockLight(Vibrancy.LIGHT_MANAGER, newBlock, pos);
             } else {
-                BlockLight light = BlockLight.LIGHTS.remove(pos);
+                BlockLight<?> light = Vibrancy.LIGHT_MANAGER.getBlockLights().remove(pos);
 
                 if (light != null) {
                     light.close();
@@ -40,6 +41,6 @@ public class LevelMixin {
             }
         }
 
-        Vibrancy.LIGHT_MANAGER.dirtyBlocks.add(new GlobalPos(dimension, pos));
+        Vibrancy.LIGHT_MANAGER.getDirtyBlocks().add(new GlobalPos(dimension, pos));
     }
 }

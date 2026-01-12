@@ -8,7 +8,7 @@ import net.minecraft.util.RandomSource
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.Vec3
-import net.typho.vibrancy.light.TextureCoordinates
+import net.typho.vibrancy.block.TextureCoordinates
 import net.typho.vibrancy.shadows.LightFace.Companion.toLightFace
 import org.joml.Vector3f
 import java.util.function.Consumer

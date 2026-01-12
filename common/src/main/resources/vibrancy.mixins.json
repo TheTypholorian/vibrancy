@@ -5,13 +5,8 @@
   "refmap": "${mod_id}.refmap.json",
   "compatibilityLevel": "JAVA_21",
   "mixins": [
-    "ChunkMeshFormatsMixin",
-    "ChunkVertexConsumerMixin",
-    "ChunkVertexEncoderVertexMixin",
-    "DefaultFluidRendererMixin",
     "LevelMixin",
-    "OptionsMixin",
-    "VertexConsumerTrackerMixin"
+    "OptionsMixin"
   ],
   "client": [
     "ClientChunkCacheStorageMixin",

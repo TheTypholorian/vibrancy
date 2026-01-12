@@ -2,7 +2,6 @@
 
 uniform sampler2D DiffuseSampler0;
 uniform sampler2D VibrancyOutputSampler;
-uniform sampler2D VibrancyNormalSampler;
 uniform sampler2D VibrancyAlbedoSampler;
 
 in vec2 uv;
@@ -13,18 +12,7 @@ void main() {
     fragColor = texture(DiffuseSampler0, uv);
 
     vec3 outputColor = texture(VibrancyOutputSampler, uv).rgb;
+    float outputScale = min(1, 1 / max(outputColor.r, max(outputColor.g, outputColor.b)));
 
-    if (outputColor.r > 1) {
-        outputColor /= outputColor.r;
-    }
-
-    if (outputColor.g > 1) {
-        outputColor /= outputColor.g;
-    }
-
-    if (outputColor.b > 1) {
-        outputColor /= outputColor.b;
-    }
-
-    fragColor.rgb += outputColor * texture(VibrancyAlbedoSampler, uv).rgb;
+    fragColor.rgb += outputColor * outputScale * texture(VibrancyAlbedoSampler, uv).rgb;
 }

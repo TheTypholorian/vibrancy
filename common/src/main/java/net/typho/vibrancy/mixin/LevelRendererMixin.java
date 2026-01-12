@@ -26,7 +26,7 @@ public class LevelRendererMixin {
             )
     )
     private void render(DeltaTracker deltaTracker, boolean renderBlockOutline, Camera camera, GameRenderer gameRenderer, LightTexture lightTexture, Matrix4f frustumMatrix, Matrix4f projectionMatrix, CallbackInfo ci) {
-        Vibrancy.INSTANCE.render();
+        Vibrancy.render();
     }
 
     @Inject(

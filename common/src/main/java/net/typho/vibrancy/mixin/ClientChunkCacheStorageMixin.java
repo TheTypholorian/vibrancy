@@ -3,7 +3,7 @@ package net.typho.vibrancy.mixin;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.world.level.chunk.LevelChunk;
-import net.typho.vibrancy.light.BlockLight;
+import net.typho.vibrancy.Vibrancy;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
@@ -23,10 +23,10 @@ public class ClientChunkCacheStorageMixin {
 
         if (newValue == null) {
             if (chunk instanceof LevelChunk levelChunk) {
-                BlockLight.clearChunk(levelChunk);
+                Vibrancy.LIGHT_MANAGER.clearChunk(levelChunk);
             }
         } else if (newValue instanceof LevelChunk levelChunk) {
-            BlockLight.scanChunk(levelChunk);
+            Vibrancy.LIGHT_MANAGER.scanChunk(levelChunk);
         }
 
         return chunk;
@@ -44,9 +44,9 @@ public class ClientChunkCacheStorageMixin {
 
         if (r) {
             if (newValue instanceof LevelChunk levelChunk) {
-                BlockLight.scanChunk(levelChunk);
+                Vibrancy.LIGHT_MANAGER.scanChunk(levelChunk);
             } else if (expectedValue instanceof LevelChunk levelChunk) {
-                BlockLight.clearChunk(levelChunk);
+                Vibrancy.LIGHT_MANAGER.clearChunk(levelChunk);
             }
         }
 
