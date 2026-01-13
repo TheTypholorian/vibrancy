@@ -27,5 +27,10 @@
   "vibrancy.config.forNerds.useGreedyMeshing": "Use Greedy Meshing",
 
   "debug.vibrancy.rebuild_all_shadows": "[F4 + R] Reloaded all shadows",
-  "debug.vibrancy.toggle_entity_shadows": "[F4 + E] Toggled entity shadows"
+  "debug.vibrancy.toggle_entity_shadows": "[F4 + E] Toggled entity shadows",
+
+  "vibrancy.resource_pack.raytraced_lights": "Builtin Vibrancy Raytraced Lights",
+  "vibrancy.resource_pack.raytraced_lights.desc": "Requires relog to update properly",
+  "vibrancy.resource_pack.subtle_lights": "Builtin Vibrancy Subtle Lights",
+  "vibrancy.resource_pack.subtle_lights.desc": "Requires relog to update properly"
 }

@@ -12,6 +12,7 @@ import net.typho.big_shot_lib.api.impl.NeoFramebuffer
 import net.typho.big_shot_lib.gl.resource.TextureFormat
 import net.typho.big_shot_lib.spirv.ShaderMixinManager
 import net.typho.vibrancy.block.BlockLightRegistry
+import net.typho.vibrancy.platform.Services
 import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.lwjgl.opengl.GL11.*
@@ -53,6 +54,8 @@ object Vibrancy {
     fun init() {
         ShaderMixinManager.register(VibrancyDynamicBuffers)
         BlockLightRegistry.init()
+        Services.PLATFORM.registerResourcePack("raytraced_lights")
+        Services.PLATFORM.registerResourcePack("subtle_lights")
     }
 
     @JvmStatic
