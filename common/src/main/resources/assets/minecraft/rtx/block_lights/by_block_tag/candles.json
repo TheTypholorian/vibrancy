@@ -1,37 +1,36 @@
 {
-  "type": "vibrancy:raytraced_point",
+  "type": "vibrancy:subtle",
   "color": [ 1, 1, 0.59 ],
-  "brightness": 0.5,
-  "radius": 16,
-  "offset": {
-    "default": [ 0.5, 0.75, 0.5 ],
+  "brightness": {
+    "default": 0.4,
     "entries": [
       {
         "matches": {
-          "facing": "east"
+          "candles": "4"
         },
-        "value": [ 0.25, 0.75, 0.5 ]
+        "value": 0.4
       },
       {
         "matches": {
-          "facing": "west"
+          "candles": "3"
         },
-        "value": [ 0.75, 0.75, 0.5 ]
+        "value": 0.3
       },
       {
         "matches": {
-          "facing": "south"
+          "candles": "2"
         },
-        "value": [ 0.5, 0.75, 0.25 ]
+        "value": 0.2
       },
       {
         "matches": {
-          "facing": "north"
+          "candles": "1"
         },
-        "value": [ 0.5, 0.75, 0.75 ]
+        "value": 0.1
       }
     ]
   },
+  "offset": [ 0.5, 0.1875, 0.5 ],
   "enabled": {
     "default": true,
     "entries": [

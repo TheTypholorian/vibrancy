@@ -1,0 +1,34 @@
+{
+  "type": "vibrancy:subtle",
+  "color": [ 0.84, 1, 0.84 ],
+  "brightness": {
+    "default": 0.4,
+    "entries": [
+      {
+        "matches": {
+          "pickles": "4"
+        },
+        "value": 0.4
+      },
+      {
+        "matches": {
+          "pickles": "3"
+        },
+        "value": 0.3
+      },
+      {
+        "matches": {
+          "pickles": "2"
+        },
+        "value": 0.2
+      },
+      {
+        "matches": {
+          "pickles": "1"
+        },
+        "value": 0.1
+      }
+    ]
+  },
+  "offset": [ 0.5, 0.1875, 0.5 ]
+}

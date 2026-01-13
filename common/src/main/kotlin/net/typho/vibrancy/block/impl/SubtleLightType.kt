@@ -14,19 +14,22 @@ import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.block.BlockLightType
 import net.typho.vibrancy.block.RenderingBlockLight
 import net.typho.vibrancy.util.StateFunction
-import kotlin.use
+import org.joml.Vector3f
 
 object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight> {
     override fun codec(stateDefinition: StateDefinition<*, *>): MapCodec<SubtleLightInfo> {
         return RecordCodecBuilder.mapCodec {
             it.group(
-                StateFunction.Companion.codec(ExtraCodecs.VECTOR3F, stateDefinition)
+                StateFunction.codec(ExtraCodecs.VECTOR3F, stateDefinition)
                     .fieldOf("color")
                     .forGetter { info -> info.color },
-                StateFunction.Companion.codec(Codec.FLOAT, stateDefinition)
+                StateFunction.codec(Codec.FLOAT, stateDefinition)
                     .fieldOf("brightness")
                     .forGetter { info -> info.brightness },
-                StateFunction.Companion.codec(Codec.BOOL, stateDefinition)
+                StateFunction.codec(ExtraCodecs.VECTOR3F, stateDefinition)
+                    .optionalFieldOf("offset", StateFunction(Vector3f(0.5f)))
+                    .forGetter { info -> info.offset },
+                StateFunction.codec(Codec.BOOL, stateDefinition)
                     .optionalFieldOf("enabled", StateFunction(true))
                     .forGetter { info -> info.enabled }
             ).apply(it, ::SubtleLightInfo)

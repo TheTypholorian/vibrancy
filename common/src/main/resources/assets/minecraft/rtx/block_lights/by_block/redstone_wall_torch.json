@@ -1,45 +1,44 @@
 {
-  "type": "vibrancy:raytraced_point",
-  "color": [ 0.48, 1, 1 ],
-  "brightness": 0.3,
-  "radius": 16,
+  "type": "vibrancy:subtle",
+  "color": [ 1, 0, 0 ],
+  "brightness": 0.2,
   "offset": {
-    "default": [ 0.5, 0.75, 0.5 ],
+    "default": [ 0.5, 0.5625, 0.5 ],
     "entries": [
       {
         "matches": {
           "facing": "east"
         },
-        "value": [ 0.25, 0.75, 0.5 ]
+        "value": [ 0.25, 0.8125, 0.5 ]
       },
       {
         "matches": {
           "facing": "west"
         },
-        "value": [ 0.75, 0.75, 0.5 ]
+        "value": [ 0.75, 0.8125, 0.5 ]
       },
       {
         "matches": {
           "facing": "south"
         },
-        "value": [ 0.5, 0.75, 0.25 ]
+        "value": [ 0.5, 0.8125, 0.25 ]
       },
       {
         "matches": {
           "facing": "north"
         },
-        "value": [ 0.5, 0.75, 0.75 ]
+        "value": [ 0.5, 0.8125, 0.75 ]
       }
     ]
   },
   "enabled": {
-    "default": true,
+    "default": false,
     "entries": [
       {
         "matches": {
-          "lit": "false"
+          "lit": "true"
         },
-        "value": false
+        "value": true
       }
     ]
   }

@@ -23,16 +23,10 @@ object BlockLightInfoLoader : SynchronousReloadListener {
 
     @JvmStatic
     fun load(block: Block, key: ResourceLocation?, json: JsonElement) {
-        BlockLightRegistry.blockMap.put(
-            block,
-            BlockLightRegistry.infoCodec(block.stateDefinition)
-                .codec()
-                .parse(
-                    INSTANCE,
-                    json
-                )
-                .getOrThrow { message -> JsonSyntaxException("Error parsing block light info for $key: $message") }
-        )
+        BlockLightRegistry.blockMap[block] = BlockLightRegistry.infoCodec(block.stateDefinition)
+            .codec()
+            .parse(INSTANCE, json)
+            .getOrThrow { message -> JsonSyntaxException("Error parsing block light info for $key: $message") }
     }
 
     override fun reload(manager: ResourceManager) {

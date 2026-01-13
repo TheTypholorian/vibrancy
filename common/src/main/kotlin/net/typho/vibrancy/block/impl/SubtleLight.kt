@@ -8,6 +8,7 @@ import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
 import net.minecraft.world.level.block.state.StateHolder
 import net.minecraft.world.phys.AABB
+import net.minecraft.world.phys.Vec3
 import net.typho.big_shot_lib.BigShotLib.cube
 import net.typho.big_shot_lib.api.impl.NeoShader
 import net.typho.big_shot_lib.gl.GlStack
@@ -15,7 +16,6 @@ import net.typho.big_shot_lib.gl.state.IntAction
 import net.typho.big_shot_lib.gl.state.StencilOp
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
-import net.typho.vibrancy.VibrancyDynamicBuffers
 import net.typho.vibrancy.block.BlockLight
 import net.typho.vibrancy.block.RenderingBlockLight
 import org.joml.Matrix4f
@@ -23,6 +23,7 @@ import org.joml.Vector3f
 
 class SubtleLight(
     val color: Vector3f,
+    val offset: Vector3f,
     val pos: BlockPos
 ) : BlockLight<SubtleLightInfo> {
     val box by lazy {
@@ -40,11 +41,12 @@ class SubtleLight(
 
     constructor(info: SubtleLightInfo, state: StateHolder<*, *>, pos: BlockPos) : this(
         info.color.apply(state).mul(info.brightness.apply(state), Vector3f()),
+        info.offset.apply(state),
         pos
     )
 
     override fun getBoundingBox(): AABB = AABB.ofSize(
-        pos.center,
+        Vec3(getAbsolutePos()),
         8.0,
         8.0,
         8.0
@@ -67,7 +69,9 @@ class SubtleLight(
 
     override fun getBlockPos() = pos
 
-    override fun getAbsolutePos(): Vector3f = pos.center.toVector3f()
+    override fun getAbsolutePos(): Vector3f {
+        return Vector3f(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat()).add(offset)
+    }
 
     override fun getShadowBox() = null
 
@@ -87,7 +91,6 @@ class SubtleLight(
         boxShader.getUniform("LightRadius")?.set(4f)
         boxShader.getUniform("CameraPos")?.set(Vibrancy.camera)
 
-        boxShader.setSampler("VibrancyNormalSampler", VibrancyDynamicBuffers.normalsTexture!!)
         boxShader.setSampler("DiffuseDepthSampler", Minecraft.getInstance().mainRenderTarget.depthTextureId)
 
         stack.set(

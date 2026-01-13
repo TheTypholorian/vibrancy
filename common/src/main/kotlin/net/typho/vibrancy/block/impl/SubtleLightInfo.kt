@@ -9,6 +9,7 @@ import org.joml.Vector3f
 class SubtleLightInfo(
     val color: StateFunction<Vector3f>,
     val brightness: StateFunction<Float>,
+    val offset: StateFunction<Vector3f>,
     val enabled: StateFunction<Boolean>
 ) : BlockLightInfo {
     override fun createBlockLight(state: StateHolder<*, *>, pos: BlockPos): SubtleLight? {
