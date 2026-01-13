@@ -125,7 +125,7 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
         return null
     }
 
-    override fun mixinSpirV(
+    override fun mixinPostCompile(
         shader: ResourceLocation,
         type: ShaderType,
         format: VertexFormat?,

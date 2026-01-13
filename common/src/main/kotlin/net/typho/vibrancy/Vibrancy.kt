@@ -3,6 +3,7 @@ package net.typho.vibrancy
 import com.mojang.blaze3d.platform.GlStateManager
 import com.mojang.blaze3d.vertex.VertexBuffer
 import me.fzzyhmstrs.fzzy_config.api.ConfigApi
+import me.fzzyhmstrs.fzzy_config.api.RegisterType
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.RenderType
@@ -10,7 +11,7 @@ import net.minecraft.resources.ResourceLocation
 import net.typho.big_shot_lib.api.ITexture
 import net.typho.big_shot_lib.api.impl.NeoFramebuffer
 import net.typho.big_shot_lib.gl.resource.TextureFormat
-import net.typho.big_shot_lib.spirv.ShaderMixinCallback
+import net.typho.big_shot_lib.spirv.ShaderMixinManager
 import net.typho.vibrancy.block.BlockLightRegistry
 import org.joml.Matrix4f
 import org.joml.Vector3f
@@ -47,11 +48,11 @@ object Vibrancy {
     @JvmField
     var camera = Vector3f()
     @JvmField
-    val config = ConfigApi.registerAndLoadConfig(::VibrancyConfig)
+    val config = ConfigApi.registerAndLoadConfig(::VibrancyConfig, RegisterType.CLIENT)
 
     @JvmStatic
     fun init() {
-        ShaderMixinCallback.register(VibrancyDynamicBuffers)
+        ShaderMixinManager.register(VibrancyDynamicBuffers)
         BlockLightRegistry.init()
     }
 
