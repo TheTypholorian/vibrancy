@@ -59,6 +59,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight> {
             )
 
             lights.stream()
+                .filter { light -> light.render }
                 .sorted(Comparator.comparingDouble { manager.getSortingOrder(it.light) })
                 .forEachOrdered { light -> light.light.render(manager, light, stack) }
         }

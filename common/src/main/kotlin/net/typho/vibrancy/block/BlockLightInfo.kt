@@ -8,6 +8,7 @@ interface BlockLightInfo {
     fun type(): BlockLightType<*, *>
 
     fun createBlockLight(
+        manager: LightManager,
         state: StateHolder<*, *>,
         pos: BlockPos
     ): BlockLight<*>?
@@ -18,9 +19,10 @@ interface BlockLightInfo {
         pos: BlockPos
     ): Boolean {
         val new = manager.blockLights.compute(pos) { pos1, old ->
-            old?.free()
-            createBlockLight(state, pos)
+            old?.free(manager)
+            createBlockLight(manager, state, pos1)
         }
+
         return new != null
     }
 }

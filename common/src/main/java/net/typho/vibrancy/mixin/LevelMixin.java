@@ -37,7 +37,7 @@ public class LevelMixin {
                 BlockLight<?> light = Vibrancy.LIGHT_MANAGER.blockLights.remove(pos);
 
                 if (light != null) {
-                    light.close();
+                    light.free(Vibrancy.LIGHT_MANAGER);
                 }
             }
         }

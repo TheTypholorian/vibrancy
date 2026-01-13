@@ -54,7 +54,7 @@ open class LightManager {
     fun getLevel(): ClientLevel = Minecraft.getInstance().level!!
 
     fun clear() {
-        blockLights.values.forEach { light -> light.free() }
+        blockLights.values.forEach { light -> light.free(this) }
         blockLights.clear()
     }
 
@@ -81,7 +81,7 @@ open class LightManager {
             val removed = ChunkPos(entry.key) == chunk.pos
 
             if (removed) {
-                entry.value.free()
+                entry.value.free(this)
             }
 
             removed
@@ -137,17 +137,20 @@ open class LightManager {
         blockLights.values.stream()
             .sorted(Comparator.comparingDouble { light -> getSortingOrder(light) })
             .forEachOrdered { light ->
-                if (shouldRender(light)) {
+                val render = light.shouldRender(this) && shouldRender(light)
+                var raytrace = false
+
+                if (render) {
                     lightsRendered++
 
-                    val raytrace = light.shouldRaytrace() && shouldRaytrace(light)
+                    raytrace = light.shouldRaytrace(this) && shouldRaytrace(light)
 
                     if (raytrace) {
                         lightsRaytraced++
                     }
-
-                    byType.computeIfAbsent(light.getType()) { HashSet() }.add(RenderingBlockLight(raytrace, light))
                 }
+
+                byType.computeIfAbsent(light.getType()) { HashSet() }.add(RenderingBlockLight(render, raytrace, light))
             }
 
         for (entry in byType) {

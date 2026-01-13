@@ -94,13 +94,15 @@ class RayPointLight(
 
     override fun getType() = RayPointLightType
 
-    override fun shouldRaytrace() = true
+    override fun shouldRender(manager: LightManager): Boolean = true
+
+    override fun shouldRaytrace(manager: LightManager) = true
 
     override fun numShadows(): Int = shadows.size
 
     override fun numAsyncTasksActive(): Int = if (shadows.isTaskActive()) 1 else 0
 
-    override fun free() {
+    override fun free(manager: LightManager) {
         shadows.free()
         box.close()
     }
