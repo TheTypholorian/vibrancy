@@ -36,7 +36,7 @@ class EntityShadowCollector {
             if (light is EntityShadowCastingLight) {
                 light.getEntityShadowBox()?.let { box ->
                     entities.addAll(level.getEntities(null, box) { e ->
-                        Minecraft.getInstance().entityRenderDispatcher.shouldRender(
+                        !e.isInvisible && !e.isSpectator && Minecraft.getInstance().entityRenderDispatcher.shouldRender(
                             e,
                             frustum,
                             cameraPos.x,

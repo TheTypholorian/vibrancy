@@ -22,11 +22,11 @@ import net.typho.vibrancy.block.BlockLightRegistry.has
 import net.typho.vibrancy.block.BlockLightType
 import net.typho.vibrancy.block.RenderingBlockLight
 import net.typho.vibrancy.mixin.LevelRendererAccessor
-import net.typho.vibrancy.point.PointLight
 import net.typho.vibrancy.shadows.BasicShadowMesher
 import net.typho.vibrancy.shadows.ShadowGreedyMesher
 import net.typho.vibrancy.shadows.ShadowMesher
 import net.typho.vibrancy.shadows.entity.EntityShadowCollector
+import net.typho.vibrancy.util.PointLight
 import org.joml.Matrix4f
 import java.util.*
 import java.util.function.Consumer

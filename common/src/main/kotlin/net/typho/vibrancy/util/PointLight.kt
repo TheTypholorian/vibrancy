@@ -1,4 +1,4 @@
-package net.typho.vibrancy.point
+package net.typho.vibrancy.util
 
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos

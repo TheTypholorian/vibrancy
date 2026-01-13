@@ -72,7 +72,7 @@ object Vibrancy {
 
     @JvmStatic
     fun addDebugInfo(out: Consumer<String>) {
-        out.accept(ChatFormatting.UNDERLINE.toString() + "Vibrancy")
+        out.accept(ChatFormatting.UNDERLINE.toString() + MOD_NAME)
 
         LIGHT_MANAGER.getDebugOutput(out)
     }

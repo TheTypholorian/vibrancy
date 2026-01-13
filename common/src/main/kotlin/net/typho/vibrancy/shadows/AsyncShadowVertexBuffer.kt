@@ -5,7 +5,7 @@ import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.util.RandomSource
 import net.typho.vibrancy.LightManager
-import net.typho.vibrancy.point.PointLight
+import net.typho.vibrancy.util.PointLight
 import java.util.*
 import java.util.concurrent.CompletableFuture
 

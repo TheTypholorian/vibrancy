@@ -2,7 +2,7 @@ package net.typho.vibrancy.block
 
 import net.minecraft.world.phys.AABB
 import net.typho.vibrancy.LightManager
-import net.typho.vibrancy.point.PointLight
+import net.typho.vibrancy.util.PointLight
 import org.lwjgl.system.NativeResource
 
 interface BlockLight<I : BlockLightInfo> : NativeResource, PointLight {

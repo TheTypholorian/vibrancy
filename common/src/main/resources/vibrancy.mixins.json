@@ -12,6 +12,7 @@
     "ClientChunkCacheStorageMixin",
     "DebugScreenOverlayMixin",
     "GlStateManagerMixin",
+    "KeyboardHandlerMixin",
     "LevelRendererAccessor",
     "LevelRendererMixin",
     "MainTargetMixin",
