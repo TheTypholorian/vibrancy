@@ -6,7 +6,7 @@
 //#include "veil:space_helper"
 //#include "veil:light"
 
-uniform sampler2D AtlasSampler;
+uniform sampler2D Sampler0;
 uniform sampler2D DiffuseDepthSampler;
 
 uniform mat4 IProjMat;
@@ -31,7 +31,7 @@ void main() {
 
     // max((Pos.w - 16) / 128, 1e-3)
 
-    if (sampleTriangle(AtlasSampler, Pos, dir, len, 1e-3, triangle)) {
+    if (sampleTriangle(Sampler0, Pos, dir, len, 1e-3, triangle)) {
         discard;
     }
 }

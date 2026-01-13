@@ -16,13 +16,22 @@ import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import net.typho.big_shot_lib.BigShotLib.cube
 import net.typho.big_shot_lib.api.builtin.BuiltinTextureAtlas
+import net.typho.big_shot_lib.api.impl.NeoShader
+import net.typho.big_shot_lib.gl.GlStack
+import net.typho.big_shot_lib.gl.state.IntAction
+import net.typho.big_shot_lib.gl.state.StencilOp
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
+import net.typho.vibrancy.VibrancyDynamicBuffers
 import net.typho.vibrancy.block.BlockLight
 import net.typho.vibrancy.block.BlockLightRegistry
-import net.typho.vibrancy.shadows.AsyncShadowMeshManager
+import net.typho.vibrancy.block.RenderingBlockLight
+import net.typho.vibrancy.shadows.AsyncShadowVertexBuffer
 import net.typho.vibrancy.shadows.ShadowPredicate
+import org.joml.Matrix4f
 import org.joml.Vector3f
+import org.lwjgl.opengl.GL11.GL_STENCIL_BUFFER_BIT
+import org.lwjgl.opengl.GL11.glClear
 import kotlin.math.ceil
 
 class RayPointLight(
@@ -31,7 +40,7 @@ class RayPointLight(
     val offset: Vector3f,
     val pos: BlockPos
 ) : BlockLight<RayPointLightInfo>, ShadowPredicate {
-    val shadows = AsyncShadowMeshManager(
+    val shadows = AsyncShadowVertexBuffer(
         VertexBuffer.Usage.STATIC,
         BuiltinTextureAtlas(Minecraft.getInstance().modelManager.getAtlas(InventoryMenu.BLOCK_ATLAS))
     )
@@ -129,7 +138,9 @@ class RayPointLight(
             return true
         }
 
-        if (Vec3.atLowerCornerOf(face.normal).toVector3f().dot(this.pos.center.subtract(pos.center).toVector3f()) <= 0) {
+        if (Vec3.atLowerCornerOf(face.normal).toVector3f()
+                .dot(this.pos.center.subtract(pos.center).toVector3f()) <= 0
+        ) {
             return false
         }
 
@@ -140,5 +151,71 @@ class RayPointLight(
 
     override fun isInRange(pos: BlockPos): Boolean {
         return pos.distSqr(this.pos) <= radius * radius
+    }
+
+    fun render(manager: LightManager, rendering: RenderingBlockLight<RayPointLight>, stack: GlStack) {
+        if (shadowsDirty) {
+            rebuildShadows(manager)
+            shadowsDirty = false
+        }
+
+        shadows.checkIfFinished()
+
+        glClear(GL_STENCIL_BUFFER_BIT)
+
+        if (rendering.raytrace) {
+            val shadowShader = NeoShader.get(Vibrancy.id("point_shadow"))!!
+
+            shadowShader.bind(stack)
+            shadowShader.setCommonUniforms(modelViewMat = manager.getViewMatrix())
+
+            shadowShader.getUniform("IProjMat")?.set(Matrix4f(Vibrancy.iProjMat))
+            shadowShader.getUniform("IModelMat")?.set(Matrix4f(Vibrancy.iModelMat))
+
+            shadowShader.getUniform("LightPos")?.set(getAbsolutePos())
+            shadowShader.getUniform("LightColor")?.set(color)
+            shadowShader.getUniform("LightRadius")?.set(radius)
+            shadowShader.getUniform("CameraPos")?.set(Vibrancy.camera)
+
+            shadowShader.setSampler("DiffuseDepthSampler", Minecraft.getInstance().mainRenderTarget.depthTextureId)
+
+            stack.set(
+                StencilOp(
+                    IntAction.KEEP,
+                    IntAction.KEEP,
+                    IntAction.REPLACE,
+                )
+            )
+
+            shadows.render(shadowShader)
+        }
+
+        val boxShader = NeoShader.get(Vibrancy.id("point_box"))!!
+
+        boxShader.bind(stack)
+        boxShader.setCommonUniforms(modelViewMat = manager.getViewMatrix())
+
+        boxShader.getUniform("IProjMat")?.set(Matrix4f(Vibrancy.iProjMat))
+        boxShader.getUniform("IModelMat")?.set(Matrix4f(Vibrancy.iModelMat))
+
+        boxShader.getUniform("LightPos")?.set(getAbsolutePos())
+        boxShader.getUniform("LightColor")?.set(color)
+        boxShader.getUniform("LightRadius")?.set(radius)
+        boxShader.getUniform("CameraPos")?.set(Vibrancy.camera)
+
+        boxShader.setSampler("VibrancyNormalSampler", VibrancyDynamicBuffers.normalsTexture!!)
+        boxShader.setSampler("DiffuseDepthSampler", Minecraft.getInstance().mainRenderTarget.depthTextureId)
+
+        stack.set(
+            StencilOp(
+                IntAction.KEEP,
+                IntAction.KEEP,
+                IntAction.KEEP,
+            )
+        )
+
+        box.bind()
+        box.draw()
+        VertexBuffer.unbind()
     }
 }

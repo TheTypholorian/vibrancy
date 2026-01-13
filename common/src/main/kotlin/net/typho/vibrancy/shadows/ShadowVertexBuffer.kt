@@ -8,7 +8,7 @@ import net.typho.big_shot_lib.api.IShader
 import net.typho.big_shot_lib.api.ITexture
 import org.lwjgl.system.NativeResource
 
-open class ShadowMeshManager(
+open class ShadowVertexBuffer(
     usage: VertexBuffer.Usage,
     @JvmField
     val texture: ITexture

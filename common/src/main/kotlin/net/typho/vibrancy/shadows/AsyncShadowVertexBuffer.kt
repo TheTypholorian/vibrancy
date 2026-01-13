@@ -10,10 +10,10 @@ import net.typho.vibrancy.point.PointLight
 import java.util.*
 import java.util.concurrent.CompletableFuture
 
-open class AsyncShadowMeshManager(
+open class AsyncShadowVertexBuffer(
     usage: VertexBuffer.Usage,
     texture: ITexture
-) : ShadowMeshManager(usage, texture) {
+) : ShadowVertexBuffer(usage, texture) {
     protected var asyncTask: CompletableFuture<List<LightFace>>? = null
 
     fun isTaskActive() = asyncTask?.let { task -> !task.isDone } ?: false
