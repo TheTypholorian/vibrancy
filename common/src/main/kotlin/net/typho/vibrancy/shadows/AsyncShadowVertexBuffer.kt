@@ -38,8 +38,8 @@ open class AsyncShadowVertexBuffer(
             manager,
             mesher,
             light.getBlockPos(),
-            light.getShadowBox(),
-            light.getShadowPredicate()
+            light.getShadowBox()!!,
+            light.getShadowPredicate()!!
         )
     }
 

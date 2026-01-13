@@ -64,8 +64,10 @@ open class LightManager {
 
     fun getCullingFrustum(): Frustum = (Minecraft.getInstance().levelRenderer as LevelRendererAccessor).cullingFrustum
 
-    fun createShadowMesher(light: PointLight): ShadowMesher {
-        return if (Vibrancy.config.forNerds.useGreedyMeshing) ShadowGreedyMesher(light.getShadowBox()) else BasicShadowMesher()
+    fun createShadowMesher(light: PointLight): ShadowMesher? {
+        return light.getShadowBox()?.let { box ->
+            if (Vibrancy.config.forNerds.useGreedyMeshing) ShadowGreedyMesher(box) else BasicShadowMesher()
+        }
     }
 
     fun rebuildAllShadows() {

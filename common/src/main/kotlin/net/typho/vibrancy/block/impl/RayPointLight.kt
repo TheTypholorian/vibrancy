@@ -77,7 +77,7 @@ class RayPointLight(
     }
 
     override fun rebuildShadows(manager: LightManager) {
-        shadows.rebuildAsync(manager, manager.createShadowMesher(this), this)
+        shadows.rebuildAsync(manager, manager.createShadowMesher(this)!!, this)
     }
 
     override fun getShadowBox(): BlockBox {
@@ -102,6 +102,7 @@ class RayPointLight(
 
     override fun free() {
         shadows.free()
+        box.close()
     }
 
     override fun shouldCastBlock(
@@ -142,6 +143,8 @@ class RayPointLight(
     override fun isInRange(pos: BlockPos): Boolean {
         return pos.distSqr(this.pos) <= radius * radius
     }
+
+    override fun getEntityShadowBox(): AABB? = if (Vibrancy.config.blockLights.entityShadows) getBoundingBox() else null
 
     fun render(manager: LightManager, rendering: RenderingBlockLight<RayPointLight>, stack: GlStack) {
         for (pos in manager.dirtyBlocks) {
@@ -217,6 +220,4 @@ class RayPointLight(
         box.draw()
         VertexBuffer.unbind()
     }
-
-    override fun getEntityShadowBox(): AABB? = if (Vibrancy.config.blockLights.entityShadows) getBoundingBox() else null
 }

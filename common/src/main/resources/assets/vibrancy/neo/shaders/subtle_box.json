@@ -1,0 +1,5 @@
+{
+  "vertex": "vibrancy:point_box",
+  "fragment": "vibrancy:subtle_box",
+  "format": "POSITION"
+}

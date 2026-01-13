@@ -28,3 +28,11 @@ vec4 sampleLight(sampler2D normalSampler, vec2 screenSize, vec3 lightPos, vec3 f
         1
     );
 }
+
+vec4 sampleLight(vec2 screenSize, vec3 lightPos, vec3 fragPos, float radius, vec3 lightColor) {
+    return vec4(
+        attenuateNoCusp(distance(lightPos, fragPos), radius) *
+        lightColor,
+        1
+    );
+}

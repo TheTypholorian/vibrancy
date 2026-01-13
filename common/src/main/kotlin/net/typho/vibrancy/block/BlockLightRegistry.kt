@@ -10,6 +10,8 @@ import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.StateDefinition
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.block.impl.RayPointLightType
+import net.typho.vibrancy.block.impl.SubtleLight
+import net.typho.vibrancy.block.impl.SubtleLightType
 
 object BlockLightRegistry {
     @JvmField
@@ -28,6 +30,12 @@ object BlockLightRegistry {
         types,
         Vibrancy.id("raytraced_point"),
         RayPointLightType
+    )
+    @JvmField
+    val subtle: SubtleLightType = Registry.register(
+        types,
+        Vibrancy.id("subtle"),
+        SubtleLightType
     )
 
     @JvmField
