@@ -109,6 +109,7 @@ processResources {
     var expandProps = [
             'version'                      : version,
             'group'                        : project.group, //Else we target the task's group.
+            'big_shot_version'             : libs.versions.bigShot.get(),
             'minecraft_version'            : libs.versions.minecraft.get(),
             'minecraft_version_range'      : libs.versions.minecraftRange.get(),
             'fabric_version'               : libs.versions.fabricApi.get(),

@@ -31,11 +31,12 @@
     "minecraft": "${minecraft_version}",
     "java": ">=${java_version}",
     "fabric-language-kotlin": ">=${flk_version}",
-    "big_shot_lib": ">=2.0.3",
+    "big_shot_lib": ">=${big_shot_version}",
     "fzzy_config": "*",
     "modmenu": "*"
   },
   "breaks": {
+    "sodium": "*",
     "iris": "*"
   },
   "custom": {
