@@ -26,6 +26,7 @@ import net.typho.vibrancy.point.PointLight
 import net.typho.vibrancy.shadows.BasicShadowMesher
 import net.typho.vibrancy.shadows.ShadowGreedyMesher
 import net.typho.vibrancy.shadows.ShadowMesher
+import net.typho.vibrancy.shadows.entity.EntityShadowCollector
 import org.joml.Matrix4f
 import java.util.*
 import java.util.function.Consumer
@@ -45,8 +46,10 @@ open class LightManager {
     val dirtyBlocks = LinkedList<GlobalPos>()
     @JvmField
     val blockLights = HashMap<BlockPos, BlockLight<*>>()
+    @JvmField
+    val entityShadows = EntityShadowCollector()
 
-    fun tickDelta(whilePaused: Boolean = true): Float = Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(whilePaused)
+    fun getTickDelta(whilePaused: Boolean = true): Float = Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(whilePaused)
 
     fun getLevel(): ClientLevel = Minecraft.getInstance().level!!
 
@@ -125,6 +128,8 @@ open class LightManager {
         lightsRendered = 0
         lightsRaytraced = 0
 
+        entityShadows.collect(this, blockLights.values)
+
         val byType = HashMap<BlockLightType<*, *>, MutableSet<RenderingBlockLight<*>>>()
 
         blockLights.values.stream()
@@ -181,8 +186,8 @@ open class LightManager {
 
         out.accept("${rendered.sumOf { it.numShadows() }} shadows")
         out.accept("${rendered.sumOf { it.numAsyncTasksActive() }} async tasks")
-        out.accept("${rendered.sumOf { it.numEntities() }} entities")
-        out.accept("${rendered.sumOf { it.numBlockEntities() }} block entities")
+        out.accept("${entityShadows.numEntities} entities")
+        out.accept("${entityShadows.numBlockEntities} block entities")
     }
 
     fun inFrustum(light: BlockLight<*>): Boolean {

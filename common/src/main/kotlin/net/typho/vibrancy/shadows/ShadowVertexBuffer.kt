@@ -1,31 +1,23 @@
 package net.typho.vibrancy.shadows
 
-import com.mojang.blaze3d.vertex.DefaultVertexFormat
-import com.mojang.blaze3d.vertex.Tesselator
-import com.mojang.blaze3d.vertex.VertexBuffer
-import com.mojang.blaze3d.vertex.VertexFormat
+import com.mojang.blaze3d.vertex.*
 import net.typho.big_shot_lib.api.IShader
-import net.typho.big_shot_lib.api.ITexture
 import org.lwjgl.system.NativeResource
 
 open class ShadowVertexBuffer(
     usage: VertexBuffer.Usage,
     @JvmField
-    val texture: ITexture
+    val texture: Int
 ) : NativeResource {
     val mesh by lazy { VertexBuffer(usage) }
     @JvmField
-    protected var size = 0
+    var size = 0
 
     override fun free() {
         mesh.close()
     }
 
-    fun getSize() = size
-
     fun upload(shadows: Collection<LightFace>) {
-        size = shadows.size
-
         if (shadows.isNotEmpty()) {
             val builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX)
 
@@ -33,11 +25,23 @@ open class ShadowVertexBuffer(
                 shadow.buildGeometry(builder)
             }
 
-            val built = builder.build()!!
+            upload(builder)
+        } else {
+            size = 0
+        }
+    }
+
+    fun upload(builder: BufferBuilder) {
+        val built = builder.build()
+
+        if (built != null) {
+            size = built.drawState().vertexCount / built.drawState().mode.primitiveLength
 
             mesh.bind()
             mesh.upload(built)
             VertexBuffer.unbind()
+        } else {
+            size = 0
         }
     }
 

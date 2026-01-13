@@ -17,8 +17,4 @@ interface BlockLight<I : BlockLightInfo> : NativeResource, PointLight {
     fun numShadows(): Int
 
     fun numAsyncTasksActive(): Int
-
-    fun numEntities(): Int
-
-    fun numBlockEntities(): Int
 }

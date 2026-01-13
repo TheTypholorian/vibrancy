@@ -6,7 +6,6 @@ import me.fzzyhmstrs.fzzy_config.api.ConfigApi
 import me.fzzyhmstrs.fzzy_config.api.RegisterType
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
-import net.minecraft.client.renderer.RenderType
 import net.minecraft.resources.ResourceLocation
 import net.typho.big_shot_lib.api.ITexture
 import net.typho.big_shot_lib.api.impl.NeoFramebuffer
@@ -69,17 +68,6 @@ object Vibrancy {
         VertexBuffer.unbind()
 
         LIGHT_MANAGER.blitOutput(OUTPUT_FBO.colorAttachments[0] as ITexture)
-    }
-
-    @JvmStatic
-    fun getRenderTypeTexture(renderType: RenderType): ResourceLocation {
-        return when (renderType) {
-            is RenderType.CompositeRenderType -> {
-                renderType.state().textureState.cutoutTexture().orElseThrow()
-            }
-
-            else -> throw UnsupportedOperationException("Unable to get texture for render type ${renderType.javaClass} $renderType")
-        }
     }
 
     @JvmStatic

@@ -15,7 +15,6 @@ import net.minecraft.world.level.block.state.StateHolder
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import net.typho.big_shot_lib.BigShotLib.cube
-import net.typho.big_shot_lib.api.builtin.BuiltinTextureAtlas
 import net.typho.big_shot_lib.api.impl.NeoShader
 import net.typho.big_shot_lib.gl.GlStack
 import net.typho.big_shot_lib.gl.state.IntAction
@@ -28,6 +27,7 @@ import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.block.RenderingBlockLight
 import net.typho.vibrancy.shadows.AsyncShadowVertexBuffer
 import net.typho.vibrancy.shadows.ShadowPredicate
+import net.typho.vibrancy.shadows.entity.EntityShadowCastingLight
 import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.lwjgl.opengl.GL11.GL_STENCIL_BUFFER_BIT
@@ -39,10 +39,10 @@ class RayPointLight(
     val radius: Float,
     val offset: Vector3f,
     val pos: BlockPos
-) : BlockLight<RayPointLightInfo>, ShadowPredicate {
+) : BlockLight<RayPointLightInfo>, EntityShadowCastingLight, ShadowPredicate {
     val shadows = AsyncShadowVertexBuffer(
         VertexBuffer.Usage.STATIC,
-        BuiltinTextureAtlas(Minecraft.getInstance().modelManager.getAtlas(InventoryMenu.BLOCK_ATLAS))
+        Minecraft.getInstance().modelManager.getAtlas(InventoryMenu.BLOCK_ATLAS).id
     )
     val box by lazy {
         val builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX)
@@ -96,19 +96,9 @@ class RayPointLight(
 
     override fun shouldRaytrace() = true
 
-    override fun numShadows(): Int = shadows.getSize()
+    override fun numShadows(): Int = shadows.size
 
     override fun numAsyncTasksActive(): Int = if (shadows.isTaskActive()) 1 else 0
-
-    override fun numEntities(): Int {
-        // TODO
-        return 0
-    }
-
-    override fun numBlockEntities(): Int {
-        // TODO
-        return 0
-    }
 
     override fun free() {
         shadows.free()
@@ -154,6 +144,13 @@ class RayPointLight(
     }
 
     fun render(manager: LightManager, rendering: RenderingBlockLight<RayPointLight>, stack: GlStack) {
+        for (pos in manager.dirtyBlocks) {
+            if (manager.getLevel().dimension() == pos.dimension && getShadowBox().contains(pos.pos)) {
+                shadowsDirty = true
+                break
+            }
+        }
+
         if (shadowsDirty) {
             rebuildShadows(manager)
             shadowsDirty = false
@@ -188,6 +185,8 @@ class RayPointLight(
             )
 
             shadows.render(shadowShader)
+
+            manager.entityShadows.render(shadowShader)
         }
 
         val boxShader = NeoShader.get(Vibrancy.id("point_box"))!!
@@ -218,4 +217,6 @@ class RayPointLight(
         box.draw()
         VertexBuffer.unbind()
     }
+
+    override fun getEntityShadowBox(): AABB? = if (Vibrancy.config.blockLights.entityShadows) getBoundingBox() else null
 }
