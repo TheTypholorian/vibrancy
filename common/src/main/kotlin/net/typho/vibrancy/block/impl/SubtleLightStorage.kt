@@ -29,17 +29,25 @@ class SubtleLightStorage : BlockLightStorage<SubtleLightInfo> {
     @JvmField
     val dirty = HashSet<ChunkPos>()
 
+    fun markDirty(pos: ChunkPos) {
+        dirty.add(pos)
+        dirty.add(ChunkPos(pos.x + 1, pos.z))
+        dirty.add(ChunkPos(pos.x - 1, pos.z))
+        dirty.add(ChunkPos(pos.x, pos.z + 1))
+        dirty.add(ChunkPos(pos.x, pos.z - 1))
+    }
+
     override fun addLight(
         manager: LightManager,
         state: StateHolder<*, *>,
         pos: BlockPos,
         info: SubtleLightInfo
     ) {
-        dirty.add(ChunkPos(pos))
+        markDirty(ChunkPos(pos))
     }
 
     override fun removeLight(manager: LightManager, pos: BlockPos) {
-        dirty.add(ChunkPos(pos))
+        markDirty(ChunkPos(pos))
     }
 
     override fun rebuildShadows(manager: LightManager) {
@@ -49,14 +57,14 @@ class SubtleLightStorage : BlockLightStorage<SubtleLightInfo> {
         manager: LightManager,
         chunk: LevelChunk
     ) {
-        dirty.add(chunk.pos)
+        markDirty(chunk.pos)
     }
 
     override fun deloadChunk(
         manager: LightManager,
         chunk: LevelChunk
     ) {
-        dirty.add(chunk.pos)
+        markDirty(chunk.pos)
     }
 
     override fun clear(manager: LightManager) {

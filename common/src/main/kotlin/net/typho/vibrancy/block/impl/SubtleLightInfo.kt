@@ -1,6 +1,7 @@
 package net.typho.vibrancy.block.impl
 
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
 import net.minecraft.world.level.block.state.StateHolder
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.block.BlockLightInfo
@@ -18,7 +19,13 @@ class SubtleLightInfo(
             return null
         }
 
-        return SubtleLight(this, state, pos)
+        for (direction in Direction.entries) {
+            if (manager.getLevel().getBlockState(pos.relative(direction)).isAir) {
+                return SubtleLight(this, state, pos)
+            }
+        }
+
+        return null
     }
 
     override fun type() = SubtleLightType
