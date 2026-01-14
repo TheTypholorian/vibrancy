@@ -37,9 +37,7 @@ open class LightManager {
     }
 
     @JvmField
-    protected var lightsRendered: Int = 0
-    @JvmField
-    protected var lightsRaytraced: Int = 0
+    protected var renderResult = BlockLightType.RenderResult()
     @JvmField
     protected var viewMatrix: Matrix4f? = null
     @JvmField
@@ -49,7 +47,8 @@ open class LightManager {
     @JvmField
     val entityShadows = EntityShadowCollector()
 
-    fun getTickDelta(whilePaused: Boolean = true): Float = Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(whilePaused)
+    fun getTickDelta(whilePaused: Boolean = true): Float =
+        Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(whilePaused)
 
     fun getLevel(): ClientLevel = Minecraft.getInstance().level!!
 
@@ -84,7 +83,7 @@ open class LightManager {
                 entry.value.free(this)
             }
 
-            removed
+            return@removeIf removed
         }
     }
 
@@ -121,14 +120,12 @@ open class LightManager {
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun <B : BlockLight<*>> render(type: BlockLightType<*, B>, lights: Set<RenderingBlockLight<*>>) {
+    private fun <B : BlockLight<*>> castAndRender(type: BlockLightType<*, B>, lights: Set<RenderingBlockLight<*>>) =
         type.render(this, lights as Set<RenderingBlockLight<B>>)
-    }
 
     fun render(camera: Camera = getCamera()) {
         viewMatrix = BigShotLib.getViewMatrix(camera)
-        lightsRendered = 0
-        lightsRaytraced = 0
+        renderResult = BlockLightType.RenderResult()
 
         entityShadows.collect(this, blockLights.values)
 
@@ -137,24 +134,14 @@ open class LightManager {
         blockLights.values.stream()
             .sorted(Comparator.comparingDouble { light -> getSortingOrder(light) })
             .forEachOrdered { light ->
-                val render = light.shouldRender(this) && shouldRender(light)
-                var raytrace = false
-
-                if (render) {
-                    lightsRendered++
-
-                    raytrace = light.shouldRaytrace(this) && shouldRaytrace(light)
-
-                    if (raytrace) {
-                        lightsRaytraced++
-                    }
-                }
+                val render = light.shouldRender(this) && inRenderDistance(light)
+                val raytrace = light.shouldRaytrace(this) && inRaytraceDistance(light)
 
                 byType.computeIfAbsent(light.getType()) { HashSet() }.add(RenderingBlockLight(render, raytrace, light))
             }
 
         for (entry in byType) {
-            render(entry.key, entry.value)
+            renderResult.add(castAndRender(entry.key, entry.value))
         }
 
         dirtyBlocks.clear()
@@ -182,15 +169,11 @@ open class LightManager {
     fun getDebugOutput(out: Consumer<String>) {
         out.accept("Block Lights")
         out.accept("${blockLights.size} lights in world")
-        out.accept("${lightsRendered}/${Vibrancy.config.blockLights.maxRendered} rendered")
-        out.accept("${lightsRaytraced}/${Vibrancy.config.blockLights.maxRaytraced} raytraced")
+        out.accept("${renderResult.numRendered} rendered")
+        out.accept("${renderResult.numRaytraced} raytraced")
+        out.accept("${renderResult.numShadows} shadows")
+        out.accept("${renderResult.numAsyncTasks} async tasks")
 
-        val rendered = blockLights.values.stream()
-            .filter { inRenderDistance(it) }
-            .toList()
-
-        out.accept("${rendered.sumOf { it.numShadows() }} shadows")
-        out.accept("${rendered.sumOf { it.numAsyncTasksActive() }} async tasks")
         out.accept("${entityShadows.numEntities} entities")
         out.accept("${entityShadows.numBlockEntities} block entities")
     }
@@ -214,18 +197,19 @@ open class LightManager {
     }
 
     fun inRenderDistance(light: BlockLight<*>): Boolean {
-        return (light.getBlockPos()?.distSqr(getCamera().blockPosition) ?: 0.0) < cullDistanceBlocksSquared() && inFrustum(light)
+        return (light.getBlockPos()?.distSqr(getCamera().blockPosition) ?: 0.0) < cullDistanceBlocksSquared()
+                && inFrustum(light)
+    }
+
+    fun inRenderDistance(chunk: ChunkPos): Boolean {
+        return chunk.getMiddleBlockPosition(getCamera().blockPosition.y).distSqr(getCamera().blockPosition) < cullDistanceBlocksSquared()
     }
 
     fun inRaytraceDistance(light: BlockLight<*>): Boolean {
         return (light.getBlockPos()?.distSqr(getCamera().blockPosition) ?: 0.0) < raytraceDistanceBlocksSquared()
     }
 
-    fun shouldRender(light: BlockLight<*>): Boolean {
-        return lightsRendered < Vibrancy.config.blockLights.maxRendered && inRenderDistance(light)
-    }
-
-    fun shouldRaytrace(light: BlockLight<*>): Boolean {
-        return lightsRaytraced < Vibrancy.config.blockLights.maxRaytraced && inRaytraceDistance(light)
+    fun inRaytraceDistance(chunk: ChunkPos): Boolean {
+        return chunk.getMiddleBlockPosition(getCamera().blockPosition.y).distSqr(getCamera().blockPosition) < raytraceDistanceBlocksSquared()
     }
 }

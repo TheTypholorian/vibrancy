@@ -36,7 +36,9 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight> {
         }
     }
 
-    override fun render(manager: LightManager, lights: Set<RenderingBlockLight<RayPointLight>>) {
+    override fun render(manager: LightManager, lights: Set<RenderingBlockLight<RayPointLight>>): BlockLightType.RenderResult {
+        val result = BlockLightType.RenderResult()
+
         GlStack().use { stack ->
             stack.disable(GlCapability.DEPTH_TEST)
             stack.enable(GlCapability.STENCIL_TEST)
@@ -61,7 +63,9 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight> {
             lights.stream()
                 .filter { light -> light.render }
                 .sorted(Comparator.comparingDouble { manager.getSortingOrder(it.light) })
-                .forEachOrdered { light -> light.light.render(manager, light, stack) }
+                .forEachOrdered { light -> result.add(light.light.render(manager, light, stack)) }
         }
+
+        return result
     }
 }

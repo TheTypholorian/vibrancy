@@ -24,7 +24,7 @@ uniform vec2 ScreenSize;
 uniform float LightRadius;
 uniform vec3 CameraPos;
 
-in flat uint id;
+flat in uint id;
 
 out vec4 fragColor;
 

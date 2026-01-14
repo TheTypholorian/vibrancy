@@ -34,10 +34,6 @@ class SubtleLight(
 
     override fun shouldRaytrace(manager: LightManager) = false
 
-    override fun numShadows() = 0
-
-    override fun numAsyncTasksActive() = 0
-
     override fun free(manager: LightManager) {
         SubtleLightType.dirty = true
     }

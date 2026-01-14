@@ -13,6 +13,7 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.block.state.StateDefinition
 import net.minecraft.world.phys.AABB
 import net.typho.big_shot_lib.BigShotLib.cube
+import net.typho.big_shot_lib.api.IShader
 import net.typho.big_shot_lib.api.impl.NeoIndexedBuffer
 import net.typho.big_shot_lib.api.impl.NeoShader
 import net.typho.big_shot_lib.gl.GlStack
@@ -29,6 +30,9 @@ import net.typho.vibrancy.block.RenderingBlockLight
 import net.typho.vibrancy.util.StateFunction
 import org.joml.Matrix4f
 import org.joml.Vector3f
+import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BLOCK
+import org.lwjgl.opengl.GL43.glGetProgramResourceIndex
+import org.lwjgl.opengl.GL43.glShaderStorageBlockBinding
 import org.lwjgl.system.MemoryUtil
 import org.lwjgl.system.NativeResource
 
@@ -57,7 +61,7 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight> {
         }
     }
 
-    override fun render(manager: LightManager, lights: Set<RenderingBlockLight<SubtleLight>>) {
+    override fun render(manager: LightManager, lights: Set<RenderingBlockLight<SubtleLight>>): BlockLightType.RenderResult {
         if (dirty) {
             val map = HashMap<ChunkPos, MutableSet<RenderingBlockLight<SubtleLight>>>()
 
@@ -77,7 +81,7 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight> {
             }
 
             for (entry in map) {
-                val chunk = meshes.computeIfAbsent(entry.key) { Chunk() }
+                val chunk = meshes.computeIfAbsent(entry.key, ::Chunk)
 
                 val builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION)
                 val buffer = MemoryUtil.memAllocFloat(8 * entry.value.size)
@@ -100,6 +104,7 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight> {
                     buffer.put(pos.x).put(pos.y).put(pos.z).put(0f)
                 }
 
+                chunk.size = entry.value.size
                 chunk.box = box
 
                 chunk.vbo.bind()
@@ -107,7 +112,7 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight> {
                 VertexBuffer.unbind()
 
                 chunk.ssbo.bind()
-                chunk.ssbo.upload(MemoryUtil.memByteBuffer(buffer))
+                chunk.ssbo.upload(MemoryUtil.memByteBuffer(buffer.flip()))
                 chunk.ssbo.unbind()
 
                 MemoryUtil.memFree(buffer)
@@ -115,6 +120,8 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight> {
 
             dirty = false
         }
+
+        val result = BlockLightType.RenderResult()
 
         GlStack().use { stack ->
             stack.disable(GlCapability.DEPTH_TEST)
@@ -143,24 +150,32 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight> {
             boxShader.setSampler("DiffuseDepthSampler", Minecraft.getInstance().mainRenderTarget.depthTextureId)
 
             for (entry in meshes) {
-                entry.value.render(manager, stack)
+                result.add(entry.value.render(manager, stack))
             }
 
             VertexBuffer.unbind()
         }
+
+        return result
     }
 
     data class Chunk(
+        val pos: ChunkPos,
         val vbo: VertexBuffer = VertexBuffer(VertexBuffer.Usage.STATIC),
-        val ssbo: NeoIndexedBuffer = NeoIndexedBuffer(null, GlResourceType.UNIFORM_BUFFER, BufferUsage.STATIC_DRAW),
+        val ssbo: NeoIndexedBuffer = NeoIndexedBuffer(null, GlResourceType.SHADER_STORAGE_BUFFER, BufferUsage.STATIC_DRAW),
+        var size: Int = 0,
         var box: AABB? = null
     ) : NativeResource {
-        fun render(manager: LightManager, stack: GlStack) {
-            if (manager.getCullingFrustum().isVisible(box!!)) {
+        fun render(manager: LightManager, stack: GlStack): BlockLightType.RenderResult {
+            if (manager.inRenderDistance(pos)) {
                 ssbo.bindBase(stack, 0)
 
                 vbo.bind()
                 vbo.draw()
+
+                return BlockLightType.RenderResult(numRendered = size)
+            } else {
+                return BlockLightType.RenderResult()
             }
         }
 

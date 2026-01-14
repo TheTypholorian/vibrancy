@@ -15,9 +15,5 @@ interface BlockLight<I : BlockLightInfo> : PointLight {
 
     fun shouldRaytrace(manager: LightManager): Boolean
 
-    fun numShadows(): Int
-
-    fun numAsyncTasksActive(): Int
-
     fun free(manager: LightManager)
 }
