@@ -13,7 +13,7 @@ class SubtleLight(
     val color: Vector3f,
     val offset: Vector3f,
     val pos: BlockPos
-) : BlockLight<SubtleLightInfo> {
+) : BlockLight<SubtleLightInfo, SubtleLight> {
     constructor(info: SubtleLightInfo, state: StateHolder<*, *>, pos: BlockPos) : this(
         info.color.apply(state).mul(info.brightness.apply(state), Vector3f()),
         info.offset.apply(state),
@@ -35,7 +35,6 @@ class SubtleLight(
     override fun shouldRaytrace(manager: LightManager) = false
 
     override fun free(manager: LightManager) {
-        SubtleLightType.dirty = true
     }
 
     override fun getBlockPos() = pos

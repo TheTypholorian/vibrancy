@@ -5,7 +5,7 @@ import net.minecraft.world.level.block.state.StateHolder
 import net.minecraft.world.level.chunk.LevelChunk
 import net.typho.vibrancy.LightManager
 
-interface BlockLightStorage<I : BlockLightInfo> {
+interface BlockLightStorage<I : BlockLightInfo<I, *>> {
     fun addLight(
         manager: LightManager,
         state: StateHolder<*, *>,

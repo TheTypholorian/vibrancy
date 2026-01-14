@@ -12,16 +12,14 @@ class SubtleLightInfo(
     val brightness: StateFunction<Float>,
     val offset: StateFunction<Vector3f>,
     val enabled: StateFunction<Boolean>
-) : BlockLightInfo {
+) : BlockLightInfo<SubtleLightInfo, SubtleLight> {
     override fun createBlockLight(manager: LightManager, state: StateHolder<*, *>, pos: BlockPos): SubtleLight? {
         if (!enabled.apply(state)) {
             return null
         }
 
-        SubtleLightType.dirty = true
-
         return SubtleLight(this, state, pos)
     }
 
-    override fun type() = RayPointLightType
+    override fun type() = SubtleLightType
 }

@@ -5,18 +5,18 @@ import net.minecraft.client.Camera
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.client.renderer.culling.Frustum
+import net.minecraft.core.BlockPos
 import net.minecraft.core.GlobalPos
 import net.minecraft.world.level.ChunkPos
+import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
 import net.typho.big_shot_lib.BigShotLib
 import net.typho.big_shot_lib.api.ITexture
 import net.typho.big_shot_lib.api.impl.NeoShader
 import net.typho.big_shot_lib.gl.GlStack
 import net.typho.big_shot_lib.gl.state.GlCapability
-import net.typho.vibrancy.block.BlockLight
-import net.typho.vibrancy.block.BlockLightStorage
-import net.typho.vibrancy.block.BlockLightType
-import net.typho.vibrancy.block.BlockRenderResult
+import net.typho.vibrancy.block.*
 import net.typho.vibrancy.mixin.LevelRendererAccessor
 import net.typho.vibrancy.shadows.BasicShadowMesher
 import net.typho.vibrancy.shadows.ShadowGreedyMesher
@@ -50,7 +50,6 @@ open class LightManager {
 
     fun clear() {
         blockLights.values.forEach { storage -> storage.clear(this) }
-        blockLights.clear()
     }
 
     fun getCamera(): Camera = Minecraft.getInstance().gameRenderer.mainCamera
@@ -66,16 +65,61 @@ open class LightManager {
     }
 
     fun rebuildAllShadows() {
+        ensureStorageInitialized()
+
         for (light in blockLights.values) {
             light.rebuildShadows(this)
         }
     }
 
+    fun ensureStorageInitialized() {
+        for (type in BlockLightRegistry.types) {
+            blockLights.computeIfAbsent(type) { type -> type.createStorage() }
+        }
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    protected fun <I : BlockLightInfo<I, B>, B : BlockLight<I, B>> addBlockLight(
+        pos: BlockPos,
+        state: BlockState,
+        light: BlockLightInfo<I, B>
+    ) {
+        (blockLights[light.type()] as BlockLightStorage<I>).addLight(this, state, pos, light as I)
+    }
+
+    fun blockChanged(
+        level: Level,
+        pos: BlockPos,
+        old: BlockState,
+        new: BlockState
+    ) {
+        if (Vibrancy.config.blockLights.enabled) {
+            ensureStorageInitialized()
+
+            val oldLight = BlockLightRegistry.get(old.block)
+            val newLight = BlockLightRegistry.get(new.block)
+
+            if (oldLight != null) {
+                blockLights[oldLight.type()]!!.removeLight(this, pos)
+            }
+
+            if (newLight != null) {
+                addBlockLight(pos, new, newLight)
+            }
+        }
+
+        dirtyBlocks.add(GlobalPos(level.dimension(), pos))
+    }
+
     fun loadChunk(chunk: LevelChunk) {
+        ensureStorageInitialized()
+
         blockLights.values.forEach { storage -> storage.loadChunk(this, chunk) }
     }
 
     fun deloadChunk(chunk: LevelChunk) {
+        ensureStorageInitialized()
+
         blockLights.values.forEach { storage -> storage.deloadChunk(this, chunk) }
     }
 
@@ -129,7 +173,7 @@ open class LightManager {
         out.accept("${entityShadows.numBlockEntities} block entities")
     }
 
-    fun inFrustum(light: BlockLight<*>): Boolean {
+    fun inFrustum(light: BlockLight<*, *>): Boolean {
         return !Vibrancy.config.forNerds.useFrustumCulling || getCullingFrustum().isVisible(light.getBoundingBox())
     }
 
@@ -143,7 +187,11 @@ open class LightManager {
         return chunks * chunks * 16 * 16
     }
 
-    fun inRenderDistance(light: BlockLight<*>): Boolean {
+    fun getSortingOrder(light: BlockLight<*, *>): Double {
+        return light.getBlockPos()?.distSqr(getCamera().blockPosition) ?: 0.0
+    }
+
+    fun inRenderDistance(light: BlockLight<*, *>): Boolean {
         return (light.getBlockPos()?.distSqr(getCamera().blockPosition) ?: 0.0) < cullDistanceBlocksSquared()
                 && inFrustum(light)
     }
@@ -152,7 +200,7 @@ open class LightManager {
         return chunk.getMiddleBlockPosition(getCamera().blockPosition.y).distSqr(getCamera().blockPosition) < cullDistanceBlocksSquared()
     }
 
-    fun inRaytraceDistance(light: BlockLight<*>): Boolean {
+    fun inRaytraceDistance(light: BlockLight<*, *>): Boolean {
         return (light.getBlockPos()?.distSqr(getCamera().blockPosition) ?: 0.0) < raytraceDistanceBlocksSquared()
     }
 

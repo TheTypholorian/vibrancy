@@ -13,7 +13,7 @@ class RayPointLightInfo(
     val brightness: StateFunction<Float>,
     val offset: StateFunction<Vector3f>,
     val enabled: StateFunction<Boolean>
-) : BlockLightInfo {
+) : BlockLightInfo<RayPointLightInfo, RayPointLight> {
     override fun createBlockLight(manager: LightManager, state: StateHolder<*, *>, pos: BlockPos): RayPointLight? {
         if (!enabled.apply(state)) {
             return null

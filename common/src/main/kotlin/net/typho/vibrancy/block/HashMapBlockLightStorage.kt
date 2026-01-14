@@ -9,18 +9,17 @@ import net.minecraft.world.level.chunk.LevelChunkSection
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 
-abstract class HashMapBlockLightStorage<I : BlockLightInfo, B : BlockLight<I>>(val type: BlockLightType<I, B, *>) : BlockLightStorage<I> {
-    protected val map = HashMap<BlockPos, B>()
-
-    abstract fun createLight(
-        manager: LightManager,
-        state: StateHolder<*, *>,
-        pos: BlockPos,
-        info: I
-    ): B
+open class HashMapBlockLightStorage<I : BlockLightInfo<I, B>, B : BlockLight<I, B>>(val type: BlockLightType<I, B, *>) : BlockLightStorage<I> {
+    val map = HashMap<BlockPos, B>()
 
     override fun addLight(manager: LightManager, state: StateHolder<*, *>, pos: BlockPos, info: I) {
-        map.put(pos, createLight(manager, state, pos, info))?.free(manager)
+        val light = info.createBlockLight(manager, state, pos)
+
+        if (light == null) {
+            map.remove(pos)?.free(manager)
+        } else {
+            map.put(pos, light)?.free(manager)
+        }
     }
 
     override fun removeLight(manager: LightManager, pos: BlockPos) {
@@ -46,6 +45,7 @@ abstract class HashMapBlockLightStorage<I : BlockLightInfo, B : BlockLight<I>>(v
                         for (y in 0 until LevelChunkSection.SECTION_HEIGHT) {
                             for (z in 0 until LevelChunkSection.SECTION_WIDTH) {
                                 val state = section.getBlockState(x, y, z)
+
                                 BlockLightRegistry.get(state.block)?.let { info ->
                                     if (info.type() == type) {
                                         addLight(

@@ -1,23 +1,14 @@
 package net.typho.vibrancy.block.impl
 
-import com.mojang.blaze3d.vertex.DefaultVertexFormat
-import com.mojang.blaze3d.vertex.Tesselator
 import com.mojang.blaze3d.vertex.VertexBuffer
-import com.mojang.blaze3d.vertex.VertexFormat
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.client.Minecraft
 import net.minecraft.util.ExtraCodecs
-import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.block.state.StateDefinition
-import net.minecraft.world.phys.AABB
-import net.typho.big_shot_lib.BigShotLib.cube
-import net.typho.big_shot_lib.api.impl.NeoIndexedBuffer
 import net.typho.big_shot_lib.api.impl.NeoShader
 import net.typho.big_shot_lib.gl.GlStack
-import net.typho.big_shot_lib.gl.resource.BufferUsage
-import net.typho.big_shot_lib.gl.resource.GlResourceType
 import net.typho.big_shot_lib.gl.state.BlendFactor
 import net.typho.big_shot_lib.gl.state.BlendFunction
 import net.typho.big_shot_lib.gl.state.CullFace
@@ -25,19 +16,12 @@ import net.typho.big_shot_lib.gl.state.GlCapability
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.block.BlockLightType
-import net.typho.vibrancy.block.RenderingBlockLight
+import net.typho.vibrancy.block.BlockRenderResult
 import net.typho.vibrancy.util.StateFunction
 import org.joml.Matrix4f
 import org.joml.Vector3f
-import org.lwjgl.system.MemoryUtil
-import org.lwjgl.system.NativeResource
 
-object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight> {
-    @JvmField
-    val meshes = HashMap<ChunkPos, Chunk>()
-    @JvmField
-    var dirty = true
-
+object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight, SubtleLightStorage> {
     override fun infoCodec(stateDefinition: StateDefinition<*, *>): MapCodec<SubtleLightInfo> {
         return RecordCodecBuilder.mapCodec {
             it.group(
@@ -57,67 +41,12 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight> {
         }
     }
 
-    override fun render(manager: LightManager, lights: Set<RenderingBlockLight<SubtleLight>>): RenderResult {
-        if (dirty) {
-            val map = HashMap<ChunkPos, MutableSet<RenderingBlockLight<SubtleLight>>>()
+    override fun createStorage() = SubtleLightStorage()
 
-            for (light in lights) {
-                if (light.light.shouldRender(manager)) {
-                    map.computeIfAbsent(ChunkPos(light.light.pos)) { HashSet() }.add(light)
-                }
-            }
+    override fun render(manager: LightManager, lights: SubtleLightStorage): BlockRenderResult {
+        lights.checkDirty(manager)
 
-            meshes.entries.removeIf { entry ->
-                if (!map.containsKey(entry.key)) {
-                    entry.value.free()
-                    return@removeIf true
-                } else {
-                    return@removeIf false
-                }
-            }
-
-            for (entry in map) {
-                val chunk = meshes.computeIfAbsent(entry.key, ::Chunk)
-
-                val builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION)
-                val buffer = MemoryUtil.memAllocFloat(8 * entry.value.size)
-
-                var box: AABB? = null
-
-                for (light in entry.value) {
-                    box = if (box == null) {
-                        light.light.getBoundingBox()
-                    } else {
-                        box.intersect(light.light.getBoundingBox())
-                    }
-
-                    builder.cube(light.light.getBoundingBox())
-
-                    val color = light.light.color
-                    val pos = light.light.getAbsolutePos()
-
-                    buffer.put(color.x).put(color.y).put(color.z).put(0f)
-                    buffer.put(pos.x).put(pos.y).put(pos.z).put(0f)
-                }
-
-                chunk.size = entry.value.size
-                chunk.box = box
-
-                chunk.vbo.bind()
-                chunk.vbo.upload(builder.build()!!)
-                VertexBuffer.unbind()
-
-                chunk.ssbo.bind()
-                chunk.ssbo.upload(MemoryUtil.memByteBuffer(buffer.flip()))
-                chunk.ssbo.unbind()
-
-                MemoryUtil.memFree(buffer)
-            }
-
-            dirty = false
-        }
-
-        val result = RenderResult()
+        val result = BlockRenderResult()
 
         GlStack().use { stack ->
             stack.disable(GlCapability.DEPTH_TEST)
@@ -145,39 +74,13 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight> {
 
             boxShader.setSampler("DiffuseDepthSampler", Minecraft.getInstance().mainRenderTarget.depthTextureId)
 
-            for (entry in meshes) {
-                result.add(entry.value.render(manager, stack))
+            for (mesh in lights.meshes.values) {
+                result.add(mesh.render(manager, stack))
             }
 
             VertexBuffer.unbind()
         }
 
         return result
-    }
-
-    data class Chunk(
-        val pos: ChunkPos,
-        val vbo: VertexBuffer = VertexBuffer(VertexBuffer.Usage.STATIC),
-        val ssbo: NeoIndexedBuffer = NeoIndexedBuffer(null, GlResourceType.SHADER_STORAGE_BUFFER, BufferUsage.STATIC_DRAW),
-        var size: Int = 0,
-        var box: AABB? = null
-    ) : NativeResource {
-        fun render(manager: LightManager, stack: GlStack): RenderResult {
-            if (manager.inRenderDistance(pos)) {
-                ssbo.bindBase(stack, 0)
-
-                vbo.bind()
-                vbo.draw()
-
-                return RenderResult(numRendered = size)
-            } else {
-                return RenderResult()
-            }
-        }
-
-        override fun free() {
-            vbo.close()
-            ssbo.release()
-        }
     }
 }

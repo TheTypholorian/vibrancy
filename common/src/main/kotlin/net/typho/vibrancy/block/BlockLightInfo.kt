@@ -4,25 +4,12 @@ import net.minecraft.core.BlockPos
 import net.minecraft.world.level.block.state.StateHolder
 import net.typho.vibrancy.LightManager
 
-interface BlockLightInfo {
-    fun type(): BlockLightType<*, *>
+interface BlockLightInfo<I : BlockLightInfo<I, B>, B : BlockLight<I, B>> {
+    fun type(): BlockLightType<I, B, *>
 
     fun createBlockLight(
         manager: LightManager,
         state: StateHolder<*, *>,
         pos: BlockPos
-    ): BlockLight<*>?
-
-    fun addBlockLight(
-        manager: LightManager,
-        state: StateHolder<*, *>,
-        pos: BlockPos
-    ): Boolean {
-        val new = manager.blockLights.compute(pos) { pos1, old ->
-            old?.free(manager)
-            createBlockLight(manager, state, pos1)
-        }
-
-        return new != null
-    }
+    ): B?
 }

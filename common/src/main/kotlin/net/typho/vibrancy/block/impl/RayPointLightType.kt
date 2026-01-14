@@ -8,11 +8,14 @@ import net.minecraft.world.level.block.state.StateDefinition
 import net.typho.big_shot_lib.gl.GlStack
 import net.typho.big_shot_lib.gl.state.*
 import net.typho.vibrancy.LightManager
+import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.block.BlockLightType
+import net.typho.vibrancy.block.BlockRenderResult
+import net.typho.vibrancy.block.HashMapBlockLightStorage
 import net.typho.vibrancy.util.StateFunction
 import org.joml.Vector3f
 
-object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, RayPointLightStorage> {
+object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, HashMapBlockLightStorage<RayPointLightInfo, RayPointLight>> {
     override fun infoCodec(stateDefinition: StateDefinition<*, *>): MapCodec<RayPointLightInfo> {
         return RecordCodecBuilder.mapCodec {
             it.group(
@@ -35,13 +38,13 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, RayP
         }
     }
 
-    override fun createStorage() = RayPointLightStorage()
+    override fun createStorage() = HashMapBlockLightStorage(this)
 
     override fun render(
         manager: LightManager,
-        lights: RayPointLightStorage
-    ): RenderResult {
-        val result = RenderResult()
+        lights: HashMapBlockLightStorage<RayPointLightInfo, RayPointLight>
+    ): BlockRenderResult {
+        val result = BlockRenderResult()
 
         GlStack().use { stack ->
             stack.disable(GlCapability.DEPTH_TEST)
@@ -64,7 +67,17 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, RayP
                 )
             )
 
-            // TODO render
+            lights.map.values.stream()
+                .filter { light -> manager.inRenderDistance(light) }
+                .limit(Vibrancy.config.blockLights.maxRendered.toLong())
+                .sorted(Comparator.comparingDouble { light -> manager.getSortingOrder(light) })
+                .forEach { light ->
+                    result.add(light.render(
+                        manager,
+                        result.numRaytraced < Vibrancy.config.blockLights.maxRaytraced,
+                        stack
+                    ))
+                }
         }
 
         return result

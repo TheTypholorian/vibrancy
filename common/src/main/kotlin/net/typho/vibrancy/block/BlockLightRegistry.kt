@@ -14,12 +14,12 @@ import net.typho.vibrancy.block.impl.SubtleLightType
 
 object BlockLightRegistry {
     @JvmField
-    val typesKey: ResourceKey<Registry<BlockLightType<*, *>>> =
+    val typesKey: ResourceKey<Registry<BlockLightType<*, *, *>>> =
         ResourceKey.createRegistryKey(Vibrancy.id("block_light_types"))
     @JvmField
     @Suppress("UNCHECKED_CAST")
-    val types: Registry<BlockLightType<*, *>> = Registry.register(
-        BuiltInRegistries.REGISTRY as Registry<Registry<BlockLightType<*, *>>>,
+    val types: Registry<BlockLightType<*, *, *>> = Registry.register(
+        BuiltInRegistries.REGISTRY as Registry<Registry<BlockLightType<*, *, *>>>,
         typesKey,
         MappedRegistry(typesKey, Lifecycle.stable())
     )
@@ -38,16 +38,16 @@ object BlockLightRegistry {
     )
 
     @JvmField
-    val blockMap = HashMap<Block, BlockLightInfo>()
+    val blockMap = HashMap<Block, BlockLightInfo<*, *>>()
 
     @JvmStatic
-    fun get(block: Block): BlockLightInfo? = blockMap[block]
+    fun get(block: Block): BlockLightInfo<*, *>? = blockMap[block]
 
     @JvmStatic
     fun has(block: Block): Boolean = blockMap.containsKey(block)
 
     @JvmStatic
-    fun infoCodec(stateDefinition: StateDefinition<*, *>): MapCodec<BlockLightInfo> {
+    fun infoCodec(stateDefinition: StateDefinition<*, *>): MapCodec<BlockLightInfo<*, *>> {
         return ResourceKey.codec(typesKey).dispatchMap(
             { info -> types.getResourceKey(info.type()).orElseThrow() },
             { key -> types.get(key)!!.infoCodec(stateDefinition) }

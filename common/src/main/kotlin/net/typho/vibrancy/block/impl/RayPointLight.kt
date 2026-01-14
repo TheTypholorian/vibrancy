@@ -24,7 +24,7 @@ import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyDynamicBuffers
 import net.typho.vibrancy.block.BlockLight
 import net.typho.vibrancy.block.BlockLightRegistry
-import net.typho.vibrancy.block.RenderingBlockLight
+import net.typho.vibrancy.block.BlockRenderResult
 import net.typho.vibrancy.shadows.AsyncShadowVertexBuffer
 import net.typho.vibrancy.shadows.ShadowPredicate
 import net.typho.vibrancy.shadows.entity.EntityShadowCastingLight
@@ -39,7 +39,7 @@ class RayPointLight(
     val radius: Float,
     val offset: Vector3f,
     val pos: BlockPos
-) : BlockLight<RayPointLightInfo>, EntityShadowCastingLight, ShadowPredicate {
+) : BlockLight<RayPointLightInfo, RayPointLight>, EntityShadowCastingLight, ShadowPredicate {
     val shadows = AsyncShadowVertexBuffer(
         VertexBuffer.Usage.STATIC,
         Minecraft.getInstance().modelManager.getAtlas(InventoryMenu.BLOCK_ATLAS).id
@@ -144,7 +144,7 @@ class RayPointLight(
 
     override fun getEntityShadowBox(): AABB? = if (Vibrancy.config.blockLights.entityShadows) getBoundingBox() else null
 
-    fun render(manager: LightManager, rendering: RenderingBlockLight<RayPointLight>, stack: GlStack): RenderResult {
+    fun render(manager: LightManager, raytrace: Boolean, stack: GlStack): BlockRenderResult {
         for (pos in manager.dirtyBlocks) {
             if (manager.getLevel().dimension() == pos.dimension && getShadowBox().contains(pos.pos)) {
                 shadowsDirty = true
@@ -161,7 +161,7 @@ class RayPointLight(
 
         glClear(GL_STENCIL_BUFFER_BIT)
 
-        if (rendering.raytrace) {
+        if (raytrace) {
             val shadowShader = NeoShader.get(Vibrancy.id("point_shadow"))!!
 
             shadowShader.bind(stack)
@@ -218,10 +218,10 @@ class RayPointLight(
         box.draw()
         VertexBuffer.unbind()
 
-        return RenderResult(
+        return BlockRenderResult(
             numRendered = 1,
-            numRaytraced = if (rendering.raytrace) 1 else 0,
-            numShadows = if (rendering.raytrace) shadows.size else 0,
+            numRaytraced = if (raytrace) 1 else 0,
+            numShadows = if (raytrace) shadows.size else 0,
             numAsyncTasks = if (shadows.isTaskActive()) 1 else 0
         )
     }
