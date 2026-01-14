@@ -1,5 +1,6 @@
 package net.typho.vibrancy
 
+import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.VertexBuffer
 import net.minecraft.client.Camera
 import net.minecraft.client.Minecraft
@@ -24,6 +25,7 @@ import net.typho.vibrancy.shadows.ShadowMesher
 import net.typho.vibrancy.shadows.entity.EntityShadowCollector
 import net.typho.vibrancy.util.PointLight
 import org.joml.Matrix4f
+import org.joml.Vector4f
 import java.util.*
 import java.util.function.Consumer
 
@@ -152,8 +154,18 @@ open class LightManager {
             shader.setCommonUniforms()
 
             shader.setSampler("DiffuseSampler0", Minecraft.getInstance().mainRenderTarget.colorTextureId)
+            shader.setSampler("DiffuseDepthSampler", Minecraft.getInstance().mainRenderTarget.depthTextureId)
             shader.setSampler("VibrancyOutputSampler", output)
             shader.setSampler("VibrancyAlbedoSampler", VibrancyDynamicBuffers.albedoTexture!!)
+
+            shader.getUniform("IProjMat")?.set(Matrix4f(Vibrancy.iProjMat))
+            shader.getUniform("IModelMat")?.set(Matrix4f(Vibrancy.iModelMat))
+
+            shader.getUniform("FogStart")?.set(RenderSystem.getShaderFogStart())
+            shader.getUniform("FogEnd")?.set(RenderSystem.getShaderFogEnd())
+            shader.getUniform("FogColor")?.set(Vector4f(RenderSystem.getShaderFogColor()))
+
+            shader.getUniform("CameraPos")?.set(Vibrancy.camera)
 
             BigShotLib.SCREEN_VBO.bind()
             BigShotLib.SCREEN_VBO.draw()

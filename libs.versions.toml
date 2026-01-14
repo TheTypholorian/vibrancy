@@ -29,10 +29,10 @@ mixinExtras = "0.3.5"
 
 sodium="mc1.21.1-0.6.13-neoforge"
 
-bigShot="2.2.0"
-bigShotRange="[2.2.0, )"
-bigShotFabric="mc1.21-2.2.0-fabric"
-bigShotNeo="mc1.21-2.2.0-neoforge"
+bigShot="2.2.2"
+bigShotRange="[2.2.2, )"
+bigShotFabric="mc1.21-2.2.2-fabric"
+bigShotNeo="mc1.21-2.2.2-neoforge"
 
 fzzyConfigFabric = "0.7.4-fix1+1.21"
 fzzyConfigNeo = "0.7.4+1.21+neoforge"
