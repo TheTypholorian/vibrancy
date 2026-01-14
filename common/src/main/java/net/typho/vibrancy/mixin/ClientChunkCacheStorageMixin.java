@@ -23,10 +23,10 @@ public class ClientChunkCacheStorageMixin {
 
         if (newValue == null) {
             if (chunk instanceof LevelChunk levelChunk) {
-                Vibrancy.LIGHT_MANAGER.clearChunk(levelChunk);
+                Vibrancy.LIGHT_MANAGER.deloadChunk(levelChunk);
             }
         } else if (newValue instanceof LevelChunk levelChunk) {
-            Vibrancy.LIGHT_MANAGER.scanChunk(levelChunk);
+            Vibrancy.LIGHT_MANAGER.loadChunk(levelChunk);
         }
 
         return chunk;
@@ -44,9 +44,9 @@ public class ClientChunkCacheStorageMixin {
 
         if (r) {
             if (newValue instanceof LevelChunk levelChunk) {
-                Vibrancy.LIGHT_MANAGER.scanChunk(levelChunk);
+                Vibrancy.LIGHT_MANAGER.loadChunk(levelChunk);
             } else if (expectedValue instanceof LevelChunk levelChunk) {
-                Vibrancy.LIGHT_MANAGER.clearChunk(levelChunk);
+                Vibrancy.LIGHT_MANAGER.deloadChunk(levelChunk);
             }
         }
 

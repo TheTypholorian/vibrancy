@@ -13,7 +13,6 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.block.state.StateDefinition
 import net.minecraft.world.phys.AABB
 import net.typho.big_shot_lib.BigShotLib.cube
-import net.typho.big_shot_lib.api.IShader
 import net.typho.big_shot_lib.api.impl.NeoIndexedBuffer
 import net.typho.big_shot_lib.api.impl.NeoShader
 import net.typho.big_shot_lib.gl.GlStack
@@ -30,9 +29,6 @@ import net.typho.vibrancy.block.RenderingBlockLight
 import net.typho.vibrancy.util.StateFunction
 import org.joml.Matrix4f
 import org.joml.Vector3f
-import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BLOCK
-import org.lwjgl.opengl.GL43.glGetProgramResourceIndex
-import org.lwjgl.opengl.GL43.glShaderStorageBlockBinding
 import org.lwjgl.system.MemoryUtil
 import org.lwjgl.system.NativeResource
 
@@ -42,7 +38,7 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight> {
     @JvmField
     var dirty = true
 
-    override fun codec(stateDefinition: StateDefinition<*, *>): MapCodec<SubtleLightInfo> {
+    override fun infoCodec(stateDefinition: StateDefinition<*, *>): MapCodec<SubtleLightInfo> {
         return RecordCodecBuilder.mapCodec {
             it.group(
                 StateFunction.codec(ExtraCodecs.VECTOR3F, stateDefinition)
@@ -61,7 +57,7 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight> {
         }
     }
 
-    override fun render(manager: LightManager, lights: Set<RenderingBlockLight<SubtleLight>>): BlockLightType.RenderResult {
+    override fun render(manager: LightManager, lights: Set<RenderingBlockLight<SubtleLight>>): RenderResult {
         if (dirty) {
             val map = HashMap<ChunkPos, MutableSet<RenderingBlockLight<SubtleLight>>>()
 
@@ -121,7 +117,7 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight> {
             dirty = false
         }
 
-        val result = BlockLightType.RenderResult()
+        val result = RenderResult()
 
         GlStack().use { stack ->
             stack.disable(GlCapability.DEPTH_TEST)
@@ -166,16 +162,16 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight> {
         var size: Int = 0,
         var box: AABB? = null
     ) : NativeResource {
-        fun render(manager: LightManager, stack: GlStack): BlockLightType.RenderResult {
+        fun render(manager: LightManager, stack: GlStack): RenderResult {
             if (manager.inRenderDistance(pos)) {
                 ssbo.bindBase(stack, 0)
 
                 vbo.bind()
                 vbo.draw()
 
-                return BlockLightType.RenderResult(numRendered = size)
+                return RenderResult(numRendered = size)
             } else {
-                return BlockLightType.RenderResult()
+                return RenderResult()
             }
         }
 

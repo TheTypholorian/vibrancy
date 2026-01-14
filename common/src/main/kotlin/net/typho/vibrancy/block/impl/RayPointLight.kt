@@ -24,7 +24,6 @@ import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyDynamicBuffers
 import net.typho.vibrancy.block.BlockLight
 import net.typho.vibrancy.block.BlockLightRegistry
-import net.typho.vibrancy.block.BlockLightType
 import net.typho.vibrancy.block.RenderingBlockLight
 import net.typho.vibrancy.shadows.AsyncShadowVertexBuffer
 import net.typho.vibrancy.shadows.ShadowPredicate
@@ -145,7 +144,7 @@ class RayPointLight(
 
     override fun getEntityShadowBox(): AABB? = if (Vibrancy.config.blockLights.entityShadows) getBoundingBox() else null
 
-    fun render(manager: LightManager, rendering: RenderingBlockLight<RayPointLight>, stack: GlStack): BlockLightType.RenderResult {
+    fun render(manager: LightManager, rendering: RenderingBlockLight<RayPointLight>, stack: GlStack): RenderResult {
         for (pos in manager.dirtyBlocks) {
             if (manager.getLevel().dimension() == pos.dimension && getShadowBox().contains(pos.pos)) {
                 shadowsDirty = true
@@ -219,7 +218,7 @@ class RayPointLight(
         box.draw()
         VertexBuffer.unbind()
 
-        return BlockLightType.RenderResult(
+        return RenderResult(
             numRendered = 1,
             numRaytraced = if (rendering.raytrace) 1 else 0,
             numShadows = if (rendering.raytrace) shadows.size else 0,

@@ -5,22 +5,18 @@ import net.minecraft.client.Camera
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.client.renderer.culling.Frustum
-import net.minecraft.core.BlockPos
 import net.minecraft.core.GlobalPos
-import net.minecraft.core.SectionPos
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.chunk.LevelChunk
-import net.minecraft.world.level.chunk.LevelChunkSection
 import net.typho.big_shot_lib.BigShotLib
 import net.typho.big_shot_lib.api.ITexture
 import net.typho.big_shot_lib.api.impl.NeoShader
 import net.typho.big_shot_lib.gl.GlStack
 import net.typho.big_shot_lib.gl.state.GlCapability
 import net.typho.vibrancy.block.BlockLight
-import net.typho.vibrancy.block.BlockLightRegistry.get
-import net.typho.vibrancy.block.BlockLightRegistry.has
+import net.typho.vibrancy.block.BlockLightStorage
 import net.typho.vibrancy.block.BlockLightType
-import net.typho.vibrancy.block.RenderingBlockLight
+import net.typho.vibrancy.block.BlockRenderResult
 import net.typho.vibrancy.mixin.LevelRendererAccessor
 import net.typho.vibrancy.shadows.BasicShadowMesher
 import net.typho.vibrancy.shadows.ShadowGreedyMesher
@@ -37,13 +33,13 @@ open class LightManager {
     }
 
     @JvmField
-    protected var renderResult = BlockLightType.RenderResult()
+    protected var renderResult = BlockRenderResult()
     @JvmField
     protected var viewMatrix: Matrix4f? = null
     @JvmField
     val dirtyBlocks = LinkedList<GlobalPos>()
     @JvmField
-    val blockLights = HashMap<BlockPos, BlockLight<*>>()
+    val blockLights = HashMap<BlockLightType<*, *, *>, BlockLightStorage<*>>()
     @JvmField
     val entityShadows = EntityShadowCollector()
 
@@ -53,7 +49,7 @@ open class LightManager {
     fun getLevel(): ClientLevel = Minecraft.getInstance().level!!
 
     fun clear() {
-        blockLights.values.forEach { light -> light.free(this) }
+        blockLights.values.forEach { storage -> storage.clear(this) }
         blockLights.clear()
     }
 
@@ -75,72 +71,27 @@ open class LightManager {
         }
     }
 
-    fun clearChunk(chunk: LevelChunk) {
-        blockLights.entries.removeIf { entry ->
-            val removed = ChunkPos(entry.key) == chunk.pos
-
-            if (removed) {
-                entry.value.free(this)
-            }
-
-            return@removeIf removed
-        }
+    fun loadChunk(chunk: LevelChunk) {
+        blockLights.values.forEach { storage -> storage.loadChunk(this, chunk) }
     }
 
-    fun scanChunk(chunk: LevelChunk) {
-        clearChunk(chunk)
-
-        if (Vibrancy.config.blockLights.enabled) {
-            for (i in chunk.minSection until chunk.maxSection) {
-                val section = chunk.getSection(chunk.getSectionIndexFromSectionY(i))
-
-                if (section.maybeHas { has(it.block) }) {
-                    val minPos = SectionPos.of(chunk.pos, i).origin()
-
-                    for (x in 0 until LevelChunkSection.SECTION_WIDTH) {
-                        for (y in 0 until LevelChunkSection.SECTION_HEIGHT) {
-                            for (z in 0 until LevelChunkSection.SECTION_WIDTH) {
-                                val state = section.getBlockState(x, y, z)
-
-                                get(state.block)?.addBlockLight(
-                                    this,
-                                    state,
-                                    BlockPos(
-                                        x + minPos.x,
-                                        y + minPos.y,
-                                        z + minPos.z
-                                    )
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
+    fun deloadChunk(chunk: LevelChunk) {
+        blockLights.values.forEach { storage -> storage.deloadChunk(this, chunk) }
     }
 
     @Suppress("UNCHECKED_CAST")
-    private fun <B : BlockLight<*>> castAndRender(type: BlockLightType<*, B>, lights: Set<RenderingBlockLight<*>>) =
-        type.render(this, lights as Set<RenderingBlockLight<B>>)
+    protected fun <S : BlockLightStorage<*>> castAndRender(type: BlockLightType<*, *, S>, storage: BlockLightStorage<*>): BlockRenderResult {
+        return type.render(this, storage as S)
+    }
 
     fun render(camera: Camera = getCamera()) {
         viewMatrix = BigShotLib.getViewMatrix(camera)
-        renderResult = BlockLightType.RenderResult()
+        renderResult = BlockRenderResult()
 
-        entityShadows.collect(this, blockLights.values)
+        // TODO fix entity shadows
+        //entityShadows.collect(this, blockLights.values)
 
-        val byType = HashMap<BlockLightType<*, *>, MutableSet<RenderingBlockLight<*>>>()
-
-        blockLights.values.stream()
-            .sorted(Comparator.comparingDouble { light -> getSortingOrder(light) })
-            .forEachOrdered { light ->
-                val render = light.shouldRender(this) && inRenderDistance(light)
-                val raytrace = light.shouldRaytrace(this) && inRaytraceDistance(light)
-
-                byType.computeIfAbsent(light.getType()) { HashSet() }.add(RenderingBlockLight(render, raytrace, light))
-            }
-
-        for (entry in byType) {
+        for (entry in blockLights) {
             renderResult.add(castAndRender(entry.key, entry.value))
         }
 
@@ -190,10 +141,6 @@ open class LightManager {
     protected fun raytraceDistanceBlocksSquared(): Int {
         val chunks = Vibrancy.config.blockLights.raytraceDistance.get()
         return chunks * chunks * 16 * 16
-    }
-
-    fun getSortingOrder(light: BlockLight<*>): Double {
-        return light.getBlockPos()?.distSqr(getCamera().blockPosition) ?: 0.0
     }
 
     fun inRenderDistance(light: BlockLight<*>): Boolean {

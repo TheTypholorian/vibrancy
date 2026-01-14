@@ -9,12 +9,11 @@ import net.typho.big_shot_lib.gl.GlStack
 import net.typho.big_shot_lib.gl.state.*
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.block.BlockLightType
-import net.typho.vibrancy.block.RenderingBlockLight
 import net.typho.vibrancy.util.StateFunction
 import org.joml.Vector3f
 
-object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight> {
-    override fun codec(stateDefinition: StateDefinition<*, *>): MapCodec<RayPointLightInfo> {
+object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, RayPointLightStorage> {
+    override fun infoCodec(stateDefinition: StateDefinition<*, *>): MapCodec<RayPointLightInfo> {
         return RecordCodecBuilder.mapCodec {
             it.group(
                 StateFunction.codec(ExtraCodecs.VECTOR3F, stateDefinition)
@@ -36,8 +35,13 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight> {
         }
     }
 
-    override fun render(manager: LightManager, lights: Set<RenderingBlockLight<RayPointLight>>): BlockLightType.RenderResult {
-        val result = BlockLightType.RenderResult()
+    override fun createStorage() = RayPointLightStorage()
+
+    override fun render(
+        manager: LightManager,
+        lights: RayPointLightStorage
+    ): RenderResult {
+        val result = RenderResult()
 
         GlStack().use { stack ->
             stack.disable(GlCapability.DEPTH_TEST)
@@ -60,10 +64,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight> {
                 )
             )
 
-            lights.stream()
-                .filter { light -> light.render }
-                .sorted(Comparator.comparingDouble { manager.getSortingOrder(it.light) })
-                .forEachOrdered { light -> result.add(light.light.render(manager, light, stack)) }
+            // TODO render
         }
 
         return result

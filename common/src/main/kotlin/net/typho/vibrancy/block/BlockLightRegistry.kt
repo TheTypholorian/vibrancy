@@ -10,7 +10,6 @@ import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.StateDefinition
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.block.impl.RayPointLightType
-import net.typho.vibrancy.block.impl.SubtleLight
 import net.typho.vibrancy.block.impl.SubtleLightType
 
 object BlockLightRegistry {
@@ -51,7 +50,7 @@ object BlockLightRegistry {
     fun infoCodec(stateDefinition: StateDefinition<*, *>): MapCodec<BlockLightInfo> {
         return ResourceKey.codec(typesKey).dispatchMap(
             { info -> types.getResourceKey(info.type()).orElseThrow() },
-            { key -> types.get(key)!!.codec(stateDefinition) }
+            { key -> types.get(key)!!.infoCodec(stateDefinition) }
         )
     }
 
