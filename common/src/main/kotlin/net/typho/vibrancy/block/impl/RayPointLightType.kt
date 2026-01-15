@@ -50,7 +50,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, Hash
             stack.disable(GlCapability.DEPTH_TEST)
             stack.enable(GlCapability.STENCIL_TEST)
             stack.enable(GlCapability.CULL_FACE)
-            stack.set(CullFace.FRONT)
+            stack.set(CullFace.BACK)
             stack.enable(GlCapability.BLEND)
             stack.set(
                 BlendFunction(

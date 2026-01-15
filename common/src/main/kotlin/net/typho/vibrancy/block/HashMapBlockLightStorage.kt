@@ -84,4 +84,8 @@ open class HashMapBlockLightStorage<I : BlockLightInfo<I, B>, B : BlockLight<I, 
         map.values.forEach { light -> light.free(manager) }
         map.clear()
     }
+
+    override fun size(): Int {
+        return map.size
+    }
 }

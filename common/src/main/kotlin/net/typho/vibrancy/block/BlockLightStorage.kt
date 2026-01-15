@@ -31,4 +31,6 @@ interface BlockLightStorage<I : BlockLightInfo<I, *>> {
     )
 
     fun clear(manager: LightManager)
+
+    fun size(): Int
 }

@@ -155,6 +155,10 @@ class SubtleLightStorage : BlockLightStorage<SubtleLightInfo> {
         dirty.clear()
     }
 
+    override fun size(): Int {
+        return meshes.values.sumOf { mesh -> mesh.size }
+    }
+
     data class ChunkMesh(
         val pos: ChunkPos,
         val vbo: VertexBuffer = VertexBuffer(VertexBuffer.Usage.STATIC),

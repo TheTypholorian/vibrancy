@@ -18,6 +18,7 @@ import net.typho.big_shot_lib.BigShotLib.cube
 import net.typho.big_shot_lib.api.ITexture
 import net.typho.big_shot_lib.api.impl.NeoShader
 import net.typho.big_shot_lib.gl.GlStack
+import net.typho.big_shot_lib.gl.state.CullFace
 import net.typho.big_shot_lib.gl.state.IntAction
 import net.typho.big_shot_lib.gl.state.StencilOp
 import net.typho.vibrancy.LightManager
@@ -185,6 +186,7 @@ class RayPointLight(
                     IntAction.REPLACE,
                 )
             )
+            stack.set(CullFace.BACK)
 
             shadows.render(shadowShader)
 
@@ -214,6 +216,7 @@ class RayPointLight(
                 IntAction.KEEP,
             )
         )
+        stack.set(CullFace.FRONT)
 
         box.bind()
         box.draw()

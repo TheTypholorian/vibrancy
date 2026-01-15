@@ -197,7 +197,7 @@ open class LightManager {
 
     fun getDebugOutput(out: Consumer<String>) {
         out.accept("Block Lights")
-        out.accept("${blockLights.size} lights in world")
+        out.accept("${blockLights.values.sumOf { storage -> storage.size() }} lights in world")
         out.accept("${renderResult.numRendered} rendered")
         out.accept("${renderResult.numRaytraced} raytraced")
         out.accept("${renderResult.numShadows} shadows")
