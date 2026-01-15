@@ -25,8 +25,8 @@ out vec4 fragColor;
 void main() {
     vec3 outputColor = texture(VibrancyOutputSampler, uv).rgb;
     float outputScale = min(1, 1 / max(outputColor.r, max(outputColor.g, outputColor.b)));
-    vec3 pos = getWorldPos(DiffuseDepthSampler, ScreenSize, IProjMat, IModelMat, CameraPos).xyz;
-    vec4 finalColor = linear_fog(vec4(outputColor * outputScale, 1), distance(pos, CameraPos), FogStart, FogEnd, FogColor);
+    //vec3 pos = getWorldPos(DiffuseDepthSampler, ScreenSize, IProjMat, IModelMat, CameraPos).xyz;
+    vec4 finalColor = vec4(outputColor * outputScale, 1);//linear_fog(vec4(outputColor * outputScale, 1), distance(pos, CameraPos), FogStart, FogEnd, FogColor);
 
     fragColor = texture(DiffuseSampler0, uv) + finalColor * texture(VibrancyAlbedoSampler, uv);
 }
