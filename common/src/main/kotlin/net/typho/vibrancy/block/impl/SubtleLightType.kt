@@ -4,9 +4,9 @@ import com.mojang.blaze3d.vertex.VertexBuffer
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
-import net.minecraft.client.Minecraft
 import net.minecraft.util.ExtraCodecs
 import net.minecraft.world.level.block.state.StateDefinition
+import net.typho.big_shot_lib.api.ITexture
 import net.typho.big_shot_lib.api.impl.NeoShader
 import net.typho.big_shot_lib.gl.GlStack
 import net.typho.big_shot_lib.gl.state.BlendFactor
@@ -72,7 +72,7 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight, SubtleLigh
             boxShader.getUniform("CameraPos")?.set(Vibrancy.camera)
             boxShader.getUniform("LightRadius")?.set(4f)
 
-            boxShader.setSampler("DiffuseDepthSampler", Minecraft.getInstance().mainRenderTarget.depthTextureId)
+            boxShader.setSampler("VibrancyWorldPosSampler", Vibrancy.WORLD_POS_FBO.colorAttachments[0] as ITexture)
 
             for (mesh in lights.meshes.values) {
                 result.add(mesh.render(manager, stack))

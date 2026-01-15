@@ -1,12 +1,12 @@
 vec4 getWorldPos(sampler2D depthSampler, vec2 screenSize, mat4 iProjMat, mat4 iModelMat, vec3 camera) {
     vec2 uv = gl_FragCoord.xy / screenSize;
-    float depth = texture(depthSampler, uv).r;
+    float depth = texelFetch(depthSampler, ivec2(gl_FragCoord.xy), 0).r;
     vec4 pos = iProjMat * (vec4(uv, depth, 1.0) * 2.0 - 1.0);
     return vec4(camera, 0) + iModelMat * (pos / pos.w);
 }
 
 float getNormalDot(sampler2D normalSampler, vec3 lightDirection, vec2 screenSize) {
-    return clamp(dot(texture(normalSampler, gl_FragCoord.xy / screenSize).xyz, lightDirection), 0, 1);
+    return clamp(dot(texelFetch(normalSampler, ivec2(gl_FragCoord.xy), 0).xyz, lightDirection), 0, 1);
 }
 
 float attenuateNoCusp(float distance, float radius) {

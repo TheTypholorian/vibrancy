@@ -144,6 +144,28 @@ open class LightManager {
         dirtyBlocks.clear()
     }
 
+    fun blitWorldPos() {
+        GlStack().use { stack ->
+            stack.disable(GlCapability.CULL_FACE)
+            stack.disable(GlCapability.BLEND)
+
+            val shader = NeoShader.get(Vibrancy.id("world_pos"))!!
+            shader.bind(stack)
+            shader.setCommonUniforms()
+
+            shader.setSampler("DiffuseDepthSampler", Minecraft.getInstance().mainRenderTarget.depthTextureId)
+
+            shader.getUniform("IProjMat")?.set(Matrix4f(Vibrancy.iProjMat))
+            shader.getUniform("IModelMat")?.set(Matrix4f(Vibrancy.iModelMat))
+
+            shader.getUniform("CameraPos")?.set(Vibrancy.camera)
+
+            BigShotLib.SCREEN_VBO.bind()
+            BigShotLib.SCREEN_VBO.draw()
+            VertexBuffer.unbind()
+        }
+    }
+
     fun blitOutput(output: ITexture) {
         GlStack().use { stack ->
             stack.disable(GlCapability.CULL_FACE)
@@ -154,7 +176,7 @@ open class LightManager {
             shader.setCommonUniforms()
 
             shader.setSampler("DiffuseSampler0", Minecraft.getInstance().mainRenderTarget.colorTextureId)
-            shader.setSampler("DiffuseDepthSampler", Minecraft.getInstance().mainRenderTarget.depthTextureId)
+            shader.setSampler("VibrancyWorldPosSampler", Vibrancy.WORLD_POS_FBO.colorAttachments[0] as ITexture)
             shader.setSampler("VibrancyOutputSampler", output)
             shader.setSampler("VibrancyAlbedoSampler", VibrancyDynamicBuffers.albedoTexture!!)
 

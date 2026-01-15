@@ -7,7 +7,7 @@
 //#include "veil:light"
 
 uniform sampler2D Sampler0;
-uniform sampler2D DiffuseDepthSampler;
+uniform sampler2D VibrancyWorldPosSampler;
 
 uniform mat4 IProjMat;
 uniform mat4 IModelMat;
@@ -22,7 +22,7 @@ in flat Triangle triangle;
 out vec4 fragColor;
 
 void main() {
-    vec3 Pos = getWorldPos(DiffuseDepthSampler, ScreenSize, IProjMat, IModelMat, CameraPos).xyz;
+    vec3 Pos = texelFetch(VibrancyWorldPosSampler, ivec2(gl_FragCoord.xy), 0).xyz;
 
     vec3 delta = LightPos - Pos;
     float len = length(delta);

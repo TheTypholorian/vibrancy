@@ -15,6 +15,7 @@ import net.minecraft.world.level.block.state.StateHolder
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import net.typho.big_shot_lib.BigShotLib.cube
+import net.typho.big_shot_lib.api.ITexture
 import net.typho.big_shot_lib.api.impl.NeoShader
 import net.typho.big_shot_lib.gl.GlStack
 import net.typho.big_shot_lib.gl.state.IntAction
@@ -175,7 +176,7 @@ class RayPointLight(
             shadowShader.getUniform("LightRadius")?.set(radius)
             shadowShader.getUniform("CameraPos")?.set(Vibrancy.camera)
 
-            shadowShader.setSampler("DiffuseDepthSampler", Minecraft.getInstance().mainRenderTarget.depthTextureId)
+            shadowShader.setSampler("VibrancyWorldPosSampler", Vibrancy.WORLD_POS_FBO.colorAttachments[0] as ITexture)
 
             stack.set(
                 StencilOp(
@@ -204,7 +205,7 @@ class RayPointLight(
         boxShader.getUniform("CameraPos")?.set(Vibrancy.camera)
 
         boxShader.setSampler("VibrancyNormalSampler", VibrancyDynamicBuffers.normalsTexture!!)
-        boxShader.setSampler("DiffuseDepthSampler", Minecraft.getInstance().mainRenderTarget.depthTextureId)
+        boxShader.setSampler("VibrancyWorldPosSampler", Vibrancy.WORLD_POS_FBO.colorAttachments[0] as ITexture)
 
         stack.set(
             StencilOp(

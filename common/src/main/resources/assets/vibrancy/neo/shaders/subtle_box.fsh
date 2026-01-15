@@ -15,7 +15,7 @@ layout(std430, binding = 0) buffer LightBuffer {
     Light lights[];
 };
 
-uniform sampler2D DiffuseDepthSampler;
+uniform sampler2D VibrancyWorldPosSampler;
 
 uniform mat4 IProjMat;
 uniform mat4 IModelMat;
@@ -29,7 +29,7 @@ flat in uint id;
 out vec4 fragColor;
 
 void main() {
-    vec3 pos = getWorldPos(DiffuseDepthSampler, ScreenSize, IProjMat, IModelMat, CameraPos).xyz;
+    vec3 pos = texelFetch(VibrancyWorldPosSampler, ivec2(gl_FragCoord.xy), 0).xyz;
 
     fragColor = sampleLight(ScreenSize, lights[id].pos, pos, LightRadius, lights[id].color);
 }

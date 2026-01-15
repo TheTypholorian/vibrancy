@@ -40,6 +40,18 @@ object Vibrancy {
         NeoFramebuffer.register(fbo)
         fbo
     }
+    val WORLD_POS_FBO by lazy {
+        val fbo = NeoFramebuffer.TextureBacked(
+            id("world_pos"),
+            arrayOf(TextureFormat.RGB32F),
+            null,
+            Minecraft.getInstance().window.width,
+            Minecraft.getInstance().window.height
+        )
+        NeoFramebuffer.AUTO_RESIZE.add(fbo)
+        NeoFramebuffer.register(fbo)
+        fbo
+    }
     @JvmField
     var iProjMat = Matrix4f()
     @JvmField
@@ -57,6 +69,10 @@ object Vibrancy {
 
     @JvmStatic
     fun render() {
+        WORLD_POS_FBO.bind()
+
+        LIGHT_MANAGER.blitWorldPos()
+
         OUTPUT_FBO.bind()
 
         GlStateManager._clearColor(0f, 0f, 0f, 0f)

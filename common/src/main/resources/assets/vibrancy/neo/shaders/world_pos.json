@@ -1,5 +1,5 @@
 {
   "vertex": "big_shot_lib:blit",
-  "fragment": "vibrancy:stencil_setup",
+  "fragment": "vibrancy:world_pos",
   "format": "POSITION_TEX"
 }
