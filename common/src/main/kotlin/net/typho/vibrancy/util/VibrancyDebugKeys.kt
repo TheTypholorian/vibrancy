@@ -20,6 +20,16 @@ object VibrancyDebugKeys {
                 Vibrancy.config.save()
                 feedback.accept(Component.translatable("debug.vibrancy.toggle_entity_shadows"))
             }
+            InputConstants.KEY_T -> {
+                Vibrancy.config.blockLights.raytraced.enabled = !Vibrancy.config.blockLights.raytraced.enabled
+                Vibrancy.config.save()
+                feedback.accept(Component.translatable("debug.vibrancy.toggle_raytraced_block_lights"))
+            }
+            InputConstants.KEY_Y -> {
+                Vibrancy.config.blockLights.subtle.enabled = !Vibrancy.config.blockLights.subtle.enabled
+                Vibrancy.config.save()
+                feedback.accept(Component.translatable("debug.vibrancy.toggle_subtle_block_lights"))
+            }
         }
     }
 }
