@@ -16,7 +16,7 @@ object VibrancyDebugKeys {
                 feedback.accept(Component.translatable("debug.vibrancy.rebuild_all_shadows"))
             }
             InputConstants.KEY_E -> {
-                Vibrancy.config.blockLights.entityShadows = !Vibrancy.config.blockLights.entityShadows
+                Vibrancy.config.blockLights.raytraced.entityShadows = !Vibrancy.config.blockLights.raytraced.entityShadows
                 Vibrancy.config.save()
                 feedback.accept(Component.translatable("debug.vibrancy.toggle_entity_shadows"))
             }

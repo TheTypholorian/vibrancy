@@ -12,6 +12,7 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
+import net.minecraft.world.phys.AABB
 import net.typho.big_shot_lib.BigShotLib
 import net.typho.big_shot_lib.api.ITexture
 import net.typho.big_shot_lib.api.impl.NeoShader
@@ -25,6 +26,7 @@ import net.typho.vibrancy.shadows.ShadowMesher
 import net.typho.vibrancy.shadows.entity.EntityShadowCollector
 import net.typho.vibrancy.util.PointLight
 import org.joml.Matrix4f
+import org.joml.Vector2f
 import org.joml.Vector4f
 import java.util.*
 import java.util.function.Consumer
@@ -62,7 +64,7 @@ open class LightManager {
 
     fun createShadowMesher(light: PointLight): ShadowMesher? {
         return light.getShadowBox()?.let { box ->
-            if (Vibrancy.config.forNerds.useGreedyMeshing) ShadowGreedyMesher(box) else BasicShadowMesher()
+            if (Vibrancy.config.forNerds.useGreedyMeshing.get()) ShadowGreedyMesher(box) else BasicShadowMesher()
         }
     }
 
@@ -95,19 +97,17 @@ open class LightManager {
         old: BlockState,
         new: BlockState
     ) {
-        if (Vibrancy.config.blockLights.enabled) {
-            ensureStorageInitialized()
+        ensureStorageInitialized()
 
-            val oldLight = BlockLightRegistry.get(old.block)
-            val newLight = BlockLightRegistry.get(new.block)
+        val oldLight = BlockLightRegistry.get(old.block)
+        val newLight = BlockLightRegistry.get(new.block)
 
-            if (oldLight != null) {
-                blockLights[oldLight.type()]!!.removeLight(this, pos)
-            }
+        if (oldLight != null) {
+            blockLights[oldLight.type()]!!.removeLight(this, pos)
+        }
 
-            if (newLight != null) {
-                addBlockLight(pos, new, newLight)
-            }
+        if (newLight != null) {
+            addBlockLight(pos, new, newLight)
         }
 
         dirtyBlocks.add(GlobalPos(level.dimension(), pos))
@@ -207,38 +207,21 @@ open class LightManager {
         out.accept("${entityShadows.numBlockEntities} block entities")
     }
 
-    fun inFrustum(light: BlockLight<*, *>): Boolean {
-        return !Vibrancy.config.forNerds.useFrustumCulling || getCullingFrustum().isVisible(light.getBoundingBox())
+    fun inFrustum(box: AABB): Boolean {
+        return !Vibrancy.config.forNerds.useFrustumCulling || getCullingFrustum().isVisible(box)
     }
 
-    protected fun cullDistanceBlocksSquared(): Int {
-        val chunks = Vibrancy.config.blockLights.lightCullDistance.get()
-        return chunks * chunks * 16 * 16
+    fun inRenderDistance(pos: BlockPos, distance: Int): Boolean {
+        return pos.distSqr(getCamera().blockPosition) <= distance * distance * 16 * 16
     }
 
-    protected fun raytraceDistanceBlocksSquared(): Int {
-        val chunks = Vibrancy.config.blockLights.raytraceDistance.get()
-        return chunks * chunks * 16 * 16
+    fun inRenderDistance(pos: ChunkPos, distance: Int): Boolean {
+        val centerChunk = Vector2f(pos.middleBlockX.toFloat(), pos.middleBlockZ.toFloat())
+        val camera = getCamera().blockPosition.center.toVector3f()
+        return centerChunk.distanceSquared(Vector2f(camera.x, camera.z)) <= distance * distance * 16 * 16
     }
 
-    fun getSortingOrder(light: BlockLight<*, *>): Double {
-        return light.getBlockPos()?.distSqr(getCamera().blockPosition) ?: 0.0
-    }
-
-    fun inRenderDistance(light: BlockLight<*, *>): Boolean {
-        return (light.getBlockPos()?.distSqr(getCamera().blockPosition) ?: 0.0) < cullDistanceBlocksSquared()
-                && inFrustum(light)
-    }
-
-    fun inRenderDistance(chunk: ChunkPos): Boolean {
-        return chunk.getMiddleBlockPosition(getCamera().blockPosition.y).distSqr(getCamera().blockPosition) < cullDistanceBlocksSquared()
-    }
-
-    fun inRaytraceDistance(light: BlockLight<*, *>): Boolean {
-        return (light.getBlockPos()?.distSqr(getCamera().blockPosition) ?: 0.0) < raytraceDistanceBlocksSquared()
-    }
-
-    fun inRaytraceDistance(chunk: ChunkPos): Boolean {
-        return chunk.getMiddleBlockPosition(getCamera().blockPosition.y).distSqr(getCamera().blockPosition) < raytraceDistanceBlocksSquared()
+    fun getSortingOrder(pos: BlockPos): Double {
+        return pos.distSqr(getCamera().blockPosition)
     }
 }

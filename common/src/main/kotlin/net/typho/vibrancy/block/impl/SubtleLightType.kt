@@ -44,41 +44,43 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight, SubtleLigh
     override fun createStorage() = SubtleLightStorage()
 
     override fun render(manager: LightManager, lights: SubtleLightStorage): BlockRenderResult {
-        lights.checkDirty(manager)
-
         val result = BlockRenderResult()
 
-        GlStack().use { stack ->
-            stack.disable(GlCapability.DEPTH_TEST)
-            stack.disable(GlCapability.STENCIL_TEST)
-            stack.enable(GlCapability.CULL_FACE)
-            stack.set(CullFace.FRONT)
-            stack.enable(GlCapability.BLEND)
-            stack.set(
-                BlendFunction(
-                    BlendFactor.ONE,
-                    BlendFactor.ONE
+        if (Vibrancy.config.blockLights.subtle.enabled) {
+            lights.checkDirty(manager)
+
+            GlStack().use { stack ->
+                stack.disable(GlCapability.DEPTH_TEST)
+                stack.disable(GlCapability.STENCIL_TEST)
+                stack.enable(GlCapability.CULL_FACE)
+                stack.set(CullFace.FRONT)
+                stack.enable(GlCapability.BLEND)
+                stack.set(
+                    BlendFunction(
+                        BlendFactor.ONE,
+                        BlendFactor.ONE
+                    )
                 )
-            )
 
-            val boxShader = NeoShader.get(Vibrancy.id("subtle_box"))!!
+                val boxShader = NeoShader.get(Vibrancy.id("subtle_box"))!!
 
-            boxShader.bind(stack)
-            boxShader.setCommonUniforms(modelViewMat = manager.getViewMatrix())
+                boxShader.bind(stack)
+                boxShader.setCommonUniforms(modelViewMat = manager.getViewMatrix())
 
-            boxShader.getUniform("IProjMat")?.set(Matrix4f(Vibrancy.iProjMat))
-            boxShader.getUniform("IModelMat")?.set(Matrix4f(Vibrancy.iModelMat))
+                boxShader.getUniform("IProjMat")?.set(Matrix4f(Vibrancy.iProjMat))
+                boxShader.getUniform("IModelMat")?.set(Matrix4f(Vibrancy.iModelMat))
 
-            boxShader.getUniform("CameraPos")?.set(Vibrancy.camera)
-            boxShader.getUniform("LightRadius")?.set(4f)
+                boxShader.getUniform("CameraPos")?.set(Vibrancy.camera)
+                boxShader.getUniform("LightRadius")?.set(4f)
 
-            boxShader.setSampler("VibrancyWorldPosSampler", Vibrancy.WORLD_POS_FBO.colorAttachments[0] as ITexture)
+                boxShader.setSampler("VibrancyWorldPosSampler", Vibrancy.WORLD_POS_FBO.colorAttachments[0] as ITexture)
 
-            for (mesh in lights.meshes.values) {
-                result.add(mesh.render(manager, stack))
+                for (mesh in lights.meshes.values) {
+                    result.add(mesh.render(manager, stack))
+                }
+
+                VertexBuffer.unbind()
             }
-
-            VertexBuffer.unbind()
         }
 
         return result

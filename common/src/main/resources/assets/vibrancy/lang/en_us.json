@@ -2,21 +2,34 @@
   "vibrancy.config": "Vibrancy Config",
 
   "vibrancy.config.blockLights": "Block Lights",
-  "vibrancy.config.blockLights.enabled": "Enabled",
-  "vibrancy.config.blockLights.brightness": "Brightness",
-  "vibrancy.config.blockLights.brightness.prefix": "Linear multiplier for the brightness of all block lights. Does not affect their radius.",
-  "vibrancy.config.blockLights.entityShadows": "Entity Shadows",
-  "vibrancy.config.blockLights.entityShadows.prefix": "Whether block lights cast entity shadows.",
-  "vibrancy.config.blockLights.raytraceDistance": "Raytrace Distance",
-  "vibrancy.config.blockLights.raytraceDistance.prefix": "The radius (in chunks) from the camera where block lights will cast shadows.",
-  "vibrancy.config.blockLights.lightCullDistance": "Light Cull Distance",
-  "vibrancy.config.blockLights.lightCullDistance.prefix": "The radius (in chunks) from the camera where block lights will be visible.",
-  "vibrancy.config.blockLights.shadowRadius": "Shadow Radius",
-  "vibrancy.config.blockLights.shadowRadius.prefix": "The radius (in blocks) from each block light where blocks will cast shadows.",
-  "vibrancy.config.blockLights.maxRendered": "Max Rendered",
-  "vibrancy.config.blockLights.maxRendered.prefix": "The maximum number of block lights that will be rendered, closest lights first.",
-  "vibrancy.config.blockLights.maxRaytraced": "Max Raytraced",
-  "vibrancy.config.blockLights.maxRaytraced.prefix": "The maximum number of block lights that will cast shadows, closest lights first.",
+
+  "vibrancy.config.blockLights.raytraced": "Raytraced",
+
+  "vibrancy.config.blockLights.raytraced.enabled": "Enabled",
+  "vibrancy.config.blockLights.raytraced.brightness": "Brightness",
+  "vibrancy.config.blockLights.raytraced.brightness.prefix": "Linear multiplier for the brightness of all block lights. Does not affect their radius.",
+  "vibrancy.config.blockLights.raytraced.entityShadows": "Entity Shadows",
+  "vibrancy.config.blockLights.raytraced.entityShadows.prefix": "Whether block lights cast entity shadows.",
+  "vibrancy.config.blockLights.raytraced.raytraceDistance": "Raytrace Distance",
+  "vibrancy.config.blockLights.raytraced.raytraceDistance.prefix": "The radius (in chunks) from the camera where block lights will cast shadows.",
+  "vibrancy.config.blockLights.raytraced.renderDistance": "Render Distance",
+  "vibrancy.config.blockLights.raytraced.renderDistance.prefix": "The radius (in chunks) from the camera where block lights will be visible.",
+  "vibrancy.config.blockLights.raytraced.shadowRadius": "Shadow Radius",
+  "vibrancy.config.blockLights.raytraced.shadowRadius.prefix": "The radius (in blocks) from each block light where blocks will cast shadows.",
+  "vibrancy.config.blockLights.raytraced.maxRendered": "Max Rendered",
+  "vibrancy.config.blockLights.raytraced.maxRendered.prefix": "The maximum number of block lights that will be rendered, closest lights first.",
+  "vibrancy.config.blockLights.raytraced.maxRaytraced": "Max Raytraced",
+  "vibrancy.config.blockLights.raytraced.maxRaytraced.prefix": "The maximum number of block lights that will cast shadows, closest lights first.",
+
+  "vibrancy.config.blockLights.subtle": "Subtle",
+
+  "vibrancy.config.blockLights.subtle.enabled": "Enabled",
+  "vibrancy.config.blockLights.subtle.brightness": "Brightness",
+  "vibrancy.config.blockLights.subtle.brightness.prefix": "Linear multiplier for the brightness of all block lights. Does not affect their radius.",
+  "vibrancy.config.blockLights.subtle.renderDistance": "Render Distance",
+  "vibrancy.config.blockLights.subtle.renderDistance.prefix": "The radius (in chunks) from the camera where block lights will be visible.",
+  "vibrancy.config.blockLights.subtle.maxRaytraced": "Max Raytraced",
+  "vibrancy.config.blockLights.subtle.maxRaytraced.prefix": "The maximum number of block lights that will cast shadows, closest lights first.",
 
   "vibrancy.config.skyLights": "Sky Lights",
   "vibrancy.config.skyLights.enabled": "Enabled",
@@ -27,10 +40,5 @@
   "vibrancy.config.forNerds.useGreedyMeshing": "Use Greedy Meshing",
 
   "debug.vibrancy.rebuild_all_shadows": "[F4 + R] Reloaded all shadows",
-  "debug.vibrancy.toggle_entity_shadows": "[F4 + E] Toggled entity shadows",
-
-  "vibrancy.resource_pack.raytraced_lights": "Builtin Vibrancy Raytraced Lights",
-  "vibrancy.resource_pack.raytraced_lights.desc": "Requires relog to update properly",
-  "vibrancy.resource_pack.subtle_lights": "Builtin Vibrancy Subtle Lights",
-  "vibrancy.resource_pack.subtle_lights.desc": "Requires relog to update properly"
+  "debug.vibrancy.toggle_entity_shadows": "[F4 + E] Toggled entity shadows"
 }

@@ -46,38 +46,45 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, Hash
     ): BlockRenderResult {
         val result = BlockRenderResult()
 
-        GlStack().use { stack ->
-            stack.disable(GlCapability.DEPTH_TEST)
-            stack.enable(GlCapability.STENCIL_TEST)
-            stack.enable(GlCapability.CULL_FACE)
-            stack.set(CullFace.BACK)
-            stack.enable(GlCapability.BLEND)
-            stack.set(
-                BlendFunction(
-                    BlendFactor.ONE,
-                    BlendFactor.ONE
+        if (Vibrancy.config.blockLights.raytraced.enabled) {
+            GlStack().use { stack ->
+                stack.disable(GlCapability.DEPTH_TEST)
+                stack.enable(GlCapability.STENCIL_TEST)
+                stack.enable(GlCapability.CULL_FACE)
+                stack.set(CullFace.BACK)
+                stack.enable(GlCapability.BLEND)
+                stack.set(
+                    BlendFunction(
+                        BlendFactor.ONE,
+                        BlendFactor.ONE
+                    )
                 )
-            )
-            stack.set(StencilMask, LightManager.SHADOW_STENCIL_MASK)
-            stack.set(
-                StencilFunc(
-                    ComparisonMode.NOTEQUAL,
-                    LightManager.SHADOW_STENCIL_MASK,
-                    LightManager.SHADOW_STENCIL_MASK
+                stack.set(StencilMask, LightManager.SHADOW_STENCIL_MASK)
+                stack.set(
+                    StencilFunc(
+                        ComparisonMode.NOTEQUAL,
+                        LightManager.SHADOW_STENCIL_MASK,
+                        LightManager.SHADOW_STENCIL_MASK
+                    )
                 )
-            )
 
-            lights.map.values.stream()
-                .filter { light -> manager.inRenderDistance(light) }
-                .limit(Vibrancy.config.blockLights.maxRendered.toLong())
-                .sorted(Comparator.comparingDouble { light -> manager.getSortingOrder(light) })
-                .forEach { light ->
-                    result.add(light.render(
-                        manager,
-                        result.numRaytraced < Vibrancy.config.blockLights.maxRaytraced,
-                        stack
-                    ))
-                }
+                lights.map.values.stream()
+                    .filter { light ->
+                        manager.inRenderDistance(light.pos, Vibrancy.config.blockLights.raytraced.renderDistance.get())
+                                && manager.inFrustum(light.getBoundingBox())
+                    }
+                    .limit(Vibrancy.config.blockLights.raytraced.maxRendered.get().toLong())
+                    .sorted(Comparator.comparingDouble { light -> manager.getSortingOrder(light.pos) })
+                    .forEach { light ->
+                        result.add(
+                            light.render(
+                                manager,
+                                result.numRaytraced < Vibrancy.config.blockLights.raytraced.maxRaytraced.get(),
+                                stack
+                            )
+                        )
+                    }
+            }
         }
 
         return result

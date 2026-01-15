@@ -46,7 +46,7 @@ class RayPointLight(
         VertexBuffer.Usage.STATIC,
         Minecraft.getInstance().modelManager.getAtlas(InventoryMenu.BLOCK_ATLAS).id
     )
-    val box by lazy {
+    val boxBuffer by lazy {
         val builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX)
         builder.cube(getBoundingBox())
 
@@ -83,7 +83,7 @@ class RayPointLight(
     }
 
     override fun getShadowBox(): BlockBox {
-        val shadowRadius = ceil(radius.coerceAtMost(Vibrancy.config.blockLights.shadowRadius.toFloat())).toInt()
+        val shadowRadius = ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.shadowRadius.get().toFloat())).toInt()
         return BlockBox.of(
             BlockPos(pos.x - shadowRadius, pos.y - shadowRadius, pos.z - shadowRadius),
             BlockPos(pos.x + shadowRadius, pos.y + shadowRadius, pos.z + shadowRadius)
@@ -102,7 +102,7 @@ class RayPointLight(
 
     override fun free(manager: LightManager) {
         shadows.free()
-        box.close()
+        boxBuffer.close()
     }
 
     override fun shouldCastBlock(
@@ -144,7 +144,7 @@ class RayPointLight(
         return pos.distSqr(this.pos) <= radius * radius
     }
 
-    override fun getEntityShadowBox(): AABB? = if (Vibrancy.config.blockLights.entityShadows) getBoundingBox() else null
+    override fun getEntityShadowBox(): AABB? = if (Vibrancy.config.blockLights.raytraced.entityShadows) getBoundingBox() else null
 
     fun render(manager: LightManager, raytrace: Boolean, stack: GlStack): BlockRenderResult {
         for (pos in manager.dirtyBlocks) {
@@ -218,8 +218,8 @@ class RayPointLight(
         )
         stack.set(CullFace.FRONT)
 
-        box.bind()
-        box.draw()
+        boxBuffer.bind()
+        boxBuffer.draw()
         VertexBuffer.unbind()
 
         return BlockRenderResult(
