@@ -23,16 +23,22 @@ import org.lwjgl.opengl.GL30.*
 
 object VibrancyDynamicBuffers : ShaderMixinCallback {
     private var initialized = false
+
     @JvmField
     var normalsLocation: Int = 0
+
     @JvmField
     var normalsTexture: ITexture? = null
+
     @JvmField
     var albedoLocation: Int = 0
+
     @JvmField
     var albedoTexture: ITexture? = null
+
     @JvmField
     var lightUVLocation: Int = 0
+
     @JvmField
     var lightUVTexture: ITexture? = null
 
@@ -48,7 +54,8 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
     @JvmStatic
     fun init(width: Int, height: Int) {
         normalsLocation = pickAvailableAttachment()!!
-        normalsTexture = NeoTexture(Vibrancy.id("dynamic_buffer/normals"), GlResourceType.TEXTURE_2D, TextureFormat.RGB16_SNORM)
+        normalsTexture =
+            NeoTexture(Vibrancy.id("dynamic_buffer/normals"), GlResourceType.TEXTURE_2D, TextureFormat.RGB16_SNORM)
 
         albedoLocation = pickAvailableAttachment(normalsLocation)!!
         albedoTexture = NeoTexture(Vibrancy.id("dynamic_buffer/albedo"), GlResourceType.TEXTURE_2D, TextureFormat.RGB)
@@ -95,12 +102,14 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
     @ApiStatus.Internal
     @JvmStatic
     fun initState() {
-        glDrawBuffers(intArrayOf(
-            GL_COLOR_ATTACHMENT0,
-            GL_COLOR_ATTACHMENT0 + normalsLocation,
-            GL_COLOR_ATTACHMENT0 + albedoLocation,
-            GL_COLOR_ATTACHMENT0 + lightUVLocation
-        ))
+        glDrawBuffers(
+            intArrayOf(
+                GL_COLOR_ATTACHMENT0,
+                GL_COLOR_ATTACHMENT0 + normalsLocation,
+                GL_COLOR_ATTACHMENT0 + albedoLocation,
+                GL_COLOR_ATTACHMENT0 + lightUVLocation
+            )
+        )
         glDisablei(GL_BLEND, normalsLocation)
         glDisablei(GL_BLEND, albedoLocation)
         glDisablei(GL_BLEND, lightUVLocation)
@@ -133,6 +142,13 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
         locations: ShaderLocationsInfo
     ) {
         if (shader == ResourceLocation.withDefaultNamespace("rendertype_lines")) {
+            return
+        }
+
+        if (shader == ResourceLocation.withDefaultNamespace("rendertype_end_portal")) {
+            if (type == ShaderType.FRAGMENT) {
+            }
+
             return
         }
 
@@ -321,6 +337,44 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
                                     .putInt(tempVar)
                                     .build()
                             )
+
+                            if (format.contains(VertexFormatElement.COLOR)) {
+                                val colorVar = context.locateVariable(
+                                    name = format.getElementName(VertexFormatElement.COLOR)
+                                )
+
+                                if (colorVar != null) {
+                                    val vec4 = ShaderVectorType(ShaderPrimitiveType.FLOAT_32, 4).findOrInject(context)
+
+                                    val colorOutput = context.addStaticVar(3, vec4, "VibrancyVertexColor")
+                                    context.addEntrypointVars(colorOutput.id)
+
+                                    val colorLocation = locations.getMapper(3, type)!!.map("VibrancyVertexColor")
+                                    context.inject(
+                                        context.locateOpcode(Opcode.OP_DECORATE)!!.index,
+                                        Opcode.Builder(Opcode.OP_DECORATE)
+                                            .putInt(colorOutput.id)
+                                            .putInt(30) // Location
+                                            .putInt(colorLocation)
+                                            .build()
+                                    )
+
+                                    val tempColorVar = context.bound++
+                                    context.putBound()
+                                    context.inject(
+                                        context.locateOpcodeInMethod(Opcode.OP_RETURN, "main")!!.index,
+                                        Opcode.Builder(Opcode.OP_LOAD)
+                                            .putInt(vec4)
+                                            .putInt(tempColorVar)
+                                            .putInt(colorVar.id)
+                                            .build(),
+                                        Opcode.Builder(Opcode.OP_STORE)
+                                            .putInt(colorOutput.id)
+                                            .putInt(tempColorVar)
+                                            .build()
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -459,34 +513,93 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
                                         .build()
                                 )
 
-                                val tempSamplerVar = context.bound++
-                                val tempTexCoordVar = context.bound++
-                                val tempResultVar = context.bound++
-                                context.putBound()
-                                context.inject(
-                                    context.locateOpcodeInMethod(Opcode.OP_RETURN, "main")!!.index,
-                                    Opcode.Builder(Opcode.OP_LOAD)
-                                        .putInt(sampler0Var.type)
-                                        .putInt(tempSamplerVar)
-                                        .putInt(sampler0Var.id)
-                                        .build(),
+                                val vertexColorLocation = mapper.map.get("VibrancyVertexColor")
 
-                                    Opcode.Builder(Opcode.OP_LOAD)
-                                        .putInt(vec4)
-                                        .putInt(tempTexCoordVar)
-                                        .putInt(input.id)
-                                        .build(),
-                                    Opcode.Builder(Opcode.OP_IMAGE_SAMPLE_IMPLICIT_LOD)
-                                        .putInt(vec4)
-                                        .putInt(tempResultVar)
-                                        .putInt(tempSamplerVar)
-                                        .putInt(tempTexCoordVar)
-                                        .build(),
-                                    Opcode.Builder(Opcode.OP_STORE)
-                                        .putInt(output.id)
-                                        .putInt(tempResultVar)
-                                        .build()
-                                )
+                                if (vertexColorLocation != null) {
+                                    val vertexColor = context.addStaticVar(1, vec4, "VibrancyVertexColor")
+
+                                    context.inject(
+                                        context.locateOpcode(Opcode.OP_DECORATE)!!.index,
+                                        Opcode.Builder(Opcode.OP_DECORATE)
+                                            .putInt(vertexColor.id)
+                                            .putInt(30) // Location
+                                            .putInt(vertexColorLocation)
+                                            .build()
+                                    )
+
+                                    val tempSamplerVar = context.bound++
+                                    val tempTexCoordVar = context.bound++
+                                    val tempColorVar = context.bound++
+                                    val tempPreResultVar = context.bound++
+                                    val tempResultVar = context.bound++
+                                    context.putBound()
+                                    context.inject(
+                                        context.locateOpcodeInMethod(Opcode.OP_RETURN, "main")!!.index,
+                                        Opcode.Builder(Opcode.OP_LOAD)
+                                            .putInt(sampler0Var.type)
+                                            .putInt(tempSamplerVar)
+                                            .putInt(sampler0Var.id)
+                                            .build(),
+                                        Opcode.Builder(Opcode.OP_LOAD)
+                                            .putInt(vertexColor.type)
+                                            .putInt(tempColorVar)
+                                            .putInt(vertexColor.id)
+                                            .build(),
+                                        Opcode.Builder(Opcode.OP_LOAD)
+                                            .putInt(vec4)
+                                            .putInt(tempTexCoordVar)
+                                            .putInt(input.id)
+                                            .build(),
+
+                                        Opcode.Builder(Opcode.OP_IMAGE_SAMPLE_IMPLICIT_LOD)
+                                            .putInt(vec4)
+                                            .putInt(tempPreResultVar)
+                                            .putInt(tempSamplerVar)
+                                            .putInt(tempTexCoordVar)
+                                            .build(),
+                                        Opcode.Builder(Opcode.OP_F_MUL)
+                                            .putInt(vec4)
+                                            .putInt(tempResultVar)
+                                            .putInt(tempPreResultVar)
+                                            .putInt(tempColorVar)
+                                            .build(),
+
+                                        Opcode.Builder(Opcode.OP_STORE)
+                                            .putInt(output.id)
+                                            .putInt(tempResultVar)
+                                            .build()
+                                    )
+                                } else {
+                                    val tempSamplerVar = context.bound++
+                                    val tempTexCoordVar = context.bound++
+                                    val tempResultVar = context.bound++
+                                    context.putBound()
+                                    context.inject(
+                                        context.locateOpcodeInMethod(Opcode.OP_RETURN, "main")!!.index,
+                                        Opcode.Builder(Opcode.OP_LOAD)
+                                            .putInt(sampler0Var.type)
+                                            .putInt(tempSamplerVar)
+                                            .putInt(sampler0Var.id)
+                                            .build(),
+                                        Opcode.Builder(Opcode.OP_LOAD)
+                                            .putInt(vec4)
+                                            .putInt(tempTexCoordVar)
+                                            .putInt(input.id)
+                                            .build(),
+
+                                        Opcode.Builder(Opcode.OP_IMAGE_SAMPLE_IMPLICIT_LOD)
+                                            .putInt(vec4)
+                                            .putInt(tempResultVar)
+                                            .putInt(tempSamplerVar)
+                                            .putInt(tempTexCoordVar)
+                                            .build(),
+
+                                        Opcode.Builder(Opcode.OP_STORE)
+                                            .putInt(output.id)
+                                            .putInt(tempResultVar)
+                                            .build()
+                                    )
+                                }
                             }
                         }
                     }
