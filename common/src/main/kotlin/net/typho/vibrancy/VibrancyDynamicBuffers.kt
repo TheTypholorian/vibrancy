@@ -3,6 +3,7 @@ package net.typho.vibrancy
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.VertexFormat
 import com.mojang.blaze3d.vertex.VertexFormatElement
+import net.minecraft.client.renderer.RenderType
 import net.minecraft.resources.ResourceLocation
 import net.typho.big_shot_lib.api.ITexture
 import net.typho.big_shot_lib.api.impl.NeoTexture
@@ -13,6 +14,7 @@ import net.typho.big_shot_lib.spirv.Opcode
 import net.typho.big_shot_lib.spirv.ShaderLocationsInfo
 import net.typho.big_shot_lib.spirv.ShaderMixinCallback
 import net.typho.big_shot_lib.spirv.ShaderMixinContext
+import net.typho.big_shot_lib.spirv.ShaderMixinContext.Companion.WORD_SIZE_BYTES
 import net.typho.big_shot_lib.spirv.vars.ShaderPrimitiveType
 import net.typho.big_shot_lib.spirv.vars.ShaderVariable
 import net.typho.big_shot_lib.spirv.vars.ShaderVectorType
@@ -42,6 +44,25 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
     @JvmField
     var lightUVTexture: ITexture? = null
 
+    @JvmField
+    val noVertexColor = HashSet<ResourceLocation>(
+        RenderType.chunkBufferLayers()
+            .filterIsInstance<RenderType.CompositeRenderType>()
+            .mapNotNull { type ->
+                type.state().shaderState.shader.map { shader ->
+                    ResourceLocation.withDefaultNamespace(shader.get().name)
+                }.orElse(null)
+            }
+    )
+    @JvmField
+    val exclude = HashSet<ResourceLocation>(listOf(
+        ResourceLocation.withDefaultNamespace("rendertype_lines")
+    ))
+    @JvmField
+    val builtin = HashSet<ResourceLocation>(listOf(
+        ResourceLocation.withDefaultNamespace("rendertype_end_portal")
+    ))
+
     init {
         RenderSystem.recordRenderCall {
             if (glGetInteger(GL_MAX_DRAW_BUFFERS) < 4) {
@@ -54,8 +75,7 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
     @JvmStatic
     fun init(width: Int, height: Int) {
         normalsLocation = pickAvailableAttachment()!!
-        normalsTexture =
-            NeoTexture(Vibrancy.id("dynamic_buffer/normals"), GlResourceType.TEXTURE_2D, TextureFormat.RGB16_SNORM)
+        normalsTexture = NeoTexture(Vibrancy.id("dynamic_buffer/normals"), GlResourceType.TEXTURE_2D, TextureFormat.RGB16_SNORM)
 
         albedoLocation = pickAvailableAttachment(normalsLocation)!!
         albedoTexture = NeoTexture(Vibrancy.id("dynamic_buffer/albedo"), GlResourceType.TEXTURE_2D, TextureFormat.RGB)
@@ -141,12 +161,54 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
         context: ShaderMixinContext,
         locations: ShaderLocationsInfo
     ) {
-        if (shader == ResourceLocation.withDefaultNamespace("rendertype_lines")) {
+        if (exclude.contains(shader)) {
             return
         }
 
-        if (shader == ResourceLocation.withDefaultNamespace("rendertype_end_portal")) {
+        if (builtin.contains(shader)) {
             if (type == ShaderType.FRAGMENT) {
+                context.locateVariable(name = "VibrancyFragmentNormal")?.let { normal ->
+                    for (opcode in context) {
+                        if (opcode.id == Opcode.OP_DECORATE) {
+                            val id = context.code.getInt((opcode.index + 1) * WORD_SIZE_BYTES)
+                            val decoration = context.code.getInt((opcode.index + 2) * WORD_SIZE_BYTES)
+
+                            if (id == normal.id && decoration == 30) { // Location
+                                val index = (opcode.index + 3) * WORD_SIZE_BYTES
+                                context.code.putInt(index, normalsLocation)
+                                break
+                            }
+                        }
+                    }
+                }
+                context.locateVariable(name = "VibrancyFragmentLight")?.let { light ->
+                    for (opcode in context) {
+                        if (opcode.id == Opcode.OP_DECORATE) {
+                            val id = context.code.getInt((opcode.index + 1) * WORD_SIZE_BYTES)
+                            val decoration = context.code.getInt((opcode.index + 2) * WORD_SIZE_BYTES)
+
+                            if (id == light.id && decoration == 30) { // Location
+                                val index = (opcode.index + 3) * WORD_SIZE_BYTES
+                                context.code.putInt(index, lightUVLocation)
+                                break
+                            }
+                        }
+                    }
+                }
+                context.locateVariable(name = "VibrancyFragmentAlbedo")?.let { albedo ->
+                    for (opcode in context) {
+                        if (opcode.id == Opcode.OP_DECORATE) {
+                            val id = context.code.getInt((opcode.index + 1) * WORD_SIZE_BYTES)
+                            val decoration = context.code.getInt((opcode.index + 2) * WORD_SIZE_BYTES)
+
+                            if (id == albedo.id && decoration == 30) { // Location
+                                val index = (opcode.index + 3) * WORD_SIZE_BYTES
+                                context.code.putInt(index, albedoLocation)
+                                break
+                            }
+                        }
+                    }
+                }
             }
 
             return
@@ -338,7 +400,7 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
                                     .build()
                             )
 
-                            if (format.contains(VertexFormatElement.COLOR)) {
+                            if (format.contains(VertexFormatElement.COLOR) && !noVertexColor.contains(shader)) {
                                 val colorVar = context.locateVariable(
                                     name = format.getElementName(VertexFormatElement.COLOR)
                                 )
