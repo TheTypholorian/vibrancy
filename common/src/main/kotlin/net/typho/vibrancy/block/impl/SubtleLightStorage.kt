@@ -143,7 +143,7 @@ class SubtleLightStorage : BlockLightStorage<SubtleLightInfo> {
             mesh.box = box
 
             mesh.vbo.bind()
-            mesh.vbo.upload(builder.build()!!)
+            mesh.vbo.upload(builder.buildOrThrow())
             VertexBuffer.unbind()
 
             mesh.ssbo.bind()

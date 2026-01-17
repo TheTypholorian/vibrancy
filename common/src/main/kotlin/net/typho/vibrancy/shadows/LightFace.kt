@@ -3,6 +3,7 @@ package net.typho.vibrancy.shadows
 import com.mojang.blaze3d.vertex.VertexConsumer
 import net.minecraft.client.renderer.block.model.BakedQuad
 import net.minecraft.core.BlockPos
+import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.util.TextureCoordinates
 import org.joml.Vector2f
 import org.joml.Vector3f
@@ -18,6 +19,23 @@ data class LightFace(
         consumer.addVertex(vertex2).setUv(texture.uv1.x, texture.uv1.y)
         consumer.addVertex(vertex3).setUv(texture.uv2.x, texture.uv2.y)
         consumer.addVertex(vertex4).setUv(texture.uv3.x, texture.uv3.y)
+    }
+
+    fun buildLines(consumer: VertexConsumer, offset: Vector3f) {
+        consumer.addVertex(Vector3f(vertex1).add(offset)).setColor(0f, 1f, 0f, 1f).setNormal(0f, 1f, 0f)
+        consumer.addVertex(Vector3f(vertex2).add(offset)).setColor(0f, 1f, 0f, 1f).setNormal(0f, 1f, 0f)
+
+        consumer.addVertex(Vector3f(vertex2).add(offset)).setColor(0f, 1f, 0f, 1f).setNormal(0f, 1f, 0f)
+        consumer.addVertex(Vector3f(vertex3).add(offset)).setColor(0f, 1f, 0f, 1f).setNormal(0f, 1f, 0f)
+
+        consumer.addVertex(Vector3f(vertex3).add(offset)).setColor(0f, 1f, 0f, 1f).setNormal(0f, 1f, 0f)
+        consumer.addVertex(Vector3f(vertex4).add(offset)).setColor(0f, 1f, 0f, 1f).setNormal(0f, 1f, 0f)
+
+        consumer.addVertex(Vector3f(vertex4).add(offset)).setColor(0f, 1f, 0f, 1f).setNormal(0f, 1f, 0f)
+        consumer.addVertex(Vector3f(vertex1).add(offset)).setColor(0f, 1f, 0f, 1f).setNormal(0f, 1f, 0f)
+
+        consumer.addVertex(Vector3f(vertex1).add(offset)).setColor(1f, 0f, 0f, 1f).setNormal(0f, 1f, 0f)
+        consumer.addVertex(Vector3f(vertex3).add(offset)).setColor(1f, 0f, 0f, 1f).setNormal(0f, 1f, 0f)
     }
 
     companion object {

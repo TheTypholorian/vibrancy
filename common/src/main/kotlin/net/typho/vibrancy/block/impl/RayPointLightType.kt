@@ -3,6 +3,8 @@ package net.typho.vibrancy.block.impl
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
+import net.minecraft.client.Minecraft
+import net.minecraft.client.renderer.RenderType
 import net.minecraft.util.ExtraCodecs
 import net.minecraft.world.level.block.state.StateDefinition
 import net.typho.big_shot_lib.gl.GlStack
@@ -75,7 +77,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, Hash
                     }
                     .limit(Vibrancy.config.blockLights.raytraced.maxRendered.get().toLong())
                     .sorted(Comparator.comparingDouble { light -> manager.getSortingOrder(light.pos) })
-                    .forEach { light ->
+                    .forEachOrdered { light ->
                         result.add(
                             light.render(
                                 manager,
@@ -88,5 +90,24 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, Hash
         }
 
         return result
+    }
+
+    override fun renderDebug(
+        manager: LightManager,
+        lights: HashMapBlockLightStorage<RayPointLightInfo, RayPointLight>
+    ) {
+        lights.map.values.stream()
+            .filter { light ->
+                manager.inRenderDistance(light.pos, Vibrancy.config.blockLights.raytraced.renderDistance.get())
+                        && manager.inFrustum(light.getBoundingBox())
+            }
+            .limit(Vibrancy.config.blockLights.raytraced.maxRendered.get().toLong())
+            .sorted(Comparator.comparingDouble { light -> manager.getSortingOrder(light.pos) })
+            .forEachOrdered { light ->
+                light.shadows.renderDebug(
+                    manager,
+                    Minecraft.getInstance().renderBuffers().bufferSource().getBuffer(RenderType.lines())
+                )
+            }
     }
 }

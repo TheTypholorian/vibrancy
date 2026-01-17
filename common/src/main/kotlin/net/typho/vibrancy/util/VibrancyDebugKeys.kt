@@ -11,6 +11,11 @@ object VibrancyDebugKeys {
     @JvmStatic
     fun action(key: Int, feedback: Consumer<Component>) {
         when (key) {
+            InputConstants.KEY_D -> {
+                Vibrancy.LIGHT_MANAGER.debugMode = !Vibrancy.LIGHT_MANAGER.debugMode
+                Vibrancy.LIGHT_MANAGER.rebuildAllShadows()
+                feedback.accept(Component.translatable("debug.vibrancy.debug_mode"))
+            }
             InputConstants.KEY_R -> {
                 Vibrancy.LIGHT_MANAGER.rebuildAllShadows()
                 feedback.accept(Component.translatable("debug.vibrancy.rebuild_all_shadows"))

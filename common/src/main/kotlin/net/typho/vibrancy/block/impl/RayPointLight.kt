@@ -53,7 +53,7 @@ class RayPointLight(
         val vbo = VertexBuffer(VertexBuffer.Usage.STATIC)
 
         vbo.bind()
-        vbo.upload(builder.build()!!)
+        vbo.upload(builder.buildOrThrow())
         VertexBuffer.unbind()
 
         return@lazy vbo
@@ -138,7 +138,7 @@ class RayPointLight(
 
         val sideState = level.getBlockState(sidePos)
 
-        return true//!(state.isSolidRender(level, pos) && sideState.isSolidRender(level, pos))
+        return !(state.isSolidRender(level, pos) && sideState.isSolidRender(level, pos))
     }
 
     override fun isInRange(pos: BlockPos): Boolean {
@@ -160,7 +160,7 @@ class RayPointLight(
             shadowsDirty = false
         }
 
-        shadows.checkIfFinished()
+        shadows.checkIfFinished(manager)
 
         glClear(GL_STENCIL_BUFFER_BIT)
 

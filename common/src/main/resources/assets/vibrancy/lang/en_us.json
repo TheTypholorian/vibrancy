@@ -4,7 +4,6 @@
   "vibrancy.config.blockLights": "Block Lights",
 
   "vibrancy.config.blockLights.raytraced": "Raytraced",
-
   "vibrancy.config.blockLights.raytraced.enabled": "Enabled",
   "vibrancy.config.blockLights.raytraced.brightness": "Brightness",
   "vibrancy.config.blockLights.raytraced.brightness.prefix": "Linear multiplier for the brightness of all block lights. Does not affect their radius.",
@@ -22,7 +21,6 @@
   "vibrancy.config.blockLights.raytraced.maxRaytraced.prefix": "The maximum number of block lights that will cast shadows, closest lights first.",
 
   "vibrancy.config.blockLights.subtle": "Subtle",
-
   "vibrancy.config.blockLights.subtle.enabled": "Enabled",
   "vibrancy.config.blockLights.subtle.brightness": "Brightness",
   "vibrancy.config.blockLights.subtle.brightness.prefix": "Linear multiplier for the brightness of all block lights. Does not affect their radius.",
@@ -40,6 +38,11 @@
   "vibrancy.config.forNerds.useGreedyMeshing": "Use Greedy Meshing",
   "vibrancy.config.forNerds.useExtraGreedyMeshing": "Use Extra Greedy Meshing",
 
+  "vibrancy.config.forNerds.debug": "Debug",
+  "vibrancy.config.forNerds.debug.shadows": "Shadows",
+  "vibrancy.config.forNerds.debug.shadows.prefix": "Replaces shadow rendering with lines.",
+
+  "debug.vibrancy.debug_mode": "[F4 + D] Toggled Vibrancy debug mode",
   "debug.vibrancy.rebuild_all_shadows": "[F4 + R] Reloaded all shadows",
   "debug.vibrancy.toggle_entity_shadows": "[F4 + E] Toggled entity shadows",
   "debug.vibrancy.toggle_raytraced_block_lights": "[F4 + T] Toggled raytraced block lights",

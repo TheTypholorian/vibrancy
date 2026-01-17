@@ -6,6 +6,7 @@ import me.fzzyhmstrs.fzzy_config.api.ConfigApi
 import me.fzzyhmstrs.fzzy_config.api.RegisterType
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
+import net.minecraft.client.renderer.RenderType
 import net.minecraft.resources.ResourceLocation
 import net.typho.big_shot_lib.api.ITexture
 import net.typho.big_shot_lib.api.impl.NeoFramebuffer
@@ -73,6 +74,8 @@ object Vibrancy {
 
         LIGHT_MANAGER.blitWorldPos()
 
+        WORLD_POS_FBO.unbind()
+
         OUTPUT_FBO.bind()
 
         GlStateManager._clearColor(0f, 0f, 0f, 0f)
@@ -84,6 +87,10 @@ object Vibrancy {
         VertexBuffer.unbind()
 
         LIGHT_MANAGER.blitOutput(OUTPUT_FBO.colorAttachments[0] as ITexture)
+
+        Minecraft.getInstance().mainRenderTarget.bindWrite(false)
+
+        LIGHT_MANAGER.renderDebug()
     }
 
     @JvmStatic

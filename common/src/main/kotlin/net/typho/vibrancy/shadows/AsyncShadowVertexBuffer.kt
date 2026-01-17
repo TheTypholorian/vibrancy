@@ -17,10 +17,10 @@ open class AsyncShadowVertexBuffer(
 
     fun isTaskActive() = asyncTask?.let { task -> !task.isDone } ?: false
 
-    fun checkIfFinished(): Boolean {
+    fun checkIfFinished(manager: LightManager): Boolean {
         asyncTask?.let { task ->
             if (task.isDone) {
-                upload(task.get())
+                upload(manager, task.get())
                 asyncTask = null
                 return true
             }

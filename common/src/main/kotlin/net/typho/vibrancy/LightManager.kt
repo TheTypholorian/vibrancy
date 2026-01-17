@@ -17,6 +17,7 @@ import net.typho.big_shot_lib.BigShotLib
 import net.typho.big_shot_lib.api.ITexture
 import net.typho.big_shot_lib.api.impl.NeoShader
 import net.typho.big_shot_lib.gl.GlStack
+import net.typho.big_shot_lib.gl.state.DepthMask
 import net.typho.big_shot_lib.gl.state.GlCapability
 import net.typho.vibrancy.block.*
 import net.typho.vibrancy.mixin.LevelRendererAccessor
@@ -46,6 +47,8 @@ open class LightManager {
     val blockLights = HashMap<BlockLightType<*, *, *>, BlockLightStorage<*>>()
     @JvmField
     val entityShadows = EntityShadowCollector()
+    @JvmField
+    var debugMode = false
 
     fun getTickDelta(whilePaused: Boolean = true): Float =
         Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(whilePaused)
@@ -130,6 +133,11 @@ open class LightManager {
         return type.render(this, storage as S)
     }
 
+    @Suppress("UNCHECKED_CAST")
+    protected fun <S : BlockLightStorage<*>> castAndRenderDebug(type: BlockLightType<*, *, S>, storage: BlockLightStorage<*>) {
+        type.renderDebug(this, storage as S)
+    }
+
     fun render(camera: Camera = getCamera()) {
         viewMatrix = BigShotLib.getViewMatrix(camera)
         renderResult = BlockRenderResult()
@@ -142,6 +150,14 @@ open class LightManager {
         }
 
         dirtyBlocks.clear()
+    }
+
+    fun renderDebug() {
+        if (debugMode) {
+            for (entry in blockLights) {
+                castAndRenderDebug(entry.key, entry.value)
+            }
+        }
     }
 
     fun blitWorldPos() {
@@ -170,6 +186,8 @@ open class LightManager {
         GlStack().use { stack ->
             stack.disable(GlCapability.CULL_FACE)
             stack.disable(GlCapability.BLEND)
+            stack.disable(GlCapability.DEPTH_TEST)
+            stack.set(DepthMask, false)
 
             val shader = NeoShader.get(Vibrancy.id("post"))!!
             shader.bind(stack)

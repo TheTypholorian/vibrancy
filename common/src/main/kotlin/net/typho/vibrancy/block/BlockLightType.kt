@@ -10,4 +10,7 @@ interface BlockLightType<I : BlockLightInfo<I, B>, B : BlockLight<I, B>, S : Blo
     fun createStorage(): S
 
     fun render(manager: LightManager, lights: S): BlockRenderResult
+
+    fun renderDebug(manager: LightManager, lights: S) {
+    }
 }

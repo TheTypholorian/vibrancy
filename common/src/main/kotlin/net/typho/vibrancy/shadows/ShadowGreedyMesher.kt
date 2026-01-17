@@ -9,6 +9,7 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.util.RandomSource
 import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.shadows.LightFace.Companion.toLightFace
@@ -41,7 +42,7 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
         random: RandomSource,
         predicate: ShadowPredicate
     ) {
-        if (predicate.shouldCastBlock(state, level, pos)) {
+        if (predicate.shouldCastBlock(state, level, pos) && !state.isAir) {
             if (shouldGreedyMesh(state, level, pos)) {
                 val voxel = Voxel(pos, ItemBlockRenderTypes.getChunkRenderType(state) == RenderType.solid())
                 val model = Minecraft.getInstance().blockRenderer.getBlockModel(state)
@@ -65,18 +66,20 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
         var length = 0
         var texture: TextureCoordinates? = null
         val faces = HashMap<Direction, MutableMap<BlockPos, LightFace>>()
+        val currentVoxels = LinkedList<Voxel>()
 
         fun start(pos: BlockPos, quad: BakedQuad) {
             start = pos
             length = 1
             texture = TextureCoordinates(quad.sprite)
+            currentVoxels.clear()
         }
 
-        fun end(direction: Direction) {
-            if (length > 0) {
+        fun end(direction: Direction, axis: Direction.Axis) {
+            if (length > 1) {
                 faces.computeIfAbsent(direction) { HashMap() }.put(
                     start!!,
-                    if (direction.axis == Direction.Axis.Y) {
+                    if (axis != Direction.Axis.X && (axis == Direction.Axis.Y || direction.axis == Direction.Axis.Y)) {
                         direction.createFace(
                             start!!,
                             texture!!,
@@ -90,19 +93,25 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
                         )
                     }
                 )
+
+                for (voxel in currentVoxels) {
+                    voxel.quads[direction.ordinal] = null
+                }
             }
 
             start = null
             length = 0
             texture = null
+
+            currentVoxels.clear()
         }
 
-        fun mesh(voxel: Voxel, direction: Direction) {
-            if (voxel.solid) {
+        fun mesh(voxel: Voxel?, direction: Direction, axis: Direction.Axis) {
+            if (voxel != null && voxel.solid) {
                 val quad = voxel.quads[direction.ordinal]
 
                 if (quad == null) {
-                    end(direction)
+                    end(direction, axis)
                 } else {
                     if (length == 0) {
                         start(voxel.pos, quad)
@@ -110,10 +119,10 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
                         length++
                     }
 
-                    voxel.quads[direction.ordinal] = null
+                    currentVoxels.add(voxel)
                 }
             } else {
-                end(direction)
+                end(direction, axis)
             }
         }
 
@@ -123,10 +132,10 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
 
                 for (direction in directions) {
                     for (z in box.min.z..box.max.z) {
-                        grid[x - box.min.x][y - box.min.y][z - box.min.z]?.let { voxel -> mesh(voxel, direction) }
+                        mesh(grid[x - box.min.x][y - box.min.y][z - box.min.z], direction, Direction.Axis.Z)
                     }
 
-                    end(direction)
+                    end(direction, Direction.Axis.Z)
                 }
             }
         }
@@ -137,10 +146,10 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
 
                 for (direction in directions) {
                     for (x in box.min.x..box.max.x) {
-                        grid[x - box.min.x][y - box.min.y][z - box.min.z]?.let { voxel -> mesh(voxel, direction) }
+                        mesh(grid[x - box.min.x][y - box.min.y][z - box.min.z], direction, Direction.Axis.X)
                     }
 
-                    end(direction)
+                    end(direction, Direction.Axis.X)
                 }
             }
         }
@@ -151,10 +160,10 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
 
                 for (direction in directions) {
                     for (y in box.min.y..box.max.y) {
-                        grid[x - box.min.x][y - box.min.y][z - box.min.z]?.let { voxel -> mesh(voxel, direction) }
+                        mesh(grid[x - box.min.x][y - box.min.y][z - box.min.z], direction, Direction.Axis.Y)
                     }
 
-                    end(direction)
+                    end(direction, Direction.Axis.Y)
                 }
             }
         }
