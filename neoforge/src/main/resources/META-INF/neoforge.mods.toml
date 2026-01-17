@@ -30,7 +30,7 @@ ordering = "NONE"
 side = "BOTH"
 [[dependencies."${mod_id}"]]
 modId = "sodium"
-type="required"
+type="incompatible"
 versionRange = "*"
 ordering = "NONE"
 side = "BOTH"
