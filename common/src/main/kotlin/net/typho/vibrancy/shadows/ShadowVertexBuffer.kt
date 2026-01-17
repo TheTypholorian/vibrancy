@@ -1,11 +1,10 @@
 package net.typho.vibrancy.shadows
 
 import com.mojang.blaze3d.vertex.*
-import com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_COLOR_NORMAL
 import com.mojang.blaze3d.vertex.DefaultVertexFormat.POSITION_TEX
 import net.typho.big_shot_lib.api.IShader
 import net.typho.vibrancy.LightManager
-import net.typho.vibrancy.Vibrancy
+import org.joml.Vector3f
 import org.lwjgl.system.NativeResource
 
 open class ShadowVertexBuffer(
@@ -66,11 +65,11 @@ open class ShadowVertexBuffer(
         }
     }
 
-    fun renderDebug(manager: LightManager, out: VertexConsumer) {
+    fun renderDebug(manager: LightManager, out: VertexConsumer, origin: Vector3f, length: Float) {
         val offset = manager.getCamera().position.toVector3f().mul(-1f)
 
         for (face in shadows) {
-            face.buildLines(out, offset)
+            face.buildLines(out, offset, origin, length)
         }
     }
 }

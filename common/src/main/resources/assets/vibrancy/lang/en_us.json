@@ -26,8 +26,8 @@
   "vibrancy.config.blockLights.subtle.brightness.prefix": "Linear multiplier for the brightness of all block lights. Does not affect their radius.",
   "vibrancy.config.blockLights.subtle.renderDistance": "Render Distance",
   "vibrancy.config.blockLights.subtle.renderDistance.prefix": "The radius (in chunks) from the camera where block lights will be visible.",
-  "vibrancy.config.blockLights.subtle.maxRaytraced": "Max Raytraced",
-  "vibrancy.config.blockLights.subtle.maxRaytraced.prefix": "The maximum number of block lights that will cast shadows, closest lights first.",
+  "vibrancy.config.blockLights.subtle.maxRendered": "Max Rendered",
+  "vibrancy.config.blockLights.subtle.maxRendered.prefix": "The maximum number of block lights that will be rendered, closest lights first.",
 
   "vibrancy.config.skyLights": "Sky Lights",
   "vibrancy.config.skyLights.enabled": "Enabled",
@@ -37,10 +37,7 @@
   "vibrancy.config.forNerds.useFrustumCulling": "Use Frustum Culling",
   "vibrancy.config.forNerds.useGreedyMeshing": "Use Greedy Meshing",
   "vibrancy.config.forNerds.useExtraGreedyMeshing": "Use Extra Greedy Meshing",
-
-  "vibrancy.config.forNerds.debug": "Debug",
-  "vibrancy.config.forNerds.debug.shadows": "Shadows",
-  "vibrancy.config.forNerds.debug.shadows.prefix": "Replaces shadow rendering with lines.",
+  "vibrancy.config.forNerds.maxGreedyMeshSectionWidth": "Max Greedy Mesh Section Width",
 
   "debug.vibrancy.debug_mode": "[F4 + D] Toggled Vibrancy debug mode",
   "debug.vibrancy.rebuild_all_shadows": "[F4 + R] Reloaded all shadows",

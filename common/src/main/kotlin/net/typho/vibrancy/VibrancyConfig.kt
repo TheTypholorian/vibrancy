@@ -90,5 +90,9 @@ class VibrancyConfig : Config(
         @JvmField
         var useExtraGreedyMeshing = ValidatedBoolean(true)
             .withListener { Vibrancy.LIGHT_MANAGER.rebuildAllShadows() }
+        @JvmField
+        var maxGreedyMeshSectionWidth = ValidatedInt(4, 32, 2)
+            .withIncrement(2)
+            .withListener { Vibrancy.LIGHT_MANAGER.rebuildAllShadows() }
     }
 }

@@ -75,8 +75,8 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, Hash
                         manager.inRenderDistance(light.pos, Vibrancy.config.blockLights.raytraced.renderDistance.get())
                                 && manager.inFrustum(light.getBoundingBox())
                     }
-                    .limit(Vibrancy.config.blockLights.raytraced.maxRendered.get().toLong())
                     .sorted(Comparator.comparingDouble { light -> manager.getSortingOrder(light.pos) })
+                    .limit(Vibrancy.config.blockLights.raytraced.maxRendered.get().toLong())
                     .forEachOrdered { light ->
                         result.add(
                             light.render(
@@ -97,16 +97,14 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, Hash
         lights: HashMapBlockLightStorage<RayPointLightInfo, RayPointLight>
     ) {
         lights.map.values.stream()
-            .filter { light ->
-                manager.inRenderDistance(light.pos, Vibrancy.config.blockLights.raytraced.renderDistance.get())
-                        && manager.inFrustum(light.getBoundingBox())
-            }
-            .limit(Vibrancy.config.blockLights.raytraced.maxRendered.get().toLong())
             .sorted(Comparator.comparingDouble { light -> manager.getSortingOrder(light.pos) })
+            .limit(10)
             .forEachOrdered { light ->
                 light.shadows.renderDebug(
                     manager,
-                    Minecraft.getInstance().renderBuffers().bufferSource().getBuffer(RenderType.lines())
+                    Minecraft.getInstance().renderBuffers().bufferSource().getBuffer(RenderType.lines()),
+                    light.getAbsolutePos(),
+                    light.radius
                 )
             }
     }

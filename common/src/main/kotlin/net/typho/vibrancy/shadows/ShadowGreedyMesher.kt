@@ -9,7 +9,6 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.util.RandomSource
 import net.minecraft.world.level.Level
-import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.shadows.LightFace.Companion.toLightFace
@@ -120,6 +119,10 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
                     }
 
                     currentVoxels.add(voxel)
+
+                    if (length >= Vibrancy.config.forNerds.maxGreedyMeshSectionWidth.get()) {
+                        end(direction, axis)
+                    }
                 }
             } else {
                 end(direction, axis)
@@ -183,12 +186,12 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
                     val doubleGreedy = LinkedList(listOf(entry1.value))
                     var pos = entry1.value.blockPos!!
 
-                    while (true) {
+                    while (doubleGreedy.size < Vibrancy.config.forNerds.maxGreedyMeshSectionWidth.get()) {
                         pos = pos.relative(sideAxis, 1)
 
-                        val other = entry.value[pos]
+                        val other = entry.value[pos] ?: break
 
-                        if (other == null) {
+                        if (removed.contains(other)) {
                             break
                         }
 
@@ -207,12 +210,12 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
 
                     pos = entry1.value.blockPos!!
 
-                    while (true) {
+                    while (doubleGreedy.size < Vibrancy.config.forNerds.maxGreedyMeshSectionWidth.get()) {
                         pos = pos.relative(sideAxis, -1)
 
-                        val other = entry.value[pos]
+                        val other = entry.value[pos] ?: break
 
-                        if (other == null) {
+                        if (removed.contains(other)) {
                             break
                         }
 
