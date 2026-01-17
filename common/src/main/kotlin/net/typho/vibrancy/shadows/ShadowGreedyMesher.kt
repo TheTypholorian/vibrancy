@@ -34,6 +34,7 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
         pos: BlockPos
     ) = state.isSolidRender(level, pos)
 
+    @Suppress("DEPRECATION")
     override fun submit(
         state: BlockState,
         level: Level,

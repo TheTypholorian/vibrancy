@@ -2,7 +2,6 @@ package net.typho.vibrancy.mixin;
 
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.ReceivingLevelScreen;
-import net.minecraft.client.main.GameConfig;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.server.packs.resources.ReloadableResourceManager;
 import net.typho.vibrancy.Vibrancy;
@@ -21,24 +20,12 @@ public class MinecraftMixin {
     private ReloadableResourceManager resourceManager;
 
     @Inject(
-            method = "<init>",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/server/packs/resources/ReloadableResourceManager;registerReloadListener(Lnet/minecraft/server/packs/resources/PreparableReloadListener;)V",
-                    ordinal = 0
-            )
-    )
-    private void init(GameConfig gameConfig, CallbackInfo ci) {
-        resourceManager.registerReloadListener(BlockLightInfoLoader.INSTANCE);
-    }
-
-    @Inject(
             method = "setLevel",
             at = @At("TAIL")
     )
     private void setLevel(ClientLevel level, ReceivingLevelScreen.Reason reason, CallbackInfo ci) {
         Vibrancy.LIGHT_MANAGER.clear();
 
-        BlockLightInfoLoader.INSTANCE.reload(resourceManager);
+        BlockLightInfoLoader.load(resourceManager, level.registryAccess());
     }
 }

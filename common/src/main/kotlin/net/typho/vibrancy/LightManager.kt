@@ -20,6 +20,7 @@ import net.typho.big_shot_lib.gl.GlStack
 import net.typho.big_shot_lib.gl.state.DepthMask
 import net.typho.big_shot_lib.gl.state.GlCapability
 import net.typho.vibrancy.block.*
+import net.typho.vibrancy.block.BlockLightRegistry.registryKey
 import net.typho.vibrancy.mixin.LevelRendererAccessor
 import net.typho.vibrancy.shadows.BasicShadowMesher
 import net.typho.vibrancy.shadows.ShadowGreedyMesher
@@ -80,8 +81,10 @@ open class LightManager {
     }
 
     fun ensureStorageInitialized() {
-        for (type in BlockLightRegistry.types) {
-            blockLights.computeIfAbsent(type) { type -> type.createStorage() }
+        Minecraft.getInstance().level?.let { level ->
+            for (type in level.registryAccess().registryOrThrow(registryKey)) {
+                blockLights.computeIfAbsent(type) { type -> type.createStorage() }
+            }
         }
     }
 

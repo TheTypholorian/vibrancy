@@ -1,12 +1,35 @@
 package net.typho.vibrancy
 
 import net.neoforged.bus.api.IEventBus
+import net.neoforged.bus.api.SubscribeEvent
 import net.neoforged.fml.ModContainer
 import net.neoforged.fml.common.Mod
+import net.neoforged.neoforge.registries.NewRegistryEvent
+import net.neoforged.neoforge.registries.RegisterEvent
+import net.neoforged.neoforge.registries.RegistryBuilder
+import net.typho.vibrancy.block.BlockLightRegistry
+import net.typho.vibrancy.block.impl.RayPointLightType
+import net.typho.vibrancy.block.impl.SubtleLightType
 
 @Mod(Vibrancy.MOD_ID)
 class VibrancyNeoForge(eventBus: IEventBus, mod: ModContainer) {
     init {
         Vibrancy.init()
+        eventBus.register(this)
+    }
+
+    @SubscribeEvent
+    fun onNewRegistry(event: NewRegistryEvent) {
+        event.register(
+            RegistryBuilder(BlockLightRegistry.registryKey).create()
+        )
+    }
+
+    @SubscribeEvent
+    fun onRegister(event: RegisterEvent) {
+        event.register(BlockLightRegistry.registryKey) { registrar ->
+            registrar.register(Vibrancy.id("raytraced_point"), RayPointLightType)
+            registrar.register(Vibrancy.id("subtle"), SubtleLightType)
+        }
     }
 }

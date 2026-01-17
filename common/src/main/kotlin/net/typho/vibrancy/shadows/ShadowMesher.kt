@@ -30,6 +30,7 @@ interface ShadowMesher {
 
     companion object {
         @JvmStatic
+        @Suppress("DEPRECATION")
         fun collectBakedQuads(
             state: BlockState,
             level: Level,

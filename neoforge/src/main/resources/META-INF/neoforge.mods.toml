@@ -12,7 +12,6 @@ logoFile="${mod_id}.png" #optional
 credits="${credits}" #optional
 authors = "${mod_author}" #optional
 description = '''${description}''' #mandatory (Supports multiline text)
-modproperties = "{big_shot_lib:require_shader_mixins=true}"
 [[mixins]]
 config = "${mod_id}.mixins.json"
 [[mixins]]
@@ -41,6 +40,9 @@ type="required"
 versionRange = "*"
 ordering = "NONE"
 side = "BOTH"
+
+[modproperties."${mod_id}"]
+"big_shot_lib:require_shader_mixins"=true
 
 # Features are specific properties of the game environment, that you may want to declare you require. This example declares
 # that your mod requires GL version 3.2 or higher. Other features will be added. They are side aware so declaring this won't

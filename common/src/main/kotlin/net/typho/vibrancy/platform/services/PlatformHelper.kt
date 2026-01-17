@@ -8,6 +8,4 @@ interface PlatformHelper {
     fun isDevelopmentEnvironment(): Boolean
 
     fun getConfigDir(): Path
-
-    fun registerResourcePack(name: String)
 }
