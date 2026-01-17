@@ -8,6 +8,8 @@ import net.minecraft.util.RandomSource
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.Vec3
+import net.typho.vibrancy.LightManager
+import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.shadows.LightFace.Companion.toLightFace
 import net.typho.vibrancy.util.TextureCoordinates
 import org.joml.Vector3f
@@ -15,6 +17,7 @@ import java.util.function.Consumer
 
 interface ShadowMesher {
     fun submit(
+        manager: LightManager,
         state: BlockState,
         level: Level,
         pos: BlockPos,
@@ -23,6 +26,7 @@ interface ShadowMesher {
     )
 
     fun finish(
+        manager: LightManager,
         predicate: ShadowPredicate,
         level: Level,
         out: Consumer<LightFace>
@@ -58,12 +62,17 @@ interface ShadowMesher {
 
         @JvmStatic
         fun collectLightFaces(
+            manager: LightManager,
             state: BlockState,
             level: Level,
             pos: BlockPos,
             predicate: ShadowPredicate,
             out: Consumer<LightFace>
         ) {
+            if (BlockLightRegistry.get(state.block)?.shouldCastShadow(manager, level, state, pos) == false) {
+                return
+            }
+
             val offset = state.getOffset(level, pos)
             collectBakedQuads(state, level, pos, predicate) { quad ->
                 out.accept(

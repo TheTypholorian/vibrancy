@@ -29,7 +29,6 @@ import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.block.BlockRenderResult
 import net.typho.vibrancy.shadows.AsyncShadowVertexBuffer
 import net.typho.vibrancy.shadows.ShadowPredicate
-import net.typho.vibrancy.shadows.entity.EntityShadowCastingLight
 import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.lwjgl.opengl.GL11.GL_STENCIL_BUFFER_BIT
@@ -41,7 +40,7 @@ class RayPointLight(
     val radius: Float,
     val offset: Vector3f,
     val pos: BlockPos
-) : BlockLight<RayPointLightInfo, RayPointLight>, EntityShadowCastingLight, ShadowPredicate {
+) : BlockLight<RayPointLightInfo, RayPointLight>, ShadowPredicate {
     val shadows = AsyncShadowVertexBuffer(
         VertexBuffer.Usage.STATIC,
         Minecraft.getInstance().modelManager.getAtlas(InventoryMenu.BLOCK_ATLAS).id
@@ -145,8 +144,6 @@ class RayPointLight(
         return pos.distSqr(this.pos) <= radius * radius
     }
 
-    override fun getEntityShadowBox(): AABB? = if (Vibrancy.config.blockLights.raytraced.entityShadows) getBoundingBox() else null
-
     fun render(manager: LightManager, raytrace: Boolean, stack: GlStack): BlockRenderResult {
         for (pos in manager.dirtyBlocks) {
             if (manager.getLevel().dimension() == pos.dimension && getShadowBox().contains(pos.pos)) {
@@ -163,6 +160,13 @@ class RayPointLight(
         shadows.checkIfFinished(manager)
 
         glClear(GL_STENCIL_BUFFER_BIT)
+
+        val result = BlockRenderResult(
+            numRendered = 1,
+            numRaytraced = if (raytrace) 1 else 0,
+            numShadows = if (raytrace) shadows.size else 0,
+            numAsyncTasks = if (shadows.isTaskActive()) 1 else 0
+        )
 
         if (raytrace) {
             val shadowShader = NeoShader.get(Vibrancy.id("point_shadow"))!!
@@ -191,7 +195,10 @@ class RayPointLight(
 
             shadows.render(shadowShader)
 
-            manager.entityShadows.render(shadowShader)
+            if (manager.entityShadows.shouldRender(manager, getShadowBox().aabb())) {
+                manager.entityShadows.render(shadowShader)
+                result.numEntityShadowCalls++
+            }
         }
 
         val boxShader = NeoShader.get(Vibrancy.id("point_box"))!!
@@ -223,11 +230,6 @@ class RayPointLight(
         boxBuffer.draw()
         VertexBuffer.unbind()
 
-        return BlockRenderResult(
-            numRendered = 1,
-            numRaytraced = if (raytrace) 1 else 0,
-            numShadows = if (raytrace) shadows.size else 0,
-            numAsyncTasks = if (shadows.isTaskActive()) 1 else 0
-        )
+        return result
     }
 }

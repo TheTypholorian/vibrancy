@@ -7,6 +7,7 @@ import me.fzzyhmstrs.fzzy_config.validation.ValidatedField.Companion.withListene
 import me.fzzyhmstrs.fzzy_config.validation.misc.ValidatedBoolean
 import me.fzzyhmstrs.fzzy_config.validation.number.ValidatedFloat
 import me.fzzyhmstrs.fzzy_config.validation.number.ValidatedInt
+import me.fzzyhmstrs.fzzy_config.validation.number.ValidatedNumber
 import me.fzzyhmstrs.fzzy_config.validation.number.ValidatedNumber.Companion.setFormat
 import me.fzzyhmstrs.fzzy_config.validation.number.ValidatedNumber.Companion.withIncrement
 import java.text.DecimalFormat
@@ -17,6 +18,17 @@ class VibrancyConfig : Config(
     name = Vibrancy.MOD_ID
 ) {
     override fun fileType() = FileType.JSON
+
+    @JvmField
+    var entityShadows = EntityShadowsSection()
+
+    class EntityShadowsSection : ConfigSection() {
+        @JvmField
+        var firstPersonShadow = false
+        @JvmField
+        var distance = ValidatedInt(1, 16, 1)
+            .setFormat(DecimalFormat("0 chunks"))
+    }
 
     @JvmField
     var blockLights = BlockLightsSection()
@@ -33,13 +45,15 @@ class VibrancyConfig : Config(
                 .withIncrement(0.05f)
                 .setFormat(DecimalFormat("0%"))
             @JvmField
-            var entityShadows = true
+            var entityShadows = false
             @JvmField
             var raytraceDistance = ValidatedInt(8, 64, 4)
                 .withIncrement(4)
+                .setFormat(DecimalFormat("0 chunks"))
             @JvmField
             var renderDistance = ValidatedInt(32, 64, 4)
                 .withIncrement(4)
+                .setFormat(DecimalFormat("0 chunks"))
             @JvmField
             var shadowRadius = ValidatedInt(8, 16, 1)
                 .withListener { Vibrancy.LIGHT_MANAGER.rebuildAllShadows() }
@@ -64,8 +78,9 @@ class VibrancyConfig : Config(
             @JvmField
             var renderDistance = ValidatedInt(32, 64, 4)
                 .withIncrement(4)
+                .setFormat(DecimalFormat("0 chunks"))
             @JvmField
-            var maxRendered = ValidatedInt(500_000, Int.MAX_VALUE, 0)
+            var maxRendered = ValidatedInt(500_000, Int.MAX_VALUE, 0, ValidatedNumber.WidgetType.TEXTBOX_WITH_BUTTONS)
                 .withIncrement(50_000)
         }
     }

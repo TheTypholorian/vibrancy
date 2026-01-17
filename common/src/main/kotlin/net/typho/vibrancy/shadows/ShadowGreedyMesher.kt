@@ -10,6 +10,7 @@ import net.minecraft.core.Direction
 import net.minecraft.util.RandomSource
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
+import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.shadows.LightFace.Companion.toLightFace
 import net.typho.vibrancy.shadows.ShadowMesher.Companion.createFace
@@ -36,6 +37,7 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
 
     @Suppress("DEPRECATION")
     override fun submit(
+        manager: LightManager,
         state: BlockState,
         level: Level,
         pos: BlockPos,
@@ -56,12 +58,12 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
                 grid[pos.x - box.min.x][pos.y - box.min.y][pos.z - box.min.z] = voxel
                 allVoxels.add(voxel)
             } else if (predicate.isInRange(pos)) {
-                ShadowMesher.collectLightFaces(state, level, pos, predicate, nonGreedy::add)
+                ShadowMesher.collectLightFaces(manager, state, level, pos, predicate, nonGreedy::add)
             }
         }
     }
 
-    override fun finish(predicate: ShadowPredicate, level: Level, out: Consumer<LightFace>) {
+    override fun finish(manager: LightManager, predicate: ShadowPredicate, level: Level, out: Consumer<LightFace>) {
         var start: BlockPos? = null
         var length = 0
         var texture: TextureCoordinates? = null

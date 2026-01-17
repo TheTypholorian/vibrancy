@@ -7,6 +7,8 @@ import net.minecraft.core.Registry
 import net.minecraft.core.registries.BuiltInRegistries
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.block.BlockLightType
+import net.typho.vibrancy.block.impl.RayPointLightType
+import net.typho.vibrancy.block.impl.SubtleLightType
 
 object VibrancyFabric : ClientModInitializer {
     @JvmField
@@ -19,5 +21,7 @@ object VibrancyFabric : ClientModInitializer {
 
     override fun onInitializeClient() {
         Vibrancy.init()
+        Registry.register(blockLightRegistry, Vibrancy.id("raytraced_point"), RayPointLightType)
+        Registry.register(blockLightRegistry, Vibrancy.id("subtle"), SubtleLightType)
     }
 }

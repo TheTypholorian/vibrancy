@@ -1,6 +1,8 @@
 package net.typho.vibrancy.block.impl
 
 import net.minecraft.core.BlockPos
+import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.state.BlockBehaviour
 import net.minecraft.world.level.block.state.StateHolder
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.block.BlockLightInfo
@@ -14,7 +16,7 @@ class RayPointLightInfo(
     val offset: StateFunction<Vector3f>,
     val enabled: StateFunction<Boolean>
 ) : BlockLightInfo<RayPointLightInfo, RayPointLight> {
-    override fun createBlockLight(manager: LightManager, state: StateHolder<*, *>, pos: BlockPos): RayPointLight? {
+    override fun createBlockLight(manager: LightManager, level: Level, state: StateHolder<*, *>, pos: BlockPos): RayPointLight? {
         if (!enabled.apply(state)) {
             return null
         }
@@ -23,4 +25,8 @@ class RayPointLightInfo(
     }
 
     override fun type() = RayPointLightType
+
+    override fun shouldCastShadow(manager: LightManager, level: Level, state: StateHolder<*, *>, pos: BlockPos): Boolean {
+        return if (state is BlockBehaviour.BlockStateBase) state.isSolidRender(level, pos) else true
+    }
 }

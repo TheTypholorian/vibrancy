@@ -83,7 +83,7 @@ open class LightManager {
     fun ensureStorageInitialized() {
         Minecraft.getInstance().level?.let { level ->
             for (type in level.registryAccess().registryOrThrow(registryKey)) {
-                blockLights.computeIfAbsent(type) { type -> type.createStorage() }
+                blockLights.computeIfAbsent(type) { type -> type.createStorage(this) }
             }
         }
     }
@@ -145,8 +145,7 @@ open class LightManager {
         viewMatrix = BigShotLib.getViewMatrix(camera)
         renderResult = BlockRenderResult()
 
-        // TODO fix entity shadows
-        //entityShadows.collect(this, blockLights.values)
+        entityShadows.collect(this, blockLights)
 
         for (entry in blockLights) {
             renderResult.add(castAndRender(entry.key, entry.value))
@@ -226,6 +225,7 @@ open class LightManager {
 
         out.accept("${entityShadows.numEntities} entities")
         out.accept("${entityShadows.numBlockEntities} block entities")
+        out.accept("${renderResult.numEntityShadowCalls} entity shadow draw calls")
     }
 
     fun inFrustum(box: AABB): Boolean {
@@ -244,5 +244,9 @@ open class LightManager {
 
     fun getSortingOrder(pos: BlockPos): Double {
         return pos.distSqr(getCamera().blockPosition)
+    }
+
+    fun getSortingOrder(pos: ChunkPos): Double {
+        return pos.distanceSquared(ChunkPos(getCamera().blockPosition)).toDouble()
     }
 }

@@ -100,7 +100,7 @@ class SubtleLightStorage : BlockLightStorage<SubtleLightInfo> {
                                             z + minPos.z
                                         )
 
-                                        info.createBlockLight(manager, state, pos)?.let { light ->
+                                        info.createBlockLight(manager, manager.getLevel(), state, pos)?.let { light ->
                                             lights[pos] = light
                                         }
                                     }

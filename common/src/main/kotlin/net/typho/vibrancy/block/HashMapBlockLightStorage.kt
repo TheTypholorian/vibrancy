@@ -12,7 +12,7 @@ open class HashMapBlockLightStorage<I : BlockLightInfo<I, B>, B : BlockLight<I, 
     val map = HashMap<BlockPos, B>()
 
     override fun addLight(manager: LightManager, state: StateHolder<*, *>, pos: BlockPos, info: I) {
-        val light = info.createBlockLight(manager, state, pos)
+        val light = info.createBlockLight(manager, manager.getLevel(), state, pos)
 
         if (light == null) {
             map.remove(pos)?.free(manager)

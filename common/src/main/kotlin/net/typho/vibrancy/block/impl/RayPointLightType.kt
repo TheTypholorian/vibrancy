@@ -7,6 +7,7 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.util.ExtraCodecs
 import net.minecraft.world.level.block.state.StateDefinition
+import net.minecraft.world.phys.AABB
 import net.typho.big_shot_lib.gl.GlStack
 import net.typho.big_shot_lib.gl.state.*
 import net.typho.vibrancy.LightManager
@@ -40,7 +41,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, Hash
         }
     }
 
-    override fun createStorage() = HashMapBlockLightStorage(this)
+    override fun createStorage(manager: LightManager) = HashMapBlockLightStorage(this)
 
     override fun render(
         manager: LightManager,
@@ -108,5 +109,16 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, Hash
                     light.radius
                 )
             }
+    }
+
+    override fun getEntityShadowBoxes(
+        manager: LightManager,
+        lights: HashMapBlockLightStorage<RayPointLightInfo, RayPointLight>
+    ): Iterable<AABB>? {
+        return if (Vibrancy.config.blockLights.raytraced.entityShadows) {
+            lights.map.values.map { light -> light.getShadowBox().aabb() }
+        } else {
+            null
+        }
     }
 }

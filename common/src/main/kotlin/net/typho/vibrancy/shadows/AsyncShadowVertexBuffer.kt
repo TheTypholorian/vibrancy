@@ -62,6 +62,7 @@ open class AsyncShadowVertexBuffer(
 
                         if (pos != origin) {
                             mesher.submit(
+                                manager,
                                 level.getBlockState(pos),
                                 level,
                                 pos,
@@ -73,7 +74,7 @@ open class AsyncShadowVertexBuffer(
                 }
             }
             val shadows = LinkedList<LightFace>()
-            mesher.finish(predicate, level, shadows::add)
+            mesher.finish(manager, predicate, level, shadows::add)
             return@supplyAsync shadows
         }
     }

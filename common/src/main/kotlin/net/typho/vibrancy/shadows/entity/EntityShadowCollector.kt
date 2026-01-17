@@ -10,57 +10,75 @@ import net.minecraft.core.BlockPos
 import net.minecraft.resources.ResourceLocation
 import net.minecraft.util.Mth
 import net.minecraft.world.entity.Entity
+import net.minecraft.world.entity.LivingEntity
 import net.minecraft.world.level.block.RenderShape
 import net.minecraft.world.level.block.entity.BlockEntity
+import net.minecraft.world.phys.AABB
 import net.typho.big_shot_lib.api.IShader
 import net.typho.big_shot_lib.api.builtin.EmptyVertexConsumer
 import net.typho.vibrancy.LightManager
+import net.typho.vibrancy.Vibrancy
+import net.typho.vibrancy.block.BlockLightStorage
+import net.typho.vibrancy.block.BlockLightType
 import net.typho.vibrancy.shadows.ShadowVertexBuffer
 import kotlin.jvm.optionals.getOrNull
 
-class EntityShadowCollector {
+open class EntityShadowCollector {
     val buffers = HashMap<ResourceLocation, ShadowVertexBuffer>()
+    val boxes = HashSet<AABB>()
     var numEntities = 0
     var numBlockEntities = 0
 
-    fun collect(manager: LightManager, lights: Collection<*>) {
+    @Suppress("UNCHECKED_CAST")
+    protected fun <S : BlockLightStorage<*>> getShadowBoxes(manager: LightManager, type: BlockLightType<*, *, S>, storage: BlockLightStorage<*>): Iterable<AABB>? {
+        return type.getEntityShadowBoxes(manager, storage as S)
+    }
+
+    fun collect(manager: LightManager, lights: Map<BlockLightType<*, *, *>, BlockLightStorage<*>>) {
         buffers.values.forEach { buffer -> buffer.size = 0 }
+        boxes.clear()
 
         val level = manager.getLevel()
         val entities = HashSet<Entity>()
         val blockEntities = HashSet<BlockEntity>()
-        val cameraPos = manager.getCamera().position
+        val camera = manager.getCamera()
+        val cameraPos = camera.position
         val frustum = manager.getCullingFrustum()
+        val distanceSq = Vibrancy.config.entityShadows.distance.get() * Vibrancy.config.entityShadows.distance.get() * 16 * 16
 
         for (light in lights) {
-            if (light is EntityShadowCastingLight) {
-                light.getEntityShadowBox()?.let { box ->
-                    entities.addAll(level.getEntities(null, box) { e ->
-                        !e.isInvisible && !e.isSpectator && Minecraft.getInstance().entityRenderDispatcher.shouldRender(
-                            e,
-                            frustum,
-                            cameraPos.x,
-                            cameraPos.y,
-                            cameraPos.z
-                        )
-                    })
+            getShadowBoxes(manager, light.key, light.value)?.forEach { box ->
+                entities.addAll(level.getEntities(null, box) { e ->
+                    !e.isInvisible && !e.isSpectator && Minecraft.getInstance().entityRenderDispatcher.shouldRender(
+                        e,
+                        frustum,
+                        cameraPos.x,
+                        cameraPos.y,
+                        cameraPos.z
+                    ) && e.distanceToSqr(cameraPos) < distanceSq
+                })
 
-                    for (pos in BlockBox(
-                        BlockPos.containing(box.minPosition),
-                        BlockPos.containing(box.maxPosition),
-                    )) {
-                        val blockEntity = level.getBlockEntity(pos)
+                for (pos in BlockBox(
+                    BlockPos.containing(box.minPosition),
+                    BlockPos.containing(box.maxPosition),
+                )) {
+                    val blockEntity = level.getBlockEntity(pos)
 
-                        if (blockEntity != null && level.getBlockState(pos).renderShape == RenderShape.ENTITYBLOCK_ANIMATED) {
-                            blockEntities.add(blockEntity)
-                        }
+                    if (blockEntity != null && level.getBlockState(pos).renderShape == RenderShape.ENTITYBLOCK_ANIMATED && pos.center.distanceToSqr(cameraPos) < distanceSq) {
+                        blockEntities.add(blockEntity)
                     }
                 }
             }
         }
 
+        if (!Vibrancy.config.entityShadows.firstPersonShadow) {
+            if (!(camera.isDetached || camera.entity is LivingEntity && (camera.entity as LivingEntity).isSleeping)) {
+                entities.remove(camera.entity)
+            }
+        }
+
         val poseStack = PoseStack()
-        val tickDelta = manager.getTickDelta(true)
+        val tickDelta = manager.getTickDelta(false)
         val builders = HashMap<ResourceLocation, BufferBuilder>()
         val multiBufferSource = MultiBufferSource { renderType ->
             val texture = getRenderTypeTexture(renderType)
@@ -74,7 +92,7 @@ class EntityShadowCollector {
                 EmptyVertexConsumer
             } else {
                 builders.computeIfAbsent(texture) {
-                    Tesselator.getInstance().begin(renderType.mode(), DefaultVertexFormat.POSITION_TEX)
+                    BufferBuilder(ByteBufferBuilder(renderType.bufferSize()), renderType.mode(), DefaultVertexFormat.POSITION_TEX)
                 }
             }
         }
@@ -96,7 +114,11 @@ class EntityShadowCollector {
 
         for (entity in blockEntities) {
             poseStack.pushPose()
-            poseStack.translate(entity.blockPos.x.toDouble(), entity.blockPos.y.toDouble(), entity.blockPos.z.toDouble())
+            poseStack.translate(
+                entity.blockPos.x.toDouble(),
+                entity.blockPos.y.toDouble(),
+                entity.blockPos.z.toDouble()
+            )
 
             Minecraft.getInstance().blockEntityRenderDispatcher.render(
                 entity,
@@ -119,6 +141,13 @@ class EntityShadowCollector {
 
         numEntities = entities.size
         numBlockEntities = blockEntities.size
+        boxes.addAll(entities.map { entity -> entity.boundingBoxForCulling })
+        boxes.addAll(blockEntities.map { blockEntity -> AABB(blockEntity.blockPos) })
+    }
+
+    fun shouldRender(manager: LightManager, box: AABB): Boolean {
+        val distanceSq = Vibrancy.config.entityShadows.distance.get() * Vibrancy.config.entityShadows.distance.get() * 16 * 16
+        return box.distanceToSqr(manager.getCamera().position) < distanceSq// && boxes.any { box1 -> box.intersects(box1) }
     }
 
     fun render(shader: IShader) {

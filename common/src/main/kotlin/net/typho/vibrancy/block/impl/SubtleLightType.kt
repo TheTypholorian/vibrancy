@@ -41,7 +41,7 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight, SubtleLigh
         }
     }
 
-    override fun createStorage() = SubtleLightStorage()
+    override fun createStorage(manager: LightManager) = SubtleLightStorage()
 
     override fun render(manager: LightManager, lights: SubtleLightStorage): BlockRenderResult {
         val result = BlockRenderResult()
@@ -75,7 +75,13 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight, SubtleLigh
 
                 boxShader.setSampler("VibrancyWorldPosSampler", Vibrancy.WORLD_POS_FBO.colorAttachments[0] as ITexture)
 
-                for (mesh in lights.meshes.values) {
+                val meshes = lights.meshes.values.sortedBy({ mesh -> manager.getSortingOrder(mesh.pos) })
+
+                for (mesh in meshes) {
+                    if (result.numRendered + mesh.size > Vibrancy.config.blockLights.subtle.maxRendered.get()) {
+                        break
+                    }
+
                     result.add(mesh.render(manager, stack))
                 }
 
