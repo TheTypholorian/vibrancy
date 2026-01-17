@@ -23,5 +23,5 @@ out vec4 fragColor;
 void main() {
     vec3 pos = texelFetch(VibrancyWorldPosSampler, ivec2(gl_FragCoord.xy), 0).xyz;
 
-    fragColor = sampleLight(VibrancyNormalSampler, ScreenSize, LightPos, pos, LightRadius, LightColor);
+    fragColor = vec4(LightColor, 1);//sampleLight(VibrancyNormalSampler, ScreenSize, LightPos, pos, LightRadius, LightColor);
 }

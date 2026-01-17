@@ -87,5 +87,8 @@ class VibrancyConfig : Config(
         @JvmField
         var useGreedyMeshing = ValidatedBoolean(true)
             .withListener { Vibrancy.LIGHT_MANAGER.rebuildAllShadows() }
+        @JvmField
+        var useExtraGreedyMeshing = ValidatedBoolean(true)
+            .withListener { Vibrancy.LIGHT_MANAGER.rebuildAllShadows() }
     }
 }

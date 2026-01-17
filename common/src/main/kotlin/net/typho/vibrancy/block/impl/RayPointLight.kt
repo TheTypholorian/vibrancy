@@ -18,7 +18,7 @@ import net.typho.big_shot_lib.BigShotLib.cube
 import net.typho.big_shot_lib.api.ITexture
 import net.typho.big_shot_lib.api.impl.NeoShader
 import net.typho.big_shot_lib.gl.GlStack
-import net.typho.big_shot_lib.gl.state.CullFace
+import net.typho.big_shot_lib.gl.state.GlCapability
 import net.typho.big_shot_lib.gl.state.IntAction
 import net.typho.big_shot_lib.gl.state.StencilOp
 import net.typho.vibrancy.LightManager
@@ -129,7 +129,8 @@ class RayPointLight(
             return true
         }
 
-        if (Vec3.atLowerCornerOf(face.normal).toVector3f()
+        if (
+            Vec3.atLowerCornerOf(face.normal).toVector3f()
                 .dot(this.pos.center.subtract(pos.center).toVector3f()) <= 0
         ) {
             return false
@@ -137,7 +138,7 @@ class RayPointLight(
 
         val sideState = level.getBlockState(sidePos)
 
-        return !(state.isSolidRender(level, pos) && sideState.isSolidRender(level, pos))
+        return true//!(state.isSolidRender(level, pos) && sideState.isSolidRender(level, pos))
     }
 
     override fun isInRange(pos: BlockPos): Boolean {
@@ -186,7 +187,7 @@ class RayPointLight(
                     IntAction.REPLACE,
                 )
             )
-            stack.set(CullFace.BACK)
+            stack.disable(GlCapability.CULL_FACE)
 
             shadows.render(shadowShader)
 
@@ -216,7 +217,7 @@ class RayPointLight(
                 IntAction.KEEP,
             )
         )
-        stack.set(CullFace.FRONT)
+        stack.enable(GlCapability.CULL_FACE)
 
         boxBuffer.bind()
         boxBuffer.draw()

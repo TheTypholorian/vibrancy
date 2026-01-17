@@ -10,6 +10,7 @@ import net.minecraft.core.Direction
 import net.minecraft.util.RandomSource
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
+import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.shadows.LightFace.Companion.toLightFace
 import net.typho.vibrancy.shadows.ShadowMesher.Companion.createFace
 import net.typho.vibrancy.util.TextureCoordinates
@@ -158,94 +159,102 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
             }
         }
 
-        val extraGreedy = LinkedList<LightFace>()
-        val removed = LinkedList<LightFace>()
+        if (Vibrancy.config.forNerds.useExtraGreedyMeshing.get()) {
+            val extraGreedy = LinkedList<LightFace>()
+            val removed = LinkedList<LightFace>()
 
-        for (entry in faces) {
-            val sideAxis = if (entry.key.axis == Direction.Axis.Y) Direction.Axis.X else Direction.Axis.Y
+            for (entry in faces) {
+                val sideAxis = if (entry.key.axis == Direction.Axis.Y) Direction.Axis.X else Direction.Axis.Y
 
-            entry.value.entries.forEach { entry1 ->
-                if (removed.contains(entry1.value)) {
-                    return@forEach
-                }
-
-                val doubleGreedy = LinkedList(listOf(entry1.value))
-                var pos = entry1.value.blockPos!!
-
-                while (true) {
-                    pos = pos.relative(sideAxis, 1)
-
-                    val other = entry.value[pos]
-
-                    if (other == null) {
-                        break
+                entry.value.entries.forEach { entry1 ->
+                    if (removed.contains(entry1.value)) {
+                        return@forEach
                     }
 
-                    if (entry.key.axis == Direction.Axis.Y) {
-                        if (other.height != entry1.value.height) {
+                    val doubleGreedy = LinkedList(listOf(entry1.value))
+                    var pos = entry1.value.blockPos!!
+
+                    while (true) {
+                        pos = pos.relative(sideAxis, 1)
+
+                        val other = entry.value[pos]
+
+                        if (other == null) {
                             break
                         }
-                    } else {
-                        if (other.width != entry1.value.width) {
-                            break
-                        }
-                    }
 
-                    doubleGreedy.add(other)
-                }
-
-                pos = entry1.value.blockPos!!
-
-                while (true) {
-                    pos = pos.relative(sideAxis, -1)
-
-                    val other = entry.value[pos]
-
-                    if (other == null) {
-                        break
-                    }
-
-                    if (entry.key.axis == Direction.Axis.Y) {
-                        if (other.height != entry1.value.height) {
-                            break
-                        }
-                    } else {
-                        if (other.width != entry1.value.width) {
-                            break
-                        }
-                    }
-
-                    doubleGreedy.addFirst(other)
-                }
-
-                if (doubleGreedy.size > 1) {
-                    removed.addAll(doubleGreedy)
-                    extraGreedy.add(
                         if (entry.key.axis == Direction.Axis.Y) {
-                            entry.key.createFace(
-                                doubleGreedy.first().blockPos!!,
-                                entry1.value.texture,
-                                width = doubleGreedy.size,
-                                height = entry1.value.height
-                            )
+                            if (other.height != entry1.value.height) {
+                                break
+                            }
                         } else {
-                            entry.key.createFace(
-                                doubleGreedy.first().blockPos!!,
-                                entry1.value.texture,
-                                width = entry1.value.width,
-                                height = doubleGreedy.size
-                            )
+                            if (other.width != entry1.value.width) {
+                                break
+                            }
                         }
-                    )
+
+                        doubleGreedy.add(other)
+                    }
+
+                    pos = entry1.value.blockPos!!
+
+                    while (true) {
+                        pos = pos.relative(sideAxis, -1)
+
+                        val other = entry.value[pos]
+
+                        if (other == null) {
+                            break
+                        }
+
+                        if (entry.key.axis == Direction.Axis.Y) {
+                            if (other.height != entry1.value.height) {
+                                break
+                            }
+                        } else {
+                            if (other.width != entry1.value.width) {
+                                break
+                            }
+                        }
+
+                        doubleGreedy.addFirst(other)
+                    }
+
+                    if (doubleGreedy.size > 1) {
+                        removed.addAll(doubleGreedy)
+                        extraGreedy.add(
+                            if (entry.key.axis == Direction.Axis.Y) {
+                                entry.key.createFace(
+                                    doubleGreedy.first().blockPos!!,
+                                    entry1.value.texture,
+                                    width = doubleGreedy.size,
+                                    height = entry1.value.height
+                                )
+                            } else {
+                                entry.key.createFace(
+                                    doubleGreedy.first().blockPos!!,
+                                    entry1.value.texture,
+                                    width = entry1.value.width,
+                                    height = doubleGreedy.size
+                                )
+                            }
+                        )
+                    }
                 }
             }
-        }
 
-        extraGreedy.forEach(out::accept)
+            extraGreedy.forEach(out::accept)
 
-        for (map in faces.values) {
-            for (face in map.values) {
-                if (!removed.contains(face)) {
+            for (map in faces.values) {
+                for (face in map.values) {
+                    if (!removed.contains(face)) {
+                        out.accept(face)
+                    }
+                }
+            }
+        } else {
+            for (map in faces.values) {
+                for (face in map.values) {
                     out.accept(face)
                 }
             }

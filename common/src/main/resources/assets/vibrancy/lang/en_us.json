@@ -38,6 +38,7 @@
   "vibrancy.config.forNerds.prefix": "Options you shouldn't mess with unless you know how the mod works.",
   "vibrancy.config.forNerds.useFrustumCulling": "Use Frustum Culling",
   "vibrancy.config.forNerds.useGreedyMeshing": "Use Greedy Meshing",
+  "vibrancy.config.forNerds.useExtraGreedyMeshing": "Use Extra Greedy Meshing",
 
   "debug.vibrancy.rebuild_all_shadows": "[F4 + R] Reloaded all shadows",
   "debug.vibrancy.toggle_entity_shadows": "[F4 + E] Toggled entity shadows",
