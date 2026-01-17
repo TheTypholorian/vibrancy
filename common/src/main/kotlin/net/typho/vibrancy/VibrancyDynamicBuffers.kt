@@ -50,9 +50,10 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
             .filterIsInstance<RenderType.CompositeRenderType>()
             .mapNotNull { type ->
                 type.state().shaderState.shader.map { shader ->
-                    ResourceLocation.withDefaultNamespace(shader.get().name)
+                    shader.get()?.name
                 }.orElse(null)
             }
+            .map { name -> ResourceLocation.withDefaultNamespace(name) }
     )
     @JvmField
     val exclude = HashSet<ResourceLocation>(listOf(
