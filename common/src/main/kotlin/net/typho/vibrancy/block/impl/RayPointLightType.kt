@@ -81,7 +81,8 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, Hash
                         result.add(
                             light.render(
                                 manager,
-                                result.numRaytraced < Vibrancy.config.blockLights.raytraced.maxRaytraced.get(),
+                                result.numRaytraced < Vibrancy.config.blockLights.raytraced.maxRaytraced.get()
+                                        && manager.inRenderDistance(light.pos, Vibrancy.config.blockLights.raytraced.raytraceDistance.get()),
                                 stack
                             )
                         )
