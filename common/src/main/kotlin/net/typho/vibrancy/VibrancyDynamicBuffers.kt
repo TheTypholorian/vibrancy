@@ -256,7 +256,7 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
                                     val input = context.addStaticVar(1, vec4, "VibrancyInputNormal")
                                     context.addEntrypointVars(input.id)
 
-                                    val location = locations.getMapper(1, type)!!.map("VibrancyInputNormal")
+                                    val location = locations.getMapper(1, type)!!.map("VibrancyInputNormal", 1)
                                     context.inject(
                                         context.locateOpcode(Opcode.OP_DECORATE)!!.index,
                                         Opcode.Builder(Opcode.OP_DECORATE)
@@ -281,7 +281,7 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
                             val output = context.addStaticVar(3, normalVar.type, "VibrancyVertexNormal")
                             context.addEntrypointVars(output.id)
 
-                            val location = locations.getMapper(3, type)!!.map("VibrancyVertexNormal")
+                            val location = locations.getMapper(3, type)!!.map("VibrancyVertexNormal", 1)
                             context.inject(
                                 context.locateOpcode(Opcode.OP_DECORATE)!!.index,
                                 Opcode.Builder(Opcode.OP_DECORATE)
@@ -320,7 +320,7 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
                             val output = context.addStaticVar(3, vec2, "VibrancyVertexLight")
                             context.addEntrypointVars(output.id)
 
-                            val location = locations.getMapper(3, type)!!.map("VibrancyVertexLight")
+                            val location = locations.getMapper(3, type)!!.map("VibrancyVertexLight", 1)
                             context.inject(
                                 context.locateOpcode(Opcode.OP_DECORATE)!!.index,
                                 Opcode.Builder(Opcode.OP_DECORATE)
@@ -376,7 +376,7 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
                             val output = context.addStaticVar(3, vec2, "VibrancyVertexTexCoord")
                             context.addEntrypointVars(output.id)
 
-                            val location = locations.getMapper(3, type)!!.map("VibrancyVertexTexCoord")
+                            val location = locations.getMapper(3, type)!!.map("VibrancyVertexTexCoord", 1)
                             context.inject(
                                 context.locateOpcode(Opcode.OP_DECORATE)!!.index,
                                 Opcode.Builder(Opcode.OP_DECORATE)
@@ -412,7 +412,7 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
                                     val colorOutput = context.addStaticVar(3, vec4, "VibrancyVertexColor")
                                     context.addEntrypointVars(colorOutput.id)
 
-                                    val colorLocation = locations.getMapper(3, type)!!.map("VibrancyVertexColor")
+                                    val colorLocation = locations.getMapper(3, type)!!.map("VibrancyVertexColor", 1)
                                     context.inject(
                                         context.locateOpcode(Opcode.OP_DECORATE)!!.index,
                                         Opcode.Builder(Opcode.OP_DECORATE)
@@ -445,7 +445,7 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
                 ShaderType.FRAGMENT -> {
                     if (format.contains(VertexFormatElement.NORMAL)) {
                         val mapper = locations.getMapper(1, type)!!
-                        val inputLocation = mapper.map.get("VibrancyVertexNormal")
+                        val inputLocation = mapper.map.get("VibrancyVertexNormal")?.location
 
                         if (inputLocation != null) {
                             val vec3 = ShaderVectorType(ShaderPrimitiveType.FLOAT_32, 3).findOrInject(context)
@@ -493,7 +493,7 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
 
                     if (format.contains(VertexFormatElement.UV2)) {
                         val mapper = locations.getMapper(1, type)!!
-                        val inputLocation = mapper.map.get("VibrancyVertexLight")
+                        val inputLocation = mapper.map.get("VibrancyVertexLight")?.location
 
                         if (inputLocation != null) {
                             val vec2 = ShaderVectorType(ShaderPrimitiveType.FLOAT_32, 2).findOrInject(context)
@@ -541,7 +541,7 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
 
                     if (format.contains(VertexFormatElement.UV0)) {
                         val mapper = locations.getMapper(1, type)!!
-                        val inputLocation = mapper.map.get("VibrancyVertexTexCoord")
+                        val inputLocation = mapper.map.get("VibrancyVertexTexCoord")?.location
 
                         if (inputLocation != null) {
                             val sampler0Var = context.locateVariable(
@@ -576,7 +576,7 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
                                         .build()
                                 )
 
-                                val vertexColorLocation = mapper.map.get("VibrancyVertexColor")
+                                val vertexColorLocation = mapper.map.get("VibrancyVertexColor")?.location
 
                                 if (vertexColorLocation != null) {
                                     val vertexColor = context.addStaticVar(1, vec4, "VibrancyVertexColor")

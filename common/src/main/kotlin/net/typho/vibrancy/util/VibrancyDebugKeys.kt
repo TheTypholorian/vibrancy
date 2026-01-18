@@ -1,6 +1,7 @@
 package net.typho.vibrancy.util
 
 import com.mojang.blaze3d.platform.InputConstants
+import me.fzzyhmstrs.fzzy_config.api.ConfigApi
 import net.minecraft.network.chat.Component
 import net.typho.vibrancy.Vibrancy
 import java.util.function.Consumer
@@ -34,6 +35,9 @@ object VibrancyDebugKeys {
                 Vibrancy.config.blockLights.subtle.enabled = !Vibrancy.config.blockLights.subtle.enabled
                 Vibrancy.config.save()
                 feedback.accept(Component.translatable("debug.vibrancy.toggle_subtle_block_lights"))
+            }
+            InputConstants.KEY_C -> {
+                ConfigApi.openScreen("vibrancy.config")
             }
         }
     }

@@ -97,9 +97,17 @@ open class EntityShadowCollector {
             }
         }
 
+        val entityDispatcher = Minecraft.getInstance().entityRenderDispatcher
+
+        val hitboxes = entityDispatcher.shouldRenderHitBoxes()
+
+        entityDispatcher.setRenderShadow(false)
+        entityDispatcher.setRenderHitBoxes(false)
+
         for (entity in entities) {
             val pos = entity.getPosition(tickDelta)
-            Minecraft.getInstance().entityRenderDispatcher.render(
+
+            entityDispatcher.render(
                 entity,
                 pos.x,
                 pos.y,
@@ -111,6 +119,9 @@ open class EntityShadowCollector {
                 LightTexture.FULL_BRIGHT
             )
         }
+
+        entityDispatcher.setRenderShadow(true)
+        entityDispatcher.setRenderHitBoxes(hitboxes)
 
         for (entity in blockEntities) {
             poseStack.pushPose()

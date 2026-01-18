@@ -12,7 +12,7 @@ minecraftRange = "[1.21.1, 1.21.2)"
 parchment = "2024.11.10"
 parchmentMC = "1.21"
 
-neoforge = "21.1.200"
+neoforge = "21.1.218"
 neoforgeRange = "[21.1, 21.2)"
 ## This is the version of minecraft that the 'common' project uses, you can find a list of all versions here
 ## https://projects.neoforged.net/neoforged/neoform
@@ -21,7 +21,7 @@ kff = "5.6.0"
 kffRange = "[5.6, )"
 
 fabricLoader = "0.17.3"
-fabricApi = "0.116.0+1.21.1"
+fabricApi = "0.116.6+1.21.1"
 flk = "1.12.3+kotlin.2.0.21"
 
 mixin = "0.8.5"
@@ -29,10 +29,10 @@ mixinExtras = "0.3.5"
 
 sodium="mc1.21.1-0.6.13-neoforge"
 
-bigShot="2.2.7"
-bigShotRange="[2.2.7, )"
-bigShotFabric="mc1.21-2.2.7-fabric"
-bigShotNeo="mc1.21-2.2.7-neoforge"
+bigShot="2.2.8"
+bigShotRange="[2.2.8, )"
+bigShotFabric="mc1.21-2.2.8-fabric"
+bigShotNeo="mc1.21-2.2.8-neoforge"
 
 fzzyConfigFabric = "0.7.4-fix1+1.21"
 fzzyConfigNeo = "0.7.4+1.21+neoforge"
