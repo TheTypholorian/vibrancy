@@ -1,4 +1,5 @@
 import org.gradle.internal.extensions.stdlib.capitalized
+import java.io.FileNotFoundException
 import java.nio.file.Files
 
 plugins {
@@ -16,7 +17,12 @@ base {
 }
 
 modrinth {
-    token = Files.readString(project.rootDir.parentFile.resolve("modrinth_token.txt").toPath())
+    try {
+        token = Files.readString(project.rootDir.parentFile.resolve("modrinth_token.txt").toPath())
+    } catch (e: FileNotFoundException) {
+        e.printStackTrace()
+    }
+
     projectId = "vibrancy"
     versionName = "$modName $version for NeoForge 1.21"
     versionNumber = "mc1.21-$version-neoforge"
