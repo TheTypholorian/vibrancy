@@ -100,7 +100,7 @@ class VibrancyConfig : Config(
         @JvmField
         var useFrustumCulling = true
         @JvmField
-        var useGreedyMeshing = ValidatedBoolean(true)
+        var useGreedyMeshing = ValidatedBoolean(false)
             .withListener { Vibrancy.LIGHT_MANAGER.rebuildAllShadows() }
         @JvmField
         var useExtraGreedyMeshing = ValidatedBoolean(true)

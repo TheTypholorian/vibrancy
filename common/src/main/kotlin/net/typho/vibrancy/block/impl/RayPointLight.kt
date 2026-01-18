@@ -141,7 +141,8 @@ class RayPointLight(
     }
 
     override fun isInRange(pos: BlockPos): Boolean {
-        return pos.distSqr(this.pos) <= radius * radius
+        val shadowRadius = ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.shadowRadius.get().toFloat())).toInt()
+        return pos.distSqr(this.pos) <= shadowRadius * shadowRadius
     }
 
     fun render(manager: LightManager, raytrace: Boolean, stack: GlStack): BlockRenderResult {

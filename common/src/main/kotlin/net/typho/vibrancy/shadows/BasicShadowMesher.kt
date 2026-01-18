@@ -19,7 +19,7 @@ open class BasicShadowMesher : ShadowMesher {
         random: RandomSource,
         predicate: ShadowPredicate
     ) {
-        if (predicate.isInRange(pos)) {
+        if (predicate.isInRange(pos) && predicate.shouldCastBlock(state, level, pos)) {
             ShadowMesher.collectLightFaces(manager, state, level, pos, predicate, shadows::add)
         }
     }

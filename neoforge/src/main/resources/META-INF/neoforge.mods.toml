@@ -34,6 +34,7 @@ type="incompatible"
 versionRange = "*"
 ordering = "NONE"
 side = "BOTH"
+reason = "Breaks dynamic buffers"
 [[dependencies."${mod_id}"]]
 modId = "big_shot_lib"
 type="required"
