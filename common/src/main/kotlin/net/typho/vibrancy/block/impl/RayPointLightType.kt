@@ -47,7 +47,13 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, Hash
         manager: LightManager,
         lights: HashMapBlockLightStorage<RayPointLightInfo, RayPointLight>
     ): BlockRenderResult {
-        val result = BlockRenderResult()
+        val result = BlockRenderResult(
+            numRendered = 0,
+            numRaytraced = 0,
+            numShadows = 0,
+            numAsyncTasks = 0,
+            numEntityShadowCalls = 0
+        )
 
         if (Vibrancy.config.blockLights.raytraced.enabled) {
             GlStack().use { stack ->
@@ -82,7 +88,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, Hash
                         result.add(
                             light.render(
                                 manager,
-                                result.numRaytraced < Vibrancy.config.blockLights.raytraced.maxRaytraced.get()
+                                result.numRaytraced!! < Vibrancy.config.blockLights.raytraced.maxRaytraced.get()
                                         && manager.inRenderDistance(light.pos, Vibrancy.config.blockLights.raytraced.raytraceDistance.get()),
                                 stack
                             )

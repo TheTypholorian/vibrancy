@@ -165,7 +165,8 @@ class RayPointLight(
             numRendered = 1,
             numRaytraced = if (raytrace) 1 else 0,
             numShadows = if (raytrace) shadows.size else 0,
-            numAsyncTasks = if (shadows.isTaskActive()) 1 else 0
+            numAsyncTasks = if (shadows.isTaskActive()) 1 else 0,
+            numEntityShadowCalls = 0
         )
 
         if (raytrace) {
@@ -195,9 +196,9 @@ class RayPointLight(
 
             shadows.render(shadowShader)
 
-            if (manager.entityShadows.shouldRender(manager, getShadowBox().aabb())) {
+            if (Vibrancy.config.blockLights.raytraced.entityShadows && manager.entityShadows.shouldRender(manager, getShadowBox().aabb())) {
                 manager.entityShadows.render(shadowShader)
-                result.numEntityShadowCalls++
+                result.numEntityShadowCalls = result.numEntityShadowCalls!! + 1
             }
         }
 

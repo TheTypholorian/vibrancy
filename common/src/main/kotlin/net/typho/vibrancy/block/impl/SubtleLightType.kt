@@ -44,7 +44,7 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight, SubtleLigh
     override fun createStorage(manager: LightManager) = SubtleLightStorage()
 
     override fun render(manager: LightManager, lights: SubtleLightStorage): BlockRenderResult {
-        val result = BlockRenderResult()
+        val result = BlockRenderResult(numRendered = 0)
 
         if (Vibrancy.config.blockLights.subtle.enabled) {
             lights.checkDirty(manager)
@@ -78,7 +78,7 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight, SubtleLigh
                 val meshes = lights.meshes.values.sortedBy({ mesh -> manager.getSortingOrder(mesh.pos) })
 
                 for (mesh in meshes) {
-                    if (result.numRendered + mesh.size > Vibrancy.config.blockLights.subtle.maxRendered.get()) {
+                    if (result.numRendered!! + mesh.size > Vibrancy.config.blockLights.subtle.maxRendered.get()) {
                         break
                     }
 

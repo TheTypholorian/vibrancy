@@ -2,6 +2,7 @@ package net.typho.vibrancy
 
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.VertexBuffer
+import net.minecraft.ChatFormatting
 import net.minecraft.client.Camera
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
@@ -20,7 +21,6 @@ import net.typho.big_shot_lib.gl.GlStack
 import net.typho.big_shot_lib.gl.state.DepthMask
 import net.typho.big_shot_lib.gl.state.GlCapability
 import net.typho.vibrancy.block.*
-import net.typho.vibrancy.block.BlockLightRegistry.registryKey
 import net.typho.vibrancy.mixin.LevelRendererAccessor
 import net.typho.vibrancy.shadows.BasicShadowMesher
 import net.typho.vibrancy.shadows.ShadowGreedyMesher
@@ -39,7 +39,7 @@ open class LightManager {
     }
 
     @JvmField
-    protected var renderResult = BlockRenderResult()
+    protected var renderResults = HashMap<BlockLightType<*, *, *>, BlockRenderResult>()
     @JvmField
     protected var viewMatrix: Matrix4f? = null
     @JvmField
@@ -82,7 +82,7 @@ open class LightManager {
 
     fun ensureStorageInitialized() {
         Minecraft.getInstance().level?.let { level ->
-            for (type in level.registryAccess().registryOrThrow(registryKey)) {
+            for (type in level.registryAccess().registryOrThrow(BlockLightRegistry.registryKey)) {
                 blockLights.computeIfAbsent(type) { type -> type.createStorage(this) }
             }
         }
@@ -143,12 +143,12 @@ open class LightManager {
 
     fun render(camera: Camera = getCamera()) {
         viewMatrix = BigShotLib.getViewMatrix(camera)
-        renderResult = BlockRenderResult()
+        renderResults.clear()
 
         entityShadows.collect(this, blockLights)
 
         for (entry in blockLights) {
-            renderResult.add(castAndRender(entry.key, entry.value))
+            renderResults[entry.key] = castAndRender(entry.key, entry.value)
         }
 
         dirtyBlocks.clear()
@@ -217,15 +217,24 @@ open class LightManager {
 
     fun getDebugOutput(out: Consumer<String>) {
         out.accept("Block Lights")
-        out.accept("${blockLights.values.sumOf { storage -> storage.size() }} lights in world")
-        out.accept("${renderResult.numRendered} rendered")
-        out.accept("${renderResult.numRaytraced} raytraced")
-        out.accept("${renderResult.numShadows} shadows")
-        out.accept("${renderResult.numAsyncTasks} async tasks")
 
-        out.accept("${entityShadows.numEntities} entities")
-        out.accept("${entityShadows.numBlockEntities} block entities")
-        out.accept("${renderResult.numEntityShadowCalls} entity shadow draw calls")
+        out.accept("${entityShadows.numEntities} shadowed entities")
+        out.accept("${entityShadows.numBlockEntities} shadowed block entities")
+
+        for (entry in blockLights) {
+            out.accept("")
+
+            out.accept(ChatFormatting.UNDERLINE.toString() + getLevel().registryAccess().registryOrThrow(BlockLightRegistry.registryKey).getKey(entry.key)!!.toString())
+            out.accept("${entry.value.size()} lights in world")
+
+            renderResults[entry.key]?.let { result ->
+                result.numRendered?.let { out.accept("$it rendered") }
+                result.numRaytraced?.let { out.accept("$it raytraced") }
+                result.numShadows?.let { out.accept("$it shadows") }
+                result.numAsyncTasks?.let { out.accept("$it async tasks") }
+                result.numEntityShadowCalls?.let { out.accept("$it entity shadow draw calls") }
+            }
+        }
     }
 
     fun inFrustum(box: AABB): Boolean {
