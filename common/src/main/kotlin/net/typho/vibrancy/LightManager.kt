@@ -15,6 +15,7 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.phys.AABB
 import net.typho.big_shot_lib.BigShotLib
+import net.typho.big_shot_lib.api.IFramebuffer
 import net.typho.big_shot_lib.api.ITexture
 import net.typho.big_shot_lib.api.impl.NeoShader
 import net.typho.big_shot_lib.gl.GlStack
@@ -34,7 +35,7 @@ import java.util.function.Consumer
 
 open class LightManager {
     companion object {
-        const val SHADOW_STENCIL_MASK: Int = 0b1
+        //const val SHADOW_STENCIL_MASK: Int = 0b1
     }
 
     @JvmField
@@ -132,8 +133,8 @@ open class LightManager {
     }
 
     @Suppress("UNCHECKED_CAST")
-    protected fun <S : BlockLightStorage<*>> castAndRender(type: BlockLightType<*, *, S>, storage: BlockLightStorage<*>): BlockRenderResult {
-        return type.render(this, storage as S)
+    protected fun <S : BlockLightStorage<*>> castAndRender(fbo: IFramebuffer, type: BlockLightType<*, *, S>, storage: BlockLightStorage<*>): BlockRenderResult {
+        return type.render(this, storage as S, fbo)
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -141,14 +142,14 @@ open class LightManager {
         type.renderDebug(this, storage as S)
     }
 
-    fun render(camera: Camera = getCamera()) {
+    fun render(fbo: IFramebuffer, camera: Camera = getCamera()) {
         viewMatrix = BigShotLib.getViewMatrix(camera)
         renderResults.clear()
 
         entityShadows.collect(this, blockLights)
 
         for (entry in blockLights) {
-            renderResults[entry.key] = castAndRender(entry.key, entry.value)
+            renderResults[entry.key] = castAndRender(fbo, entry.key, entry.value)
         }
 
         dirtyBlocks.clear()

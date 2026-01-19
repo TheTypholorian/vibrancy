@@ -1,5 +1,6 @@
 package net.typho.vibrancy.block.impl
 
+import com.mojang.blaze3d.platform.GlStateManager
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.mojang.blaze3d.vertex.Tesselator
 import com.mojang.blaze3d.vertex.VertexBuffer
@@ -15,12 +16,11 @@ import net.minecraft.world.level.block.state.StateHolder
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import net.typho.big_shot_lib.BigShotLib.cube
+import net.typho.big_shot_lib.api.IFramebuffer
 import net.typho.big_shot_lib.api.ITexture
 import net.typho.big_shot_lib.api.impl.NeoShader
 import net.typho.big_shot_lib.gl.GlStack
 import net.typho.big_shot_lib.gl.state.GlCapability
-import net.typho.big_shot_lib.gl.state.IntAction
-import net.typho.big_shot_lib.gl.state.StencilOp
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyDynamicBuffers
@@ -31,8 +31,7 @@ import net.typho.vibrancy.shadows.AsyncShadowVertexBuffer
 import net.typho.vibrancy.shadows.ShadowPredicate
 import org.joml.Matrix4f
 import org.joml.Vector3f
-import org.lwjgl.opengl.GL11.GL_STENCIL_BUFFER_BIT
-import org.lwjgl.opengl.GL11.glClear
+import org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT
 import kotlin.math.ceil
 
 class RayPointLight(
@@ -145,7 +144,7 @@ class RayPointLight(
         return pos.distSqr(this.pos) <= shadowRadius * shadowRadius
     }
 
-    fun render(manager: LightManager, raytrace: Boolean, stack: GlStack): BlockRenderResult {
+    fun render(manager: LightManager, raytrace: Boolean, stack: GlStack, fbo: IFramebuffer): BlockRenderResult {
         for (pos in manager.dirtyBlocks) {
             if (manager.getLevel().dimension() == pos.dimension && getShadowBox().contains(pos.pos)) {
                 shadowsDirty = true
@@ -160,8 +159,6 @@ class RayPointLight(
 
         shadows.checkIfFinished(manager)
 
-        glClear(GL_STENCIL_BUFFER_BIT)
-
         val result = BlockRenderResult(
             numRendered = 1,
             numRaytraced = if (raytrace) 1 else 0,
@@ -171,6 +168,11 @@ class RayPointLight(
         )
 
         if (raytrace) {
+            Vibrancy.SHADOW_FBO.bind(stack)
+            GlStateManager._viewport(0, 0, Vibrancy.SHADOW_FBO.width(), Vibrancy.SHADOW_FBO.height())
+            GlStateManager._clearColor(0f, 0f, 0f, 0f)
+            GlStateManager._clear(GL_COLOR_BUFFER_BIT, false)
+
             val shadowShader = NeoShader.get(Vibrancy.id("point_shadow"))!!
 
             shadowShader.bind(stack)
@@ -183,11 +185,12 @@ class RayPointLight(
             shadowShader.getUniform("LightColor")?.set(color)
             shadowShader.getUniform("LightRadius")?.set(radius)
             shadowShader.getUniform("CameraPos")?.set(Vibrancy.camera)
-            shadowShader.getUniform("ScreenSize")?.set(Vibrancy.OUTPUT_FBO.width().toFloat(), Vibrancy.OUTPUT_FBO.height().toFloat())
+            shadowShader.getUniform("ScreenSize")?.set(Vibrancy.SHADOW_FBO.width().toFloat(), Vibrancy.SHADOW_FBO.height().toFloat())
             shadowShader.getUniform("DownsizeFactor")?.set(Vibrancy.config.downscale.factor.get())
 
             shadowShader.setSampler("VibrancyWorldPosSampler", Vibrancy.WORLD_POS_FBO.colorAttachments[0] as ITexture)
 
+            /*
             stack.set(
                 StencilOp(
                     IntAction.KEEP,
@@ -195,6 +198,7 @@ class RayPointLight(
                     IntAction.REPLACE,
                 )
             )
+             */
             stack.disable(GlCapability.CULL_FACE)
 
             shadows.render(shadowShader)
@@ -204,6 +208,9 @@ class RayPointLight(
                 result.numEntityShadowCalls = result.numEntityShadowCalls!! + 1
             }
         }
+
+        fbo.bind(stack)
+        GlStateManager._viewport(0, 0, fbo.width(), fbo.height())
 
         val boxShader = NeoShader.get(Vibrancy.id("point_box"))!!
 
@@ -217,12 +224,16 @@ class RayPointLight(
         boxShader.getUniform("LightColor")?.set(color)
         boxShader.getUniform("LightRadius")?.set(radius)
         boxShader.getUniform("CameraPos")?.set(Vibrancy.camera)
-        boxShader.getUniform("ScreenSize")?.set(Vibrancy.OUTPUT_FBO.width().toFloat(), Vibrancy.OUTPUT_FBO.height().toFloat())
+        boxShader.getUniform("ScreenSize")?.set(fbo.width().toFloat(), fbo.height().toFloat())
         boxShader.getUniform("DownsizeFactor")?.set(Vibrancy.config.downscale.factor.get())
 
+        boxShader.getUniform("SampleShadows")?.set(if (raytrace) 1 else 0)
+
+        boxShader.setSampler("VibrancyShadowSampler", Vibrancy.SHADOW_FBO.colorAttachments[0] as ITexture)
         boxShader.setSampler("VibrancyNormalSampler", VibrancyDynamicBuffers.normalsTexture!!)
         boxShader.setSampler("VibrancyWorldPosSampler", Vibrancy.WORLD_POS_FBO.colorAttachments[0] as ITexture)
 
+        /*
         stack.set(
             StencilOp(
                 IntAction.KEEP,
@@ -230,6 +241,7 @@ class RayPointLight(
                 IntAction.KEEP,
             )
         )
+         */
         stack.enable(GlCapability.CULL_FACE)
 
         boxBuffer.bind()

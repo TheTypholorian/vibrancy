@@ -14,7 +14,7 @@ import net.typho.big_shot_lib.spirv.ShaderMixinManager
 import net.typho.vibrancy.block.BlockLightRegistry
 import org.joml.Matrix4f
 import org.joml.Vector3f
-import org.lwjgl.opengl.GL11.*
+import org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.util.function.Consumer
@@ -31,11 +31,11 @@ object Vibrancy {
 
     @JvmField
     val LIGHT_MANAGER = LightManager()
-    val OUTPUT_FBO: NeoFramebuffer by lazy {
+    val SHADOW_FBO: NeoFramebuffer by lazy {
         val fbo = object : NeoFramebuffer.TextureBacked(
-            id("output"),
-            arrayOf(TextureFormat.RGB16F),
-            TextureFormat.DEPTH24_STENCIL8,
+            id("shadow"),
+            arrayOf(TextureFormat.RGB16),
+            null,
             Minecraft.getInstance().window.width / config.downscale.factor.get(),
             Minecraft.getInstance().window.height / config.downscale.factor.get()
         ) {
@@ -50,6 +50,18 @@ object Vibrancy {
                 attachment.setInterpolation(config.downscale.interpolation.get().inner)
             }
         }
+        fbo
+    }
+    val OUTPUT_FBO by lazy {
+        val fbo = NeoFramebuffer.TextureBacked(
+            id("output"),
+            arrayOf(TextureFormat.RGB16F),
+            null,
+            Minecraft.getInstance().window.width,
+            Minecraft.getInstance().window.height
+        )
+        NeoFramebuffer.AUTO_RESIZE.add(fbo)
+        NeoFramebuffer.register(fbo)
         fbo
     }
     val WORLD_POS_FBO by lazy {
@@ -90,9 +102,9 @@ object Vibrancy {
         GlStateManager._viewport(0, 0, OUTPUT_FBO.width(), OUTPUT_FBO.height())
 
         GlStateManager._clearColor(0f, 0f, 0f, 0f)
-        GlStateManager._clear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT or GL_STENCIL_BUFFER_BIT, false)
+        GlStateManager._clear(GL_COLOR_BUFFER_BIT, false)
 
-        LIGHT_MANAGER.render()
+        LIGHT_MANAGER.render(OUTPUT_FBO)
 
         OUTPUT_FBO.unbind()
         VertexBuffer.unbind()

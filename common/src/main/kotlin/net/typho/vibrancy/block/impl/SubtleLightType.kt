@@ -6,6 +6,7 @@ import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.util.ExtraCodecs
 import net.minecraft.world.level.block.state.StateDefinition
+import net.typho.big_shot_lib.api.IFramebuffer
 import net.typho.big_shot_lib.api.ITexture
 import net.typho.big_shot_lib.api.impl.NeoShader
 import net.typho.big_shot_lib.gl.GlStack
@@ -43,7 +44,7 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight, SubtleLigh
 
     override fun createStorage(manager: LightManager) = SubtleLightStorage()
 
-    override fun render(manager: LightManager, lights: SubtleLightStorage): BlockRenderResult {
+    override fun render(manager: LightManager, lights: SubtleLightStorage, fbo: IFramebuffer): BlockRenderResult {
         val result = BlockRenderResult(numRendered = 0)
 
         if (Vibrancy.config.blockLights.subtle.enabled) {
@@ -51,7 +52,7 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight, SubtleLigh
 
             GlStack().use { stack ->
                 stack.disable(GlCapability.DEPTH_TEST)
-                stack.disable(GlCapability.STENCIL_TEST)
+                //stack.disable(GlCapability.STENCIL_TEST)
                 stack.enable(GlCapability.CULL_FACE)
                 stack.set(CullFace.FRONT)
                 stack.enable(GlCapability.BLEND)
@@ -72,7 +73,6 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight, SubtleLigh
 
                 boxShader.getUniform("CameraPos")?.set(Vibrancy.camera)
                 boxShader.getUniform("LightRadius")?.set(4f)
-                boxShader.getUniform("ScreenSize")?.set(Vibrancy.OUTPUT_FBO.width().toFloat(), Vibrancy.OUTPUT_FBO.height().toFloat())
                 boxShader.getUniform("DownsizeFactor")?.set(Vibrancy.config.downscale.factor.get())
 
                 boxShader.setSampler("VibrancyWorldPosSampler", Vibrancy.WORLD_POS_FBO.colorAttachments[0] as ITexture)

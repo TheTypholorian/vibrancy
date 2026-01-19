@@ -30,6 +30,8 @@ void main() {
     // max((Pos.w - 16) / 128, 1e-3)
 
     if (sampleTriangle(Sampler0, Pos, dir, len, 1e-3, triangle)) {
-        discard;
+        fragColor = vec4(0);
+    } else {
+        fragColor = vec4(1);
     }
 }

@@ -8,8 +8,12 @@ import net.minecraft.client.renderer.RenderType
 import net.minecraft.util.ExtraCodecs
 import net.minecraft.world.level.block.state.StateDefinition
 import net.minecraft.world.phys.AABB
+import net.typho.big_shot_lib.api.IFramebuffer
 import net.typho.big_shot_lib.gl.GlStack
-import net.typho.big_shot_lib.gl.state.*
+import net.typho.big_shot_lib.gl.state.BlendFactor
+import net.typho.big_shot_lib.gl.state.BlendFunction
+import net.typho.big_shot_lib.gl.state.CullFace
+import net.typho.big_shot_lib.gl.state.GlCapability
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.block.BlockLightType
@@ -45,7 +49,8 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, Hash
 
     override fun render(
         manager: LightManager,
-        lights: HashMapBlockLightStorage<RayPointLightInfo, RayPointLight>
+        lights: HashMapBlockLightStorage<RayPointLightInfo, RayPointLight>,
+        fbo: IFramebuffer
     ): BlockRenderResult {
         val result = BlockRenderResult(
             numRendered = 0,
@@ -58,7 +63,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, Hash
         if (Vibrancy.config.blockLights.raytraced.enabled) {
             GlStack().use { stack ->
                 stack.disable(GlCapability.DEPTH_TEST)
-                stack.enable(GlCapability.STENCIL_TEST)
+                //stack.enable(GlCapability.STENCIL_TEST)
                 stack.enable(GlCapability.CULL_FACE)
                 stack.set(CullFace.FRONT)
                 stack.enable(GlCapability.BLEND)
@@ -68,6 +73,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, Hash
                         BlendFactor.ONE
                     )
                 )
+                /*
                 stack.set(StencilMask, LightManager.SHADOW_STENCIL_MASK)
                 stack.set(
                     StencilFunc(
@@ -76,6 +82,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, Hash
                         LightManager.SHADOW_STENCIL_MASK
                     )
                 )
+                 */
 
                 lights.map.values.stream()
                     .filter { light ->
@@ -90,7 +97,8 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, Hash
                                 manager,
                                 result.numRaytraced!! < Vibrancy.config.blockLights.raytraced.maxRaytraced.get()
                                         && manager.inRenderDistance(light.pos, Vibrancy.config.blockLights.raytraced.raytraceDistance.get()),
-                                stack
+                                stack,
+                                fbo
                             )
                         )
                     }

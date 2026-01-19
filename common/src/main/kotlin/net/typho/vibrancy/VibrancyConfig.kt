@@ -1,5 +1,6 @@
 package net.typho.vibrancy
 
+import com.mojang.blaze3d.systems.RenderSystem
 import me.fzzyhmstrs.fzzy_config.api.FileType
 import me.fzzyhmstrs.fzzy_config.config.Config
 import me.fzzyhmstrs.fzzy_config.config.ConfigSection
@@ -30,15 +31,19 @@ class VibrancyConfig : Config(
         @JvmField
         var factor = ValidatedInt(1, 8, 1)
             .withListener {
-                val window = Minecraft.getInstance().window
-                Vibrancy.OUTPUT_FBO.resize(window.width, window.height)
+                RenderSystem.recordRenderCall {
+                    val window = Minecraft.getInstance().window
+                    Vibrancy.SHADOW_FBO.resize(window.width, window.height)
+                }
             }
         @JvmField
         var interpolation = ValidatedEnum(ConfigInterpolationType.LINEAR)
             .withListener {
-                Vibrancy.OUTPUT_FBO.colorAttachments.forEach { attachment ->
-                    if (attachment is ITexture) {
-                        attachment.setInterpolation(it.get().inner)
+                RenderSystem.recordRenderCall {
+                    Vibrancy.SHADOW_FBO.colorAttachments.forEach { attachment ->
+                        if (attachment is ITexture) {
+                            attachment.setInterpolation(it.get().inner)
+                        }
                     }
                 }
             }
@@ -81,7 +86,11 @@ class VibrancyConfig : Config(
                 .setFormat(DecimalFormat("0 chunks"))
             @JvmField
             var shadowRadius = ValidatedInt(8, 16, 1)
-                .withListener { Vibrancy.LIGHT_MANAGER.rebuildAllShadows() }
+                .withListener {
+                    RenderSystem.recordRenderCall {
+                        Vibrancy.LIGHT_MANAGER.rebuildAllShadows()
+                    }
+                }
             @JvmField
             var maxRendered = ValidatedInt(200, 1000, 0)
                 .withIncrement(10)
