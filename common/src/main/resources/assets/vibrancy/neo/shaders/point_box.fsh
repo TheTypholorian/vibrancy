@@ -2,9 +2,7 @@
 
 #include "vibrancy:include/common"
 #include "vibrancy:include/fragment"
-//#include "veil:common"
-//#include "veil:space_helper"
-//#include "veil:light"
+#include "vibrancy:include/downsize"
 
 uniform sampler2D VibrancyWorldPosSampler;
 uniform sampler2D VibrancyNormalSampler;
@@ -21,7 +19,8 @@ uniform vec3 CameraPos;
 out vec4 fragColor;
 
 void main() {
-    vec3 pos = texelFetch(VibrancyWorldPosSampler, ivec2(gl_FragCoord.xy), 0).xyz;
+    vec2 uv = getScreenUV(ScreenSize);
+    vec3 pos = texture(VibrancyWorldPosSampler, uv).xyz;
 
-    fragColor = sampleLight(VibrancyNormalSampler, ScreenSize, LightPos, pos, LightRadius, LightColor);
+    fragColor = sampleLight(VibrancyNormalSampler, uv, LightPos, pos, LightRadius, LightColor);
 }

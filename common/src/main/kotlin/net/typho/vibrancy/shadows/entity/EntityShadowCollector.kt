@@ -99,10 +99,7 @@ open class EntityShadowCollector {
 
         val entityDispatcher = Minecraft.getInstance().entityRenderDispatcher
 
-        val hitboxes = entityDispatcher.shouldRenderHitBoxes()
-
         entityDispatcher.setRenderShadow(false)
-        entityDispatcher.setRenderHitBoxes(false)
 
         for (entity in entities) {
             val pos = entity.getPosition(tickDelta)
@@ -121,7 +118,6 @@ open class EntityShadowCollector {
         }
 
         entityDispatcher.setRenderShadow(true)
-        entityDispatcher.setRenderHitBoxes(hitboxes)
 
         for (entity in blockEntities) {
             poseStack.pushPose()

@@ -72,10 +72,12 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight, SubtleLigh
 
                 boxShader.getUniform("CameraPos")?.set(Vibrancy.camera)
                 boxShader.getUniform("LightRadius")?.set(4f)
+                boxShader.getUniform("ScreenSize")?.set(Vibrancy.OUTPUT_FBO.width().toFloat(), Vibrancy.OUTPUT_FBO.height().toFloat())
+                boxShader.getUniform("DownsizeFactor")?.set(Vibrancy.config.downscale.factor.get())
 
                 boxShader.setSampler("VibrancyWorldPosSampler", Vibrancy.WORLD_POS_FBO.colorAttachments[0] as ITexture)
 
-                val meshes = lights.meshes.values.sortedBy({ mesh -> manager.getSortingOrder(mesh.pos) })
+                val meshes = lights.meshes.values.sortedBy { mesh -> manager.getSortingOrder(mesh.pos) }
 
                 for (mesh in meshes) {
                     if (result.numRendered!! + mesh.size > Vibrancy.config.blockLights.subtle.maxRendered.get()) {

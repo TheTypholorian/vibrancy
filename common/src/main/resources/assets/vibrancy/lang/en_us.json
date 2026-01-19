@@ -1,6 +1,20 @@
 {
   "vibrancy.config": "Vibrancy Config",
 
+  "vibrancy.config.downscale": "Downscale",
+  "vibrancy.config.downscale.factor": "Factor",
+  "vibrancy.config.downscale.factor.prefix": "Renders shadows at 1 divided by this value, then upscales.",
+  "vibrancy.config.downscale.interpolation": "Interpolation",
+
+  "vibrancy.interpolation_type.nearest": "Nearest",
+  "vibrancy.interpolation_type.linear": "Linear",
+
+  "vibrancy.config.entityShadows": "Entity Shadows",
+  "vibrancy.config.entityShadows.firstPersonShadow": "First Person Shadow",
+  "vibrancy.config.entityShadows.firstPersonShadow.prefix": "Whether you cast a shadow when in first person.",
+  "vibrancy.config.entityShadows.distance": "Distance",
+  "vibrancy.config.entityShadows.distance.prefix": "The radius from the camera where entities and block entities cast shadows.",
+
   "vibrancy.config.blockLights": "Block Lights",
 
   "vibrancy.config.blockLights.raytraced": "Raytraced",

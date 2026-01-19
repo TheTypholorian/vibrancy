@@ -15,5 +15,5 @@ in vec2 uv;
 out vec4 fragColor;
 
 void main() {
-    fragColor = getWorldPos(DiffuseDepthSampler, ScreenSize, IProjMat, IModelMat, CameraPos);
+    fragColor = getWorldPos(DiffuseDepthSampler, ScreenSize, IProjMat, IModelMat, CameraPos, gl_FragCoord.xy / ScreenSize);
 }

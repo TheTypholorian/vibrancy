@@ -2,9 +2,7 @@
 
 #include "vibrancy:include/common"
 #include "vibrancy:include/fragment"
-//#include "veil:common"
-//#include "veil:space_helper"
-//#include "veil:light"
+#include "vibrancy:include/downsize"
 
 struct Light {
     vec3 color;
@@ -29,7 +27,7 @@ flat in uint id;
 out vec4 fragColor;
 
 void main() {
-    vec3 pos = texelFetch(VibrancyWorldPosSampler, ivec2(gl_FragCoord.xy), 0).xyz;
+    vec3 pos = texture(VibrancyWorldPosSampler, getScreenUV(ScreenSize)).xyz;
 
     fragColor = sampleLight(ScreenSize, lights[id].pos, pos, LightRadius, lights[id].color);
 }

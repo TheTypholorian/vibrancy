@@ -3,13 +3,17 @@ package net.typho.vibrancy
 import me.fzzyhmstrs.fzzy_config.api.FileType
 import me.fzzyhmstrs.fzzy_config.config.Config
 import me.fzzyhmstrs.fzzy_config.config.ConfigSection
+import me.fzzyhmstrs.fzzy_config.util.EnumTranslatable
 import me.fzzyhmstrs.fzzy_config.validation.ValidatedField.Companion.withListener
-import me.fzzyhmstrs.fzzy_config.validation.misc.ValidatedBoolean
+import me.fzzyhmstrs.fzzy_config.validation.misc.ValidatedEnum
 import me.fzzyhmstrs.fzzy_config.validation.number.ValidatedFloat
 import me.fzzyhmstrs.fzzy_config.validation.number.ValidatedInt
 import me.fzzyhmstrs.fzzy_config.validation.number.ValidatedNumber
 import me.fzzyhmstrs.fzzy_config.validation.number.ValidatedNumber.Companion.setFormat
 import me.fzzyhmstrs.fzzy_config.validation.number.ValidatedNumber.Companion.withIncrement
+import net.minecraft.client.Minecraft
+import net.typho.big_shot_lib.api.ITexture
+import net.typho.big_shot_lib.gl.InterpolationType
 import java.text.DecimalFormat
 
 class VibrancyConfig : Config(
@@ -18,6 +22,27 @@ class VibrancyConfig : Config(
     name = Vibrancy.MOD_ID
 ) {
     override fun fileType() = FileType.JSON
+
+    @JvmField
+    var downscale = DownscaleSection()
+
+    class DownscaleSection : ConfigSection() {
+        @JvmField
+        var factor = ValidatedInt(1, 8, 1)
+            .withListener {
+                val window = Minecraft.getInstance().window
+                Vibrancy.OUTPUT_FBO.resize(window.width, window.height)
+            }
+        @JvmField
+        var interpolation = ValidatedEnum(ConfigInterpolationType.LINEAR)
+            .withListener {
+                Vibrancy.OUTPUT_FBO.colorAttachments.forEach { attachment ->
+                    if (attachment is ITexture) {
+                        attachment.setInterpolation(it.get().inner)
+                    }
+                }
+            }
+    }
 
     @JvmField
     var entityShadows = EntityShadowsSection()
@@ -99,15 +124,14 @@ class VibrancyConfig : Config(
     class ForNerdsSection : ConfigSection() {
         @JvmField
         var useFrustumCulling = true
-        @JvmField
-        var useGreedyMeshing = ValidatedBoolean(false)
-            .withListener { Vibrancy.LIGHT_MANAGER.rebuildAllShadows() }
-        @JvmField
-        var useExtraGreedyMeshing = ValidatedBoolean(true)
-            .withListener { Vibrancy.LIGHT_MANAGER.rebuildAllShadows() }
-        @JvmField
-        var maxGreedyMeshSectionWidth = ValidatedInt(4, 32, 2)
-            .withIncrement(2)
-            .withListener { Vibrancy.LIGHT_MANAGER.rebuildAllShadows() }
+    }
+
+    enum class ConfigInterpolationType(val inner: InterpolationType) : EnumTranslatable {
+        NEAREST(InterpolationType.NEAREST),
+        LINEAR(InterpolationType.LINEAR);
+
+        override fun prefix(): String {
+            return "vibrancy.interpolation_type"
+        }
     }
 }

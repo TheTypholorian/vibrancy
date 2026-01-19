@@ -6,7 +6,6 @@ import me.fzzyhmstrs.fzzy_config.api.ConfigApi
 import me.fzzyhmstrs.fzzy_config.api.RegisterType
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
-import net.minecraft.client.renderer.RenderType
 import net.minecraft.resources.ResourceLocation
 import net.typho.big_shot_lib.api.ITexture
 import net.typho.big_shot_lib.api.impl.NeoFramebuffer
@@ -28,17 +27,29 @@ object Vibrancy {
     val LOGGER: Logger = LoggerFactory.getLogger(MOD_NAME)
 
     @JvmField
+    val config = ConfigApi.registerAndLoadConfig(::VibrancyConfig, RegisterType.CLIENT)
+
+    @JvmField
     val LIGHT_MANAGER = LightManager()
-    val OUTPUT_FBO by lazy {
-        val fbo = NeoFramebuffer.TextureBacked(
+    val OUTPUT_FBO: NeoFramebuffer by lazy {
+        val fbo = object : NeoFramebuffer.TextureBacked(
             id("output"),
             arrayOf(TextureFormat.RGB16F),
             TextureFormat.DEPTH24_STENCIL8,
-            Minecraft.getInstance().window.width,
-            Minecraft.getInstance().window.height
-        )
+            Minecraft.getInstance().window.width / config.downscale.factor.get(),
+            Minecraft.getInstance().window.height / config.downscale.factor.get()
+        ) {
+            override fun resize(width: Int, height: Int) {
+                super.resize(width / config.downscale.factor.get(), height / config.downscale.factor.get())
+            }
+        }
         NeoFramebuffer.AUTO_RESIZE.add(fbo)
         NeoFramebuffer.register(fbo)
+        fbo.colorAttachments.forEach { attachment ->
+            if (attachment is ITexture) {
+                attachment.setInterpolation(config.downscale.interpolation.get().inner)
+            }
+        }
         fbo
     }
     val WORLD_POS_FBO by lazy {
@@ -59,8 +70,6 @@ object Vibrancy {
     var iModelMat = Matrix4f()
     @JvmField
     var camera = Vector3f()
-    @JvmField
-    val config = ConfigApi.registerAndLoadConfig(::VibrancyConfig, RegisterType.CLIENT)
 
     @JvmStatic
     fun init() {
@@ -78,6 +87,8 @@ object Vibrancy {
 
         OUTPUT_FBO.bind()
 
+        GlStateManager._viewport(0, 0, OUTPUT_FBO.width(), OUTPUT_FBO.height())
+
         GlStateManager._clearColor(0f, 0f, 0f, 0f)
         GlStateManager._clear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT or GL_STENCIL_BUFFER_BIT, false)
 
@@ -85,6 +96,8 @@ object Vibrancy {
 
         OUTPUT_FBO.unbind()
         VertexBuffer.unbind()
+
+        Minecraft.getInstance().mainRenderTarget.bindWrite(true)
 
         LIGHT_MANAGER.blitOutput(OUTPUT_FBO.colorAttachments[0] as ITexture)
 

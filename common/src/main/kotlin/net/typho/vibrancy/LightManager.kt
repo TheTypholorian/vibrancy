@@ -23,7 +23,6 @@ import net.typho.big_shot_lib.gl.state.GlCapability
 import net.typho.vibrancy.block.*
 import net.typho.vibrancy.mixin.LevelRendererAccessor
 import net.typho.vibrancy.shadows.BasicShadowMesher
-import net.typho.vibrancy.shadows.ShadowGreedyMesher
 import net.typho.vibrancy.shadows.ShadowMesher
 import net.typho.vibrancy.shadows.entity.EntityShadowCollector
 import net.typho.vibrancy.util.PointLight
@@ -68,7 +67,8 @@ open class LightManager {
 
     fun createShadowMesher(light: PointLight): ShadowMesher? {
         return light.getShadowBox()?.let { box ->
-            if (Vibrancy.config.forNerds.useGreedyMeshing.get()) ShadowGreedyMesher(box) else BasicShadowMesher()
+            // if (Vibrancy.config.forNerds.useGreedyMeshing.get()) ShadowGreedyMesher(box) else
+            BasicShadowMesher()
         }
     }
 

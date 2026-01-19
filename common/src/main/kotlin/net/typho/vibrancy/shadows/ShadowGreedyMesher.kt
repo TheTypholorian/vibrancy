@@ -11,7 +11,6 @@ import net.minecraft.util.RandomSource
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.typho.vibrancy.LightManager
-import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.shadows.LightFace.Companion.toLightFace
 import net.typho.vibrancy.shadows.ShadowMesher.Companion.createFace
 import net.typho.vibrancy.util.TextureCoordinates
@@ -123,9 +122,9 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
 
                     currentVoxels.add(voxel)
 
-                    if (length >= Vibrancy.config.forNerds.maxGreedyMeshSectionWidth.get()) {
-                        end(direction, axis)
-                    }
+                    //if (length >= Vibrancy.config.forNerds.maxGreedyMeshSectionWidth.get()) {
+                    //    end(direction, axis)
+                    //}
                 }
             } else {
                 end(direction, axis)
@@ -174,7 +173,7 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
             }
         }
 
-        if (Vibrancy.config.forNerds.useExtraGreedyMeshing.get()) {
+        //if (Vibrancy.config.forNerds.useExtraGreedyMeshing.get()) {
             val extraGreedy = LinkedList<LightFace>()
             val removed = LinkedList<LightFace>()
 
@@ -189,7 +188,7 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
                     val doubleGreedy = LinkedList(listOf(entry1.value))
                     var pos = entry1.value.blockPos!!
 
-                    while (doubleGreedy.size < Vibrancy.config.forNerds.maxGreedyMeshSectionWidth.get()) {
+                    while (true) {//doubleGreedy.size < Vibrancy.config.forNerds.maxGreedyMeshSectionWidth.get()) {
                         pos = pos.relative(sideAxis, 1)
 
                         val other = entry.value[pos] ?: break
@@ -213,7 +212,7 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
 
                     pos = entry1.value.blockPos!!
 
-                    while (doubleGreedy.size < Vibrancy.config.forNerds.maxGreedyMeshSectionWidth.get()) {
+                    while (true) {//doubleGreedy.size < Vibrancy.config.forNerds.maxGreedyMeshSectionWidth.get()) {
                         pos = pos.relative(sideAxis, -1)
 
                         val other = entry.value[pos] ?: break
@@ -267,13 +266,13 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
                     }
                 }
             }
-        } else {
-            for (map in faces.values) {
-                for (face in map.values) {
-                    out.accept(face)
-                }
-            }
-        }
+        //} else {
+        //    for (map in faces.values) {
+        //        for (face in map.values) {
+        //            out.accept(face)
+        //        }
+        //    }
+        //}
 
         for (voxel in allVoxels) {
             if (predicate.isInRange(voxel.pos)) {

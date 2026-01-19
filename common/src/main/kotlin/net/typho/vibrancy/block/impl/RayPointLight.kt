@@ -183,6 +183,8 @@ class RayPointLight(
             shadowShader.getUniform("LightColor")?.set(color)
             shadowShader.getUniform("LightRadius")?.set(radius)
             shadowShader.getUniform("CameraPos")?.set(Vibrancy.camera)
+            shadowShader.getUniform("ScreenSize")?.set(Vibrancy.OUTPUT_FBO.width().toFloat(), Vibrancy.OUTPUT_FBO.height().toFloat())
+            shadowShader.getUniform("DownsizeFactor")?.set(Vibrancy.config.downscale.factor.get())
 
             shadowShader.setSampler("VibrancyWorldPosSampler", Vibrancy.WORLD_POS_FBO.colorAttachments[0] as ITexture)
 
@@ -215,6 +217,8 @@ class RayPointLight(
         boxShader.getUniform("LightColor")?.set(color)
         boxShader.getUniform("LightRadius")?.set(radius)
         boxShader.getUniform("CameraPos")?.set(Vibrancy.camera)
+        boxShader.getUniform("ScreenSize")?.set(Vibrancy.OUTPUT_FBO.width().toFloat(), Vibrancy.OUTPUT_FBO.height().toFloat())
+        boxShader.getUniform("DownsizeFactor")?.set(Vibrancy.config.downscale.factor.get())
 
         boxShader.setSampler("VibrancyNormalSampler", VibrancyDynamicBuffers.normalsTexture!!)
         boxShader.setSampler("VibrancyWorldPosSampler", Vibrancy.WORLD_POS_FBO.colorAttachments[0] as ITexture)
