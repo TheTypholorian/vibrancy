@@ -1,6 +1,7 @@
-package net.typho.vibrancy.mixin.fabric.sodium;
+package net.typho.vibrancy.mixin.sodium;
 
 import com.llamalad7.mixinextras.sugar.Local;
+import net.caffeinemc.mods.sodium.client.model.quad.ModelQuadView;
 import net.caffeinemc.mods.sodium.client.render.chunk.compile.pipeline.BlockRenderer;
 import net.caffeinemc.mods.sodium.client.render.chunk.terrain.material.Material;
 import net.caffeinemc.mods.sodium.client.render.chunk.vertex.format.ChunkVertexEncoder;
@@ -27,6 +28,7 @@ public class BlockRendererMixin {
             CallbackInfo ci,
             @Local ChunkVertexEncoder.Vertex vertex
     ) {
-        ((VertexWithNormal) vertex).vibrancy$setNormal(quad.packedFaceNormal());
+        // cast because we don't have fabric api here
+        ((VertexWithNormal) vertex).vibrancy$setNormal(((ModelQuadView) (Object) quad).getFaceNormal());
     }
 }
