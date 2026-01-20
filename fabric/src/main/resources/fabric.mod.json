@@ -36,7 +36,6 @@
     "modmenu": "*"
   },
   "breaks": {
-    "sodium": "*",
     "iris": "*"
   },
   "custom": {

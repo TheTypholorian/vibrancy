@@ -16,7 +16,17 @@ public class GlStateManagerMixin {
     )
     private static void enableBlend(CallbackInfo ci) {
         if (GlStateManager.getBoundFramebuffer() == Minecraft.getInstance().getMainRenderTarget().frameBufferId) {
-            VibrancyDynamicBuffers.initState();
+            VibrancyDynamicBuffers.enableBlend();
+        }
+    }
+
+    @Inject(
+            method = "_disableBlend",
+            at = @At("TAIL")
+    )
+    private static void disableBlend(CallbackInfo ci) {
+        if (GlStateManager.getBoundFramebuffer() == Minecraft.getInstance().getMainRenderTarget().frameBufferId) {
+            VibrancyDynamicBuffers.disableBlend();
         }
     }
 }

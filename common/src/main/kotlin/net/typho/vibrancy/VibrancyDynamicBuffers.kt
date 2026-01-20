@@ -131,6 +131,20 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
                 GL_COLOR_ATTACHMENT0 + lightUVLocation
             )
         )
+        enableBlend()
+    }
+
+    @ApiStatus.Internal
+    @JvmStatic
+    fun enableBlend() {
+        glDisablei(GL_BLEND, normalsLocation)
+        glEnablei(GL_BLEND, albedoLocation)
+        glDisablei(GL_BLEND, lightUVLocation)
+    }
+
+    @ApiStatus.Internal
+    @JvmStatic
+    fun disableBlend() {
         glDisablei(GL_BLEND, normalsLocation)
         glDisablei(GL_BLEND, albedoLocation)
         glDisablei(GL_BLEND, lightUVLocation)
@@ -222,11 +236,15 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
                     format.contains(VertexFormatElement.UV0) ||
                     format.contains(VertexFormatElement.UV2)
                 ) {
-                    Vibrancy.LOGGER.warn("Vibrancy dynamic buffers cannot apply to shader $shader with format $format because it has a geometry shader, skipping")
+                    Vibrancy.LOGGER.warn("Vibrancy dynamic buffers cannot apply to shader $shader with format $format because it has a geometry shader, skipping.")
                 }
             }
 
             return
+        }
+
+        if (shader.namespace == "sodium" && shader.path != "blocks/block_layer_opaque") {
+            throw UnsupportedOperationException("Vibrancy is incompatible with unexpected sodium shader $shader, please report this as an issue.")
         }
 
         format?.let {
@@ -252,8 +270,8 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
                                 )
 
                                 if (normalVar == null) {
-                                    val vec4 = ShaderVectorType(ShaderPrimitiveType.FLOAT_32, 4).findOrInject(context)
-                                    val input = context.addStaticVar(1, vec4, "VibrancyInputNormal")
+                                    val vec3 = ShaderVectorType(ShaderPrimitiveType.FLOAT_32, 3).findOrInject(context)
+                                    val input = context.addStaticVar(1, vec3, "VibrancyInputNormal")
                                     context.addEntrypointVars(input.id)
 
                                     val location = locations.getMapper(1, type)!!.map("VibrancyInputNormal", 1)
@@ -308,10 +326,16 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
                         }
                     }
 
-                    if (format.contains(VertexFormatElement.UV2)) {
-                        val lightVar = context.locateVariable(
-                            name = format.getElementName(VertexFormatElement.UV2)
-                        )
+                    if (format.contains(VertexFormatElement.UV2) || shader.namespace == "sodium") {
+                        val lightVar = if (shader.namespace == "sodium") {
+                            context.locateVariable(
+                                name = "_vert_tex_light_coord"
+                            )
+                        } else {
+                            context.locateVariable(
+                                name = format.getElementName(VertexFormatElement.UV2)
+                            )
+                        }
 
                         if (lightVar != null) {
                             val floatType = ShaderPrimitiveType.FLOAT_32.findOrInject(context)
@@ -330,43 +354,62 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
                                     .build()
                             )
 
-                            val constantVar = context.bound++
                             val tempVar = context.bound++
-                            val tempVar2 = context.bound++
-                            context.putBound()
 
-                            context.inject(
-                                context.locateOpcode(Opcode.OP_FUNCTION)!!.index,
-                                Opcode.Builder(Opcode.OP_CONSTANT)
-                                    .putInt(floatType)
-                                    .putInt(constantVar)
-                                    .putFloat(256f)
-                                    .build()
-                            )
+                            if (shader.namespace == "sodium") {
+                                context.putBound()
 
-                            context.inject(
-                                context.locateOpcodeInMethod(Opcode.OP_RETURN, "main")!!.index,
-                                Opcode.Builder(Opcode.OP_LOAD)
-                                    .putInt(vec2)
-                                    .putInt(tempVar)
-                                    .putInt(lightVar.id)
-                                    .build(),
-                                Opcode.Builder(Opcode.OP_F_DIV)
-                                    .putInt(vec2)
-                                    .putInt(tempVar2)
-                                    .putInt(tempVar)
-                                    .putInt(constantVar)
-                                    .build(),
-                                Opcode.Builder(Opcode.OP_STORE)
-                                    .putInt(output.id)
-                                    .putInt(tempVar2)
-                                    .build()
-                            )
+                                context.inject(
+                                    context.locateOpcodeInMethod(Opcode.OP_RETURN, "main")!!.index,
+                                    Opcode.Builder(Opcode.OP_LOAD)
+                                        .putInt(vec2)
+                                        .putInt(tempVar)
+                                        .putInt(lightVar.id)
+                                        .build(),
+                                    Opcode.Builder(Opcode.OP_STORE)
+                                        .putInt(output.id)
+                                        .putInt(tempVar)
+                                        .build()
+                                )
+                            } else {
+                                val constantVar = context.bound++
+                                val tempVar2 = context.bound++
+
+                                context.putBound()
+
+                                context.inject(
+                                    context.locateOpcode(Opcode.OP_FUNCTION)!!.index,
+                                    Opcode.Builder(Opcode.OP_CONSTANT)
+                                        .putInt(floatType)
+                                        .putInt(constantVar)
+                                        .putFloat(256f)
+                                        .build()
+                                )
+
+                                context.inject(
+                                    context.locateOpcodeInMethod(Opcode.OP_RETURN, "main")!!.index,
+                                    Opcode.Builder(Opcode.OP_LOAD)
+                                        .putInt(vec2)
+                                        .putInt(tempVar)
+                                        .putInt(lightVar.id)
+                                        .build(),
+                                    Opcode.Builder(Opcode.OP_F_DIV)
+                                        .putInt(vec2)
+                                        .putInt(tempVar2)
+                                        .putInt(tempVar)
+                                        .putInt(constantVar)
+                                        .build(),
+                                    Opcode.Builder(Opcode.OP_STORE)
+                                        .putInt(output.id)
+                                        .putInt(tempVar2)
+                                        .build()
+                                )
+                            }
                         }
                     }
 
                     if (format.contains(VertexFormatElement.UV0)) {
-                        val uvVar = context.locateVariable(
+                        val uvVar: ShaderVariable? = context.locateVariable(
                             name = format.getElementName(VertexFormatElement.UV0)
                         )
 
@@ -443,226 +486,225 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
                 }
                 ShaderType.GEOMETRY -> throw AssertionError()
                 ShaderType.FRAGMENT -> {
-                    if (format.contains(VertexFormatElement.NORMAL)) {
-                        val mapper = locations.getMapper(1, type)!!
-                        val inputLocation = mapper.map.get("VibrancyVertexNormal")?.location
+                    val mapper = locations.getMapper(1, type)!!
+                    val normalLocation = mapper.map.get("VibrancyVertexNormal")?.location
 
-                        if (inputLocation != null) {
-                            val vec3 = ShaderVectorType(ShaderPrimitiveType.FLOAT_32, 3).findOrInject(context)
+                    if (normalLocation != null) {
+                        val vec3 = ShaderVectorType(ShaderPrimitiveType.FLOAT_32, 3).findOrInject(context)
 
-                            val input = context.addStaticVar(1, vec3, "VibrancyVertexNormal")
+                        val input = context.addStaticVar(1, vec3, "VibrancyVertexNormal")
 
-                            context.inject(
-                                context.locateOpcode(Opcode.OP_DECORATE)!!.index,
-                                Opcode.Builder(Opcode.OP_DECORATE)
-                                    .putInt(input.id)
-                                    .putInt(30) // Location
-                                    .putInt(inputLocation)
-                                    .build()
-                            )
+                        context.inject(
+                            context.locateOpcode(Opcode.OP_DECORATE)!!.index,
+                            Opcode.Builder(Opcode.OP_DECORATE)
+                                .putInt(input.id)
+                                .putInt(30) // Location
+                                .putInt(normalLocation)
+                                .build()
+                        )
 
-                            val output = context.addStaticVar(3, vec3, "VibrancyFragmentNormal")
+                        val output = context.addStaticVar(3, vec3, "VibrancyFragmentNormal")
 
-                            context.addEntrypointVars(input.id, output.id)
+                        context.addEntrypointVars(input.id, output.id)
 
-                            context.inject(
-                                context.locateOpcode(Opcode.OP_DECORATE)!!.index,
-                                Opcode.Builder(Opcode.OP_DECORATE)
-                                    .putInt(output.id)
-                                    .putInt(30) // Location
-                                    .putInt(normalsLocation)
-                                    .build()
-                            )
+                        context.inject(
+                            context.locateOpcode(Opcode.OP_DECORATE)!!.index,
+                            Opcode.Builder(Opcode.OP_DECORATE)
+                                .putInt(output.id)
+                                .putInt(30) // Location
+                                .putInt(normalsLocation)
+                                .build()
+                        )
 
-                            val tempVar = context.bound++
-                            context.putBound()
-                            context.inject(
-                                context.locateOpcodeInMethod(Opcode.OP_RETURN, "main")!!.index,
-                                Opcode.Builder(Opcode.OP_LOAD)
-                                    .putInt(vec3)
-                                    .putInt(tempVar)
-                                    .putInt(input.id)
-                                    .build(),
-                                Opcode.Builder(Opcode.OP_STORE)
-                                    .putInt(output.id)
-                                    .putInt(tempVar)
-                                    .build()
-                            )
-                        }
+                        val tempVar = context.bound++
+                        context.putBound()
+                        context.inject(
+                            context.locateOpcodeInMethod(Opcode.OP_RETURN, "main")!!.index,
+                            Opcode.Builder(Opcode.OP_LOAD)
+                                .putInt(vec3)
+                                .putInt(tempVar)
+                                .putInt(input.id)
+                                .build(),
+                            Opcode.Builder(Opcode.OP_STORE)
+                                .putInt(output.id)
+                                .putInt(tempVar)
+                                .build()
+                        )
                     }
 
-                    if (format.contains(VertexFormatElement.UV2)) {
-                        val mapper = locations.getMapper(1, type)!!
-                        val inputLocation = mapper.map.get("VibrancyVertexLight")?.location
+                    val lightLocation = mapper.map.get("VibrancyVertexLight")?.location
 
-                        if (inputLocation != null) {
+                    if (lightLocation != null) {
+                        val vec2 = ShaderVectorType(ShaderPrimitiveType.FLOAT_32, 2).findOrInject(context)
+
+                        val input = context.addStaticVar(1, vec2, "VibrancyVertexLight")
+
+                        context.inject(
+                            context.locateOpcode(Opcode.OP_DECORATE)!!.index,
+                            Opcode.Builder(Opcode.OP_DECORATE)
+                                .putInt(input.id)
+                                .putInt(30) // Location
+                                .putInt(lightLocation)
+                                .build()
+                        )
+
+                        val output = context.addStaticVar(3, vec2, "VibrancyFragmentLight")
+
+                        context.addEntrypointVars(input.id, output.id)
+
+                        context.inject(
+                            context.locateOpcode(Opcode.OP_DECORATE)!!.index,
+                            Opcode.Builder(Opcode.OP_DECORATE)
+                                .putInt(output.id)
+                                .putInt(30) // Location
+                                .putInt(lightUVLocation)
+                                .build()
+                        )
+
+                        val tempVar = context.bound++
+                        context.putBound()
+                        context.inject(
+                            context.locateOpcodeInMethod(Opcode.OP_RETURN, "main")!!.index,
+                            Opcode.Builder(Opcode.OP_LOAD)
+                                .putInt(vec2)
+                                .putInt(tempVar)
+                                .putInt(input.id)
+                                .build(),
+                            Opcode.Builder(Opcode.OP_STORE)
+                                .putInt(output.id)
+                                .putInt(tempVar)
+                                .build()
+                        )
+                    }
+
+                    val texCoordLocation = mapper.map.get("VibrancyVertexTexCoord")?.location
+                    val sodiumTexCoord = context.locateVariable(name = "v_TexCoord")
+
+                    if (texCoordLocation != null || sodiumTexCoord != null) {
+                        val sampler0Var = context.locateVariable(
+                            name = "Sampler0"
+                        ) ?: if (shader.namespace == "sodium") context.locateVariable(name = "u_BlockTex") else null
+
+                        if (sampler0Var != null) {
+                            val vec4 = ShaderVectorType(ShaderPrimitiveType.FLOAT_32, 4).findOrInject(context)
                             val vec2 = ShaderVectorType(ShaderPrimitiveType.FLOAT_32, 2).findOrInject(context)
 
-                            val input = context.addStaticVar(1, vec2, "VibrancyVertexLight")
+                            val input: ShaderVariable
 
-                            context.inject(
-                                context.locateOpcode(Opcode.OP_DECORATE)!!.index,
-                                Opcode.Builder(Opcode.OP_DECORATE)
-                                    .putInt(input.id)
-                                    .putInt(30) // Location
-                                    .putInt(inputLocation)
-                                    .build()
-                            )
-
-                            val output = context.addStaticVar(3, vec2, "VibrancyFragmentLight")
-
-                            context.addEntrypointVars(input.id, output.id)
-
-                            context.inject(
-                                context.locateOpcode(Opcode.OP_DECORATE)!!.index,
-                                Opcode.Builder(Opcode.OP_DECORATE)
-                                    .putInt(output.id)
-                                    .putInt(30) // Location
-                                    .putInt(lightUVLocation)
-                                    .build()
-                            )
-
-                            val tempVar = context.bound++
-                            context.putBound()
-                            context.inject(
-                                context.locateOpcodeInMethod(Opcode.OP_RETURN, "main")!!.index,
-                                Opcode.Builder(Opcode.OP_LOAD)
-                                    .putInt(vec2)
-                                    .putInt(tempVar)
-                                    .putInt(input.id)
-                                    .build(),
-                                Opcode.Builder(Opcode.OP_STORE)
-                                    .putInt(output.id)
-                                    .putInt(tempVar)
-                                    .build()
-                            )
-                        }
-                    }
-
-                    if (format.contains(VertexFormatElement.UV0)) {
-                        val mapper = locations.getMapper(1, type)!!
-                        val inputLocation = mapper.map.get("VibrancyVertexTexCoord")?.location
-
-                        if (inputLocation != null) {
-                            val sampler0Var = context.locateVariable(
-                                name = "Sampler0"
-                            )
-
-                            if (sampler0Var != null) {
-                                val vec4 = ShaderVectorType(ShaderPrimitiveType.FLOAT_32, 4).findOrInject(context)
-                                val vec2 = ShaderVectorType(ShaderPrimitiveType.FLOAT_32, 2).findOrInject(context)
-
-                                val input = context.addStaticVar(1, vec2, "VibrancyVertexTexCoord")
+                            if (sodiumTexCoord != null) {
+                                input = sodiumTexCoord
+                            } else {
+                                input = context.addStaticVar(1, vec2, "VibrancyVertexTexCoord")
 
                                 context.inject(
                                     context.locateOpcode(Opcode.OP_DECORATE)!!.index,
                                     Opcode.Builder(Opcode.OP_DECORATE)
                                         .putInt(input.id)
                                         .putInt(30) // Location
-                                        .putInt(inputLocation)
+                                        .putInt(texCoordLocation)
                                         .build()
                                 )
+                            }
 
-                                val output = context.addStaticVar(3, vec4, "VibrancyFragmentAlbedo")
+                            val output = context.addStaticVar(3, vec4, "VibrancyFragmentAlbedo")
 
-                                context.addEntrypointVars(input.id, output.id)
+                            context.addEntrypointVars(input.id, output.id)
+
+                            context.inject(
+                                context.locateOpcode(Opcode.OP_DECORATE)!!.index,
+                                Opcode.Builder(Opcode.OP_DECORATE)
+                                    .putInt(output.id)
+                                    .putInt(30) // Location
+                                    .putInt(albedoLocation)
+                                    .build()
+                            )
+
+                            val vertexColorLocation = mapper.map.get("VibrancyVertexColor")?.location
+
+                            if (vertexColorLocation != null) {
+                                val vertexColor = context.addStaticVar(1, vec4, "VibrancyVertexColor")
 
                                 context.inject(
                                     context.locateOpcode(Opcode.OP_DECORATE)!!.index,
                                     Opcode.Builder(Opcode.OP_DECORATE)
-                                        .putInt(output.id)
+                                        .putInt(vertexColor.id)
                                         .putInt(30) // Location
-                                        .putInt(albedoLocation)
+                                        .putInt(vertexColorLocation)
                                         .build()
                                 )
 
-                                val vertexColorLocation = mapper.map.get("VibrancyVertexColor")?.location
+                                val tempSamplerVar = context.bound++
+                                val tempTexCoordVar = context.bound++
+                                val tempColorVar = context.bound++
+                                val tempPreResultVar = context.bound++
+                                val tempResultVar = context.bound++
+                                context.putBound()
+                                context.inject(
+                                    context.locateOpcodeInMethod(Opcode.OP_RETURN, "main")!!.index,
+                                    Opcode.Builder(Opcode.OP_LOAD)
+                                        .putInt(sampler0Var.type)
+                                        .putInt(tempSamplerVar)
+                                        .putInt(sampler0Var.id)
+                                        .build(),
+                                    Opcode.Builder(Opcode.OP_LOAD)
+                                        .putInt(vertexColor.type)
+                                        .putInt(tempColorVar)
+                                        .putInt(vertexColor.id)
+                                        .build(),
+                                    Opcode.Builder(Opcode.OP_LOAD)
+                                        .putInt(vec4)
+                                        .putInt(tempTexCoordVar)
+                                        .putInt(input.id)
+                                        .build(),
 
-                                if (vertexColorLocation != null) {
-                                    val vertexColor = context.addStaticVar(1, vec4, "VibrancyVertexColor")
+                                    Opcode.Builder(Opcode.OP_IMAGE_SAMPLE_IMPLICIT_LOD)
+                                        .putInt(vec4)
+                                        .putInt(tempPreResultVar)
+                                        .putInt(tempSamplerVar)
+                                        .putInt(tempTexCoordVar)
+                                        .build(),
+                                    Opcode.Builder(Opcode.OP_F_MUL)
+                                        .putInt(vec4)
+                                        .putInt(tempResultVar)
+                                        .putInt(tempPreResultVar)
+                                        .putInt(tempColorVar)
+                                        .build(),
 
-                                    context.inject(
-                                        context.locateOpcode(Opcode.OP_DECORATE)!!.index,
-                                        Opcode.Builder(Opcode.OP_DECORATE)
-                                            .putInt(vertexColor.id)
-                                            .putInt(30) // Location
-                                            .putInt(vertexColorLocation)
-                                            .build()
-                                    )
+                                    Opcode.Builder(Opcode.OP_STORE)
+                                        .putInt(output.id)
+                                        .putInt(tempResultVar)
+                                        .build()
+                                )
+                            } else {
+                                val tempSamplerVar = context.bound++
+                                val tempTexCoordVar = context.bound++
+                                val tempResultVar = context.bound++
+                                context.putBound()
+                                context.inject(
+                                    context.locateOpcodeInMethod(Opcode.OP_RETURN, "main")!!.index,
+                                    Opcode.Builder(Opcode.OP_LOAD)
+                                        .putInt(sampler0Var.type)
+                                        .putInt(tempSamplerVar)
+                                        .putInt(sampler0Var.id)
+                                        .build(),
+                                    Opcode.Builder(Opcode.OP_LOAD)
+                                        .putInt(vec4)
+                                        .putInt(tempTexCoordVar)
+                                        .putInt(input.id)
+                                        .build(),
 
-                                    val tempSamplerVar = context.bound++
-                                    val tempTexCoordVar = context.bound++
-                                    val tempColorVar = context.bound++
-                                    val tempPreResultVar = context.bound++
-                                    val tempResultVar = context.bound++
-                                    context.putBound()
-                                    context.inject(
-                                        context.locateOpcodeInMethod(Opcode.OP_RETURN, "main")!!.index,
-                                        Opcode.Builder(Opcode.OP_LOAD)
-                                            .putInt(sampler0Var.type)
-                                            .putInt(tempSamplerVar)
-                                            .putInt(sampler0Var.id)
-                                            .build(),
-                                        Opcode.Builder(Opcode.OP_LOAD)
-                                            .putInt(vertexColor.type)
-                                            .putInt(tempColorVar)
-                                            .putInt(vertexColor.id)
-                                            .build(),
-                                        Opcode.Builder(Opcode.OP_LOAD)
-                                            .putInt(vec4)
-                                            .putInt(tempTexCoordVar)
-                                            .putInt(input.id)
-                                            .build(),
+                                    Opcode.Builder(Opcode.OP_IMAGE_SAMPLE_IMPLICIT_LOD)
+                                        .putInt(vec4)
+                                        .putInt(tempResultVar)
+                                        .putInt(tempSamplerVar)
+                                        .putInt(tempTexCoordVar)
+                                        .build(),
 
-                                        Opcode.Builder(Opcode.OP_IMAGE_SAMPLE_IMPLICIT_LOD)
-                                            .putInt(vec4)
-                                            .putInt(tempPreResultVar)
-                                            .putInt(tempSamplerVar)
-                                            .putInt(tempTexCoordVar)
-                                            .build(),
-                                        Opcode.Builder(Opcode.OP_F_MUL)
-                                            .putInt(vec4)
-                                            .putInt(tempResultVar)
-                                            .putInt(tempPreResultVar)
-                                            .putInt(tempColorVar)
-                                            .build(),
-
-                                        Opcode.Builder(Opcode.OP_STORE)
-                                            .putInt(output.id)
-                                            .putInt(tempResultVar)
-                                            .build()
-                                    )
-                                } else {
-                                    val tempSamplerVar = context.bound++
-                                    val tempTexCoordVar = context.bound++
-                                    val tempResultVar = context.bound++
-                                    context.putBound()
-                                    context.inject(
-                                        context.locateOpcodeInMethod(Opcode.OP_RETURN, "main")!!.index,
-                                        Opcode.Builder(Opcode.OP_LOAD)
-                                            .putInt(sampler0Var.type)
-                                            .putInt(tempSamplerVar)
-                                            .putInt(sampler0Var.id)
-                                            .build(),
-                                        Opcode.Builder(Opcode.OP_LOAD)
-                                            .putInt(vec4)
-                                            .putInt(tempTexCoordVar)
-                                            .putInt(input.id)
-                                            .build(),
-
-                                        Opcode.Builder(Opcode.OP_IMAGE_SAMPLE_IMPLICIT_LOD)
-                                            .putInt(vec4)
-                                            .putInt(tempResultVar)
-                                            .putInt(tempSamplerVar)
-                                            .putInt(tempTexCoordVar)
-                                            .build(),
-
-                                        Opcode.Builder(Opcode.OP_STORE)
-                                            .putInt(output.id)
-                                            .putInt(tempResultVar)
-                                            .build()
-                                    )
-                                }
+                                    Opcode.Builder(Opcode.OP_STORE)
+                                        .putInt(output.id)
+                                        .putInt(tempResultVar)
+                                        .build()
+                                )
                             }
                         }
                     }

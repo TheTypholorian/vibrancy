@@ -6,7 +6,11 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "LevelMixin",
-    "OptionsMixin"
+    "OptionsMixin",
+    "sodium.ChunkVertexConsumerMixin",
+    "sodium.ChunkVertexEncoderVertexMixin",
+    "sodium.CompactChunkVertexMixin",
+    "sodium.DefaultFluidRendererMixin"
   ],
   "client": [
     "ClientChunkCacheStorageMixin",
