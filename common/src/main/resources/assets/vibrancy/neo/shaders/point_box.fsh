@@ -24,7 +24,7 @@ out vec4 fragColor;
 void main() {
     vec2 uv = getScreenUV(ScreenSize);
     vec3 pos = texture(VibrancyWorldPosSampler, uv).xyz;
-    vec3 shadow = 1 - upsize(VibrancyShadowSampler, VibrancyNormalSampler, VibrancyWorldPosSampler, ivec2(gl_FragCoord.xy), DownsizeFactor).rgb;
+    vec3 shadow = upsize(VibrancyShadowSampler, VibrancyNormalSampler, VibrancyWorldPosSampler, ivec2(gl_FragCoord.xy), DownsizeFactor).rgb;
 
-    fragColor = sampleLight(VibrancyNormalSampler, uv, LightPos, pos, LightRadius, LightColor * shadow);
+    fragColor = vec4(shadow, 1);//sampleLight(VibrancyNormalSampler, uv, LightPos, pos, LightRadius, LightColor * shadow);
 }
