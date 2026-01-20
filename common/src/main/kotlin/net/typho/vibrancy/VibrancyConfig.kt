@@ -29,7 +29,7 @@ class VibrancyConfig : Config(
 
     class DownscaleSection : ConfigSection() {
         @JvmField
-        var factor = ValidatedInt(1, 8, 1)
+        var factor = ValidatedInt(1, 32, 1)
             .withListener {
                 RenderSystem.recordRenderCall {
                     val window = Minecraft.getInstance().window
