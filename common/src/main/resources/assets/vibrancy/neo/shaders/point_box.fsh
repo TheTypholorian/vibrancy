@@ -22,8 +22,8 @@ uniform bool SampleShadows;
 out vec4 fragColor;
 
 void main() {
-    vec2 uv = getScreenUV(ScreenSize);
-    vec3 pos = texture(VibrancyWorldPosSampler, uv).xyz;
+    ivec2 uv = getScreenUV();
+    vec3 pos = texelFetch(VibrancyWorldPosSampler, uv, 0).xyz;
     vec3 shadow = upsize(VibrancyShadowSampler, VibrancyNormalSampler, VibrancyWorldPosSampler, ivec2(gl_FragCoord.xy), DownsizeFactor).rgb;
 
     fragColor = vec4(shadow, 1);//sampleLight(VibrancyNormalSampler, uv, LightPos, pos, LightRadius, LightColor * shadow);

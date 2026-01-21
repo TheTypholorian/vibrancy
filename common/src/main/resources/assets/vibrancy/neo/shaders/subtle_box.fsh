@@ -27,7 +27,7 @@ flat in uint id;
 out vec4 fragColor;
 
 void main() {
-    vec3 pos = texture(VibrancyWorldPosSampler, getScreenUV(ScreenSize)).xyz;
+    vec3 pos = texelFetch(VibrancyWorldPosSampler, getScreenUV(), 0).xyz;
 
     fragColor = sampleLight(ScreenSize, lights[id].pos, pos, LightRadius, lights[id].color);
 }

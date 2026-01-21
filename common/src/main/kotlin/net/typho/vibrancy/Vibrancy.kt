@@ -36,8 +36,8 @@ object Vibrancy {
             id("shadow"),
             arrayOf(TextureFormat.RGB16),
             null,
-            Minecraft.getInstance().window.width / config.downscale.factor.get(),
-            Minecraft.getInstance().window.height / config.downscale.factor.get()
+            Minecraft.getInstance().mainRenderTarget.width / config.downscale.factor.get(),
+            Minecraft.getInstance().mainRenderTarget.height / config.downscale.factor.get()
         ) {
             override fun resize(width: Int, height: Int) {
                 super.resize(width / config.downscale.factor.get(), height / config.downscale.factor.get())
@@ -57,8 +57,8 @@ object Vibrancy {
             id("output"),
             arrayOf(TextureFormat.RGB16F),
             null,
-            Minecraft.getInstance().window.width,
-            Minecraft.getInstance().window.height
+            Minecraft.getInstance().mainRenderTarget.width,
+            Minecraft.getInstance().mainRenderTarget.height
         )
         NeoFramebuffer.AUTO_RESIZE.add(fbo)
         NeoFramebuffer.register(fbo)
@@ -69,8 +69,8 @@ object Vibrancy {
             id("world_pos"),
             arrayOf(TextureFormat.RGB32F),
             null,
-            Minecraft.getInstance().window.width,
-            Minecraft.getInstance().window.height
+            Minecraft.getInstance().mainRenderTarget.width,
+            Minecraft.getInstance().mainRenderTarget.height
         )
         NeoFramebuffer.AUTO_RESIZE.add(fbo)
         NeoFramebuffer.register(fbo)

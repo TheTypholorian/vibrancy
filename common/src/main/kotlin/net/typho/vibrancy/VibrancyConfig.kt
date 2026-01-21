@@ -32,8 +32,8 @@ class VibrancyConfig : Config(
         var factor = ValidatedInt(1, 32, 1)
             .withListener {
                 RenderSystem.recordRenderCall {
-                    val window = Minecraft.getInstance().window
-                    Vibrancy.SHADOW_FBO.resize(window.width, window.height)
+                    val fbo = Minecraft.getInstance().mainRenderTarget
+                    Vibrancy.SHADOW_FBO.resize(fbo.width, fbo.height)
                 }
             }
         @JvmField

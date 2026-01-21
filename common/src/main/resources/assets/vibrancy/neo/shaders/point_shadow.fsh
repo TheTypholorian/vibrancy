@@ -20,7 +20,7 @@ in flat Triangle triangle;
 out vec4 fragColor;
 
 void main() {
-    vec3 Pos = texture(VibrancyWorldPosSampler, getScreenUV(ScreenSize)).xyz;
+    vec3 Pos = texelFetch(VibrancyWorldPosSampler, getScreenUV(), 0).xyz;
 
     vec3 delta = LightPos - Pos;
     float len = length(delta);

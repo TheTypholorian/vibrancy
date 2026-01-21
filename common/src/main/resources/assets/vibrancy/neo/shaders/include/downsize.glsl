@@ -1,26 +1,23 @@
 uniform int DownsizeFactor = 1;
 
-vec2 getScreenUV(vec2 screen) {
-    return gl_FragCoord.xy / screen;
+ivec2 getScreenUV() {
+    return ivec2(gl_FragCoord.xy * DownsizeFactor);
 }
 
-vec2 upsizeHelper(sampler2D colorSampler, sampler2D normalSampler, sampler2D posSampler, ivec2 originUV, ivec2 sourceUV, int scale, vec3 targetNormal, vec3 targetPos) {
+void upsizeHelper(sampler2D colorSampler, sampler2D normalSampler, sampler2D posSampler, ivec2 originUV, ivec2 sourceUV, int scale, vec3 targetNormal, vec3 targetPos, inout vec4 result, inout float minDistance) {
     ivec2 upscaledUV = sourceUV * scale;
     vec3 checkNormal = texelFetch(normalSampler, upscaledUV, 0).xyz;
 
     if (dot(checkNormal, targetNormal) > 0.99) {
         vec3 checkPos = texelFetch(posSampler, upscaledUV, 0).xyz;
-        float d = distance(originUV, upscaledUV); //distance(targetPos, checkPos) + 1;
-        vec4 resultColor = texelFetch(colorSampler, sourceUV, 0);
+        float d = distance(targetPos, checkPos);
 
-        if (resultColor.a < 0.5) {
-            return vec2(1 / d, 0);
-        } else {
-            return vec2(0, 1 / d);
+        if (d < minDistance) {
+            ivec2 blockOrigin = (upscaledUV / scale) * scale;
+            result = texelFetch(colorSampler, blockOrigin / scale, 0);
+            minDistance = d;
         }
     }
-
-    return vec2(0);
 }
 
 vec4 upsize(sampler2D colorSampler, sampler2D normalSampler, sampler2D posSampler, ivec2 upscaledUV, int scale) {
@@ -28,24 +25,25 @@ vec4 upsize(sampler2D colorSampler, sampler2D normalSampler, sampler2D posSample
     vec3 targetPos = texelFetch(posSampler, upscaledUV, 0).xyz;
     ivec2 sourceUV = upscaledUV / scale;
 
-    vec2 result = vec2(0);
+    vec4 result = vec4(0.5);
+    float minDistance = 100;
 
-    //result += upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV, scale, targetNormal, targetPos);
+    upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV, scale, targetNormal, targetPos, result, minDistance);
 
-    result += upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV + ivec2(1, 0), scale, targetNormal, targetPos);
-    result += upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV + ivec2(-1, 0), scale, targetNormal, targetPos);
-    result += upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV + ivec2(0, 1), scale, targetNormal, targetPos);
-    result += upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV + ivec2(0, -1), scale, targetNormal, targetPos);
+    upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV + ivec2(1, 0), scale, targetNormal, targetPos, result, minDistance);
+    upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV + ivec2(-1, 0), scale, targetNormal, targetPos, result, minDistance);
+    upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV + ivec2(0, 1), scale, targetNormal, targetPos, result, minDistance);
+    upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV + ivec2(0, -1), scale, targetNormal, targetPos, result, minDistance);
 
-    result += upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV + ivec2(1, 1), scale, targetNormal, targetPos);
-    result += upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV + ivec2(-1, 1), scale, targetNormal, targetPos);
-    result += upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV + ivec2(1, -1), scale, targetNormal, targetPos);
-    result += upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV + ivec2(-1, -1), scale, targetNormal, targetPos);
+    upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV + ivec2(1, 1), scale, targetNormal, targetPos, result, minDistance);
+    upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV + ivec2(-1, 1), scale, targetNormal, targetPos, result, minDistance);
+    upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV + ivec2(1, -1), scale, targetNormal, targetPos, result, minDistance);
+    upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV + ivec2(-1, -1), scale, targetNormal, targetPos, result, minDistance);
 
-    //result += upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV + ivec2(2, 0), scale, targetNormal, targetPos);
-    //result += upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV + ivec2(-2, 0), scale, targetNormal, targetPos);
-    //result += upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV + ivec2(0, 2), scale, targetNormal, targetPos);
-    //result += upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV + ivec2(0, -2), scale, targetNormal, targetPos);
+    upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV + ivec2(2, 0), scale, targetNormal, targetPos, result, minDistance);
+    upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV + ivec2(-2, 0), scale, targetNormal, targetPos, result, minDistance);
+    upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV + ivec2(0, 2), scale, targetNormal, targetPos, result, minDistance);
+    upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV + ivec2(0, -2), scale, targetNormal, targetPos, result, minDistance);
 
-    return vec4(normalize(result), 1, 1);//result.y >= result.x ? vec4(1) : vec4(0);
+    return result;
 }
