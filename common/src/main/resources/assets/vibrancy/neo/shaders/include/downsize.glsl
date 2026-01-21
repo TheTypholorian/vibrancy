@@ -4,19 +4,16 @@ ivec2 getScreenUV() {
     return ivec2(gl_FragCoord.xy * DownsizeFactor);
 }
 
-void upsizeHelper(sampler2D colorSampler, sampler2D normalSampler, sampler2D posSampler, ivec2 originUV, ivec2 sourceUV, int scale, vec3 targetNormal, vec3 targetPos, inout vec4 result, inout float minDistance) {
+void upsizeHelper(sampler2D colorSampler, sampler2D normalSampler, sampler2D posSampler, ivec2 sourceUV, int scale, vec3 targetNormal, vec3 targetPos, inout float accum, inout vec4 resultColor) {
     ivec2 upscaledUV = sourceUV * scale;
-    vec3 checkNormal = texelFetch(normalSampler, upscaledUV, 0).xyz;
+    vec3 normal = texelFetch(normalSampler, upscaledUV, 0).xyz;
+    vec3 pos = texelFetch(posSampler, upscaledUV, 0).xyz;
+    vec4 color = texelFetch(colorSampler, sourceUV, 0);
 
-    if (dot(checkNormal, targetNormal) > 0.99) {
-        vec3 checkPos = texelFetch(posSampler, upscaledUV, 0).xyz;
-        float d = distance(targetPos, checkPos);
-
-        if (d < minDistance) {
-            ivec2 blockOrigin = (upscaledUV / scale) * scale;
-            result = texelFetch(colorSampler, blockOrigin / scale, 0);
-            minDistance = d;
-        }
+    if (dot(targetNormal, normal) > 0.99) {
+        float d = 1 / (distance(pos, targetPos) + 1);
+        accum += d;
+        resultColor += color * d;
     }
 }
 
@@ -25,25 +22,13 @@ vec4 upsize(sampler2D colorSampler, sampler2D normalSampler, sampler2D posSample
     vec3 targetPos = texelFetch(posSampler, upscaledUV, 0).xyz;
     ivec2 sourceUV = upscaledUV / scale;
 
-    vec4 result = vec4(0.5);
-    float minDistance = 100;
+    float accum = 0;
+    vec4 resultColor = vec4(0);
 
-    upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV, scale, targetNormal, targetPos, result, minDistance);
+    upsizeHelper(colorSampler, normalSampler, posSampler, sourceUV, scale, targetNormal, targetPos, accum, resultColor);
+    upsizeHelper(colorSampler, normalSampler, posSampler, sourceUV + ivec2(1, 0), scale, targetNormal, targetPos, accum, resultColor);
+    upsizeHelper(colorSampler, normalSampler, posSampler, sourceUV + ivec2(1, 1), scale, targetNormal, targetPos, accum, resultColor);
+    upsizeHelper(colorSampler, normalSampler, posSampler, sourceUV + ivec2(0, 1), scale, targetNormal, targetPos, accum, resultColor);
 
-    upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV + ivec2(1, 0), scale, targetNormal, targetPos, result, minDistance);
-    upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV + ivec2(-1, 0), scale, targetNormal, targetPos, result, minDistance);
-    upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV + ivec2(0, 1), scale, targetNormal, targetPos, result, minDistance);
-    upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV + ivec2(0, -1), scale, targetNormal, targetPos, result, minDistance);
-
-    upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV + ivec2(1, 1), scale, targetNormal, targetPos, result, minDistance);
-    upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV + ivec2(-1, 1), scale, targetNormal, targetPos, result, minDistance);
-    upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV + ivec2(1, -1), scale, targetNormal, targetPos, result, minDistance);
-    upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV + ivec2(-1, -1), scale, targetNormal, targetPos, result, minDistance);
-
-    upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV + ivec2(2, 0), scale, targetNormal, targetPos, result, minDistance);
-    upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV + ivec2(-2, 0), scale, targetNormal, targetPos, result, minDistance);
-    upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV + ivec2(0, 2), scale, targetNormal, targetPos, result, minDistance);
-    upsizeHelper(colorSampler, normalSampler, posSampler, upscaledUV, sourceUV + ivec2(0, -2), scale, targetNormal, targetPos, result, minDistance);
-
-    return result;
+    return resultColor / accum;
 }
