@@ -1,0 +1,5 @@
+{
+  "vertex": "vibrancy:shadow_blit",
+  "fragment": "vibrancy:shadow_blit",
+  "format": "POSITION_TEX"
+}

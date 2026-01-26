@@ -1,27 +1,40 @@
 package net.typho.vibrancy.shadows
 
-import com.mojang.blaze3d.vertex.VertexBuffer
+import net.minecraft.client.renderer.RenderType
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.util.RandomSource
+import net.typho.big_shot_lib.api.IShader
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.util.PointLight
 import java.util.*
 import java.util.concurrent.CompletableFuture
+import java.util.function.Consumer
+import java.util.function.Supplier
 
-open class AsyncShadowVertexBuffer(
-    usage: VertexBuffer.Usage,
-    texture: Int
-) : ShadowVertexBuffer(usage, texture) {
+open class AsyncBlockShadowTexture(
+    val shader: Supplier<IShader>,
+    val uniforms: Consumer<IShader>,
+    width: Int,
+    height: Int
+) : ShadowTexture(width, height) {
     protected var asyncTask: CompletableFuture<List<LightFace>>? = null
 
     fun isTaskActive() = asyncTask?.let { task -> !task.isDone } ?: false
 
-    fun checkIfFinished(manager: LightManager): Boolean {
+    fun checkIfFinished(): Boolean {
         asyncTask?.let { task ->
             if (task.isDone) {
-                upload(manager, task.get())
-                asyncTask = null
+                val builder = begin(shader.get(), uniforms)
+                val consumer = builder.getBuffer(RenderType.solid())
+
+                for (face in task.get()) {
+                    face.buildGeometry(consumer)
+                }
+
+                builder.finish()
+
+                //asyncTask = null
                 return true
             }
         }

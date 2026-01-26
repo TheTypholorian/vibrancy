@@ -25,7 +25,6 @@ import net.typho.vibrancy.block.*
 import net.typho.vibrancy.mixin.LevelRendererAccessor
 import net.typho.vibrancy.shadows.BasicShadowMesher
 import net.typho.vibrancy.shadows.ShadowMesher
-import net.typho.vibrancy.shadows.entity.EntityShadowCollector
 import net.typho.vibrancy.util.PointLight
 import org.joml.Matrix4f
 import org.joml.Vector2f
@@ -46,8 +45,8 @@ open class LightManager {
     val dirtyBlocks = LinkedList<GlobalPos>()
     @JvmField
     val blockLights = HashMap<BlockLightType<*, *, *>, BlockLightStorage<*>>()
-    @JvmField
-    val entityShadows = EntityShadowCollector()
+    //@JvmField
+    //val entityShadows = EntityShadowCollector()
     @JvmField
     var debugMode = false
 
@@ -146,7 +145,7 @@ open class LightManager {
         viewMatrix = BigShotLib.getViewMatrix(camera)
         renderResults.clear()
 
-        entityShadows.collect(this, blockLights)
+        //entityShadows.collect(this, blockLights)
 
         for (entry in blockLights) {
             renderResults[entry.key] = castAndRender(fbo, entry.key, entry.value)
@@ -219,8 +218,8 @@ open class LightManager {
     fun getDebugOutput(out: Consumer<String>) {
         out.accept("Block Lights")
 
-        out.accept("${entityShadows.numEntities} shadowed entities")
-        out.accept("${entityShadows.numBlockEntities} shadowed block entities")
+        //out.accept("${entityShadows.numEntities} shadowed entities")
+        //out.accept("${entityShadows.numBlockEntities} shadowed block entities")
 
         for (entry in blockLights) {
             out.accept("")

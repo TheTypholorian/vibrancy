@@ -112,6 +112,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, Hash
         manager: LightManager,
         lights: HashMapBlockLightStorage<RayPointLightInfo, RayPointLight>
     ) {
+        /*
         lights.map.values.stream()
             .sorted(Comparator.comparingDouble { light -> manager.getSortingOrder(light.pos) })
             .limit(10)
@@ -123,6 +124,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, Hash
                     light.radius
                 )
             }
+         */
     }
 
     override fun getEntityShadowBoxes(

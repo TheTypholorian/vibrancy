@@ -25,31 +25,6 @@ class VibrancyConfig : Config(
     override fun fileType() = FileType.JSON
 
     @JvmField
-    var downscale = DownscaleSection()
-
-    class DownscaleSection : ConfigSection() {
-        @JvmField
-        var factor = ValidatedInt(1, 32, 1)
-            .withListener {
-                RenderSystem.recordRenderCall {
-                    val fbo = Minecraft.getInstance().mainRenderTarget
-                    Vibrancy.SHADOW_FBO.resize(fbo.width, fbo.height)
-                }
-            }
-        @JvmField
-        var interpolation = ValidatedEnum(ConfigInterpolationType.LINEAR)
-            .withListener {
-                RenderSystem.recordRenderCall {
-                    Vibrancy.SHADOW_FBO.colorAttachments.forEach { attachment ->
-                        if (attachment is ITexture) {
-                            attachment.setInterpolation(it.get().inner)
-                        }
-                    }
-                }
-            }
-    }
-
-    @JvmField
     var entityShadows = EntityShadowsSection()
 
     class EntityShadowsSection : ConfigSection() {

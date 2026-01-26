@@ -1,9 +1,9 @@
 #version 430
 
-#include "vibrancy:include/common"
 #include "vibrancy:include/fragment"
-#include "vibrancy:include/downsize"
+#include "vibrancy:include/shadow"
 
+uniform sampler2D VibrancyShadowColorSampler;
 uniform sampler2D VibrancyShadowSampler;
 uniform sampler2D VibrancyWorldPosSampler;
 uniform sampler2D VibrancyNormalSampler;
@@ -17,14 +17,18 @@ uniform vec3 LightColor;
 uniform float LightRadius;
 uniform vec3 CameraPos;
 
-uniform bool SampleShadows;
-
 out vec4 fragColor;
 
 void main() {
-    ivec2 uv = getScreenUV();
-    vec3 pos = texelFetch(VibrancyWorldPosSampler, uv, 0).xyz;
-    vec3 shadow = upsize(VibrancyShadowSampler, VibrancyNormalSampler, VibrancyWorldPosSampler, ivec2(gl_FragCoord.xy), DownsizeFactor).rgb;
+    vec3 pos = texelFetch(VibrancyWorldPosSampler, ivec2(gl_FragCoord.xy), 0).xyz;
 
-    fragColor = vec4(shadow, 1);//sampleLight(VibrancyNormalSampler, uv, LightPos, pos, LightRadius, LightColor * shadow);
+    vec3 delta = pos - LightPos;
+    vec2 shadowUV = directionToShadowCoords(normalize(delta));
+    float shadow = texture(VibrancyShadowSampler, shadowUV).r;
+
+    if (shadow * LightRadius - 1e-1 <= length(delta)) {
+        //discard;
+    }
+
+    fragColor = texture(VibrancyShadowColorSampler, shadowUV);//sampleLight(VibrancyNormalSampler, gl_FragCoord.xy / ScreenSize, LightPos, pos, LightRadius, LightColor);
 }

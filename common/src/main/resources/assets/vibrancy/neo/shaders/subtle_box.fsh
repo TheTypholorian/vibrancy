@@ -1,8 +1,6 @@
 #version 430
 
-#include "vibrancy:include/common"
 #include "vibrancy:include/fragment"
-#include "vibrancy:include/downsize"
 
 struct Light {
     vec3 color;
@@ -20,6 +18,7 @@ uniform mat4 IModelMat;
 
 uniform vec2 ScreenSize;
 uniform float LightRadius;
+uniform float LightBrightness;
 uniform vec3 CameraPos;
 
 flat in uint id;
@@ -27,7 +26,7 @@ flat in uint id;
 out vec4 fragColor;
 
 void main() {
-    vec3 pos = texelFetch(VibrancyWorldPosSampler, getScreenUV(), 0).xyz;
+    vec3 pos = texelFetch(VibrancyWorldPosSampler, ivec2(gl_FragCoord.xy), 0).xyz;
 
-    fragColor = sampleLight(ScreenSize, lights[id].pos, pos, LightRadius, lights[id].color);
+    fragColor = sampleLight(ScreenSize, lights[id].pos, pos, LightRadius, lights[id].color * LightBrightness);
 }

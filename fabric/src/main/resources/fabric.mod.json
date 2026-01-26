@@ -42,5 +42,5 @@
     "big_shot_lib:require_shader_mixins": true,
     "big_shot_lib:debug_shader_mixins": true
   },
-  "accessWidener": "vibrancy.accesswidener"
+  "accessWidener": "${mod_id}.accesswidener"
 }
