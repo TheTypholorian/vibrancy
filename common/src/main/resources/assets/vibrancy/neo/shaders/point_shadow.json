@@ -1,6 +1,0 @@
-{
-  "vertex": "vibrancy:point_shadow",
-  "geometry": "vibrancy:point_shadow",
-  "fragment": "vibrancy:point_shadow",
-  "format": "POSITION"
-}

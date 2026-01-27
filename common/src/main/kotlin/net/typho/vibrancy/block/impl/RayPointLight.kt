@@ -5,11 +5,9 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.mojang.blaze3d.vertex.Tesselator
 import com.mojang.blaze3d.vertex.VertexBuffer
 import com.mojang.blaze3d.vertex.VertexFormat
-import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
-import net.minecraft.world.inventory.InventoryMenu
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateHolder
@@ -27,7 +25,7 @@ import net.typho.vibrancy.VibrancyDynamicBuffers
 import net.typho.vibrancy.block.BlockLight
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.block.BlockRenderResult
-import net.typho.vibrancy.shadows.AsyncShadowVertexBuffer
+import net.typho.vibrancy.shadows.AsyncBlockShadowTexture
 import net.typho.vibrancy.shadows.ShadowPredicate
 import org.joml.Matrix4f
 import org.joml.Vector3f
@@ -40,9 +38,14 @@ class RayPointLight(
     val offset: Vector3f,
     val pos: BlockPos
 ) : BlockLight<RayPointLightInfo, RayPointLight>, ShadowPredicate {
-    val shadows = AsyncShadowVertexBuffer(
-        VertexBuffer.Usage.STATIC,
-        Minecraft.getInstance().modelManager.getAtlas(InventoryMenu.BLOCK_ATLAS).id
+    val shadows = AsyncBlockShadowTexture(
+        { NeoShader.get(Vibrancy.id("shadow_blit"))!! },
+        { shader ->
+            shader.getUniform("LightPos")?.set(getAbsolutePos())
+            shader.getUniform("LightRadius")?.set(radius)
+        },
+        800,
+        800
     )
     val boxBuffer by lazy {
         val builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX)
@@ -157,7 +160,7 @@ class RayPointLight(
             shadowsDirty = false
         }
 
-        shadows.checkIfFinished(manager)
+        shadows.checkIfFinished()
 
         val result = BlockRenderResult(
             numRendered = 1,
@@ -166,50 +169,6 @@ class RayPointLight(
             numAsyncTasks = if (shadows.isTaskActive()) 1 else 0,
             numEntityShadowCalls = 0
         )
-
-        if (raytrace) {
-            Vibrancy.SHADOW_FBO.bind(stack)
-            GlStateManager._viewport(0, 0, Vibrancy.SHADOW_FBO.width(), Vibrancy.SHADOW_FBO.height())
-            GlStateManager._clearColor(0f, 0f, 0f, 0f)
-            GlStateManager._clear(GL_COLOR_BUFFER_BIT, false)
-
-            val shadowShader = NeoShader.get(Vibrancy.id("point_shadow"))!!
-
-            shadowShader.bind(stack)
-            shadowShader.setCommonUniforms(modelViewMat = manager.getViewMatrix())
-
-            shadowShader.getUniform("IProjMat")?.set(Matrix4f(Vibrancy.iProjMat))
-            shadowShader.getUniform("IModelMat")?.set(Matrix4f(Vibrancy.iModelMat))
-
-            shadowShader.getUniform("LightPos")?.set(getAbsolutePos())
-            shadowShader.getUniform("LightColor")?.set(color)
-            shadowShader.getUniform("LightRadius")?.set(radius)
-            shadowShader.getUniform("CameraPos")?.set(Vibrancy.camera)
-            shadowShader.getUniform("ScreenSize")?.set(Vibrancy.SHADOW_FBO.width().toFloat(), Vibrancy.SHADOW_FBO.height().toFloat())
-            shadowShader.getUniform("DownsizeFactor")?.set(Vibrancy.config.downscale.factor.get())
-
-            shadowShader.getUniform("CircleShadowMultiplier")?.set(Vibrancy.config.forNerds.circleShadowMultiplier.get())
-
-            shadowShader.setSampler("VibrancyWorldPosSampler", Vibrancy.WORLD_POS_FBO.colorAttachments[0] as ITexture)
-
-            /*
-            stack.set(
-                StencilOp(
-                    IntAction.KEEP,
-                    IntAction.KEEP,
-                    IntAction.REPLACE,
-                )
-            )
-             */
-            stack.disable(GlCapability.CULL_FACE)
-
-            shadows.render(shadowShader)
-
-            if (Vibrancy.config.blockLights.raytraced.entityShadows && manager.entityShadows.shouldRender(manager, getShadowBox().aabb())) {
-                manager.entityShadows.render(shadowShader)
-                result.numEntityShadowCalls = result.numEntityShadowCalls!! + 1
-            }
-        }
 
         fbo.bind(stack)
         GlStateManager._viewport(0, 0, fbo.width(), fbo.height())
@@ -223,27 +182,18 @@ class RayPointLight(
         boxShader.getUniform("IModelMat")?.set(Matrix4f(Vibrancy.iModelMat))
 
         boxShader.getUniform("LightPos")?.set(getAbsolutePos())
-        boxShader.getUniform("LightColor")?.set(color)
+        boxShader.getUniform("LightColor")?.set(Vector3f(color).mul(Vibrancy.config.blockLights.raytraced.brightness.get()))
         boxShader.getUniform("LightRadius")?.set(radius)
         boxShader.getUniform("CameraPos")?.set(Vibrancy.camera)
         boxShader.getUniform("ScreenSize")?.set(fbo.width().toFloat(), fbo.height().toFloat())
-        boxShader.getUniform("DownsizeFactor")?.set(Vibrancy.config.downscale.factor.get())
 
         boxShader.getUniform("SampleShadows")?.set(if (raytrace) 1 else 0)
 
-        boxShader.setSampler("VibrancyShadowSampler", Vibrancy.SHADOW_FBO.colorAttachments[0] as ITexture)
+        boxShader.setSampler("VibrancyShadowColorSampler", shadows.target.colorAttachments[0] as ITexture)
+        boxShader.setSampler("VibrancyShadowSampler", shadows.target.depthAttachment as ITexture)
         boxShader.setSampler("VibrancyNormalSampler", VibrancyDynamicBuffers.normalsTexture!!)
         boxShader.setSampler("VibrancyWorldPosSampler", Vibrancy.WORLD_POS_FBO.colorAttachments[0] as ITexture)
 
-        /*
-        stack.set(
-            StencilOp(
-                IntAction.KEEP,
-                IntAction.KEEP,
-                IntAction.KEEP,
-            )
-        )
-         */
         stack.enable(GlCapability.CULL_FACE)
 
         boxBuffer.bind()

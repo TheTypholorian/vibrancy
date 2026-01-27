@@ -31,27 +31,6 @@ object Vibrancy {
 
     @JvmField
     val LIGHT_MANAGER = LightManager()
-    val SHADOW_FBO: NeoFramebuffer by lazy {
-        val fbo = object : NeoFramebuffer.TextureBacked(
-            id("shadow"),
-            arrayOf(TextureFormat.RGB16),
-            null,
-            Minecraft.getInstance().mainRenderTarget.width / config.downscale.factor.get(),
-            Minecraft.getInstance().mainRenderTarget.height / config.downscale.factor.get()
-        ) {
-            override fun resize(width: Int, height: Int) {
-                super.resize(width / config.downscale.factor.get(), height / config.downscale.factor.get())
-            }
-        }
-        NeoFramebuffer.AUTO_RESIZE.add(fbo)
-        NeoFramebuffer.register(fbo)
-        fbo.colorAttachments.forEach { attachment ->
-            if (attachment is ITexture) {
-                attachment.setInterpolation(config.downscale.interpolation.get().inner)
-            }
-        }
-        fbo
-    }
     val OUTPUT_FBO by lazy {
         val fbo = NeoFramebuffer.TextureBacked(
             id("output"),

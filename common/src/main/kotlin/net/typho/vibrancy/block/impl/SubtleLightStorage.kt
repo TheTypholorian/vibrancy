@@ -21,6 +21,7 @@ import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.block.BlockLightStorage
 import net.typho.vibrancy.block.BlockRenderResult
+import org.joml.Vector3f
 import org.lwjgl.system.MemoryUtil
 import org.lwjgl.system.NativeResource
 

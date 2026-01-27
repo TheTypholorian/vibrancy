@@ -73,7 +73,7 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight, SubtleLigh
 
                 boxShader.getUniform("CameraPos")?.set(Vibrancy.camera)
                 boxShader.getUniform("LightRadius")?.set(4f)
-                boxShader.getUniform("DownsizeFactor")?.set(Vibrancy.config.downscale.factor.get())
+                boxShader.getUniform("LightBrightness")?.set(Vibrancy.config.blockLights.subtle.brightness.get())
 
                 boxShader.setSampler("VibrancyWorldPosSampler", Vibrancy.WORLD_POS_FBO.colorAttachments[0] as ITexture)
 
