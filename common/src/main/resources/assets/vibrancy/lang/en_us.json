@@ -49,9 +49,8 @@
   "vibrancy.config.forNerds": "For Nerds",
   "vibrancy.config.forNerds.prefix": "Options you shouldn't mess with unless you know how the mod works.",
   "vibrancy.config.forNerds.useFrustumCulling": "Use Frustum Culling",
-  "vibrancy.config.forNerds.useGreedyMeshing": "Use Greedy Meshing",
-  "vibrancy.config.forNerds.useExtraGreedyMeshing": "Use Extra Greedy Meshing",
-  "vibrancy.config.forNerds.maxGreedyMeshSectionWidth": "Max Greedy Mesh Section Width",
+  "vibrancy.config.forNerds.circleShadowMultiplier.prefix": "A multiplier for the distance that shadows are cast from circular lights.",
+  "vibrancy.config.forNerds.circleShadowMultiplier": "Circle Shadow Multiplier",
 
   "debug.vibrancy.debug_mode": "[F4 + D] Toggled Vibrancy debug mode",
   "debug.vibrancy.rebuild_all_shadows": "[F4 + R] Reloaded all shadows",

@@ -188,6 +188,8 @@ class RayPointLight(
             shadowShader.getUniform("ScreenSize")?.set(Vibrancy.SHADOW_FBO.width().toFloat(), Vibrancy.SHADOW_FBO.height().toFloat())
             shadowShader.getUniform("DownsizeFactor")?.set(Vibrancy.config.downscale.factor.get())
 
+            shadowShader.getUniform("CircleShadowMultiplier")?.set(Vibrancy.config.forNerds.circleShadowMultiplier.get())
+
             shadowShader.setSampler("VibrancyWorldPosSampler", Vibrancy.WORLD_POS_FBO.colorAttachments[0] as ITexture)
 
             /*

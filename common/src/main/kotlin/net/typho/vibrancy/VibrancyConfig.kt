@@ -133,6 +133,10 @@ class VibrancyConfig : Config(
     class ForNerdsSection : ConfigSection() {
         @JvmField
         var useFrustumCulling = true
+        @JvmField
+        var circleShadowMultiplier = ValidatedFloat(1.5f, 2.5f, 0.25f)
+            .withIncrement(0.25f)
+            .setFormat(DecimalFormat("0%"))
     }
 
     enum class ConfigInterpolationType(val inner: InterpolationType) : EnumTranslatable {

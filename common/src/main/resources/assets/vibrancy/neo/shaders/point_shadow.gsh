@@ -11,6 +11,8 @@ uniform mat4 ProjMat;
 uniform vec3 LightPos;
 uniform float LightRadius;
 
+uniform float CircleShadowMultiplier;
+
 in vec2 uv[];
 
 out flat Triangle triangle;
@@ -45,7 +47,7 @@ void main() {
         uv[0], uv[1], uv[2]
     );
 
-    float len = LightRadius;
+    float len = LightRadius * CircleShadowMultiplier;
 
     vec3 v3 = interpolateVertex(v0, len);
     vec3 v4 = interpolateVertex(v1, len);

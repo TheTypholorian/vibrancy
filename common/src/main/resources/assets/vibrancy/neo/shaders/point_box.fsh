@@ -24,7 +24,7 @@ out vec4 fragColor;
 void main() {
     ivec2 uv = getScreenUV();
     vec3 pos = texelFetch(VibrancyWorldPosSampler, uv, 0).xyz;
-    vec3 shadow = upsize(VibrancyShadowSampler, VibrancyNormalSampler, VibrancyWorldPosSampler, ivec2(gl_FragCoord.xy), DownsizeFactor).rgb;
+    vec3 shadow = 1 - upsize(VibrancyShadowSampler, VibrancyNormalSampler, VibrancyWorldPosSampler, ivec2(gl_FragCoord.xy), DownsizeFactor).rgb;
 
-    fragColor = vec4(shadow, 1);//sampleLight(VibrancyNormalSampler, uv, LightPos, pos, LightRadius, LightColor * shadow);
+    fragColor = sampleLight(VibrancyNormalSampler, uv, LightPos, pos, LightRadius, LightColor * shadow);
 }
