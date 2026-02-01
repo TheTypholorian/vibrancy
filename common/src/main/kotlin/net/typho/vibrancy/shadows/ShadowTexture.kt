@@ -8,24 +8,21 @@ import net.minecraft.client.renderer.RenderType
 import net.minecraft.resources.ResourceLocation
 import net.typho.big_shot_lib.BigShotLib
 import net.typho.big_shot_lib.api.IShader
+import net.typho.big_shot_lib.api.ITexture
 import net.typho.big_shot_lib.api.builtin.EmptyVertexConsumer
 import net.typho.big_shot_lib.api.impl.NeoFramebuffer
 import net.typho.big_shot_lib.api.impl.NeoIndexedBuffer
 import net.typho.big_shot_lib.gl.GlStack
+import net.typho.big_shot_lib.gl.InterpolationType
 import net.typho.big_shot_lib.gl.resource.BufferUsage
 import net.typho.big_shot_lib.gl.resource.GlResourceType
 import net.typho.big_shot_lib.gl.resource.TextureFormat
-import net.typho.big_shot_lib.gl.state.ColorMask
-import net.typho.big_shot_lib.gl.state.ComparisonMode
-import net.typho.big_shot_lib.gl.state.CullFace
-import net.typho.big_shot_lib.gl.state.DepthMask
-import net.typho.big_shot_lib.gl.state.DepthTest
-import net.typho.big_shot_lib.gl.state.GlCapability
+import net.typho.big_shot_lib.gl.state.*
 import net.typho.vibrancy.Vibrancy
 import org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT
 import org.lwjgl.opengl.GL11.GL_DEPTH_BUFFER_BIT
 import org.lwjgl.system.NativeResource
-import java.util.LinkedList
+import java.util.*
 import java.util.function.Consumer
 import kotlin.jvm.optionals.getOrNull
 
@@ -36,13 +33,15 @@ open class ShadowTexture(
     val height: Int
 ) : NativeResource {
     val target by lazy {
-        NeoFramebuffer.TextureBacked(
+        val fbo = NeoFramebuffer.TextureBacked(
             Vibrancy.id("shadow_texture_${width}x${height}"),
             arrayOf(TextureFormat.R16F),
             null,
             width,
             height
         )
+        (fbo.colorAttachments[0] as ITexture).setInterpolation(InterpolationType.LINEAR)
+        fbo
     }
     @JvmField
     var shadows: Collection<LightFace> = emptyList()

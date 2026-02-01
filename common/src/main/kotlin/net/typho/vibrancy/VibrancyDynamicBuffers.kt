@@ -57,7 +57,8 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
     )
     @JvmField
     val exclude = HashSet<ResourceLocation>(listOf(
-        ResourceLocation.withDefaultNamespace("rendertype_lines")
+        ResourceLocation.withDefaultNamespace("rendertype_lines"),
+        ResourceLocation.withDefaultNamespace("particle")
     ))
     @JvmField
     val builtin = HashSet<ResourceLocation>(listOf(
