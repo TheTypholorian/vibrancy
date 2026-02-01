@@ -59,7 +59,6 @@ class RayPointLight(
         return@lazy vbo
     }
     var shadowsDirty = true
-    var shadowsFirst = true
 
     constructor(info: RayPointLightInfo, state: StateHolder<*, *>, pos: BlockPos) : this(
         info.color.apply(state).mul(info.brightness.apply(state), Vector3f()),
@@ -79,12 +78,12 @@ class RayPointLight(
         return AABB.ofSize(Vec3(getAbsolutePos()), radius2, radius2, radius2)
     }
 
-    override fun rebuildShadows(manager: LightManager, first: Boolean) {
-        shadows.rebuildAsync(manager, manager.createShadowMesher(this, first)!!, this, first)
+    override fun rebuildShadows(manager: LightManager, fullQuality: Boolean) {
+        shadows.rebuildAsync(manager, manager.createShadowMesher(this, fullQuality)!!, this, fullQuality)
     }
 
-    override fun getShadowBox(first: Boolean): BlockBox {
-        val shadowRadius = if (first) {
+    override fun getShadowBox(fullQuality: Boolean): BlockBox {
+        val shadowRadius = if (fullQuality) {
             ceil(radius).toInt()
         } else {
             ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.shadowRadius.get().toFloat())).toInt()
@@ -95,7 +94,7 @@ class RayPointLight(
         )
     }
 
-    override fun getShadowPredicate(first: Boolean): ShadowPredicate {
+    override fun getShadowPredicate(fullQuality: Boolean): ShadowPredicate {
         return object : ShadowPredicate {
             override fun shouldCastBlock(
                 state: BlockState,
@@ -134,7 +133,7 @@ class RayPointLight(
             }
 
             override fun isInRange(pos: BlockPos): Boolean {
-                val shadowRadius = if (first) {
+                val shadowRadius = if (fullQuality) {
                     ceil(radius).toInt()
                 } else {
                     ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.shadowRadius.get().toFloat())).toInt()
@@ -164,9 +163,8 @@ class RayPointLight(
         }
 
         if (shadowsDirty && raytrace) {
-            rebuildShadows(manager, shadowsFirst)
+            rebuildShadows(manager, true)
             shadowsDirty = false
-            shadowsFirst = false
         }
 
         if (shadows.checkIfFinished()) {
