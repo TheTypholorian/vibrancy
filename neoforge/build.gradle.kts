@@ -26,7 +26,7 @@ modrinth {
     projectId = "vibrancy"
     versionName = "$modName $version for NeoForge 1.21"
     versionNumber = "mc1.21-$version-neoforge"
-    versionType = "alpha"
+    versionType = "beta"
     uploadFile.set(tasks.jar)
     additionalFiles.add(tasks.sourcesJar)
     gameVersions.addAll("1.21", "1.21.1")
