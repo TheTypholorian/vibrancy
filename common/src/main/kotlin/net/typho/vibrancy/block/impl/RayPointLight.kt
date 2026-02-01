@@ -163,7 +163,7 @@ class RayPointLight(
             }
         }
 
-        if (shadowsDirty) {
+        if (shadowsDirty && raytrace) {
             rebuildShadows(manager, shadowsFirst)
             shadowsDirty = false
             shadowsFirst = false
