@@ -17,6 +17,7 @@ open class ShadowBufferBuilder(val builder: ByteBufferBuilder) : VertexConsumer 
     }
 
     protected var currentVertexPointer: Long? = null
+    protected var numVertices = 0
 
     fun build(): ByteBuffer {
         val result = builder.build() ?: throw NullPointerException()
@@ -35,6 +36,7 @@ open class ShadowBufferBuilder(val builder: ByteBufferBuilder) : VertexConsumer 
         memPutFloat(ptr + 4, y)
         memPutFloat(ptr + 8, z)
         memPutFloat(ptr + 12, 0f)
+        numVertices++
         return this
     }
 
@@ -61,4 +63,6 @@ open class ShadowBufferBuilder(val builder: ByteBufferBuilder) : VertexConsumer 
         y: Float,
         z: Float
     ): ShadowBufferBuilder = this
+
+    fun numQuads() = numVertices / 4
 }

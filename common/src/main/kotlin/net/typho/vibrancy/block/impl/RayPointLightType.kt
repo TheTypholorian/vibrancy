@@ -67,8 +67,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, Hash
             numRendered = 0,
             numRaytraced = 0,
             numShadows = 0,
-            numAsyncTasks = 0,
-            numEntityShadowCalls = 0
+            numAsyncTasks = 0
         )
 
         if (Vibrancy.config.blockLights.raytraced.enabled) {
@@ -116,16 +115,5 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, Hash
                 )
             }
          */
-    }
-
-    override fun getEntityShadowBoxes(
-        manager: LightManager,
-        lights: HashMapBlockLightStorage<RayPointLightInfo, RayPointLight>
-    ): Iterable<AABB>? {
-        return if (Vibrancy.config.blockLights.raytraced.entityShadows) {
-            lights.map.values.map { light -> light.getShadowBox().aabb() }
-        } else {
-            null
-        }
     }
 }

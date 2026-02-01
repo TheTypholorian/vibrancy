@@ -6,14 +6,12 @@ import me.fzzyhmstrs.fzzy_config.annotations.RequiresAction
 import me.fzzyhmstrs.fzzy_config.api.FileType
 import me.fzzyhmstrs.fzzy_config.config.Config
 import me.fzzyhmstrs.fzzy_config.config.ConfigSection
-import me.fzzyhmstrs.fzzy_config.util.EnumTranslatable
 import me.fzzyhmstrs.fzzy_config.validation.ValidatedField.Companion.withListener
 import me.fzzyhmstrs.fzzy_config.validation.number.ValidatedFloat
 import me.fzzyhmstrs.fzzy_config.validation.number.ValidatedInt
 import me.fzzyhmstrs.fzzy_config.validation.number.ValidatedNumber
 import me.fzzyhmstrs.fzzy_config.validation.number.ValidatedNumber.Companion.setFormat
 import me.fzzyhmstrs.fzzy_config.validation.number.ValidatedNumber.Companion.withIncrement
-import net.typho.big_shot_lib.gl.InterpolationType
 import java.text.DecimalFormat
 
 class VibrancyConfig : Config(
@@ -22,17 +20,6 @@ class VibrancyConfig : Config(
     name = Vibrancy.MOD_ID
 ) {
     override fun fileType() = FileType.JSON
-
-    @JvmField
-    var entityShadows = EntityShadowsSection()
-
-    class EntityShadowsSection : ConfigSection() {
-        @JvmField
-        var firstPersonShadow = false
-        @JvmField
-        var distance = ValidatedInt(1, 16, 1)
-            .setFormat(DecimalFormat("0 chunks"))
-    }
 
     @JvmField
     var blockLights = BlockLightsSection()
@@ -48,8 +35,6 @@ class VibrancyConfig : Config(
             var brightness = ValidatedFloat(1.25f, 2.5f, 0.25f)
                 .withIncrement(0.05f)
                 .setFormat(DecimalFormat("0%"))
-            @JvmField
-            var entityShadows = false
             @JvmField
             var raytraceDistance = ValidatedInt(8, 64, 4)
                 .withIncrement(4)
@@ -68,9 +53,11 @@ class VibrancyConfig : Config(
             @RequiresAction(Action.RELOG)
             @JvmField
             var shadowTextureWidth = ValidatedInt(400, 3200, 100)
+                .withIncrement(100)
             @RequiresAction(Action.RELOG)
             @JvmField
             var shadowTextureHeight = ValidatedInt(600, 3200, 100)
+                .withIncrement(100)
             @JvmField
             var maxRendered = ValidatedInt(200, 1000, 0)
                 .withIncrement(10)
@@ -113,18 +100,5 @@ class VibrancyConfig : Config(
     class ForNerdsSection : ConfigSection() {
         @JvmField
         var useFrustumCulling = true
-        @JvmField
-        var circleShadowMultiplier = ValidatedFloat(1.5f, 2.5f, 0.25f)
-            .withIncrement(0.25f)
-            .setFormat(DecimalFormat("0%"))
-    }
-
-    enum class ConfigInterpolationType(val inner: InterpolationType) : EnumTranslatable {
-        NEAREST(InterpolationType.NEAREST),
-        LINEAR(InterpolationType.LINEAR);
-
-        override fun prefix(): String {
-            return "vibrancy.interpolation_type"
-        }
     }
 }

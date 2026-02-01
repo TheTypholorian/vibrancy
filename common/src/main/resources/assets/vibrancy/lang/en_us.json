@@ -1,34 +1,18 @@
 {
   "vibrancy.config": "Vibrancy Config",
 
-  "vibrancy.config.downscale": "Downscale",
-  "vibrancy.config.downscale.factor": "Factor",
-  "vibrancy.config.downscale.factor.prefix": "Renders shadows at 1 divided by this value, then upscales.",
-  "vibrancy.config.downscale.interpolation": "Interpolation",
-
-  "vibrancy.interpolation_type.nearest": "Nearest",
-  "vibrancy.interpolation_type.linear": "Linear",
-
-  "vibrancy.config.entityShadows": "Entity Shadows",
-  "vibrancy.config.entityShadows.firstPersonShadow": "First Person Shadow",
-  "vibrancy.config.entityShadows.firstPersonShadow.prefix": "Whether you cast a shadow when in first person.",
-  "vibrancy.config.entityShadows.distance": "Distance",
-  "vibrancy.config.entityShadows.distance.prefix": "The radius from the camera where entities and block entities cast shadows.",
-
   "vibrancy.config.blockLights": "Block Lights",
 
   "vibrancy.config.blockLights.raytraced": "Raytraced",
   "vibrancy.config.blockLights.raytraced.enabled": "Enabled",
   "vibrancy.config.blockLights.raytraced.brightness": "Brightness",
   "vibrancy.config.blockLights.raytraced.brightness.prefix": "Linear multiplier for the brightness of all block lights. Does not affect their radius.",
-  "vibrancy.config.blockLights.raytraced.entityShadows": "Entity Shadows",
-  "vibrancy.config.blockLights.raytraced.entityShadows.prefix": "Whether block lights cast entity shadows.",
   "vibrancy.config.blockLights.raytraced.raytraceDistance": "Raytrace Distance",
   "vibrancy.config.blockLights.raytraced.raytraceDistance.prefix": "The radius (in chunks) from the camera where block lights will cast shadows.",
   "vibrancy.config.blockLights.raytraced.renderDistance": "Render Distance",
   "vibrancy.config.blockLights.raytraced.renderDistance.prefix": "The radius (in chunks) from the camera where block lights will be visible.",
-  "vibrancy.config.blockLights.raytraced.shadowRadius": "Shadow Radius",
-  "vibrancy.config.blockLights.raytraced.shadowRadius.prefix": "The radius (in blocks) from each block light where blocks will cast shadows.",
+  "vibrancy.config.blockLights.raytraced.shadowRadius": "Shadow Update Radius",
+  "vibrancy.config.blockLights.raytraced.shadowRadius.prefix": "The radius (in blocks) from each block light where modified blocks will update the light.",
   "vibrancy.config.blockLights.raytraced.shadowTextureWidth": "Shadow Texture Width",
   "vibrancy.config.blockLights.raytraced.shadowTextureWidth.prefix": "Higher values increases horizontal shadow quality, but also increases memory usage and update time.",
   "vibrancy.config.blockLights.raytraced.shadowTextureHeight": "Shadow Texture Height",
@@ -53,12 +37,9 @@
   "vibrancy.config.forNerds": "For Nerds",
   "vibrancy.config.forNerds.prefix": "Options you shouldn't mess with unless you know how the mod works.",
   "vibrancy.config.forNerds.useFrustumCulling": "Use Frustum Culling",
-  "vibrancy.config.forNerds.circleShadowMultiplier.prefix": "A multiplier for the distance that shadows are cast from circular lights.",
-  "vibrancy.config.forNerds.circleShadowMultiplier": "Circle Shadow Multiplier",
 
   "debug.vibrancy.debug_mode": "[F4 + D] Toggled Vibrancy debug mode",
   "debug.vibrancy.rebuild_all_shadows": "[F4 + R] Reloaded all shadows",
-  "debug.vibrancy.toggle_entity_shadows": "[F4 + E] Toggled entity shadows",
   "debug.vibrancy.toggle_raytraced_block_lights": "[F4 + T] Toggled raytraced block lights",
   "debug.vibrancy.toggle_subtle_block_lights": "[F4 + Y] Toggled subtle block lights"
 }

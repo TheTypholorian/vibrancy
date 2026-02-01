@@ -14,6 +14,4 @@ interface BlockLightType<I : BlockLightInfo<I, B>, B : BlockLight<I, B>, S : Blo
     fun render(manager: LightManager, lights: S, fbo: IFramebuffer): BlockRenderResult
 
     fun renderDebug(manager: LightManager, lights: S) = Unit
-
-    fun getEntityShadowBoxes(manager: LightManager, lights: S): Iterable<AABB>? = null
 }

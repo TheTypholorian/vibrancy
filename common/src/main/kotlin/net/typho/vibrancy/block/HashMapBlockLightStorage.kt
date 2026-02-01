@@ -26,7 +26,7 @@ open class HashMapBlockLightStorage<I : BlockLightInfo<I, B>, B : BlockLight<I, 
     }
 
     override fun rebuildShadows(manager: LightManager) {
-        map.values.forEach { light -> light.rebuildShadows(manager) }
+        map.values.forEach { light -> light.rebuildShadows(manager, true) }
     }
 
     @Suppress("UNCHECKED_CAST")

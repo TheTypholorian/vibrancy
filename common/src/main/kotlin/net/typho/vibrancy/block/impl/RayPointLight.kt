@@ -36,7 +36,7 @@ class RayPointLight(
     val radius: Float,
     val offset: Vector3f,
     val pos: BlockPos
-) : BlockLight<RayPointLightInfo, RayPointLight>, ShadowPredicate {
+) : BlockLight<RayPointLightInfo, RayPointLight> {
     val shadows = AsyncBlockShadowTexture(
         { NeoShader.get(Vibrancy.id("shadow_blit"))!! },
         { shader ->
@@ -59,6 +59,7 @@ class RayPointLight(
         return@lazy vbo
     }
     var shadowsDirty = true
+    var shadowsFirst = true
 
     constructor(info: RayPointLightInfo, state: StateHolder<*, *>, pos: BlockPos) : this(
         info.color.apply(state).mul(info.brightness.apply(state), Vector3f()),
@@ -78,20 +79,69 @@ class RayPointLight(
         return AABB.ofSize(Vec3(getAbsolutePos()), radius2, radius2, radius2)
     }
 
-    override fun rebuildShadows(manager: LightManager) {
-        shadows.rebuildAsync(manager, manager.createShadowMesher(this)!!, this)
+    override fun rebuildShadows(manager: LightManager, first: Boolean) {
+        shadows.rebuildAsync(manager, manager.createShadowMesher(this, first)!!, this, first)
     }
 
-    override fun getShadowBox(): BlockBox {
-        val shadowRadius = ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.shadowRadius.get().toFloat())).toInt()
+    override fun getShadowBox(first: Boolean): BlockBox {
+        val shadowRadius = if (first) {
+            ceil(radius).toInt()
+        } else {
+            ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.shadowRadius.get().toFloat())).toInt()
+        }
         return BlockBox.of(
             BlockPos(pos.x - shadowRadius, pos.y - shadowRadius, pos.z - shadowRadius),
             BlockPos(pos.x + shadowRadius, pos.y + shadowRadius, pos.z + shadowRadius)
         )
     }
 
-    override fun getShadowPredicate(): ShadowPredicate {
-        return this
+    override fun getShadowPredicate(first: Boolean): ShadowPredicate {
+        return object : ShadowPredicate {
+            override fun shouldCastBlock(
+                state: BlockState,
+                level: Level,
+                pos: BlockPos
+            ): Boolean {
+                return pos != this@RayPointLight.pos && (state.isSolidRender(level, pos) || !BlockLightRegistry.has(state.block))
+            }
+
+            override fun shouldCastFace(
+                face: Direction?,
+                state: BlockState,
+                level: Level,
+                pos: BlockPos
+            ): Boolean {
+                if (face == null) {
+                    return true
+                }
+
+                val sidePos = pos.relative(face)
+
+                if (sidePos == this@RayPointLight.pos) {
+                    return true
+                }
+
+                if (
+                    Vec3.atLowerCornerOf(face.normal).toVector3f()
+                        .dot(this@RayPointLight.pos.center.subtract(pos.center).toVector3f()) <= 0
+                ) {
+                    return false
+                }
+
+                val sideState = level.getBlockState(sidePos)
+
+                return !(state.isSolidRender(level, pos) && sideState.isSolidRender(level, pos))
+            }
+
+            override fun isInRange(pos: BlockPos): Boolean {
+                val shadowRadius = if (first) {
+                    ceil(radius).toInt()
+                } else {
+                    ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.shadowRadius.get().toFloat())).toInt()
+                }
+                return pos.distSqr(this@RayPointLight.pos) <= shadowRadius * shadowRadius
+            }
+        }
     }
 
     override fun getType() = RayPointLightType
@@ -105,58 +155,18 @@ class RayPointLight(
         boxBuffer.close()
     }
 
-    override fun shouldCastBlock(
-        state: BlockState,
-        level: Level,
-        pos: BlockPos
-    ): Boolean {
-        return pos != this.pos && (state.isSolidRender(level, pos) || !BlockLightRegistry.has(state.block))
-    }
-
-    override fun shouldCastFace(
-        face: Direction?,
-        state: BlockState,
-        level: Level,
-        pos: BlockPos
-    ): Boolean {
-        if (face == null) {
-            return true
-        }
-
-        val sidePos = pos.relative(face)
-
-        if (sidePos == this.pos) {
-            return true
-        }
-
-        if (
-            Vec3.atLowerCornerOf(face.normal).toVector3f()
-                .dot(this.pos.center.subtract(pos.center).toVector3f()) <= 0
-        ) {
-            return false
-        }
-
-        val sideState = level.getBlockState(sidePos)
-
-        return !(state.isSolidRender(level, pos) && sideState.isSolidRender(level, pos))
-    }
-
-    override fun isInRange(pos: BlockPos): Boolean {
-        val shadowRadius = ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.shadowRadius.get().toFloat())).toInt()
-        return pos.distSqr(this.pos) <= shadowRadius * shadowRadius
-    }
-
     fun render(manager: LightManager, raytrace: Boolean, stack: GlStack, fbo: IFramebuffer): BlockRenderResult {
         for (pos in manager.dirtyBlocks) {
-            if (manager.getLevel().dimension() == pos.dimension && getShadowBox().contains(pos.pos)) {
+            if (manager.getLevel().dimension() == pos.dimension && getShadowBox(false).contains(pos.pos)) {
                 shadowsDirty = true
                 break
             }
         }
 
         if (shadowsDirty) {
-            rebuildShadows(manager)
+            rebuildShadows(manager, shadowsFirst)
             shadowsDirty = false
+            shadowsFirst = false
         }
 
         if (shadows.checkIfFinished()) {
@@ -167,8 +177,7 @@ class RayPointLight(
             numRendered = 1,
             numRaytraced = if (raytrace) 1 else 0,
             numShadows = if (raytrace) shadows.size else 0,
-            numAsyncTasks = if (shadows.isTaskActive()) 1 else 0,
-            numEntityShadowCalls = 0
+            numAsyncTasks = if (shadows.isTaskActive()) 1 else 0
         )
 
         fbo.bind(stack)

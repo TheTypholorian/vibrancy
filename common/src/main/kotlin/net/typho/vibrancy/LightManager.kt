@@ -45,8 +45,6 @@ open class LightManager {
     val dirtyBlocks = LinkedList<GlobalPos>()
     @JvmField
     val blockLights = HashMap<BlockLightType<*, *, *>, BlockLightStorage<*>>()
-    //@JvmField
-    //val entityShadows = EntityShadowCollector()
     @JvmField
     var debugMode = false
 
@@ -65,8 +63,8 @@ open class LightManager {
 
     fun getCullingFrustum(): Frustum = (Minecraft.getInstance().levelRenderer as LevelRendererAccessor).cullingFrustum
 
-    fun createShadowMesher(light: PointLight): ShadowMesher? {
-        return light.getShadowBox()?.let { box ->
+    fun createShadowMesher(light: PointLight, first: Boolean): ShadowMesher? {
+        return light.getShadowBox(first)?.let { box ->
             // if (Vibrancy.config.forNerds.useGreedyMeshing.get()) ShadowGreedyMesher(box) else
             BasicShadowMesher()
         }
@@ -145,8 +143,6 @@ open class LightManager {
         viewMatrix = BigShotLib.getViewMatrix(camera)
         renderResults.clear()
 
-        //entityShadows.collect(this, blockLights)
-
         for (entry in blockLights) {
             renderResults[entry.key] = castAndRender(fbo, entry.key, entry.value)
         }
@@ -218,9 +214,6 @@ open class LightManager {
     fun getDebugOutput(out: Consumer<String>) {
         out.accept("Block Lights")
 
-        //out.accept("${entityShadows.numEntities} shadowed entities")
-        //out.accept("${entityShadows.numBlockEntities} shadowed block entities")
-
         for (entry in blockLights) {
             out.accept("")
 
@@ -232,7 +225,6 @@ open class LightManager {
                 result.numRaytraced?.let { out.accept("$it raytraced") }
                 result.numShadows?.let { out.accept("$it shadows") }
                 result.numAsyncTasks?.let { out.accept("$it async tasks") }
-                result.numEntityShadowCalls?.let { out.accept("$it entity shadow draw calls") }
             }
         }
     }

@@ -27,7 +27,7 @@ class SubtleLight(
         8.0
     )
 
-    override fun rebuildShadows(manager: LightManager) {
+    override fun rebuildShadows(manager: LightManager, first: Boolean) {
     }
 
     override fun getType() = SubtleLightType
@@ -43,9 +43,9 @@ class SubtleLight(
         return Vector3f(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat()).add(offset)
     }
 
-    override fun getShadowBox() = null
+    override fun getShadowBox(first: Boolean) = null
 
-    override fun getShadowPredicate() = null
+    override fun getShadowPredicate(first: Boolean) = null
 
     override fun shouldRender(manager: LightManager): Boolean {
         for (direction in Direction.entries) {

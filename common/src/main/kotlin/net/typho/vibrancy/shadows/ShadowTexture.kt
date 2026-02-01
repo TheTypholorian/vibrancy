@@ -107,6 +107,8 @@ open class ShadowTexture(
                 stack.set(DepthMask, true)
                 stack.disable(GlCapability.CULL_FACE)
 
+                size = 0
+
                 if (!builders.isEmpty()) {
                     val vbo = BigShotLib.SCREEN_VBO
                     vbo.bind()
@@ -116,6 +118,8 @@ open class ShadowTexture(
                     ssbo.bindBase(stack, 0)
 
                     for (entry in builders) {
+                        size += entry.value.numQuads()
+
                         shader.setSampler("Sampler0", Minecraft.getInstance().textureManager.getTexture(entry.key))
                         ssbo.upload(entry.value.build())
 
