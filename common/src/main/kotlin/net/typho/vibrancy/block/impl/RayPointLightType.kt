@@ -3,8 +3,6 @@ package net.typho.vibrancy.block.impl
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
-import net.minecraft.client.Minecraft
-import net.minecraft.client.renderer.RenderType
 import net.minecraft.util.ExtraCodecs
 import net.minecraft.world.level.block.state.StateDefinition
 import net.minecraft.world.phys.AABB
@@ -47,6 +45,19 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, Hash
 
     override fun createStorage(manager: LightManager) = HashMapBlockLightStorage(this)
 
+    fun initState(stack: GlStack) {
+        stack.disable(GlCapability.DEPTH_TEST)
+        stack.enable(GlCapability.CULL_FACE)
+        stack.set(CullFace.FRONT)
+        stack.enable(GlCapability.BLEND)
+        stack.set(
+            BlendFunction(
+                BlendFactor.ONE,
+                BlendFactor.ONE
+            )
+        )
+    }
+
     override fun render(
         manager: LightManager,
         lights: HashMapBlockLightStorage<RayPointLightInfo, RayPointLight>,
@@ -62,27 +73,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, Hash
 
         if (Vibrancy.config.blockLights.raytraced.enabled) {
             GlStack().use { stack ->
-                stack.disable(GlCapability.DEPTH_TEST)
-                //stack.enable(GlCapability.STENCIL_TEST)
-                stack.enable(GlCapability.CULL_FACE)
-                stack.set(CullFace.FRONT)
-                stack.enable(GlCapability.BLEND)
-                stack.set(
-                    BlendFunction(
-                        BlendFactor.ONE,
-                        BlendFactor.ONE
-                    )
-                )
-                /*
-                stack.set(StencilMask, LightManager.SHADOW_STENCIL_MASK)
-                stack.set(
-                    StencilFunc(
-                        ComparisonMode.NOTEQUAL,
-                        LightManager.SHADOW_STENCIL_MASK,
-                        LightManager.SHADOW_STENCIL_MASK
-                    )
-                )
-                 */
+                initState(stack)
 
                 lights.map.values.stream()
                     .filter { light ->

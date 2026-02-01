@@ -1,19 +1,18 @@
 package net.typho.vibrancy
 
 import com.mojang.blaze3d.systems.RenderSystem
+import me.fzzyhmstrs.fzzy_config.annotations.Action
+import me.fzzyhmstrs.fzzy_config.annotations.RequiresAction
 import me.fzzyhmstrs.fzzy_config.api.FileType
 import me.fzzyhmstrs.fzzy_config.config.Config
 import me.fzzyhmstrs.fzzy_config.config.ConfigSection
 import me.fzzyhmstrs.fzzy_config.util.EnumTranslatable
 import me.fzzyhmstrs.fzzy_config.validation.ValidatedField.Companion.withListener
-import me.fzzyhmstrs.fzzy_config.validation.misc.ValidatedEnum
 import me.fzzyhmstrs.fzzy_config.validation.number.ValidatedFloat
 import me.fzzyhmstrs.fzzy_config.validation.number.ValidatedInt
 import me.fzzyhmstrs.fzzy_config.validation.number.ValidatedNumber
 import me.fzzyhmstrs.fzzy_config.validation.number.ValidatedNumber.Companion.setFormat
 import me.fzzyhmstrs.fzzy_config.validation.number.ValidatedNumber.Companion.withIncrement
-import net.minecraft.client.Minecraft
-import net.typho.big_shot_lib.api.ITexture
 import net.typho.big_shot_lib.gl.InterpolationType
 import java.text.DecimalFormat
 
@@ -66,6 +65,12 @@ class VibrancyConfig : Config(
                         Vibrancy.LIGHT_MANAGER.rebuildAllShadows()
                     }
                 }
+            @RequiresAction(Action.RELOG)
+            @JvmField
+            var shadowTextureWidth = ValidatedInt(400, 3200, 100)
+            @RequiresAction(Action.RELOG)
+            @JvmField
+            var shadowTextureHeight = ValidatedInt(600, 3200, 100)
             @JvmField
             var maxRendered = ValidatedInt(200, 1000, 0)
                 .withIncrement(10)

@@ -18,14 +18,16 @@ out float fragDistance;
 
 void main() {
     vec3 dir = shadowCoordsToDirection(texCoord);
-    fragDistance = 1;
+    fragDistance = LightRadius;
 
     for (uint i = 0u; i < quads.length(); i++) {
         Quad quad = quads[i];
         float t;
 
-        if (!sampleQuad(Sampler0, LightPos, dir, LightRadius, 1e-3, quad, t)) {
-            fragDistance = min(fragDistance, t / LightRadius);
+        if (!sampleQuad(Sampler0, LightPos, dir, fragDistance, 1e-3, quad, t)) {
+            fragDistance = t;
         }
     }
+
+    fragDistance /= LightRadius;
 }

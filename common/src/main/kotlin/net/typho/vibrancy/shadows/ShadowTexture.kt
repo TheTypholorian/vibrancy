@@ -92,14 +92,15 @@ open class ShadowTexture(
                 target.bind(stack)
 
                 GlStateManager._viewport(0, 0, target.width(), target.height())
-                GlStateManager._clearColor(0f, 0f, 0f, 0f)
+                GlStateManager._clearColor(1f, 1f, 1f, 1f)
                 GlStateManager._clearDepth(1.0)
                 GlStateManager._clear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT, false)
 
                 shader.bind(stack)
                 uniforms.accept(shader)
 
-                stack.disable(GlCapability.BLEND)
+                stack.enable(GlCapability.BLEND)
+                stack.set(BlendEquation.MIN)
                 stack.disable(GlCapability.DEPTH_TEST) // TODO
                 stack.set(DepthTest, ComparisonMode.LEQUAL)
                 stack.set(ColorMask(true, true, true, true))
@@ -114,7 +115,7 @@ open class ShadowTexture(
                     ssbo.bind()
                     ssbo.bindBase(stack, 0)
 
-                    for (entry in builders) { // TODO fix distance test for multiple draws
+                    for (entry in builders) {
                         shader.setSampler("Sampler0", Minecraft.getInstance().textureManager.getTexture(entry.key))
                         ssbo.upload(entry.value.build())
 

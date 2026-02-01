@@ -43,8 +43,8 @@ class RayPointLight(
             shader.getUniform("LightPos")?.set(getAbsolutePos())
             shader.getUniform("LightRadius")?.set(radius)
         },
-        400,
-        400
+        Vibrancy.config.blockLights.raytraced.shadowTextureWidth.get(),
+        Vibrancy.config.blockLights.raytraced.shadowTextureHeight.get()
     )
     val boxBuffer by lazy {
         val builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX)
@@ -83,7 +83,7 @@ class RayPointLight(
     }
 
     override fun getShadowBox(): BlockBox {
-        val shadowRadius = ceil(radius).toInt()//ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.shadowRadius.get().toFloat())).toInt()
+        val shadowRadius = ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.shadowRadius.get().toFloat())).toInt()
         return BlockBox.of(
             BlockPos(pos.x - shadowRadius, pos.y - shadowRadius, pos.z - shadowRadius),
             BlockPos(pos.x + shadowRadius, pos.y + shadowRadius, pos.z + shadowRadius)
@@ -142,7 +142,7 @@ class RayPointLight(
     }
 
     override fun isInRange(pos: BlockPos): Boolean {
-        val shadowRadius = ceil(radius).toInt()//ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.shadowRadius.get().toFloat())).toInt()
+        val shadowRadius = ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.shadowRadius.get().toFloat())).toInt()
         return pos.distSqr(this.pos) <= shadowRadius * shadowRadius
     }
 
@@ -159,7 +159,9 @@ class RayPointLight(
             shadowsDirty = false
         }
 
-        shadows.checkIfFinished()
+        if (shadows.checkIfFinished()) {
+            getType().initState(stack)
+        }
 
         val result = BlockRenderResult(
             numRendered = 1,
