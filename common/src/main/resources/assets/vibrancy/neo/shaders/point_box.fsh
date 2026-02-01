@@ -3,7 +3,6 @@
 #include "vibrancy:include/fragment"
 #include "vibrancy:include/shadow"
 
-uniform sampler2D VibrancyShadowColorSampler;
 uniform sampler2D VibrancyShadowSampler;
 uniform sampler2D VibrancyWorldPosSampler;
 uniform sampler2D VibrancyNormalSampler;
@@ -26,9 +25,10 @@ void main() {
     vec2 shadowUV = directionToShadowCoords(normalize(delta));
     float shadow = texture(VibrancyShadowSampler, shadowUV).r;
 
-    if (shadow * LightRadius - 1e-1 <= length(delta)) {
-        //discard;
+    // TODO fix margin
+    if (shadow * LightRadius + 1e-1 <= length(delta)) {
+        discard;
     }
 
-    fragColor = texture(VibrancyShadowColorSampler, shadowUV);//sampleLight(VibrancyNormalSampler, gl_FragCoord.xy / ScreenSize, LightPos, pos, LightRadius, LightColor);
+    fragColor = sampleLight(VibrancyNormalSampler, gl_FragCoord.xy / ScreenSize, LightPos, pos, LightRadius, LightColor);
 }

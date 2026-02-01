@@ -29,7 +29,6 @@ import net.typho.vibrancy.shadows.AsyncBlockShadowTexture
 import net.typho.vibrancy.shadows.ShadowPredicate
 import org.joml.Matrix4f
 import org.joml.Vector3f
-import org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT
 import kotlin.math.ceil
 
 class RayPointLight(
@@ -44,8 +43,8 @@ class RayPointLight(
             shader.getUniform("LightPos")?.set(getAbsolutePos())
             shader.getUniform("LightRadius")?.set(radius)
         },
-        800,
-        800
+        400,
+        400
     )
     val boxBuffer by lazy {
         val builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX)
@@ -84,7 +83,7 @@ class RayPointLight(
     }
 
     override fun getShadowBox(): BlockBox {
-        val shadowRadius = ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.shadowRadius.get().toFloat())).toInt()
+        val shadowRadius = ceil(radius).toInt()//ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.shadowRadius.get().toFloat())).toInt()
         return BlockBox.of(
             BlockPos(pos.x - shadowRadius, pos.y - shadowRadius, pos.z - shadowRadius),
             BlockPos(pos.x + shadowRadius, pos.y + shadowRadius, pos.z + shadowRadius)
@@ -143,7 +142,7 @@ class RayPointLight(
     }
 
     override fun isInRange(pos: BlockPos): Boolean {
-        val shadowRadius = ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.shadowRadius.get().toFloat())).toInt()
+        val shadowRadius = ceil(radius).toInt()//ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.shadowRadius.get().toFloat())).toInt()
         return pos.distSqr(this.pos) <= shadowRadius * shadowRadius
     }
 
@@ -189,8 +188,7 @@ class RayPointLight(
 
         boxShader.getUniform("SampleShadows")?.set(if (raytrace) 1 else 0)
 
-        boxShader.setSampler("VibrancyShadowColorSampler", shadows.target.colorAttachments[0] as ITexture)
-        boxShader.setSampler("VibrancyShadowSampler", shadows.target.depthAttachment as ITexture)
+        boxShader.setSampler("VibrancyShadowSampler", shadows.target.colorAttachments[0] as ITexture)
         boxShader.setSampler("VibrancyNormalSampler", VibrancyDynamicBuffers.normalsTexture!!)
         boxShader.setSampler("VibrancyWorldPosSampler", Vibrancy.WORLD_POS_FBO.colorAttachments[0] as ITexture)
 

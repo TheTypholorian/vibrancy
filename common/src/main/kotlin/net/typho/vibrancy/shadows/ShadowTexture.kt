@@ -6,10 +6,14 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.resources.ResourceLocation
+import net.typho.big_shot_lib.BigShotLib
 import net.typho.big_shot_lib.api.IShader
 import net.typho.big_shot_lib.api.builtin.EmptyVertexConsumer
 import net.typho.big_shot_lib.api.impl.NeoFramebuffer
+import net.typho.big_shot_lib.api.impl.NeoIndexedBuffer
 import net.typho.big_shot_lib.gl.GlStack
+import net.typho.big_shot_lib.gl.resource.BufferUsage
+import net.typho.big_shot_lib.gl.resource.GlResourceType
 import net.typho.big_shot_lib.gl.resource.TextureFormat
 import net.typho.big_shot_lib.gl.state.ColorMask
 import net.typho.big_shot_lib.gl.state.ComparisonMode
@@ -34,8 +38,8 @@ open class ShadowTexture(
     val target by lazy {
         NeoFramebuffer.TextureBacked(
             Vibrancy.id("shadow_texture_${width}x${height}"),
-            arrayOf(TextureFormat.RGB8),
-            TextureFormat.DEPTH_COMPONENT,
+            arrayOf(TextureFormat.R16F),
+            null,
             width,
             height
         )
@@ -63,14 +67,14 @@ open class ShadowTexture(
     fun begin(shader: IShader, uniforms: Consumer<IShader>) = Builder(shader, uniforms)
 
     inner class Builder(val shader: IShader, val uniforms: Consumer<IShader>) : MultiBufferSource {
-        val builders = HashMap<ResourceLocation, BufferBuilder>()
+        val builders = HashMap<ResourceLocation, ShadowBufferBuilder>()
 
         override fun getBuffer(renderType: RenderType): VertexConsumer {
             val texture = getRenderTypeTexture(renderType)
 
             return if (
                 texture == null
-                || renderType.mode().primitiveLength < 3
+                || renderType.mode() != VertexFormat.Mode.QUADS
                 || !renderType.format().contains(VertexFormatElement.POSITION)
                 || !renderType.format().contains(VertexFormatElement.UV0)
             ) {
@@ -79,7 +83,7 @@ open class ShadowTexture(
                 builders.computeIfAbsent(texture) {
                     val builder = ByteBufferBuilder(renderType.bufferSize())
                     toFree.add(builder)
-                    BufferBuilder(builder, renderType.mode(), DefaultVertexFormat.POSITION_TEX)
+                    ShadowBufferBuilder(builder)
                 }
             }
         }
@@ -88,6 +92,7 @@ open class ShadowTexture(
             GlStack().use { stack ->
                 target.bind(stack)
 
+                GlStateManager._viewport(0, 0, target.width(), target.height())
                 GlStateManager._clearColor(0f, 0f, 0f, 0f)
                 GlStateManager._clearDepth(1.0)
                 GlStateManager._clear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT, false)
@@ -96,24 +101,28 @@ open class ShadowTexture(
                 uniforms.accept(shader)
 
                 stack.disable(GlCapability.BLEND)
-                stack.enable(GlCapability.DEPTH_TEST)
+                stack.disable(GlCapability.DEPTH_TEST) // TODO
                 stack.set(DepthTest, ComparisonMode.LEQUAL)
                 stack.set(ColorMask(true, true, true, true))
                 stack.set(DepthMask, true)
-                stack.enable(GlCapability.CULL_FACE)
-                stack.set(CullFace.BACK)
+                stack.disable(GlCapability.CULL_FACE)
 
                 if (!builders.isEmpty()) {
-                    val vbo = VertexBuffer(VertexBuffer.Usage.DYNAMIC)
+                    val vbo = BigShotLib.SCREEN_VBO
                     vbo.bind()
 
-                    for (entry in builders) {
-                        shader.setSampler("Sampler0", Minecraft.getInstance().textureManager.getTexture(entry.key))
+                    val ssbo = NeoIndexedBuffer(null, GlResourceType.SHADER_STORAGE_BUFFER, BufferUsage.STREAM_DRAW)
+                    ssbo.bind()
+                    ssbo.bindBase(stack, 0)
 
-                        vbo.upload(entry.value.buildOrThrow())
+                    for (entry in builders) { // TODO fix distance test for multiple draws
+                        shader.setSampler("Sampler0", Minecraft.getInstance().textureManager.getTexture(entry.key))
+                        ssbo.upload(entry.value.build())
+
                         vbo.draw()
                     }
 
+                    ssbo.unbind()
                     VertexBuffer.unbind()
                 }
 
