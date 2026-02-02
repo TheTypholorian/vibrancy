@@ -6,9 +6,8 @@ import net.minecraft.core.MappedRegistry
 import net.minecraft.core.Registry
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.resources.ResourceKey
-import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.Level
 import net.typho.vibrancy.Vibrancy
-import java.util.logging.Level
 
 object SkyLightRegistry {
     @JvmField
@@ -23,16 +22,16 @@ object SkyLightRegistry {
     )
 
     @JvmField
-    val dimensionMap = HashMap<ResourceKey<Level>, SkyLightInfo<*, *>>()
+    val dimensionMap = HashMap<Level, SkyLightInfo<*, *>>()
 
     @JvmStatic
-    fun get(level: ResourceKey<Level>): SkyLightInfo<*, *>? = dimensionMap[level]
+    fun get(level: Level): SkyLightInfo<*, *>? = dimensionMap[level]
 
     @JvmStatic
-    fun has(level: ResourceKey<Level>): Boolean = dimensionMap.containsKey(level)
+    fun has(level: Level): Boolean = dimensionMap.containsKey(level)
 
     @JvmStatic
-    fun infoCodec(level: ResourceKey<Level>): MapCodec<SkyLightInfo<*, *>> {
+    fun infoCodec(level: Level): MapCodec<SkyLightInfo<*, *>> {
         return ResourceKey.codec(typesKey).dispatchMap(
             { info -> types.getResourceKey(info.type()).orElseThrow() },
             { key -> types.get(key)!!.infoCodec(level) }

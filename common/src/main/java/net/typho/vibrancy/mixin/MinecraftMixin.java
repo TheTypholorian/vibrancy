@@ -6,6 +6,7 @@ import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.server.packs.resources.ReloadableResourceManager;
 import net.typho.vibrancy.Vibrancy;
 import net.typho.vibrancy.block.BlockLightInfoLoader;
+import net.typho.vibrancy.sky.SkyLightInfoLoader;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -26,6 +27,7 @@ public class MinecraftMixin {
     private void setLevel(ClientLevel level, ReceivingLevelScreen.Reason reason, CallbackInfo ci) {
         Vibrancy.LIGHT_MANAGER.clear();
 
+        SkyLightInfoLoader.load(resourceManager, level.registryAccess());
         BlockLightInfoLoader.load(resourceManager, level.registryAccess());
     }
 }

@@ -1,23 +1,9 @@
 package net.typho.vibrancy.sky
 
-import net.minecraft.core.BlockPos
-import net.minecraft.world.level.block.state.StateHolder
 import net.minecraft.world.level.chunk.LevelChunk
 import net.typho.vibrancy.LightManager
 
 interface SkyLightStorage<I : SkyLightInfo<I, *>> {
-    fun addLight(
-        manager: LightManager,
-        state: StateHolder<*, *>,
-        pos: BlockPos,
-        info: I
-    )
-
-    fun removeLight(
-        manager: LightManager,
-        pos: BlockPos
-    )
-
     fun rebuildShadows(manager: LightManager)
 
     fun loadChunk(
@@ -31,6 +17,4 @@ interface SkyLightStorage<I : SkyLightInfo<I, *>> {
     )
 
     fun clear(manager: LightManager)
-
-    fun size(): Int
 }

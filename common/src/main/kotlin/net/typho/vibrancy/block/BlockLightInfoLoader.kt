@@ -5,6 +5,7 @@ import com.google.gson.JsonParser.parseReader
 import com.google.gson.JsonSyntaxException
 import com.mojang.serialization.JsonOps.INSTANCE
 import net.minecraft.core.RegistryAccess
+import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.core.registries.Registries
 import net.minecraft.resources.FileToIdConverter
 import net.minecraft.resources.ResourceLocation
@@ -30,16 +31,14 @@ object BlockLightInfoLoader {
 
     @JvmStatic
     fun load(manager: ResourceManager, registryAccess: RegistryAccess) {
-        val blocks = registryAccess.registryOrThrow(Registries.BLOCK)
-
         BlockLightRegistry.blockMap.clear()
 
         for (entry in singleIdConverter.listMatchingResources(manager)) {
             entry.value.openAsReader().use { jsonReader ->
                 val blockKey = singleIdConverter.fileToId(entry.key)
 
-                if (blocks.containsKey(blockKey)) {
-                    val block = blocks.get(blockKey) ?: throw NullPointerException("Unknown block $blockKey")
+                if (BuiltInRegistries.BLOCK.containsKey(blockKey)) {
+                    val block = BuiltInRegistries.BLOCK.get(blockKey)
                     load(block, blockKey, parseReader(jsonReader), registryAccess)
                 }
             }
@@ -49,7 +48,7 @@ object BlockLightInfoLoader {
             entry.value.openAsReader().use { jsonReader ->
                 val blockKey = tagIdConverter.fileToId(entry.key)
 
-                blocks.getTag(create(Registries.BLOCK, blockKey))
+                BuiltInRegistries.BLOCK.getTag(create(Registries.BLOCK, blockKey))
                     .ifPresent { tag ->
                         val json = parseReader(jsonReader)
 
