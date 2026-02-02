@@ -36,8 +36,6 @@ modrinth {
         required.project("kotlin-for-forge")
         required.project("big-shot-lib")
         required.project("fzzy-config")
-
-        incompatible.project("sodium")
     }
 }
 

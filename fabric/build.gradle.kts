@@ -32,12 +32,11 @@ modrinth {
     loaders.add("fabric")
 
     dependencies {
+        required.project("fabric-api")
         required.project("fabric-language-kotlin")
         required.project("big-shot-lib")
         required.project("fzzy-config")
         required.project("modmenu")
-
-        incompatible.project("sodium")
     }
 }
 
