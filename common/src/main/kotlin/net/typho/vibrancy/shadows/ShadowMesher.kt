@@ -42,6 +42,10 @@ interface ShadowMesher {
             predicate: ShadowPredicate,
             out: Consumer<BakedQuad>
         ) {
+            if (state.isAir) {
+                return
+            }
+
             val model = Minecraft.getInstance().blockRenderer.getBlockModel(state)
             val random = RandomSource.create()
 
@@ -69,6 +73,10 @@ interface ShadowMesher {
             predicate: ShadowPredicate,
             out: Consumer<LightFace>
         ) {
+            if (state.isAir) {
+                return
+            }
+
             if (BlockLightRegistry.get(state.block)?.shouldCastShadow(manager, level, state, pos) == false) {
                 return
             }

@@ -84,7 +84,7 @@ object OverworldSkyLightType : SkyLightType<OverworldSkyLightInfo, OverworldSkyL
         }
 
         val lightDirection = Vector3f(x, y, 0f)
-        val worldTransformation = Matrix4f().rotateX(sunAngle)
+        val worldTransformation = Matrix4f().rotateZ(sunAngle)
         this.worldTransformation = worldTransformation
 
         GlStack().use { stack ->
@@ -112,6 +112,23 @@ object OverworldSkyLightType : SkyLightType<OverworldSkyLightInfo, OverworldSkyL
                 if (section.dirty) {
                     section.reload(manager, level.getChunk(section.pos.x, section.pos.z))
                     section.dirty = false
+                }
+
+                section.asyncTask?.let { task ->
+                    if (task.isDone) {
+                        val result = task.get()
+                        val built = result.second.build()
+                        section.any = built != null
+
+                        if (built != null) {
+                            section.vbo.bind()
+                            section.vbo.upload(built)
+                            VertexBuffer.unbind()
+                        }
+
+                        section.asyncTask = null
+                        result.first.close()
+                    }
                 }
 
                 if (section.any) {

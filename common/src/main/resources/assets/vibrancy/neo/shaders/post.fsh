@@ -33,7 +33,7 @@ void main() {
 
     fragColor = texelFetch(DiffuseSampler0, ivec2(gl_FragCoord.xy), 0) + finalColor * texelFetch(VibrancyAlbedoSampler, ivec2(gl_FragCoord.xy), 0);
 
-    if (texture(VibrancyDebugSkySampler, (SkyLightMat * vec4(pos / 32, 1)).xy).r < 1) {
+    if (texture(VibrancyDebugSkySampler, (SkyLightMat * vec4((pos + 32) / 32, 1)).xy).r < 1) {
         discard;
     }
 }

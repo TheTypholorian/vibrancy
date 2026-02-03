@@ -9,7 +9,7 @@ out vec2 texCoord;
 out float vertexDistance;
 
 void main() {
-    gl_Position = ModelViewMat * vec4(Position / 32, 1);
+    gl_Position = ModelViewMat * vec4((Position + 32) / 32, 1);
     texCoord = UV0;
     vertexDistance = gl_Position.z;
     gl_Position.xy = gl_Position.xy * 2 - 1;
