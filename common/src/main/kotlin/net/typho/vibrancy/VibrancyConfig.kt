@@ -87,14 +87,6 @@ class VibrancyConfig : Config(
     }
 
     @JvmField
-    var skyLights = SkyLightsSection()
-
-    class SkyLightsSection : ConfigSection() {
-        @JvmField
-        var enabled = true
-    }
-
-    @JvmField
     var forNerds = ForNerdsSection()
 
     class ForNerdsSection : ConfigSection() {

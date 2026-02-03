@@ -12,7 +12,6 @@ import net.typho.big_shot_lib.api.impl.NeoFramebuffer
 import net.typho.big_shot_lib.gl.resource.TextureFormat
 import net.typho.big_shot_lib.spirv.ShaderMixinManager
 import net.typho.vibrancy.block.BlockLightRegistry
-import net.typho.vibrancy.sky.SkyLightRegistry
 import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT
@@ -66,7 +65,6 @@ object Vibrancy {
     @JvmStatic
     fun init() {
         ShaderMixinManager.register(VibrancyDynamicBuffers)
-        SkyLightRegistry.init()
         BlockLightRegistry.init()
     }
 

@@ -31,9 +31,6 @@
   "vibrancy.config.blockLights.subtle.maxRendered": "Max Rendered",
   "vibrancy.config.blockLights.subtle.maxRendered.prefix": "The maximum number of block lights that will be rendered, closest lights first.",
 
-  "vibrancy.config.skyLights": "Sky Lights",
-  "vibrancy.config.skyLights.enabled": "Enabled",
-
   "vibrancy.config.forNerds": "For Nerds",
   "vibrancy.config.forNerds.prefix": "Options you shouldn't mess with unless you know how the mod works.",
   "vibrancy.config.forNerds.useFrustumCulling": "Use Frustum Culling",

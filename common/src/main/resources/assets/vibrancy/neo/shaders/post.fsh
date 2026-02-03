@@ -8,11 +8,8 @@ uniform sampler2D VibrancyWorldPosSampler;
 uniform sampler2D VibrancyOutputSampler;
 uniform sampler2D VibrancyAlbedoSampler;
 
-uniform sampler2D VibrancyDebugSkySampler;
-
 uniform mat4 IProjMat;
 uniform mat4 IModelMat;
-uniform mat4 SkyLightMat;
 
 uniform float FogStart;
 uniform float FogEnd;
@@ -32,8 +29,4 @@ void main() {
     vec4 finalColor = linear_fog(vec4(1), distance(pos, CameraPos), FogStart, FogEnd, vec4(0, 0, 0, 1)) * vec4(outputColor * outputScale, 1);
 
     fragColor = texelFetch(DiffuseSampler0, ivec2(gl_FragCoord.xy), 0) + finalColor * texelFetch(VibrancyAlbedoSampler, ivec2(gl_FragCoord.xy), 0);
-
-    if (texture(VibrancyDebugSkySampler, (SkyLightMat * vec4((pos + 32) / 32, 1)).xy).r < 1) {
-        discard;
-    }
 }
