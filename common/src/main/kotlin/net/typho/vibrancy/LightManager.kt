@@ -25,9 +25,15 @@ import net.typho.vibrancy.block.*
 import net.typho.vibrancy.mixin.LevelRendererAccessor
 import net.typho.vibrancy.shadows.BasicShadowMesher
 import net.typho.vibrancy.shadows.ShadowMesher
+import net.typho.vibrancy.sky.SkyLight
+import net.typho.vibrancy.sky.SkyLightType
+import net.typho.vibrancy.sky.impl.OverworldSkyLight
+import net.typho.vibrancy.sky.impl.OverworldSkyLightInfo
+import net.typho.vibrancy.sky.impl.OverworldSkyLightType
 import net.typho.vibrancy.util.PointLight
 import org.joml.Matrix4f
 import org.joml.Vector2f
+import org.joml.Vector3f
 import org.joml.Vector4f
 import java.util.*
 import java.util.function.Consumer
@@ -38,13 +44,21 @@ open class LightManager {
     }
 
     @JvmField
-    protected var renderResults = HashMap<BlockLightType<*, *, *>, BlockRenderResult>()
-    @JvmField
     protected var viewMatrix: Matrix4f? = null
+
     @JvmField
     val dirtyBlocks = LinkedList<GlobalPos>()
+
+    @JvmField
+    var skyLight: SkyLight<*, *>? = OverworldSkyLight(OverworldSkyLightInfo(Vector3f(1f, 0f, 0f), Vector3f(0f, 1f, 0f)))
+    @JvmField
+    protected var skyRenderResult: LightRenderResult? = null
+
     @JvmField
     val blockLights = HashMap<BlockLightType<*, *, *>, BlockLightStorage<*>>()
+    @JvmField
+    protected var blockRenderResults = HashMap<BlockLightType<*, *, *>, LightRenderResult>()
+
     @JvmField
     var debugMode = false
 
@@ -76,6 +90,8 @@ open class LightManager {
         for (light in blockLights.values) {
             light.rebuildShadows(this)
         }
+
+        skyLight?.rebuildShadows(this)
     }
 
     fun ensureStorageInitialized() {
@@ -121,17 +137,24 @@ open class LightManager {
         ensureStorageInitialized()
 
         blockLights.values.forEach { storage -> storage.loadChunk(this, chunk) }
+        skyLight?.loadChunk(this, chunk)
     }
 
     fun deloadChunk(chunk: LevelChunk) {
         ensureStorageInitialized()
 
         blockLights.values.forEach { storage -> storage.deloadChunk(this, chunk) }
+        skyLight?.deloadChunk(this, chunk)
     }
 
     @Suppress("UNCHECKED_CAST")
-    protected fun <S : BlockLightStorage<*>> castAndRender(fbo: IFramebuffer, type: BlockLightType<*, *, S>, storage: BlockLightStorage<*>): BlockRenderResult {
+    protected fun <S : BlockLightStorage<*>> castAndRender(fbo: IFramebuffer, type: BlockLightType<*, *, S>, storage: BlockLightStorage<*>): LightRenderResult {
         return type.render(this, storage as S, fbo)
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    protected fun <L : SkyLight<*, L>> castAndRender(fbo: IFramebuffer, type: SkyLightType<*, L>, light: SkyLight<*, *>): LightRenderResult {
+        return type.render(this, light as L, fbo)
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -141,11 +164,13 @@ open class LightManager {
 
     fun render(fbo: IFramebuffer, camera: Camera = getCamera()) {
         viewMatrix = BigShotLib.getViewMatrix(camera)
-        renderResults.clear()
+        blockRenderResults.clear()
 
         for (entry in blockLights) {
-            renderResults[entry.key] = castAndRender(fbo, entry.key, entry.value)
+            blockRenderResults[entry.key] = castAndRender(fbo, entry.key, entry.value)
         }
+
+        skyRenderResult = skyLight?.let { castAndRender(fbo, it.type(), it) }
 
         dirtyBlocks.clear()
     }
@@ -196,8 +221,11 @@ open class LightManager {
             shader.setSampler("VibrancyOutputSampler", output)
             shader.setSampler("VibrancyAlbedoSampler", VibrancyDynamicBuffers.albedoTexture!!)
 
+            shader.setSampler("VibrancyDebugSkySampler", OverworldSkyLightType.target.colorAttachments[0] as ITexture)
+
             shader.getUniform("IProjMat")?.set(Matrix4f(Vibrancy.iProjMat))
             shader.getUniform("IModelMat")?.set(Matrix4f(Vibrancy.iModelMat))
+            shader.getUniform("SkyLightMat")?.set(Matrix4f(OverworldSkyLightType.worldTransformation!!))
 
             shader.getUniform("FogStart")?.set(RenderSystem.getShaderFogStart())
             shader.getUniform("FogEnd")?.set(RenderSystem.getShaderFogEnd())
@@ -214,18 +242,21 @@ open class LightManager {
     fun getDebugOutput(out: Consumer<String>) {
         out.accept("Block Lights")
 
+        skyLight?.let { skyLight ->
+            out.accept("")
+
+            //out.accept(ChatFormatting.UNDERLINE.toString() + getLevel().registryAccess().registryOrThrow(SkyLightRegistry.registryKey).getKey(skyLight.type())!!.toString())
+
+            skyRenderResult?.accept(out)
+        }
+
         for (entry in blockLights) {
             out.accept("")
 
             out.accept(ChatFormatting.UNDERLINE.toString() + getLevel().registryAccess().registryOrThrow(BlockLightRegistry.registryKey).getKey(entry.key)!!.toString())
             out.accept("${entry.value.size()} lights in world")
 
-            renderResults[entry.key]?.let { result ->
-                result.numRendered?.let { out.accept("$it rendered") }
-                result.numRaytraced?.let { out.accept("$it raytraced") }
-                result.numShadows?.let { out.accept("$it shadows") }
-                result.numAsyncTasks?.let { out.accept("$it async tasks") }
-            }
+            blockRenderResults[entry.key]?.accept(out)
         }
     }
 

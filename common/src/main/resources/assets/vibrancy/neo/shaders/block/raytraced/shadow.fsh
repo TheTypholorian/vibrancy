@@ -1,7 +1,7 @@
 #version 430
 
 #include "vibrancy:include/rays"
-#include "vibrancy:include/shadow"
+#include "vibrancy:block/raytraced/shadow_utils"
 
 layout(std430, binding = 0) buffer Quads {
     Quad quads[];

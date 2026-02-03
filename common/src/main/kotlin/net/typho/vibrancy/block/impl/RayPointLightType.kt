@@ -5,7 +5,6 @@ import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.util.ExtraCodecs
 import net.minecraft.world.level.block.state.StateDefinition
-import net.minecraft.world.phys.AABB
 import net.typho.big_shot_lib.api.IFramebuffer
 import net.typho.big_shot_lib.gl.GlStack
 import net.typho.big_shot_lib.gl.state.BlendFactor
@@ -13,9 +12,9 @@ import net.typho.big_shot_lib.gl.state.BlendFunction
 import net.typho.big_shot_lib.gl.state.CullFace
 import net.typho.big_shot_lib.gl.state.GlCapability
 import net.typho.vibrancy.LightManager
+import net.typho.vibrancy.LightRenderResult
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.block.BlockLightType
-import net.typho.vibrancy.block.BlockRenderResult
 import net.typho.vibrancy.block.HashMapBlockLightStorage
 import net.typho.vibrancy.util.StateFunction
 import org.joml.Vector3f
@@ -62,8 +61,8 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, Hash
         manager: LightManager,
         lights: HashMapBlockLightStorage<RayPointLightInfo, RayPointLight>,
         fbo: IFramebuffer
-    ): BlockRenderResult {
-        val result = BlockRenderResult(
+    ): LightRenderResult {
+        val result = LightRenderResult(
             numRendered = 0,
             numRaytraced = 0,
             numShadows = 0,

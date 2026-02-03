@@ -1,0 +1,5 @@
+{
+  "vertex": "vibrancy:block/raytraced/box",
+  "fragment": "vibrancy:block/raytraced/box",
+  "format": "POSITION"
+}

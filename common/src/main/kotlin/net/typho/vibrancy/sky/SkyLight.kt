@@ -1,13 +1,22 @@
 package net.typho.vibrancy.sky
 
+import net.minecraft.world.level.chunk.LevelChunk
 import net.typho.vibrancy.LightManager
 
 interface SkyLight<I : SkyLightInfo<I, L>, L : SkyLight<I, L>> {
+    fun type(): SkyLightType<I, L>
+
     fun rebuildShadows(manager: LightManager)
 
-    fun getType(): SkyLightType<I, L, *>
+    fun loadChunk(
+        manager: LightManager,
+        chunk: LevelChunk
+    )
 
-    fun shouldRender(manager: LightManager): Boolean
+    fun deloadChunk(
+        manager: LightManager,
+        chunk: LevelChunk
+    )
 
-    fun free(manager: LightManager)
+    fun clear(manager: LightManager)
 }

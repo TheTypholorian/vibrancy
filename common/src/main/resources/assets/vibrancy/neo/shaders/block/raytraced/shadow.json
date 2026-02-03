@@ -1,0 +1,5 @@
+{
+  "vertex": "vibrancy:block/raytraced/shadow",
+  "fragment": "vibrancy:block/raytraced/shadow",
+  "format": "POSITION_TEX"
+}

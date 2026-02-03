@@ -17,8 +17,8 @@ object SkyLightInfoLoader {
     val idConverter: FileToIdConverter = FileToIdConverter.json("rtx/sky_lights")
 
     @JvmStatic
-    fun load(dimension: Level, key: ResourceLocation?, json: JsonElement) {
-        SkyLightRegistry.dimensionMap[dimension] = SkyLightRegistry.infoCodec(dimension)
+    fun load(dimension: Level, key: ResourceLocation?, json: JsonElement, registryAccess: RegistryAccess) {
+        SkyLightRegistry.dimensionMap[dimension] = SkyLightRegistry.infoCodec(dimension, registryAccess)
             .codec()
             .parse(INSTANCE, json)
             .getOrThrow { message -> JsonSyntaxException("Error parsing sky light info for $key: $message") }
@@ -36,7 +36,7 @@ object SkyLightInfoLoader {
 
                 if (dimensions.containsKey(dimensionKey)) {
                     val dimension = dimensions.get(dimensionKey)
-                    load(dimension!!, dimensionKey, parseReader(jsonReader))
+                    load(dimension!!, dimensionKey, parseReader(jsonReader), registryAccess)
                 }
             }
         }

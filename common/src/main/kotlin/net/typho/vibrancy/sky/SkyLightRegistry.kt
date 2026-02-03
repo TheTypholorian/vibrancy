@@ -1,25 +1,16 @@
 package net.typho.vibrancy.sky
 
-import com.mojang.serialization.Lifecycle
 import com.mojang.serialization.MapCodec
-import net.minecraft.core.MappedRegistry
 import net.minecraft.core.Registry
-import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.core.RegistryAccess
 import net.minecraft.resources.ResourceKey
 import net.minecraft.world.level.Level
 import net.typho.vibrancy.Vibrancy
 
 object SkyLightRegistry {
     @JvmField
-    val typesKey: ResourceKey<Registry<SkyLightType<*, *, *>>> =
+    val registryKey: ResourceKey<Registry<SkyLightType<*, *>>> =
         ResourceKey.createRegistryKey(Vibrancy.id("sky_light_types"))
-    @JvmField
-    @Suppress("UNCHECKED_CAST")
-    val types: Registry<SkyLightType<*, *, *>> = Registry.register(
-        BuiltInRegistries.REGISTRY as Registry<Registry<SkyLightType<*, *, *>>>,
-        typesKey,
-        MappedRegistry(typesKey, Lifecycle.stable())
-    )
 
     @JvmField
     val dimensionMap = HashMap<Level, SkyLightInfo<*, *>>()
@@ -31,8 +22,9 @@ object SkyLightRegistry {
     fun has(level: Level): Boolean = dimensionMap.containsKey(level)
 
     @JvmStatic
-    fun infoCodec(level: Level): MapCodec<SkyLightInfo<*, *>> {
-        return ResourceKey.codec(typesKey).dispatchMap(
+    fun infoCodec(level: Level, registryAccess: RegistryAccess): MapCodec<SkyLightInfo<*, *>> {
+        val types = registryAccess.registryOrThrow(registryKey)
+        return ResourceKey.codec(registryKey).dispatchMap(
             { info -> types.getResourceKey(info.type()).orElseThrow() },
             { key -> types.get(key)!!.infoCodec(level) }
         )

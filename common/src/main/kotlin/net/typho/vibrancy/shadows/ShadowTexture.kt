@@ -20,7 +20,6 @@ import net.typho.big_shot_lib.gl.resource.TextureFormat
 import net.typho.big_shot_lib.gl.state.*
 import net.typho.vibrancy.Vibrancy
 import org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT
-import org.lwjgl.opengl.GL11.GL_DEPTH_BUFFER_BIT
 import org.lwjgl.system.NativeResource
 import java.util.*
 import java.util.function.Consumer
@@ -93,8 +92,7 @@ open class ShadowTexture(
 
                 GlStateManager._viewport(0, 0, target.width(), target.height())
                 GlStateManager._clearColor(1f, 1f, 1f, 1f)
-                GlStateManager._clearDepth(1.0)
-                GlStateManager._clear(GL_COLOR_BUFFER_BIT or GL_DEPTH_BUFFER_BIT, false)
+                GlStateManager._clear(GL_COLOR_BUFFER_BIT, false)
 
                 shader.bind(stack)
                 uniforms.accept(shader)

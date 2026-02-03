@@ -3,17 +3,16 @@ package net.typho.vibrancy.sky.impl
 import net.minecraft.world.level.Level
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.sky.SkyLightInfo
-import net.typho.vibrancy.sky.SkyLightType
+import org.joml.Vector3f
 
-class OverworldSkyLightInfo : SkyLightInfo<OverworldSkyLightInfo, OverworldSkyLight> {
-    override fun type(): SkyLightType<OverworldSkyLightInfo, OverworldSkyLight, *> {
-        TODO("Not yet implemented")
-    }
+class OverworldSkyLightInfo(
+    val sunColor: Vector3f,
+    val moonColor: Vector3f
+) : SkyLightInfo<OverworldSkyLightInfo, OverworldSkyLight> {
+    override fun type() = OverworldSkyLightType
 
     override fun createSkyLight(
         manager: LightManager,
         level: Level
-    ): OverworldSkyLight? {
-        TODO("Not yet implemented")
-    }
+    ) = OverworldSkyLight(this)
 }

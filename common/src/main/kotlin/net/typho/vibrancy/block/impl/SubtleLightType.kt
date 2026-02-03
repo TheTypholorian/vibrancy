@@ -15,9 +15,9 @@ import net.typho.big_shot_lib.gl.state.BlendFunction
 import net.typho.big_shot_lib.gl.state.CullFace
 import net.typho.big_shot_lib.gl.state.GlCapability
 import net.typho.vibrancy.LightManager
+import net.typho.vibrancy.LightRenderResult
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.block.BlockLightType
-import net.typho.vibrancy.block.BlockRenderResult
 import net.typho.vibrancy.util.StateFunction
 import org.joml.Matrix4f
 import org.joml.Vector3f
@@ -44,8 +44,8 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight, SubtleLigh
 
     override fun createStorage(manager: LightManager) = SubtleLightStorage()
 
-    override fun render(manager: LightManager, lights: SubtleLightStorage, fbo: IFramebuffer): BlockRenderResult {
-        val result = BlockRenderResult(numRendered = 0)
+    override fun render(manager: LightManager, lights: SubtleLightStorage, fbo: IFramebuffer): LightRenderResult {
+        val result = LightRenderResult(numRendered = 0)
 
         if (Vibrancy.config.blockLights.subtle.enabled) {
             lights.checkDirty(manager)
@@ -63,7 +63,7 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight, SubtleLigh
                     )
                 )
 
-                val boxShader = NeoShader.get(Vibrancy.id("subtle_box"))!!
+                val boxShader = NeoShader.get(Vibrancy.id("block/subtle/box"))!!
 
                 boxShader.bind(stack)
                 boxShader.setCommonUniforms(modelViewMat = manager.getViewMatrix())

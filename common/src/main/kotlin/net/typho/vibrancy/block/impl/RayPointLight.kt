@@ -20,11 +20,11 @@ import net.typho.big_shot_lib.api.impl.NeoShader
 import net.typho.big_shot_lib.gl.GlStack
 import net.typho.big_shot_lib.gl.state.GlCapability
 import net.typho.vibrancy.LightManager
+import net.typho.vibrancy.LightRenderResult
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyDynamicBuffers
 import net.typho.vibrancy.block.BlockLight
 import net.typho.vibrancy.block.BlockLightRegistry
-import net.typho.vibrancy.block.BlockRenderResult
 import net.typho.vibrancy.shadows.AsyncBlockShadowTexture
 import net.typho.vibrancy.shadows.ShadowPredicate
 import org.joml.Matrix4f
@@ -38,7 +38,7 @@ class RayPointLight(
     val pos: BlockPos
 ) : BlockLight<RayPointLightInfo, RayPointLight> {
     val shadows = AsyncBlockShadowTexture(
-        { NeoShader.get(Vibrancy.id("shadow_blit"))!! },
+        { NeoShader.get(Vibrancy.id("block/raytraced/shadow"))!! },
         { shader ->
             shader.getUniform("LightPos")?.set(getAbsolutePos())
             shader.getUniform("LightRadius")?.set(radius)
@@ -154,7 +154,7 @@ class RayPointLight(
         boxBuffer.close()
     }
 
-    fun render(manager: LightManager, raytrace: Boolean, stack: GlStack, fbo: IFramebuffer): BlockRenderResult {
+    fun render(manager: LightManager, raytrace: Boolean, stack: GlStack, fbo: IFramebuffer): LightRenderResult {
         for (pos in manager.dirtyBlocks) {
             if (manager.getLevel().dimension() == pos.dimension && getShadowBox(false).contains(pos.pos)) {
                 shadowsDirty = true
@@ -171,7 +171,7 @@ class RayPointLight(
             getType().initState(stack)
         }
 
-        val result = BlockRenderResult(
+        val result = LightRenderResult(
             numRendered = 1,
             numRaytraced = if (raytrace) 1 else 0,
             numShadows = if (raytrace) shadows.size else 0,
@@ -181,7 +181,7 @@ class RayPointLight(
         fbo.bind(stack)
         GlStateManager._viewport(0, 0, fbo.width(), fbo.height())
 
-        val boxShader = NeoShader.get(Vibrancy.id("point_box"))!!
+        val boxShader = NeoShader.get(Vibrancy.id("block/raytraced/box"))!!
 
         boxShader.bind(stack)
         boxShader.setCommonUniforms(modelViewMat = manager.getViewMatrix())

@@ -13,11 +13,11 @@ data class LightFace(
     val texture: TextureCoordinates,
     val width: Int, val height: Int
 ) {
-    fun buildGeometry(consumer: VertexConsumer) {
-        consumer.addVertex(vertex1).setUv(texture.uv0.x, texture.uv0.y)
-        consumer.addVertex(vertex2).setUv(texture.uv1.x, texture.uv1.y)
-        consumer.addVertex(vertex3).setUv(texture.uv2.x, texture.uv2.y)
-        consumer.addVertex(vertex4).setUv(texture.uv3.x, texture.uv3.y)
+    fun buildGeometry(consumer: VertexConsumer, offset: Vector3f = Vector3f()) {
+        consumer.addVertex(vertex1.add(offset, Vector3f())).setUv(texture.uv0.x, texture.uv0.y)
+        consumer.addVertex(vertex2.add(offset, Vector3f())).setUv(texture.uv1.x, texture.uv1.y)
+        consumer.addVertex(vertex3.add(offset, Vector3f())).setUv(texture.uv2.x, texture.uv2.y)
+        consumer.addVertex(vertex4.add(offset, Vector3f())).setUv(texture.uv3.x, texture.uv3.y)
     }
 
     fun buildLines(consumer: VertexConsumer, offset: Vector3f, origin: Vector3f, length: Float) {

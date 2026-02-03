@@ -17,11 +17,10 @@ import net.typho.big_shot_lib.gl.GlStack
 import net.typho.big_shot_lib.gl.resource.BufferUsage
 import net.typho.big_shot_lib.gl.resource.GlResourceType
 import net.typho.vibrancy.LightManager
+import net.typho.vibrancy.LightRenderResult
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.block.BlockLightStorage
-import net.typho.vibrancy.block.BlockRenderResult
-import org.joml.Vector3f
 import org.lwjgl.system.MemoryUtil
 import org.lwjgl.system.NativeResource
 
@@ -168,16 +167,16 @@ class SubtleLightStorage : BlockLightStorage<SubtleLightInfo> {
         var size: Int = 0,
         var box: AABB? = null
     ) : NativeResource {
-        fun render(manager: LightManager, stack: GlStack): BlockRenderResult {
+        fun render(manager: LightManager, stack: GlStack): LightRenderResult {
             if (size > 0 && manager.inRenderDistance(pos, Vibrancy.config.blockLights.subtle.renderDistance.get())) {
                 ssbo.bindBase(stack, 0)
 
                 vbo.bind()
                 vbo.draw()
 
-                return BlockRenderResult(numRendered = size)
+                return LightRenderResult(numRendered = size)
             } else {
-                return BlockRenderResult()
+                return LightRenderResult()
             }
         }
 

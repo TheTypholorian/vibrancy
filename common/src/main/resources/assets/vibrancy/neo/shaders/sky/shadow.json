@@ -1,0 +1,5 @@
+{
+  "vertex": "vibrancy:sky/shadow",
+  "fragment": "vibrancy:sky/shadow",
+  "format": "POSITION_TEX"
+}
