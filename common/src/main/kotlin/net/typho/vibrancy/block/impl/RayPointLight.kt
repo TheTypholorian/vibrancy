@@ -78,8 +78,8 @@ class RayPointLight(
         return AABB.ofSize(Vec3(getAbsolutePos()), radius2, radius2, radius2)
     }
 
-    override fun rebuildShadows(manager: LightManager, ) {
-        shadows.rebuildAsync(manager, manager.createShadowMesher(this)!!, this)
+    override fun rebuildShadows(manager: LightManager) {
+        shadows.rebuildAsync(manager, manager.createShadowMesher(this), this)
     }
 
     override fun getShadowBox(): BlockBox {

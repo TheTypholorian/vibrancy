@@ -27,7 +27,7 @@ class SubtleLight(
         8.0
     )
 
-    override fun rebuildShadows(manager: LightManager, ) {
+    override fun rebuildShadows(manager: LightManager) {
     }
 
     override fun getType() = SubtleLightType
