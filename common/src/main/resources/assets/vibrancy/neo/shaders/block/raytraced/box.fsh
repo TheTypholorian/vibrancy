@@ -25,8 +25,7 @@ void main() {
     vec2 shadowUV = directionToShadowCoords(normalize(delta));
     float shadow = texture(VibrancyShadowSampler, shadowUV).r;
 
-    // TODO fix margin
-    if (shadow * LightRadius + 1e-1 <= length(delta)) {
+    if (shadow * LightRadius + 1e-2 <= length(delta)) {
         discard;
     }
 
