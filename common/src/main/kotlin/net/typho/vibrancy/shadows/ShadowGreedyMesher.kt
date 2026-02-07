@@ -50,7 +50,11 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
 
                 for (direction in Direction.entries) {
                     if (predicate.shouldCastFace(direction, level.getBlockState(voxel.pos), level, voxel.pos)) {
-                        voxel.quads[direction.ordinal] = model.getQuads(state, direction, random).first()
+                        val quads = model.getQuads(state, direction, random)
+
+                        if (quads.isNotEmpty()) {
+                            voxel.quads[direction.ordinal] = quads.first()
+                        }
                     }
                 }
 
