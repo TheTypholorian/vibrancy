@@ -11,8 +11,6 @@ interface BlockLight<I : BlockLightInfo<I, B>, B : BlockLight<I, B>> : PointLigh
 
     fun getType(): BlockLightType<I, B, *>
 
-    fun shouldRender(manager: LightManager): Boolean
-
     fun shouldRaytrace(manager: LightManager): Boolean
 
     fun free(manager: LightManager)

@@ -77,7 +77,7 @@ class VibrancyConfig : Config(
                 .withIncrement(4)
                 .setFormat(DecimalFormat("0 chunks"))
             @JvmField
-            var maxRendered = ValidatedInt(500_000, Int.MAX_VALUE, 0, ValidatedNumber.WidgetType.TEXTBOX_WITH_BUTTONS)
+            var maxRendered = ValidatedInt(200_000, Int.MAX_VALUE, 0, ValidatedNumber.WidgetType.TEXTBOX_WITH_BUTTONS)
                 .withIncrement(50_000)
         }
     }

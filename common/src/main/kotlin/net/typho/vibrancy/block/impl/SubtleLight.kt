@@ -1,7 +1,6 @@
 package net.typho.vibrancy.block.impl
 
 import net.minecraft.core.BlockPos
-import net.minecraft.core.Direction
 import net.minecraft.world.level.block.state.StateHolder
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
@@ -46,14 +45,4 @@ class SubtleLight(
     override fun getShadowBox() = null
 
     override fun getShadowPredicate() = null
-
-    override fun shouldRender(manager: LightManager): Boolean {
-        for (direction in Direction.entries) {
-            if (manager.getLevel().getBlockState(pos.relative(direction)).isAir) {
-                return true
-            }
-        }
-
-        return false
-    }
 }

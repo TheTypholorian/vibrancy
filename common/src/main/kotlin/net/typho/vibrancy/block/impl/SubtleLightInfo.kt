@@ -6,6 +6,7 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.StateHolder
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.block.BlockLightInfo
+import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.util.StateFunction
 import org.joml.Vector3f
 
@@ -21,7 +22,10 @@ class SubtleLightInfo(
         }
 
         for (direction in Direction.entries) {
-            if (manager.getLevel().getBlockState(pos.relative(direction)).isAir) {
+            val rPos = pos.relative(direction)
+            val rState = manager.getLevel().getBlockState(rPos)
+
+            if (!rState.isSolidRender(level, rPos) && !BlockLightRegistry.has(rState.block)) {
                 return SubtleLight(this, state, pos)
             }
         }
