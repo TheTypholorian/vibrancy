@@ -177,7 +177,7 @@ object VibrancyDynamicBuffers : ShaderMixinCallback {
         context: ShaderMixinContext,
         locations: ShaderLocationsInfo
     ) {
-        if (exclude.contains(shader)) {
+        if (exclude.contains(shader) || shader.namespace == Vibrancy.MOD_ID) {
             return
         }
 

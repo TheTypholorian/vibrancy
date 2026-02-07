@@ -29,8 +29,8 @@ vec2 directionToShadowCoords(vec3 dir, vec2 atlasSize) {
         }
     }
 
-    vec2 texelSize = 1.0 / atlasSize;
-    vec2 inset = texelSize * vec2(1.0, 1.0);
+    vec2 texelSize = 1.0 / vec2(atlasSize.y, atlasSize.y);
+    vec2 inset = texelSize / 2;
 
     faceUv = faceUv * 0.5 + 0.5;
     faceUv = clamp(faceUv, inset, vec2(1.0) - inset);
