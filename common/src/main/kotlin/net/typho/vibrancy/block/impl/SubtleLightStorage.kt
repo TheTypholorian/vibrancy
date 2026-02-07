@@ -1,9 +1,7 @@
 package net.typho.vibrancy.block.impl
 
-import com.mojang.blaze3d.vertex.DefaultVertexFormat
-import com.mojang.blaze3d.vertex.Tesselator
-import com.mojang.blaze3d.vertex.VertexBuffer
-import com.mojang.blaze3d.vertex.VertexFormat
+import com.mojang.blaze3d.vertex.*
+import net.minecraft.client.renderer.RenderType
 import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
 import net.minecraft.world.level.ChunkPos
@@ -23,12 +21,15 @@ import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.block.BlockLightStorage
 import org.lwjgl.system.MemoryUtil
 import org.lwjgl.system.NativeResource
+import java.util.concurrent.CompletableFuture
 
 class SubtleLightStorage : BlockLightStorage<SubtleLightInfo> {
     @JvmField
     val meshes = HashMap<ChunkPos, ChunkMesh>()
     @JvmField
     val dirty = HashSet<ChunkPos>()
+    @JvmField
+    val tasks = HashMap<ChunkPos, CompletableFuture<Runnable>>()
 
     fun markDirty(pos: ChunkPos) {
         dirty.add(pos)
@@ -77,80 +78,97 @@ class SubtleLightStorage : BlockLightStorage<SubtleLightInfo> {
     fun checkDirty(
         manager: LightManager
     ) {
+        tasks.values.removeIf { task ->
+            if (task.isDone) {
+                task.get().run()
+                return@removeIf true
+            } else {
+                return@removeIf false
+            }
+        }
+
         for (pos in dirty) {
-            val chunk = manager.getLevel().getChunk(pos.x, pos.z)
-            val lights = HashMap<BlockPos, SubtleLight>()
+            val mesh = meshes.computeIfAbsent(pos, ::ChunkMesh)
 
-            for (i in chunk.minSection until chunk.maxSection) {
-                val section = chunk.getSection(chunk.getSectionIndexFromSectionY(i))
+            tasks.put(
+                pos, CompletableFuture.supplyAsync {
+                    val chunk = manager.getLevel().getChunk(pos.x, pos.z)
+                    val lights = HashMap<BlockPos, SubtleLight>()
 
-                if (section.maybeHas { BlockLightRegistry.has(it.block) }) {
-                    val minPos = SectionPos.of(chunk.pos, i).origin()
+                    for (i in chunk.minSection until chunk.maxSection) {
+                        val section = chunk.getSection(chunk.getSectionIndexFromSectionY(i))
 
-                    for (x in 0 until LevelChunkSection.SECTION_WIDTH) {
-                        for (y in 0 until LevelChunkSection.SECTION_HEIGHT) {
-                            for (z in 0 until LevelChunkSection.SECTION_WIDTH) {
-                                val state = section.getBlockState(x, y, z)
+                        if (section.maybeHas { BlockLightRegistry.has(it.block) }) {
+                            val minPos = SectionPos.of(chunk.pos, i).origin()
 
-                                BlockLightRegistry.get(state.block)?.let { info ->
-                                    if (info is SubtleLightInfo) {
-                                        val pos = BlockPos(
-                                            x + minPos.x,
-                                            y + minPos.y,
-                                            z + minPos.z
-                                        )
+                            for (x in 0 until LevelChunkSection.SECTION_WIDTH) {
+                                for (y in 0 until LevelChunkSection.SECTION_HEIGHT) {
+                                    for (z in 0 until LevelChunkSection.SECTION_WIDTH) {
+                                        val state = section.getBlockState(x, y, z)
 
-                                        info.createBlockLight(manager, manager.getLevel(), state, pos)?.let { light ->
-                                            lights[pos] = light
+                                        BlockLightRegistry.get(state.block)?.let { info ->
+                                            if (info is SubtleLightInfo) {
+                                                val pos = BlockPos(
+                                                    x + minPos.x,
+                                                    y + minPos.y,
+                                                    z + minPos.z
+                                                )
+
+                                                info.createBlockLight(manager, manager.getLevel(), state, pos)?.let { light ->
+                                                    lights[pos] = light
+                                                }
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
                     }
-                }
+
+                    if (lights.isEmpty()) {
+                        return@supplyAsync Runnable {
+                            mesh.size = 0
+                        }
+                    }
+
+                    val buffer = ByteBufferBuilder(RenderType.SMALL_BUFFER_SIZE)
+                    val builder = BufferBuilder(buffer, VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION)
+                    val ssboBuffer = MemoryUtil.memAllocFloat(8 * lights.size)
+
+                    var box: AABB? = null
+
+                    for (light in lights.values) {
+                        box = if (box == null) {
+                            light.getBoundingBox()
+                        } else {
+                            box.intersect(light.getBoundingBox())
+                        }
+
+                        builder.cube(light.getBoundingBox())
+
+                        val color = light.color
+                        val pos = light.getAbsolutePos()
+
+                        ssboBuffer.put(color.x).put(color.y).put(color.z).put(0f)
+                        ssboBuffer.put(pos.x).put(pos.y).put(pos.z).put(0f)
+                    }
+
+                    return@supplyAsync Runnable {
+                        mesh.size = lights.size
+                        mesh.box = box
+
+                        mesh.vbo.bind()
+                        mesh.vbo.upload(builder.buildOrThrow())
+                        VertexBuffer.unbind()
+
+                        mesh.ssbo.bind()
+                        mesh.ssbo.upload(MemoryUtil.memByteBuffer(ssboBuffer.flip()))
+                        mesh.ssbo.unbind()
+
+                        MemoryUtil.memFree(ssboBuffer)
+                    }
             }
-
-            val mesh = meshes.computeIfAbsent(pos, ::ChunkMesh)
-
-            if (lights.isEmpty()) {
-                mesh.size = 0
-                continue
-            }
-
-            val builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION)
-            val buffer = MemoryUtil.memAllocFloat(8 * lights.size)
-
-            var box: AABB? = null
-
-            for (light in lights.values) {
-                box = if (box == null) {
-                    light.getBoundingBox()
-                } else {
-                    box.intersect(light.getBoundingBox())
-                }
-
-                builder.cube(light.getBoundingBox())
-
-                val color = light.color
-                val pos = light.getAbsolutePos()
-
-                buffer.put(color.x).put(color.y).put(color.z).put(0f)
-                buffer.put(pos.x).put(pos.y).put(pos.z).put(0f)
-            }
-
-            mesh.size = lights.size
-            mesh.box = box
-
-            mesh.vbo.bind()
-            mesh.vbo.upload(builder.buildOrThrow())
-            VertexBuffer.unbind()
-
-            mesh.ssbo.bind()
-            mesh.ssbo.upload(MemoryUtil.memByteBuffer(buffer.flip()))
-            mesh.ssbo.unbind()
-
-            MemoryUtil.memFree(buffer)
+            )?.cancel(true)
         }
 
         dirty.clear()
@@ -168,7 +186,11 @@ class SubtleLightStorage : BlockLightStorage<SubtleLightInfo> {
         var box: AABB? = null
     ) : NativeResource {
         fun render(manager: LightManager, stack: GlStack): LightRenderResult {
-            if (size > 0 && manager.inRenderDistance(pos, Vibrancy.config.blockLights.subtle.renderDistance.get())) {
+            if (
+                size > 0
+                && manager.inRenderDistance(pos, Vibrancy.config.blockLights.subtle.renderDistance.get())
+                && box?.let { manager.inFrustum(it) || manager.inRenderDistance(pos, 6) } ?: true
+            ) {
                 ssbo.bindBase(stack, 0)
 
                 vbo.bind()

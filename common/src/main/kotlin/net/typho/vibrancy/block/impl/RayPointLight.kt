@@ -137,8 +137,6 @@ class RayPointLight(
 
     override fun getType() = RayPointLightType
 
-    override fun shouldRender(manager: LightManager): Boolean = true
-
     override fun shouldRaytrace(manager: LightManager) = true
 
     override fun free(manager: LightManager) {
@@ -170,7 +168,7 @@ class RayPointLight(
             numAsyncTasks = if (shadows.isTaskActive()) 1 else 0
         )
 
-        fbo.bind(stack)
+        fbo.bind()
         GlStateManager._viewport(0, 0, fbo.width(), fbo.height())
 
         val boxShader = NeoShader.get(Vibrancy.id("block/raytraced/box"))!!

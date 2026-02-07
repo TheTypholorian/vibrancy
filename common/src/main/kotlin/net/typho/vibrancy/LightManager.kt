@@ -261,14 +261,20 @@ open class LightManager {
         return getCullingFrustum().isVisible(box)
     }
 
+    fun clampToRenderDistance(distance: Int): Int {
+        return distance.coerceAtMost(Minecraft.getInstance().options.effectiveRenderDistance)
+    }
+
     fun inRenderDistance(pos: BlockPos, distance: Int): Boolean {
-        return pos.distSqr(getCamera().blockPosition) <= distance * distance * 16 * 16
+        val d = clampToRenderDistance(distance)
+        return pos.distSqr(getCamera().blockPosition) <= d * d * 16 * 16
     }
 
     fun inRenderDistance(pos: ChunkPos, distance: Int): Boolean {
         val centerChunk = Vector2f(pos.middleBlockX.toFloat(), pos.middleBlockZ.toFloat())
         val camera = getCamera().blockPosition.center.toVector3f()
-        return centerChunk.distanceSquared(Vector2f(camera.x, camera.z)) <= distance * distance * 16 * 16
+        val d = clampToRenderDistance(distance)
+        return centerChunk.distanceSquared(Vector2f(camera.x, camera.z)) <= d * d * 16 * 16
     }
 
     fun getSortingOrder(pos: BlockPos): Double {
