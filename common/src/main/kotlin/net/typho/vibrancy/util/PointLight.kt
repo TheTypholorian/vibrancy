@@ -10,7 +10,7 @@ interface PointLight {
 
     fun getAbsolutePos(): Vector3f
 
-    fun getShadowBox(fullQuality: Boolean): BlockBox?
+    fun getShadowBox(): BlockBox?
 
-    fun getShadowPredicate(fullQuality: Boolean): ShadowPredicate?
+    fun getShadowPredicate(): ShadowPredicate?
 }

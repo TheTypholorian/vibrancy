@@ -52,12 +52,8 @@ class VibrancyConfig : Config(
                 }
             @RequiresAction(Action.RELOG)
             @JvmField
-            var shadowTextureWidth = ValidatedInt(400, 3200, 100)
-                .withIncrement(100)
-            @RequiresAction(Action.RELOG)
-            @JvmField
-            var shadowTextureHeight = ValidatedInt(600, 3200, 100)
-                .withIncrement(100)
+            var shadowTextureSize = ValidatedInt(144, 256, 16)
+                .withIncrement(16)
             @JvmField
             var maxRendered = ValidatedInt(200, 1000, 0)
                 .withIncrement(10)
@@ -92,13 +88,5 @@ class VibrancyConfig : Config(
     class SkyLightsSection : ConfigSection() {
         @JvmField
         var enabled = true
-    }
-
-    @JvmField
-    var forNerds = ForNerdsSection()
-
-    class ForNerdsSection : ConfigSection() {
-        @JvmField
-        var useFrustumCulling = true
     }
 }

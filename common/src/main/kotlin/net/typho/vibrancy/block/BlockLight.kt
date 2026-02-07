@@ -7,7 +7,7 @@ import net.typho.vibrancy.util.PointLight
 interface BlockLight<I : BlockLightInfo<I, B>, B : BlockLight<I, B>> : PointLight {
     fun getBoundingBox(): AABB
 
-    fun rebuildShadows(manager: LightManager, fullQuality: Boolean)
+    fun rebuildShadows(manager: LightManager, )
 
     fun getType(): BlockLightType<I, B, *>
 
