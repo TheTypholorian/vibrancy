@@ -43,8 +43,9 @@ class RayPointLight(
             shader.getUniform("LightPos")?.set(getAbsolutePos())
             shader.getUniform("LightRadius")?.set(radius)
         },
-        Vibrancy.config.blockLights.raytraced.shadowTextureWidth.get(),
-        Vibrancy.config.blockLights.raytraced.shadowTextureHeight.get()
+        Vibrancy.config.blockLights.raytraced.shadowTextureWidth.get() * 6,
+        Vibrancy.config.blockLights.raytraced.shadowTextureWidth.get()
+        //Vibrancy.config.blockLights.raytraced.shadowTextureHeight.get()
     )
     val boxBuffer by lazy {
         val builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX)
