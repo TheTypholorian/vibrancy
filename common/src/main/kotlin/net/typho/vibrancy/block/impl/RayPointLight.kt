@@ -195,6 +195,8 @@ class RayPointLight(
         boxShader.getUniform("CameraPos")?.set(Vibrancy.camera)
         boxShader.getUniform("ScreenSize")?.set(fbo.width().toFloat(), fbo.height().toFloat())
 
+        boxShader.getUniform("ShadowTextureSize")?.set(shadows.target.width(), shadows.target.height())
+
         boxShader.getUniform("SampleShadows")?.set(if (raytrace) 1 else 0)
 
         boxShader.setSampler("VibrancyShadowSampler", shadows.target.colorAttachments[0] as ITexture)
