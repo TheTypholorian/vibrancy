@@ -29,7 +29,6 @@
   "vibrancy.config.blockLights.subtle.maxRendered": "Max Rendered",
   "vibrancy.config.blockLights.subtle.maxRendered.prefix": "The maximum number of block lights that will be rendered, closest lights first.",
 
-  "debug.vibrancy.debug_mode": "[F4 + D] Toggled Vibrancy debug mode",
   "debug.vibrancy.rebuild_all_shadows": "[F4 + R] Reloaded all shadows",
   "debug.vibrancy.toggle_raytraced_block_lights": "[F4 + T] Toggled raytraced block lights",
   "debug.vibrancy.toggle_subtle_block_lights": "[F4 + Y] Toggled subtle block lights"

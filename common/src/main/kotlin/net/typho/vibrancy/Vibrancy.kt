@@ -93,8 +93,6 @@ object Vibrancy {
         LIGHT_MANAGER.blitOutput(OUTPUT_FBO.colorAttachments[0] as ITexture)
 
         Minecraft.getInstance().mainRenderTarget.bindWrite(false)
-
-        LIGHT_MANAGER.renderDebug()
     }
 
     @JvmStatic

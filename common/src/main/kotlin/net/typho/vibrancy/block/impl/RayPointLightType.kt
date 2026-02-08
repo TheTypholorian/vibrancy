@@ -96,23 +96,4 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, Hash
 
         return result
     }
-
-    override fun renderDebug(
-        manager: LightManager,
-        lights: HashMapBlockLightStorage<RayPointLightInfo, RayPointLight>
-    ) {
-        /*
-        lights.map.values.stream()
-            .sorted(Comparator.comparingDouble { light -> manager.getSortingOrder(light.pos) })
-            .limit(10)
-            .forEachOrdered { light ->
-                light.shadows.renderDebug(
-                    manager,
-                    Minecraft.getInstance().renderBuffers().bufferSource().getBuffer(RenderType.lines()),
-                    light.getAbsolutePos(),
-                    light.radius
-                )
-            }
-         */
-    }
 }
