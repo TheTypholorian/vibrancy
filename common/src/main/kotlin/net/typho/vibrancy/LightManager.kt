@@ -39,10 +39,6 @@ import java.util.*
 import java.util.function.Consumer
 
 open class LightManager {
-    companion object {
-        //const val SHADOW_STENCIL_MASK: Int = 0b1
-    }
-
     @JvmField
     protected var viewMatrix: Matrix4f? = null
 
@@ -58,12 +54,6 @@ open class LightManager {
     val blockLights = HashMap<BlockLightType<*, *, *>, BlockLightStorage<*>>()
     @JvmField
     protected var blockRenderResults = HashMap<BlockLightType<*, *, *>, LightRenderResult>()
-
-    @JvmField
-    var debugMode = false
-
-    fun getTickDelta(whilePaused: Boolean = true): Float =
-        Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(whilePaused)
 
     fun getLevel(): ClientLevel = Minecraft.getInstance().level!!
 
@@ -154,11 +144,6 @@ open class LightManager {
         return type.render(this, light as L, fbo)
     }
 
-    @Suppress("UNCHECKED_CAST")
-    protected fun <S : BlockLightStorage<*>> castAndRenderDebug(type: BlockLightType<*, *, S>, storage: BlockLightStorage<*>) {
-        type.renderDebug(this, storage as S)
-    }
-
     fun render(fbo: IFramebuffer, camera: Camera = getCamera()) {
         viewMatrix = BigShotLib.getViewMatrix(camera)
         blockRenderResults.clear()
@@ -170,14 +155,6 @@ open class LightManager {
         skyRenderResult = skyLight?.let { castAndRender(fbo, it.type(), it) }
 
         dirtyBlocks.clear()
-    }
-
-    fun renderDebug() {
-        if (debugMode) {
-            for (entry in blockLights) {
-                castAndRenderDebug(entry.key, entry.value)
-            }
-        }
     }
 
     fun blitWorldPos() {
