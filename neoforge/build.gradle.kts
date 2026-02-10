@@ -77,6 +77,6 @@ sourceSets.main.get().resources { srcDir("src/generated/resources") }
 dependencies {
     implementation(libs.kff)
     implementation(libs.sodium)
-    implementation(libs.bigShot.neoforge)
+    implementation(libs.bigShot)
     implementation(libs.fzzyConfig.neoforge)
 }
