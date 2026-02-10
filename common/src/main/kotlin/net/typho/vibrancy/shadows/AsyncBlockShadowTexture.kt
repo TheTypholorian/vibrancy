@@ -4,7 +4,7 @@ import net.minecraft.client.renderer.RenderType
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.util.RandomSource
-import net.typho.big_shot_lib.api.IShader
+import net.typho.big_shot_lib.api.shaders.GlShader
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.util.PointLight
 import java.util.*
@@ -13,8 +13,8 @@ import java.util.function.Consumer
 import java.util.function.Supplier
 
 open class AsyncBlockShadowTexture(
-    val shader: Supplier<IShader>,
-    val uniforms: Consumer<IShader>,
+    val shader: Supplier<GlShader>,
+    val uniforms: Consumer<GlShader>,
     width: Int,
     height: Int
 ) : ShadowTexture(width, height) {

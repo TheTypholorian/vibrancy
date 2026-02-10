@@ -1,9 +1,6 @@
 package net.typho.vibrancy.mixin;
 
 import com.mojang.blaze3d.systems.RenderSystem;
-import net.minecraft.client.Camera;
-import net.minecraft.client.DeltaTracker;
-import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LevelRenderer;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.world.phys.Vec3;
@@ -19,20 +16,10 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(LevelRenderer.class)
 public class LevelRendererMixin {
     @Inject(
-            method = "renderLevel",
-            at = @At(
-                    value = "INVOKE",
-                    target = "Lnet/minecraft/client/renderer/LevelRenderer;renderDebug(Lcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;Lnet/minecraft/client/Camera;)V"
-            )
-    )
-    private void render(DeltaTracker deltaTracker, boolean renderBlockOutline, Camera camera, GameRenderer gameRenderer, LightTexture lightTexture, Matrix4f frustumMatrix, Matrix4f projectionMatrix, CallbackInfo ci) {
-        Vibrancy.render();
-    }
-
-    @Inject(
             method = "prepareCullFrustum",
             at = @At("HEAD")
     )
+    // TODO
     private void prepareCullFrustum(Vec3 cameraPosition, Matrix4f frustumMatrix, Matrix4f projectionMatrix, CallbackInfo ci) {
         Vibrancy.iProjMat = new Matrix4f(projectionMatrix).invertPerspective();
         Vibrancy.iModelMat = new Matrix4f(frustumMatrix)

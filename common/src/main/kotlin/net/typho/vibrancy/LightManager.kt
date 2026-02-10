@@ -1,48 +1,49 @@
 package net.typho.vibrancy
 
 import com.mojang.blaze3d.systems.RenderSystem
-import com.mojang.blaze3d.vertex.VertexBuffer
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Camera
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
-import net.minecraft.client.renderer.culling.Frustum
 import net.minecraft.core.BlockPos
 import net.minecraft.core.GlobalPos
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
-import net.minecraft.world.phys.AABB
-import net.typho.big_shot_lib.BigShotLib
-import net.typho.big_shot_lib.api.IFramebuffer
-import net.typho.big_shot_lib.api.ITexture
-import net.typho.big_shot_lib.api.impl.NeoShader
-import net.typho.big_shot_lib.gl.GlStack
-import net.typho.big_shot_lib.gl.state.DepthMask
-import net.typho.big_shot_lib.gl.state.GlCapability
+import net.typho.big_shot_lib.api.event.RenderData
+import net.typho.big_shot_lib.api.shaders.GlShaderRegistry
+import net.typho.big_shot_lib.api.state.DepthMaskShard
+import net.typho.big_shot_lib.api.state.RenderSettings
+import net.typho.big_shot_lib.api.textures.GlFramebuffer
+import net.typho.big_shot_lib.api.textures.GlTexture
+import net.typho.big_shot_lib.api.util.MeshUtil
 import net.typho.vibrancy.block.*
-import net.typho.vibrancy.mixin.LevelRendererAccessor
 import net.typho.vibrancy.shadows.BasicShadowMesher
 import net.typho.vibrancy.shadows.ShadowMesher
 import net.typho.vibrancy.util.PointLight
 import org.joml.Matrix4f
 import org.joml.Vector2f
 import org.joml.Vector4f
+import org.lwjgl.opengl.GL11.GL_TEXTURE_2D
 import java.util.*
 import java.util.function.Consumer
 
 open class LightManager {
     @JvmField
-    protected var viewMatrix: Matrix4f? = null
-
-    @JvmField
     val dirtyBlocks = LinkedList<GlobalPos>()
-
     @JvmField
     val blockLights = HashMap<BlockLightType<*, *, *>, BlockLightStorage<*>>()
     @JvmField
     protected var blockRenderResults = HashMap<BlockLightType<*, *, *>, LightRenderResult>()
+
+    @JvmField
+    val blitSettings = RenderSettings(
+        Vibrancy.id("light_manager/blit"),
+        listOf(
+            DepthMaskShard(false)
+        )
+    )
 
     fun getLevel(): ClientLevel = Minecraft.getInstance().level!!
 
@@ -51,10 +52,6 @@ open class LightManager {
     }
 
     fun getCamera(): Camera = Minecraft.getInstance().gameRenderer.mainCamera
-
-    fun getViewMatrix() = Matrix4f(viewMatrix)
-
-    fun getCullingFrustum(): Frustum = (Minecraft.getInstance().levelRenderer as LevelRendererAccessor).cullingFrustum
 
     fun createShadowMesher(light: PointLight): ShadowMesher {
         return BasicShadowMesher()
@@ -120,72 +117,63 @@ open class LightManager {
     }
 
     @Suppress("UNCHECKED_CAST")
-    protected fun <S : BlockLightStorage<*>> castAndRender(fbo: IFramebuffer, type: BlockLightType<*, *, S>, storage: BlockLightStorage<*>): LightRenderResult {
-        return type.render(this, storage as S, fbo)
+    protected fun <S : BlockLightStorage<*>> castAndRender(data: RenderData, fbo: GlFramebuffer, type: BlockLightType<*, *, S>, storage: BlockLightStorage<*>): LightRenderResult {
+        return type.render(this, data, storage as S, fbo)
     }
 
-    fun render(fbo: IFramebuffer, camera: Camera = getCamera()) {
-        viewMatrix = BigShotLib.getViewMatrix(camera)
+    fun render(data: RenderData, fbo: GlFramebuffer) {
         blockRenderResults.clear()
 
         for (entry in blockLights) {
-            blockRenderResults[entry.key] = castAndRender(fbo, entry.key, entry.value)
+            blockRenderResults[entry.key] = castAndRender(data, fbo, entry.key, entry.value)
         }
 
         dirtyBlocks.clear()
     }
 
-    fun blitWorldPos() {
-        GlStack().use { stack ->
-            stack.disable(GlCapability.CULL_FACE)
-            stack.disable(GlCapability.BLEND)
+    fun blitWorldPos(data: RenderData) {
+        val shader = GlShaderRegistry.get(Vibrancy.id("world_pos"))!!
+        shader.bind()
+        shader.setCommonUniforms(data)
 
-            val shader = NeoShader.get(Vibrancy.id("world_pos"))!!
-            shader.bind(stack)
-            shader.setCommonUniforms()
+        shader.getUniform("DiffuseDepthSampler")?.setSampler(GL_TEXTURE_2D, Minecraft.getInstance().mainRenderTarget.depthTextureId)
 
-            shader.setSampler("DiffuseDepthSampler", Minecraft.getInstance().mainRenderTarget.depthTextureId)
+        shader.getUniform("IProjMat")?.setValue(Matrix4f(Vibrancy.iProjMat))
+        shader.getUniform("IModelMat")?.setValue(Matrix4f(Vibrancy.iModelMat))
 
-            shader.getUniform("IProjMat")?.set(Matrix4f(Vibrancy.iProjMat))
-            shader.getUniform("IModelMat")?.set(Matrix4f(Vibrancy.iModelMat))
+        shader.getUniform("CameraPos")?.setValue(Vibrancy.camera)
 
-            shader.getUniform("CameraPos")?.set(Vibrancy.camera)
-
-            BigShotLib.SCREEN_VBO.bind()
-            BigShotLib.SCREEN_VBO.draw()
-            VertexBuffer.unbind()
-        }
+        MeshUtil.SCREEN_MESH.bind()
+        MeshUtil.SCREEN_MESH.draw()
+        MeshUtil.SCREEN_MESH.unbind()
     }
 
-    fun blitOutput(output: ITexture) {
-        GlStack().use { stack ->
-            stack.disable(GlCapability.CULL_FACE)
-            stack.disable(GlCapability.BLEND)
-            stack.disable(GlCapability.DEPTH_TEST)
-            stack.set(DepthMask, false)
+    fun blitOutput(data: RenderData, output: GlTexture) {
+        blitSettings.bind()
 
-            val shader = NeoShader.get(Vibrancy.id("post"))!!
-            shader.bind(stack)
-            shader.setCommonUniforms()
+        val shader = GlShaderRegistry.get(Vibrancy.id("post"))!!
+        shader.bind()
+        shader.setCommonUniforms(data)
 
-            shader.setSampler("DiffuseSampler0", Minecraft.getInstance().mainRenderTarget.colorTextureId)
-            shader.setSampler("VibrancyWorldPosSampler", Vibrancy.WORLD_POS_FBO.colorAttachments[0] as ITexture)
-            shader.setSampler("VibrancyOutputSampler", output)
-            shader.setSampler("VibrancyAlbedoSampler", VibrancyDynamicBuffers.albedoTexture!!)
+        shader.getUniform("DiffuseSampler0")?.setSampler(GL_TEXTURE_2D, Minecraft.getInstance().mainRenderTarget.colorTextureId)
+        shader.getUniform("VibrancyWorldPosSampler")?.setSampler(Vibrancy.WORLD_POS_FBO.colorAttachments[0] as GlTexture)
+        shader.getUniform("VibrancyOutputSampler")?.setSampler(output)
+        shader.getUniform("VibrancyAlbedoSampler")?.setSampler(VibrancyDynamicBuffers.albedoTexture!!)
 
-            shader.getUniform("IProjMat")?.set(Matrix4f(Vibrancy.iProjMat))
-            shader.getUniform("IModelMat")?.set(Matrix4f(Vibrancy.iModelMat))
+        shader.getUniform("IProjMat")?.setValue(Matrix4f(Vibrancy.iProjMat))
+        shader.getUniform("IModelMat")?.setValue(Matrix4f(Vibrancy.iModelMat))
 
-            shader.getUniform("FogStart")?.set(RenderSystem.getShaderFogStart())
-            shader.getUniform("FogEnd")?.set(RenderSystem.getShaderFogEnd())
-            shader.getUniform("FogColor")?.set(Vector4f(RenderSystem.getShaderFogColor()))
+        shader.getUniform("FogStart")?.setValue(RenderSystem.getShaderFogStart())
+        shader.getUniform("FogEnd")?.setValue(RenderSystem.getShaderFogEnd())
+        shader.getUniform("FogColor")?.setValue(Vector4f(RenderSystem.getShaderFogColor()))
 
-            shader.getUniform("CameraPos")?.set(Vibrancy.camera)
+        shader.getUniform("CameraPos")?.setValue(Vibrancy.camera)
 
-            BigShotLib.SCREEN_VBO.bind()
-            BigShotLib.SCREEN_VBO.draw()
-            VertexBuffer.unbind()
-        }
+        MeshUtil.SCREEN_MESH.bind()
+        MeshUtil.SCREEN_MESH.draw()
+        MeshUtil.SCREEN_MESH.unbind()
+
+        blitSettings.unbind()
     }
 
     fun getDebugOutput(out: Consumer<String>) {
@@ -199,10 +187,6 @@ open class LightManager {
 
             blockRenderResults[entry.key]?.accept(out)
         }
-    }
-
-    fun inFrustum(box: AABB): Boolean {
-        return getCullingFrustum().isVisible(box)
     }
 
     fun clampToRenderDistance(distance: Int): Int {

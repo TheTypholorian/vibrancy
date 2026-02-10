@@ -5,12 +5,10 @@ import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.util.ExtraCodecs
 import net.minecraft.world.level.block.state.StateDefinition
-import net.typho.big_shot_lib.api.IFramebuffer
-import net.typho.big_shot_lib.gl.GlStack
-import net.typho.big_shot_lib.gl.state.BlendFactor
-import net.typho.big_shot_lib.gl.state.BlendFunction
-import net.typho.big_shot_lib.gl.state.CullFace
-import net.typho.big_shot_lib.gl.state.GlCapability
+import net.typho.big_shot_lib.api.event.RenderData
+import net.typho.big_shot_lib.api.state.*
+import net.typho.big_shot_lib.api.textures.GlFramebuffer
+import net.typho.big_shot_lib.api.util.IColor
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.LightRenderResult
 import net.typho.vibrancy.Vibrancy
@@ -20,6 +18,23 @@ import net.typho.vibrancy.util.StateFunction
 import org.joml.Vector3f
 
 object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, HashMapBlockLightStorage<RayPointLightInfo, RayPointLight>> {
+    @JvmField
+    val renderSettings = RenderSettings(
+        Vibrancy.id("ray_point_light"),
+        listOf(
+            CullShard(true, CullFace.FRONT),
+            BlendShard(
+                true,
+                IColor.from(0xFFFFFFFF.toInt()),
+                BlendEquation.ADD,
+                BlendFunction.Basic(
+                    BlendFactor.ONE,
+                    BlendFactor.ONE
+                )
+            )
+        )
+    )
+
     override fun infoCodec(stateDefinition: StateDefinition<*, *>): MapCodec<RayPointLightInfo> {
         return RecordCodecBuilder.mapCodec {
             it.group(
@@ -44,23 +59,11 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, Hash
 
     override fun createStorage(manager: LightManager) = HashMapBlockLightStorage(this)
 
-    fun initState(stack: GlStack) {
-        stack.disable(GlCapability.DEPTH_TEST)
-        stack.enable(GlCapability.CULL_FACE)
-        stack.set(CullFace.FRONT)
-        stack.enable(GlCapability.BLEND)
-        stack.set(
-            BlendFunction(
-                BlendFactor.ONE,
-                BlendFactor.ONE
-            )
-        )
-    }
-
     override fun render(
         manager: LightManager,
+        data: RenderData,
         lights: HashMapBlockLightStorage<RayPointLightInfo, RayPointLight>,
-        fbo: IFramebuffer
+        fbo: GlFramebuffer
     ): LightRenderResult {
         val result = LightRenderResult(
             numRendered = 0,
@@ -70,28 +73,28 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, Hash
         )
 
         if (Vibrancy.config.blockLights.raytraced.enabled) {
-            GlStack().use { stack ->
-                initState(stack)
+            renderSettings.bind()
 
-                lights.map.values.stream()
-                    .filter { light ->
-                        manager.inRenderDistance(light.pos, Vibrancy.config.blockLights.raytraced.renderDistance.get())
-                                && manager.inFrustum(light.getBoundingBox())
-                    }
-                    .sorted(Comparator.comparingDouble { light -> manager.getSortingOrder(light.pos) })
-                    .limit(Vibrancy.config.blockLights.raytraced.maxRendered.get().toLong())
-                    .forEachOrdered { light ->
-                        result.add(
-                            light.render(
-                                manager,
-                                result.numRaytraced!! < Vibrancy.config.blockLights.raytraced.maxRaytraced.get()
-                                        && manager.inRenderDistance(light.pos, Vibrancy.config.blockLights.raytraced.raytraceDistance.get()),
-                                stack,
-                                fbo
-                            )
+            lights.map.values.stream()
+                .filter { light ->
+                    manager.inRenderDistance(light.pos, Vibrancy.config.blockLights.raytraced.renderDistance.get())
+                            && data.frustum.testAab(light.getBoundingBox().minPosition.toVector3f(), light.getBoundingBox().maxPosition.toVector3f())
+                }
+                .sorted(Comparator.comparingDouble { light -> manager.getSortingOrder(light.pos) })
+                .limit(Vibrancy.config.blockLights.raytraced.maxRendered.get().toLong())
+                .forEachOrdered { light ->
+                    result.add(
+                        light.render(
+                            manager,
+                            data,
+                            result.numRaytraced!! < Vibrancy.config.blockLights.raytraced.maxRaytraced.get()
+                                    && manager.inRenderDistance(light.pos, Vibrancy.config.blockLights.raytraced.raytraceDistance.get()),
+                            fbo
                         )
-                    }
-            }
+                    )
+                }
+
+            renderSettings.unbind()
         }
 
         return result

@@ -1,16 +1,18 @@
 package net.typho.vibrancy
 
 import com.mojang.blaze3d.platform.GlStateManager
-import com.mojang.blaze3d.vertex.VertexBuffer
 import me.fzzyhmstrs.fzzy_config.api.ConfigApi
 import me.fzzyhmstrs.fzzy_config.api.RegisterType
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
 import net.minecraft.resources.ResourceLocation
-import net.typho.big_shot_lib.api.ITexture
-import net.typho.big_shot_lib.api.impl.NeoFramebuffer
-import net.typho.big_shot_lib.gl.resource.TextureFormat
-import net.typho.big_shot_lib.spirv.ShaderMixinManager
+import net.typho.big_shot_lib.api.event.PostProcessEvent
+import net.typho.big_shot_lib.api.event.RenderData
+import net.typho.big_shot_lib.api.event.WindowResizeEvent
+import net.typho.big_shot_lib.api.shaders.mixins.ShaderMixinManager
+import net.typho.big_shot_lib.api.textures.GlFramebuffer
+import net.typho.big_shot_lib.api.textures.GlTexture
+import net.typho.big_shot_lib.api.textures.TextureFormat
 import net.typho.vibrancy.block.BlockLightRegistry
 import org.joml.Matrix4f
 import org.joml.Vector3f
@@ -32,28 +34,20 @@ object Vibrancy {
     @JvmField
     val LIGHT_MANAGER = LightManager()
     val OUTPUT_FBO by lazy {
-        val fbo = NeoFramebuffer.TextureBacked(
-            id("output"),
-            arrayOf(TextureFormat.RGB16F),
+        GlFramebuffer(
+            arrayOf(GlTexture(TextureFormat.RGB16F)),
             null,
             Minecraft.getInstance().mainRenderTarget.width,
             Minecraft.getInstance().mainRenderTarget.height
         )
-        NeoFramebuffer.AUTO_RESIZE.add(fbo)
-        NeoFramebuffer.register(fbo)
-        fbo
     }
     val WORLD_POS_FBO by lazy {
-        val fbo = NeoFramebuffer.TextureBacked(
-            id("world_pos"),
-            arrayOf(TextureFormat.RGB32F),
+        GlFramebuffer(
+            arrayOf(GlTexture(TextureFormat.RGB32F)),
             null,
             Minecraft.getInstance().mainRenderTarget.width,
             Minecraft.getInstance().mainRenderTarget.height
         )
-        NeoFramebuffer.AUTO_RESIZE.add(fbo)
-        NeoFramebuffer.register(fbo)
-        fbo
     }
     @JvmField
     var iProjMat = Matrix4f()
@@ -66,13 +60,18 @@ object Vibrancy {
     fun init() {
         ShaderMixinManager.register(VibrancyDynamicBuffers)
         BlockLightRegistry.init()
+        WindowResizeEvent.register { width, height ->
+            OUTPUT_FBO.resize(width, height)
+            WORLD_POS_FBO.resize(width, height)
+        }
+        PostProcessEvent.register(this::render)
     }
 
     @JvmStatic
-    fun render() {
+    fun render(data: RenderData) {
         WORLD_POS_FBO.bind()
 
-        LIGHT_MANAGER.blitWorldPos()
+        LIGHT_MANAGER.blitWorldPos(data)
 
         WORLD_POS_FBO.unbind()
 
@@ -83,14 +82,13 @@ object Vibrancy {
         GlStateManager._clearColor(0f, 0f, 0f, 0f)
         GlStateManager._clear(GL_COLOR_BUFFER_BIT, false)
 
-        LIGHT_MANAGER.render(OUTPUT_FBO)
+        LIGHT_MANAGER.render(data, OUTPUT_FBO)
 
         OUTPUT_FBO.unbind()
-        VertexBuffer.unbind()
 
         Minecraft.getInstance().mainRenderTarget.bindWrite(true)
 
-        LIGHT_MANAGER.blitOutput(OUTPUT_FBO.colorAttachments[0] as ITexture)
+        LIGHT_MANAGER.blitOutput(data, OUTPUT_FBO.colorAttachments[0] as GlTexture)
 
         Minecraft.getInstance().mainRenderTarget.bindWrite(false)
     }

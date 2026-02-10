@@ -1,7 +1,7 @@
 package net.typho.vibrancy.block.impl
 
-import com.mojang.blaze3d.vertex.*
-import net.minecraft.client.renderer.RenderType
+import com.mojang.blaze3d.vertex.DefaultVertexFormat
+import com.mojang.blaze3d.vertex.VertexFormat
 import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
 import net.minecraft.world.level.ChunkPos
@@ -9,11 +9,11 @@ import net.minecraft.world.level.block.state.StateHolder
 import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.level.chunk.LevelChunkSection
 import net.minecraft.world.phys.AABB
-import net.typho.big_shot_lib.BigShotLib.cube
-import net.typho.big_shot_lib.api.impl.NeoIndexedBuffer
-import net.typho.big_shot_lib.gl.GlStack
-import net.typho.big_shot_lib.gl.resource.BufferUsage
-import net.typho.big_shot_lib.gl.resource.GlResourceType
+import net.typho.big_shot_lib.api.buffers.BufferType
+import net.typho.big_shot_lib.api.buffers.BufferUsage
+import net.typho.big_shot_lib.api.buffers.GlBuffer
+import net.typho.big_shot_lib.api.event.RenderData
+import net.typho.big_shot_lib.api.meshes.Mesh
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.LightRenderResult
 import net.typho.vibrancy.Vibrancy
@@ -131,8 +131,7 @@ class SubtleLightStorage : BlockLightStorage<SubtleLightInfo> {
                         }
                     }
 
-                    val buffer = ByteBufferBuilder(RenderType.SMALL_BUFFER_SIZE)
-                    val builder = BufferBuilder(buffer, VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION)
+                    val builder = mesh.mesh.Builder()
                     val ssboBuffer = MemoryUtil.memAllocFloat(8 * lights.size)
 
                     var box: AABB? = null
@@ -157,9 +156,7 @@ class SubtleLightStorage : BlockLightStorage<SubtleLightInfo> {
                         mesh.size = lights.size
                         mesh.box = box
 
-                        mesh.vbo.bind()
-                        mesh.vbo.upload(builder.buildOrThrow())
-                        VertexBuffer.unbind()
+                        builder.end()
 
                         mesh.ssbo.bind()
                         mesh.ssbo.upload(MemoryUtil.memByteBuffer(ssboBuffer.flip()))
@@ -180,21 +177,22 @@ class SubtleLightStorage : BlockLightStorage<SubtleLightInfo> {
 
     data class ChunkMesh(
         val pos: ChunkPos,
-        val vbo: VertexBuffer = VertexBuffer(VertexBuffer.Usage.STATIC),
-        val ssbo: NeoIndexedBuffer = NeoIndexedBuffer(null, GlResourceType.SHADER_STORAGE_BUFFER, BufferUsage.STATIC_DRAW),
+        val mesh: Mesh = Mesh(DefaultVertexFormat.POSITION, VertexFormat.Mode.QUADS, BufferUsage.STATIC_DRAW),
+        val ssbo: GlBuffer = GlBuffer(BufferType.SHADER_STORAGE, BufferUsage.STATIC_DRAW),
         var size: Int = 0,
         var box: AABB? = null
     ) : NativeResource {
-        fun render(manager: LightManager, stack: GlStack): LightRenderResult {
+        fun render(data: RenderData, manager: LightManager): LightRenderResult {
             if (
                 size > 0
                 && manager.inRenderDistance(pos, Vibrancy.config.blockLights.subtle.renderDistance.get())
-                && box?.let { manager.inFrustum(it) || manager.inRenderDistance(pos, 6) } ?: true
+                && box?.let { data.frustum.testAab(it.minPosition.toVector3f(), it.maxPosition.toVector3f()) || manager.inRenderDistance(pos, 6) } ?: true
             ) {
-                ssbo.bindBase(stack, 0)
+                ssbo.bindBase(0)
 
-                vbo.bind()
-                vbo.draw()
+                mesh.bind()
+                mesh.draw()
+                mesh.unbind()
 
                 return LightRenderResult(numRendered = size)
             } else {
@@ -203,8 +201,8 @@ class SubtleLightStorage : BlockLightStorage<SubtleLightInfo> {
         }
 
         override fun free() {
-            vbo.close()
-            ssbo.release()
+            mesh.free()
+            ssbo.free()
         }
     }
 }

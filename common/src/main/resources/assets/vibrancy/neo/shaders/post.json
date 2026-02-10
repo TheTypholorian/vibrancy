@@ -1,5 +1,7 @@
 {
-  "vertex": "big_shot_lib:blit",
-  "fragment": "vibrancy:post",
+  "sources": {
+    "vertex": "big_shot_lib:blit",
+    "fragment": "vibrancy:post"
+  },
   "format": "POSITION_TEX"
 }

@@ -1,25 +1,23 @@
 package net.typho.vibrancy.shadows
 
 import com.mojang.blaze3d.platform.GlStateManager
-import com.mojang.blaze3d.vertex.*
-import net.minecraft.client.Minecraft
+import com.mojang.blaze3d.vertex.ByteBufferBuilder
+import com.mojang.blaze3d.vertex.VertexConsumer
+import com.mojang.blaze3d.vertex.VertexFormat
+import com.mojang.blaze3d.vertex.VertexFormatElement
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.resources.ResourceLocation
-import net.typho.big_shot_lib.BigShotLib
-import net.typho.big_shot_lib.api.IShader
-import net.typho.big_shot_lib.api.ITexture
-import net.typho.big_shot_lib.api.builtin.EmptyVertexConsumer
-import net.typho.big_shot_lib.api.impl.NeoFramebuffer
-import net.typho.big_shot_lib.api.impl.NeoIndexedBuffer
-import net.typho.big_shot_lib.gl.GlStack
-import net.typho.big_shot_lib.gl.InterpolationType
-import net.typho.big_shot_lib.gl.resource.BufferUsage
-import net.typho.big_shot_lib.gl.resource.GlResourceType
-import net.typho.big_shot_lib.gl.resource.TextureFormat
-import net.typho.big_shot_lib.gl.state.*
-import net.typho.vibrancy.Vibrancy
-import org.lwjgl.opengl.GL11.GL_COLOR_BUFFER_BIT
+import net.typho.big_shot_lib.api.buffers.BufferType
+import net.typho.big_shot_lib.api.buffers.BufferUsage
+import net.typho.big_shot_lib.api.buffers.GlBuffer
+import net.typho.big_shot_lib.api.shaders.GlShader
+import net.typho.big_shot_lib.api.textures.*
+import net.typho.big_shot_lib.api.util.IColor
+import net.typho.big_shot_lib.api.util.MeshUtil
+import net.typho.big_shot_lib.api.util.TextureUtil
+import net.typho.vibrancy.util.EmptyVertexConsumer
+import org.lwjgl.opengl.GL11.GL_TEXTURE_2D
 import org.lwjgl.system.NativeResource
 import java.util.*
 import java.util.function.Consumer
@@ -32,14 +30,13 @@ open class ShadowTexture(
     val height: Int
 ) : NativeResource {
     val target by lazy {
-        val fbo = NeoFramebuffer.TextureBacked(
-            Vibrancy.id("shadow_texture_${width}x${height}"),
-            arrayOf(TextureFormat.R16F),
+        val fbo = GlFramebuffer(
+            arrayOf(GlTexture(TextureFormat.R16F)),
             null,
             width,
             height
         )
-        (fbo.colorAttachments[0] as ITexture).setInterpolation(InterpolationType.LINEAR)
+        (fbo.colorAttachments[0] as GlTexture).setInterpolation(InterpolationType.LINEAR)
         fbo
     }
     @JvmField
@@ -50,7 +47,7 @@ open class ShadowTexture(
     var size = 0
 
     override fun free() {
-        target.release()
+        target.free()
     }
 
     fun getRenderTypeTexture(renderType: RenderType): ResourceLocation? {
@@ -62,9 +59,14 @@ open class ShadowTexture(
         }
     }
 
-    fun begin(shader: IShader, uniforms: Consumer<IShader>) = Builder(shader, uniforms)
+    fun begin(shader: GlShader, uniforms: Consumer<GlShader>) = Builder(shader, uniforms)
 
-    inner class Builder(val shader: IShader, val uniforms: Consumer<IShader>) : MultiBufferSource {
+    inner class Builder(
+        @JvmField
+        val shader: GlShader,
+        @JvmField
+        val uniforms: Consumer<GlShader>
+    ) : MultiBufferSource {
         val builders = HashMap<ResourceLocation, ShadowBufferBuilder>()
 
         override fun getBuffer(renderType: RenderType): VertexConsumer {
@@ -87,54 +89,43 @@ open class ShadowTexture(
         }
 
         fun finish() {
-            GlStack().use { stack ->
-                target.bind(stack)
+            target.bind()
 
-                GlStateManager._viewport(0, 0, target.width(), target.height())
-                GlStateManager._clearColor(1f, 1f, 1f, 1f)
-                GlStateManager._clear(GL_COLOR_BUFFER_BIT, false)
+            GlStateManager._viewport(0, 0, target.width(), target.height())
+            target.clear(ClearBit.Color(IColor.RGBAF(1f, 1f, 1f, 1f)))
 
-                shader.bind(stack)
-                uniforms.accept(shader)
+            shader.bind()
+            uniforms.accept(shader)
 
-                stack.enable(GlCapability.BLEND)
-                stack.set(BlendEquation.MIN)
-                stack.disable(GlCapability.DEPTH_TEST) // TODO
-                stack.set(DepthTest, ComparisonMode.LEQUAL)
-                stack.set(ColorMask(true, true, true, true))
-                stack.set(DepthMask, true)
-                stack.disable(GlCapability.CULL_FACE)
+            size = 0
 
-                size = 0
+            if (!builders.isEmpty()) {
+                val mesh = MeshUtil.SCREEN_MESH
+                mesh.bind()
 
-                if (!builders.isEmpty()) {
-                    val vbo = BigShotLib.SCREEN_VBO
-                    vbo.bind()
+                val ssbo = GlBuffer(BufferType.SHADER_STORAGE, BufferUsage.STREAM_DRAW)
+                ssbo.bind()
+                ssbo.bindBase(0)
 
-                    val ssbo = NeoIndexedBuffer(null, GlResourceType.SHADER_STORAGE_BUFFER, BufferUsage.STREAM_DRAW)
-                    ssbo.bind()
-                    ssbo.bindBase(stack, 0)
+                for (entry in builders) {
+                    size += entry.value.numQuads()
 
-                    for (entry in builders) {
-                        size += entry.value.numQuads()
+                    shader.getUniform("Sampler0")?.setSampler(GL_TEXTURE_2D, TextureUtil.INSTANCE.getMinecraftTextureId(entry.key))
+                    ssbo.upload(entry.value.build())
 
-                        shader.setSampler("Sampler0", Minecraft.getInstance().textureManager.getTexture(entry.key))
-                        ssbo.upload(entry.value.build())
-
-                        vbo.draw()
-                    }
-
-                    ssbo.unbind()
-                    VertexBuffer.unbind()
+                    mesh.draw()
                 }
 
-                for (builder in toFree) {
-                    builder.close()
-                }
-
-                toFree.clear()
-                builders.clear()
+                ssbo.unbind()
+                mesh.unbind()
             }
+
+            for (builder in toFree) {
+                builder.close()
+            }
+
+            toFree.clear()
+            builders.clear()
         }
     }
 }

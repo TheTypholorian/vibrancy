@@ -1,20 +1,17 @@
 package net.typho.vibrancy.block.impl
 
 import com.mojang.blaze3d.platform.GlStateManager
-import com.mojang.blaze3d.vertex.VertexBuffer
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.util.ExtraCodecs
 import net.minecraft.world.level.block.state.StateDefinition
-import net.typho.big_shot_lib.api.IFramebuffer
-import net.typho.big_shot_lib.api.ITexture
-import net.typho.big_shot_lib.api.impl.NeoShader
-import net.typho.big_shot_lib.gl.GlStack
-import net.typho.big_shot_lib.gl.state.BlendFactor
-import net.typho.big_shot_lib.gl.state.BlendFunction
-import net.typho.big_shot_lib.gl.state.CullFace
-import net.typho.big_shot_lib.gl.state.GlCapability
+import net.typho.big_shot_lib.api.event.RenderData
+import net.typho.big_shot_lib.api.shaders.GlShaderRegistry
+import net.typho.big_shot_lib.api.state.*
+import net.typho.big_shot_lib.api.textures.GlFramebuffer
+import net.typho.big_shot_lib.api.textures.GlTexture
+import net.typho.big_shot_lib.api.util.IColor
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.LightRenderResult
 import net.typho.vibrancy.Vibrancy
@@ -24,6 +21,23 @@ import org.joml.Matrix4f
 import org.joml.Vector3f
 
 object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight, SubtleLightStorage> {
+    @JvmField
+    val renderSettings = RenderSettings(
+        Vibrancy.id("subtle_light"),
+        listOf(
+            CullShard(true, CullFace.FRONT),
+            BlendShard(
+                true,
+                IColor.from(0xFFFFFFFF.toInt()),
+                BlendEquation.ADD,
+                BlendFunction.Basic(
+                    BlendFactor.ONE,
+                    BlendFactor.ONE
+                )
+            )
+        )
+    )
+
     override fun infoCodec(stateDefinition: StateDefinition<*, *>): MapCodec<SubtleLightInfo> {
         return RecordCodecBuilder.mapCodec {
             it.group(
@@ -45,53 +59,42 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight, SubtleLigh
 
     override fun createStorage(manager: LightManager) = SubtleLightStorage()
 
-    override fun render(manager: LightManager, lights: SubtleLightStorage, fbo: IFramebuffer): LightRenderResult {
+    override fun render(manager: LightManager, data: RenderData, lights: SubtleLightStorage, fbo: GlFramebuffer): LightRenderResult {
         val result = LightRenderResult(numRendered = 0)
 
         if (Vibrancy.config.blockLights.subtle.enabled) {
             lights.checkDirty(manager)
 
-            GlStack().use { stack ->
-                stack.disable(GlCapability.DEPTH_TEST)
-                //stack.disable(GlCapability.STENCIL_TEST)
-                stack.enable(GlCapability.CULL_FACE)
-                stack.set(CullFace.FRONT)
-                stack.enable(GlCapability.BLEND)
-                stack.set(
-                    BlendFunction(
-                        BlendFactor.ONE,
-                        BlendFactor.ONE
-                    )
-                )
-                fbo.bind()
-                GlStateManager._viewport(0, 0, fbo.width(), fbo.height())
+            renderSettings.bind()
 
-                val boxShader = NeoShader.get(Vibrancy.id("block/subtle/box"))!!
+            fbo.bind()
+            GlStateManager._viewport(0, 0, fbo.width(), fbo.height())
 
-                boxShader.bind(stack)
-                boxShader.setCommonUniforms(modelViewMat = manager.getViewMatrix())
+            val boxShader = GlShaderRegistry.get(Vibrancy.id("block/subtle/box"))!!
 
-                boxShader.getUniform("IProjMat")?.set(Matrix4f(Vibrancy.iProjMat))
-                boxShader.getUniform("IModelMat")?.set(Matrix4f(Vibrancy.iModelMat))
+            boxShader.bind()
+            boxShader.setCommonUniforms(data)
 
-                boxShader.getUniform("CameraPos")?.set(Vibrancy.camera)
-                boxShader.getUniform("LightRadius")?.set(4f)
-                boxShader.getUniform("LightBrightness")?.set(Vibrancy.config.blockLights.subtle.brightness.get())
+            boxShader.getUniform("IProjMat")?.setValue(Matrix4f(Vibrancy.iProjMat))
+            boxShader.getUniform("IModelMat")?.setValue(Matrix4f(Vibrancy.iModelMat))
 
-                boxShader.setSampler("VibrancyWorldPosSampler", Vibrancy.WORLD_POS_FBO.colorAttachments[0] as ITexture)
+            boxShader.getUniform("CameraPos")?.setValue(Vibrancy.camera)
+            boxShader.getUniform("LightRadius")?.setValue(4f)
+            boxShader.getUniform("LightBrightness")?.setValue(Vibrancy.config.blockLights.subtle.brightness.get())
 
-                val meshes = lights.meshes.values.sortedBy { mesh -> manager.getSortingOrder(mesh.pos) }
+            boxShader.getUniform("VibrancyWorldPosSampler")?.setSampler(Vibrancy.WORLD_POS_FBO.colorAttachments[0] as GlTexture)
 
-                for (mesh in meshes) {
-                    if (result.numRendered!! + mesh.size > Vibrancy.config.blockLights.subtle.maxRendered.get()) {
-                        break
-                    }
+            val meshes = lights.meshes.values.sortedBy { mesh -> manager.getSortingOrder(mesh.pos) }
 
-                    result.add(mesh.render(manager, stack))
+            for (mesh in meshes) {
+                if (result.numRendered!! + mesh.size > Vibrancy.config.blockLights.subtle.maxRendered.get()) {
+                    break
                 }
 
-                VertexBuffer.unbind()
+                result.add(mesh.render(data, manager))
             }
+
+            renderSettings.unbind()
         }
 
         return result

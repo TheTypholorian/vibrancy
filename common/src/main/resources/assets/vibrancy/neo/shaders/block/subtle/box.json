@@ -1,5 +1,7 @@
 {
-  "vertex": "vibrancy:block/subtle/box",
-  "fragment": "vibrancy:block/subtle/box",
+  "sources": {
+    "vertex": "vibrancy:block/subtle/box",
+    "fragment": "vibrancy:block/subtle/box"
+  },
   "format": "POSITION"
 }
