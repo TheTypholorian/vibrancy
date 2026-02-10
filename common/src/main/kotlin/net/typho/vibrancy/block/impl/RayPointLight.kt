@@ -43,8 +43,8 @@ class RayPointLight(
             shader.getUniform("LightPos")?.set(getAbsolutePos())
             shader.getUniform("LightRadius")?.set(radius)
         },
-        Vibrancy.config.blockLights.raytraced.shadowTextureWidth.get(),
-        Vibrancy.config.blockLights.raytraced.shadowTextureHeight.get()
+        Vibrancy.config.blockLights.raytraced.shadowTextureSize.get() * 6,
+        Vibrancy.config.blockLights.raytraced.shadowTextureSize.get()
     )
     val boxBuffer by lazy {
         val builder = Tesselator.getInstance().begin(VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX)
@@ -78,23 +78,19 @@ class RayPointLight(
         return AABB.ofSize(Vec3(getAbsolutePos()), radius2, radius2, radius2)
     }
 
-    override fun rebuildShadows(manager: LightManager, fullQuality: Boolean) {
-        shadows.rebuildAsync(manager, manager.createShadowMesher(this, fullQuality)!!, this, fullQuality)
+    override fun rebuildShadows(manager: LightManager) {
+        shadows.rebuildAsync(manager, manager.createShadowMesher(this), this)
     }
 
-    override fun getShadowBox(fullQuality: Boolean): BlockBox {
-        val shadowRadius = if (fullQuality) {
-            ceil(radius).toInt()
-        } else {
-            ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.shadowRadius.get().toFloat())).toInt()
-        }
+    override fun getShadowBox(): BlockBox {
+        val shadowRadius = ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.shadowRadius.get().toFloat())).toInt()
         return BlockBox.of(
             BlockPos(pos.x - shadowRadius, pos.y - shadowRadius, pos.z - shadowRadius),
             BlockPos(pos.x + shadowRadius, pos.y + shadowRadius, pos.z + shadowRadius)
         )
     }
 
-    override fun getShadowPredicate(fullQuality: Boolean): ShadowPredicate {
+    override fun getShadowPredicate(): ShadowPredicate {
         return object : ShadowPredicate {
             override fun shouldCastBlock(
                 state: BlockState,
@@ -133,19 +129,13 @@ class RayPointLight(
             }
 
             override fun isInRange(pos: BlockPos): Boolean {
-                val shadowRadius = if (fullQuality) {
-                    ceil(radius).toInt()
-                } else {
-                    ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.shadowRadius.get().toFloat())).toInt()
-                }
+                val shadowRadius = ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.shadowRadius.get().toFloat())).toInt()
                 return pos.distSqr(this@RayPointLight.pos) <= shadowRadius * shadowRadius
             }
         }
     }
 
     override fun getType() = RayPointLightType
-
-    override fun shouldRender(manager: LightManager): Boolean = true
 
     override fun shouldRaytrace(manager: LightManager) = true
 
@@ -156,14 +146,14 @@ class RayPointLight(
 
     fun render(manager: LightManager, raytrace: Boolean, stack: GlStack, fbo: IFramebuffer): LightRenderResult {
         for (pos in manager.dirtyBlocks) {
-            if (manager.getLevel().dimension() == pos.dimension && getShadowBox(false).contains(pos.pos)) {
+            if (manager.getLevel().dimension() == pos.dimension && getShadowBox().contains(pos.pos)) {
                 shadowsDirty = true
                 break
             }
         }
 
         if (shadowsDirty && raytrace) {
-            rebuildShadows(manager, true)
+            rebuildShadows(manager)
             shadowsDirty = false
         }
 
@@ -178,7 +168,7 @@ class RayPointLight(
             numAsyncTasks = if (shadows.isTaskActive()) 1 else 0
         )
 
-        fbo.bind(stack)
+        fbo.bind()
         GlStateManager._viewport(0, 0, fbo.width(), fbo.height())
 
         val boxShader = NeoShader.get(Vibrancy.id("block/raytraced/box"))!!
@@ -194,6 +184,8 @@ class RayPointLight(
         boxShader.getUniform("LightRadius")?.set(radius)
         boxShader.getUniform("CameraPos")?.set(Vibrancy.camera)
         boxShader.getUniform("ScreenSize")?.set(fbo.width().toFloat(), fbo.height().toFloat())
+
+        boxShader.getUniform("ShadowTextureSize")?.set(shadows.target.width(), shadows.target.height())
 
         boxShader.getUniform("SampleShadows")?.set(if (raytrace) 1 else 0)
 

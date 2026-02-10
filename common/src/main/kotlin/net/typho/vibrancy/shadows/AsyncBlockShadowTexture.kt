@@ -45,15 +45,14 @@ open class AsyncBlockShadowTexture(
     fun rebuildAsync(
         manager: LightManager,
         mesher: ShadowMesher,
-        light: PointLight,
-        fullQuality: Boolean
+        light: PointLight
     ) {
         rebuildAsync(
             manager,
             mesher,
             light.getBlockPos(),
-            light.getShadowBox(fullQuality)!!,
-            light.getShadowPredicate(fullQuality)!!
+            light.getShadowBox()!!,
+            light.getShadowPredicate()!!
         )
     }
 

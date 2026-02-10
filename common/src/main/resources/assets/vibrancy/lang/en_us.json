@@ -11,12 +11,10 @@
   "vibrancy.config.blockLights.raytraced.raytraceDistance.prefix": "The radius (in chunks) from the camera where block lights will cast shadows.",
   "vibrancy.config.blockLights.raytraced.renderDistance": "Render Distance",
   "vibrancy.config.blockLights.raytraced.renderDistance.prefix": "The radius (in chunks) from the camera where block lights will be visible.",
-  "vibrancy.config.blockLights.raytraced.shadowRadius": "Shadow Update Radius",
-  "vibrancy.config.blockLights.raytraced.shadowRadius.prefix": "The radius (in blocks) from each block light where modified blocks will update the light.",
-  "vibrancy.config.blockLights.raytraced.shadowTextureWidth": "Shadow Texture Width",
-  "vibrancy.config.blockLights.raytraced.shadowTextureWidth.prefix": "Higher values increases horizontal shadow quality, but also increases memory usage and update time.",
-  "vibrancy.config.blockLights.raytraced.shadowTextureHeight": "Shadow Texture Height",
-  "vibrancy.config.blockLights.raytraced.shadowTextureHeight.prefix": "Higher values increases vertical shadow quality, but also increases memory usage and update time.",
+  "vibrancy.config.blockLights.raytraced.shadowRadius": "Shadow Radius",
+  "vibrancy.config.blockLights.raytraced.shadowRadius.prefix": "The radius (in blocks) from each block light where blocks will cast shadows.",
+  "vibrancy.config.blockLights.raytraced.shadowTextureSize": "Shadow Texture Size",
+  "vibrancy.config.blockLights.raytraced.shadowTextureSize.prefix": "Higher values increases shadow quality, but also increases memory usage and update time.",
   "vibrancy.config.blockLights.raytraced.maxRendered": "Max Rendered",
   "vibrancy.config.blockLights.raytraced.maxRendered.prefix": "The maximum number of block lights that will be rendered, closest lights first.",
   "vibrancy.config.blockLights.raytraced.maxRaytraced": "Max Raytraced",
@@ -31,11 +29,6 @@
   "vibrancy.config.blockLights.subtle.maxRendered": "Max Rendered",
   "vibrancy.config.blockLights.subtle.maxRendered.prefix": "The maximum number of block lights that will be rendered, closest lights first.",
 
-  "vibrancy.config.forNerds": "For Nerds",
-  "vibrancy.config.forNerds.prefix": "Options you shouldn't mess with unless you know how the mod works.",
-  "vibrancy.config.forNerds.useFrustumCulling": "Use Frustum Culling",
-
-  "debug.vibrancy.debug_mode": "[F4 + D] Toggled Vibrancy debug mode",
   "debug.vibrancy.rebuild_all_shadows": "[F4 + R] Reloaded all shadows",
   "debug.vibrancy.toggle_raytraced_block_lights": "[F4 + T] Toggled raytraced block lights",
   "debug.vibrancy.toggle_subtle_block_lights": "[F4 + Y] Toggled subtle block lights"

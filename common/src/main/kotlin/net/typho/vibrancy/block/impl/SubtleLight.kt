@@ -1,7 +1,6 @@
 package net.typho.vibrancy.block.impl
 
 import net.minecraft.core.BlockPos
-import net.minecraft.core.Direction
 import net.minecraft.world.level.block.state.StateHolder
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
@@ -27,7 +26,7 @@ class SubtleLight(
         8.0
     )
 
-    override fun rebuildShadows(manager: LightManager, fullQuality: Boolean) {
+    override fun rebuildShadows(manager: LightManager) {
     }
 
     override fun getType() = SubtleLightType
@@ -43,17 +42,7 @@ class SubtleLight(
         return Vector3f(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat()).add(offset)
     }
 
-    override fun getShadowBox(fullQuality: Boolean) = null
+    override fun getShadowBox() = null
 
-    override fun getShadowPredicate(fullQuality: Boolean) = null
-
-    override fun shouldRender(manager: LightManager): Boolean {
-        for (direction in Direction.entries) {
-            if (manager.getLevel().getBlockState(pos.relative(direction)).isAir) {
-                return true
-            }
-        }
-
-        return false
-    }
+    override fun getShadowPredicate() = null
 }

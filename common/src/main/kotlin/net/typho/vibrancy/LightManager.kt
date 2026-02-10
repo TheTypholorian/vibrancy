@@ -33,10 +33,6 @@ import java.util.*
 import java.util.function.Consumer
 
 open class LightManager {
-    companion object {
-        //const val SHADOW_STENCIL_MASK: Int = 0b1
-    }
-
     @JvmField
     protected var viewMatrix: Matrix4f? = null
 
@@ -47,12 +43,6 @@ open class LightManager {
     val blockLights = HashMap<BlockLightType<*, *, *>, BlockLightStorage<*>>()
     @JvmField
     protected var blockRenderResults = HashMap<BlockLightType<*, *, *>, LightRenderResult>()
-
-    @JvmField
-    var debugMode = false
-
-    fun getTickDelta(whilePaused: Boolean = true): Float =
-        Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(whilePaused)
 
     fun getLevel(): ClientLevel = Minecraft.getInstance().level!!
 
@@ -66,11 +56,8 @@ open class LightManager {
 
     fun getCullingFrustum(): Frustum = (Minecraft.getInstance().levelRenderer as LevelRendererAccessor).cullingFrustum
 
-    fun createShadowMesher(light: PointLight, fullQuality: Boolean): ShadowMesher? {
-        return light.getShadowBox(fullQuality)?.let { box ->
-            // if (Vibrancy.config.forNerds.useGreedyMeshing.get()) ShadowGreedyMesher(box) else
-            BasicShadowMesher()
-        }
+    fun createShadowMesher(light: PointLight): ShadowMesher {
+        return BasicShadowMesher()
     }
 
     fun rebuildAllShadows() {
@@ -137,11 +124,6 @@ open class LightManager {
         return type.render(this, storage as S, fbo)
     }
 
-    @Suppress("UNCHECKED_CAST")
-    protected fun <S : BlockLightStorage<*>> castAndRenderDebug(type: BlockLightType<*, *, S>, storage: BlockLightStorage<*>) {
-        type.renderDebug(this, storage as S)
-    }
-
     fun render(fbo: IFramebuffer, camera: Camera = getCamera()) {
         viewMatrix = BigShotLib.getViewMatrix(camera)
         blockRenderResults.clear()
@@ -151,14 +133,6 @@ open class LightManager {
         }
 
         dirtyBlocks.clear()
-    }
-
-    fun renderDebug() {
-        if (debugMode) {
-            for (entry in blockLights) {
-                castAndRenderDebug(entry.key, entry.value)
-            }
-        }
     }
 
     fun blitWorldPos() {
@@ -228,17 +202,23 @@ open class LightManager {
     }
 
     fun inFrustum(box: AABB): Boolean {
-        return !Vibrancy.config.forNerds.useFrustumCulling || getCullingFrustum().isVisible(box)
+        return getCullingFrustum().isVisible(box)
+    }
+
+    fun clampToRenderDistance(distance: Int): Int {
+        return distance.coerceAtMost(Minecraft.getInstance().options.effectiveRenderDistance)
     }
 
     fun inRenderDistance(pos: BlockPos, distance: Int): Boolean {
-        return pos.distSqr(getCamera().blockPosition) <= distance * distance * 16 * 16
+        val d = clampToRenderDistance(distance)
+        return pos.distSqr(getCamera().blockPosition) <= d * d * 16 * 16
     }
 
     fun inRenderDistance(pos: ChunkPos, distance: Int): Boolean {
         val centerChunk = Vector2f(pos.middleBlockX.toFloat(), pos.middleBlockZ.toFloat())
         val camera = getCamera().blockPosition.center.toVector3f()
-        return centerChunk.distanceSquared(Vector2f(camera.x, camera.z)) <= distance * distance * 16 * 16
+        val d = clampToRenderDistance(distance)
+        return centerChunk.distanceSquared(Vector2f(camera.x, camera.z)) <= d * d * 16 * 16
     }
 
     fun getSortingOrder(pos: BlockPos): Double {
