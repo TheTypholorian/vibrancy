@@ -144,7 +144,9 @@ open class LightManager {
         shader.getUniform("CameraPos")?.setValue(Vibrancy.camera)
 
         MeshUtil.SCREEN_MESH.bind()
+        //MeshUtil.SCREEN_MESH.ebo.bind()
         MeshUtil.SCREEN_MESH.draw()
+        //MeshUtil.SCREEN_MESH.ebo.unbind()
         MeshUtil.SCREEN_MESH.unbind()
     }
 
@@ -159,6 +161,7 @@ open class LightManager {
         shader.getUniform("VibrancyWorldPosSampler")?.setSampler(Vibrancy.WORLD_POS_FBO.colorAttachments[0] as GlTexture)
         shader.getUniform("VibrancyOutputSampler")?.setSampler(output)
         shader.getUniform("VibrancyAlbedoSampler")?.setSampler(VibrancyDynamicBuffers.albedoTexture!!)
+        shader.getUniform("VibrancyNormalSampler")?.setSampler(VibrancyDynamicBuffers.normalTexture!!)
 
         shader.getUniform("IProjMat")?.setValue(Matrix4f(Vibrancy.iProjMat))
         shader.getUniform("IModelMat")?.setValue(Matrix4f(Vibrancy.iModelMat))
@@ -170,7 +173,9 @@ open class LightManager {
         shader.getUniform("CameraPos")?.setValue(Vibrancy.camera)
 
         MeshUtil.SCREEN_MESH.bind()
+        //MeshUtil.SCREEN_MESH.ebo.bind()
         MeshUtil.SCREEN_MESH.draw()
+        //MeshUtil.SCREEN_MESH.ebo.unbind()
         MeshUtil.SCREEN_MESH.unbind()
 
         blitSettings.unbind()

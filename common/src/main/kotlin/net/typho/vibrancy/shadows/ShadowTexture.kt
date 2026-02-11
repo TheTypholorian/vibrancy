@@ -102,6 +102,7 @@ open class ShadowTexture(
             if (!builders.isEmpty()) {
                 val mesh = MeshUtil.SCREEN_MESH
                 mesh.bind()
+                //mesh.ebo.bind()
 
                 val ssbo = GlBuffer(BufferType.SHADER_STORAGE, BufferUsage.STREAM_DRAW)
                 ssbo.bind()
@@ -117,6 +118,7 @@ open class ShadowTexture(
                 }
 
                 ssbo.unbind()
+                //mesh.ebo.unbind()
                 mesh.unbind()
             }
 

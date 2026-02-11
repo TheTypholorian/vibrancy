@@ -4,13 +4,11 @@ import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.VertexFormatElement
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.resources.ResourceLocation
-import net.typho.big_shot_lib.api.shaders.ShaderLoaderType
 import net.typho.big_shot_lib.api.shaders.ShaderProgramKey
 import net.typho.big_shot_lib.api.shaders.ShaderSourceKey
 import net.typho.big_shot_lib.api.shaders.ShaderSourceType
 import net.typho.big_shot_lib.api.shaders.mixins.*
 import net.typho.big_shot_lib.api.shaders.variables.ShaderPrimitiveType
-import net.typho.big_shot_lib.api.shaders.variables.ShaderVariable
 import net.typho.big_shot_lib.api.shaders.variables.ShaderVectorType
 import net.typho.big_shot_lib.api.textures.GlTexture
 import net.typho.big_shot_lib.api.textures.TextureFormat
@@ -23,10 +21,10 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
     private var initialized = false
 
     @JvmField
-    var normalsLocation: Int = 0
+    var normalLocation: Int = 0
 
     @JvmField
-    var normalsTexture: GlTexture? = null
+    var normalTexture: GlTexture? = null
 
     @JvmField
     var albedoLocation: Int = 0
@@ -72,13 +70,13 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
     @ApiStatus.Internal
     @JvmStatic
     fun init(width: Int, height: Int) {
-        normalsLocation = pickAvailableAttachment()!!
-        normalsTexture = GlTexture(TextureFormat.RGB16_SNORM)
+        normalLocation = pickAvailableAttachment()!!
+        normalTexture = GlTexture(TextureFormat.RGB16_SNORM)
 
-        albedoLocation = pickAvailableAttachment(normalsLocation)!!
+        albedoLocation = pickAvailableAttachment(normalLocation)!!
         albedoTexture = GlTexture(TextureFormat.RGB)
 
-        lightUVLocation = pickAvailableAttachment(normalsLocation, albedoLocation)!!
+        lightUVLocation = pickAvailableAttachment(normalLocation, albedoLocation)!!
         lightUVTexture = GlTexture(TextureFormat.RG)
 
         attach(width, height)
@@ -89,10 +87,10 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
     @ApiStatus.Internal
     @JvmStatic
     fun attach(width: Int, height: Int) {
-        normalsTexture!!.bind()
-        normalsTexture!!.resize(width, height).uploadNull()
-        normalsTexture!!.attachToFramebuffer(GL_COLOR_ATTACHMENT0 + normalsLocation)
-        normalsTexture!!.unbind()
+        normalTexture!!.bind()
+        normalTexture!!.resize(width, height).uploadNull()
+        normalTexture!!.attachToFramebuffer(GL_COLOR_ATTACHMENT0 + normalLocation)
+        normalTexture!!.unbind()
 
         albedoTexture!!.bind()
         albedoTexture!!.resize(width, height).uploadNull()
@@ -123,7 +121,7 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
         glDrawBuffers(
             intArrayOf(
                 GL_COLOR_ATTACHMENT0,
-                GL_COLOR_ATTACHMENT0 + normalsLocation,
+                GL_COLOR_ATTACHMENT0 + normalLocation,
                 GL_COLOR_ATTACHMENT0 + albedoLocation,
                 GL_COLOR_ATTACHMENT0 + lightUVLocation
             )
@@ -134,7 +132,7 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
     @ApiStatus.Internal
     @JvmStatic
     fun enableBlend() {
-        glDisablei(GL_BLEND, normalsLocation)
+        glDisablei(GL_BLEND, normalLocation)
         glEnablei(GL_BLEND, albedoLocation)
         glDisablei(GL_BLEND, lightUVLocation)
     }
@@ -142,7 +140,7 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
     @ApiStatus.Internal
     @JvmStatic
     fun disableBlend() {
-        glDisablei(GL_BLEND, normalsLocation)
+        glDisablei(GL_BLEND, normalLocation)
         glDisablei(GL_BLEND, albedoLocation)
         glDisablei(GL_BLEND, lightUVLocation)
     }
@@ -179,7 +177,7 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
                     if (key.type == ShaderSourceType.FRAGMENT) {
                         code.findVariable(name = "VibrancyFragmentNormal")?.let { normal ->
                             code.findOpcode(ShaderOpcode.OP_DECORATE, 0 to normal.id, 1 to 30)
-                                ?.putWord(2, normalsLocation)
+                                ?.putWord(2, normalLocation)
                         }
                         code.findVariable(name = "VibrancyFragmentLight")?.let { light ->
                             code.findOpcode(ShaderOpcode.OP_DECORATE, 0 to light.id, 1 to 30)
@@ -205,6 +203,8 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
 
                     return code
                 }
+
+                println(key)
 
                 when (key.type) {
                     ShaderSourceType.VERTEX -> {
@@ -240,9 +240,14 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
                                         .putWord(tempVar)
                                         .build()
                                 )
+                            } else {
+                                println("\tnormal null")
                             }
+                        } else {
+                            println("\tno normal")
                         }
 
+                        /*
                         if (key.program.format.contains(VertexFormatElement.UV2)) {
                             val lightVar = code.findVariable(
                                 name = key.program.format.getElementName(VertexFormatElement.UV2)
@@ -390,6 +395,7 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
                                 }
                             }
                         }
+                         */
                     }
 
                     ShaderSourceType.FRAGMENT -> {
@@ -419,7 +425,7 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
                                 ShaderOpcode.Builder(ShaderOpcode.OP_DECORATE)
                                     .putWord(output.id)
                                     .putWord(30) // Location
-                                    .putWord(normalsLocation)
+                                    .putWord(VibrancyDynamicBuffers.normalLocation)
                                     .build()
                             )
 
@@ -436,8 +442,11 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
                                     .putWord(tempVar)
                                     .build()
                             )
+                        } else {
+                            println("\tnormal location null")
                         }
 
+                        /*
                         val lightLocation = mapper.get("VibrancyVertexLight")
 
                         if (lightLocation != null) {
@@ -611,6 +620,7 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
                                 }
                             }
                         }
+                         */
                     }
 
                     else -> {}

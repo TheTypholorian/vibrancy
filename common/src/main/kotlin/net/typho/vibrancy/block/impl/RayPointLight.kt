@@ -188,13 +188,15 @@ class RayPointLight(
         boxShader.getUniform("SampleShadows")?.setValue(if (raytrace) 1 else 0)
 
         boxShader.getUniform("VibrancyShadowSampler")?.setSampler(shadows.target.colorAttachments[0] as GlTexture)
-        boxShader.getUniform("VibrancyNormalSampler")?.setSampler(VibrancyDynamicBuffers.normalsTexture!!)
+        boxShader.getUniform("VibrancyNormalSampler")?.setSampler(VibrancyDynamicBuffers.normalTexture!!)
         boxShader.getUniform("VibrancyWorldPosSampler")?.setSampler(Vibrancy.WORLD_POS_FBO.colorAttachments[0] as GlTexture)
 
         GlFlag.CULL_FACE.enable()
 
         boxBuffer.bind()
+        //boxBuffer.ebo.bind()
         boxBuffer.draw()
+        //boxBuffer.ebo.unbind()
         boxBuffer.unbind()
 
         return result
