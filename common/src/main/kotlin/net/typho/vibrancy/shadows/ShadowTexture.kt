@@ -12,6 +12,7 @@ import net.typho.big_shot_lib.api.buffers.BufferType
 import net.typho.big_shot_lib.api.buffers.BufferUsage
 import net.typho.big_shot_lib.api.buffers.GlBuffer
 import net.typho.big_shot_lib.api.shaders.GlShader
+import net.typho.big_shot_lib.api.state.GlFlag
 import net.typho.big_shot_lib.api.textures.*
 import net.typho.big_shot_lib.api.util.IColor
 import net.typho.big_shot_lib.api.util.MeshUtil
@@ -36,8 +37,14 @@ open class ShadowTexture(
             width,
             height
         )
-        (fbo.colorAttachments[0] as GlTexture).setInterpolation(InterpolationType.LINEAR)
-        fbo
+
+        val texture = (fbo.colorAttachments[0] as GlTexture)
+
+        texture.bind()
+        texture.setInterpolation(InterpolationType.LINEAR)
+        texture.unbind()
+
+        return@lazy fbo
     }
     @JvmField
     var shadows: Collection<LightFace> = emptyList()
@@ -96,6 +103,10 @@ open class ShadowTexture(
 
             shader.bind()
             uniforms.accept(shader)
+
+            GlFlag.CULL_FACE.disable()
+            GlFlag.DEPTH_TEST.disable()
+            GlFlag.BLEND.disable()
 
             size = 0
 

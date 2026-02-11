@@ -14,6 +14,7 @@ import net.minecraft.world.level.chunk.LevelChunk
 import net.typho.big_shot_lib.api.event.RenderData
 import net.typho.big_shot_lib.api.shaders.GlShaderRegistry
 import net.typho.big_shot_lib.api.state.DepthMaskShard
+import net.typho.big_shot_lib.api.state.GlFlag
 import net.typho.big_shot_lib.api.state.RenderSettings
 import net.typho.big_shot_lib.api.textures.GlFramebuffer
 import net.typho.big_shot_lib.api.textures.GlTexture
@@ -132,6 +133,8 @@ open class LightManager {
     }
 
     fun blitWorldPos(data: RenderData) {
+        GlFlag.CULL_FACE.disable()
+
         val shader = GlShaderRegistry.get(Vibrancy.id("world_pos"))!!
         shader.bind()
         shader.setCommonUniforms(data)

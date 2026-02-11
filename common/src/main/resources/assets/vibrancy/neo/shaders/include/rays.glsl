@@ -48,7 +48,7 @@ bool sampleQuad(sampler2D AtlasSampler, vec3 origin, vec3 dir, float len, float 
     vec2 uv;
 
     if (raycastQuad(origin, dir, len, margin, q, uv, t)) {
-        return texture(AtlasSampler, uv).a == 0;
+        return texture(AtlasSampler, uv).a < 0.9;
     } else {
         return true;
     }
