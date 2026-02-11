@@ -7,7 +7,11 @@
   "mixins": [
     "LevelMixin",
     "OptionsMixin",
+    "ShaderBytecodeBufferIteratorMixin",
     "ShaderBytecodeBufferMixin",
+    "ShaderOpcodeBuilderMixin",
+    "ShaderOpcodeMixin",
+    "ShaderPrimitiveTypeMixin",
     "sodium.BlockRendererMixin",
     "sodium.ChunkVertexConsumerMixin",
     "sodium.ChunkVertexEncoderVertexMixin",

@@ -4,14 +4,17 @@ import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.VertexFormatElement
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.resources.ResourceLocation
+import net.typho.big_shot_lib.api.shaders.ShaderLoaderType
 import net.typho.big_shot_lib.api.shaders.ShaderProgramKey
 import net.typho.big_shot_lib.api.shaders.ShaderSourceKey
 import net.typho.big_shot_lib.api.shaders.ShaderSourceType
 import net.typho.big_shot_lib.api.shaders.mixins.*
 import net.typho.big_shot_lib.api.shaders.variables.ShaderPrimitiveType
+import net.typho.big_shot_lib.api.shaders.variables.ShaderVariable
 import net.typho.big_shot_lib.api.shaders.variables.ShaderVectorType
 import net.typho.big_shot_lib.api.textures.GlTexture
 import net.typho.big_shot_lib.api.textures.TextureFormat
+import net.typho.big_shot_lib.api.util.BigShotModUtil.equals
 import org.jetbrains.annotations.ApiStatus
 import org.lwjgl.opengl.GL11.GL_NONE
 import org.lwjgl.opengl.GL11.glGetInteger
@@ -204,14 +207,33 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
                     return code
                 }
 
-                println(key)
-
                 when (key.type) {
                     ShaderSourceType.VERTEX -> {
-                        if (key.program.format.contains(VertexFormatElement.NORMAL)) {
-                            val normalVar = code.findVariable(
-                                name = key.program.format.getElementName(VertexFormatElement.NORMAL)
-                            )
+                        if (key.program.format.contains(VertexFormatElement.NORMAL) || key.program.location.equals("sodium", "blocks/block_layer_opaque")) {
+                            val normalVar: ShaderVariable?
+
+                            if (key.program.location.equals("sodium", "blocks/block_layer_opaque")) {
+                                val vec3 = ShaderVectorType(ShaderPrimitiveType.FLOAT_32, 3).findOrInject(code)
+
+                                val input = code.addStaticVar(ShaderStorageClass.INPUT.id, vec3, "VibrancyInputNormal")
+                                code.addEntrypointVars(input.id)
+
+                                val location = locations.getMapper(ShaderStorageClass.OUTPUT, key.type)!!.map(1, "VibrancyInputNormal")
+                                code.insert(
+                                    code.findOpcode(ShaderOpcode.OP_DECORATE)!!.index,
+                                    ShaderOpcode.Builder(ShaderOpcode.OP_DECORATE)
+                                        .putWord(input.id)
+                                        .putWord(30) // Location
+                                        .putWord(location)
+                                        .build()
+                                )
+
+                                normalVar = input
+                            } else {
+                                normalVar = code.findVariable(
+                                    name = key.program.format.getElementName(VertexFormatElement.NORMAL)
+                                )
+                            }
 
                             if (normalVar != null) {
                                 val output = code.addStaticVar(3, normalVar.type, "VibrancyVertexNormal")
@@ -240,14 +262,9 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
                                         .putWord(tempVar)
                                         .build()
                                 )
-                            } else {
-                                println("\tnormal null")
                             }
-                        } else {
-                            println("\tno normal")
                         }
 
-                        /*
                         if (key.program.format.contains(VertexFormatElement.UV2)) {
                             val lightVar = code.findVariable(
                                 name = key.program.format.getElementName(VertexFormatElement.UV2)
@@ -395,7 +412,6 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
                                 }
                             }
                         }
-                         */
                     }
 
                     ShaderSourceType.FRAGMENT -> {
@@ -442,11 +458,8 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
                                     .putWord(tempVar)
                                     .build()
                             )
-                        } else {
-                            println("\tnormal location null")
                         }
 
-                        /*
                         val lightLocation = mapper.get("VibrancyVertexLight")
 
                         if (lightLocation != null) {
@@ -620,7 +633,6 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
                                 }
                             }
                         }
-                         */
                     }
 
                     else -> {}

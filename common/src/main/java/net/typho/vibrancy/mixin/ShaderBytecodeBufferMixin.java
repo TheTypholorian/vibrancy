@@ -20,6 +20,31 @@ public class ShaderBytecodeBufferMixin {
         return ShaderOpcode.OP_DECORATE;
     }
 
+    @ModifyArg(
+            method = "addEntrypointVars",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/typho/big_shot_lib/api/shaders/mixins/ShaderOpcode;putWord(II)V"
+            ),
+            index = 0
+    )
+    private int findVariable2(int offset) {
+        return offset - 1;
+    }
+
+    @ModifyArg(
+            method = "findOpcodeInMethod(Ljava/lang/String;Ljava/util/function/Predicate;)Lnet/typho/big_shot_lib/api/shaders/mixins/ShaderOpcode;",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/typho/big_shot_lib/api/shaders/mixins/ShaderOpcode;getWord(I)I",
+                    ordinal = 1
+            ),
+            index = 0
+    )
+    private int findVariable3(int offset) {
+        return 1;
+    }
+
     /*
     @ModifyArg(
             method = "findVariable",
