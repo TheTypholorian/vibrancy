@@ -215,7 +215,7 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
                             if (key.program.location.equals("sodium", "blocks/block_layer_opaque")) {
                                 val vec3 = ShaderVectorType(ShaderPrimitiveType.FLOAT_32, 3).findOrInject(code)
 
-                                val input = code.addStaticVar(ShaderStorageClass.INPUT.id, vec3, "VibrancyInputNormal")
+                                val input = code.addStaticVar(ShaderStorageClass.INPUT, vec3, "VibrancyInputNormal")
                                 code.addEntrypointVars(input.id)
 
                                 val location = locations.getMapper(ShaderStorageClass.OUTPUT, key.type)!!.map(1, "VibrancyInputNormal")
@@ -236,7 +236,7 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
                             }
 
                             if (normalVar != null) {
-                                val output = code.addStaticVar(3, normalVar.type, "VibrancyVertexNormal")
+                                val output = code.addStaticVar(ShaderStorageClass.OUTPUT, normalVar.type, "VibrancyVertexNormal")
                                 code.addEntrypointVars(output.id)
 
                                 val location = locations.getMapper(ShaderStorageClass.OUTPUT, key.type)!!.map(1, "VibrancyVertexNormal")
@@ -276,7 +276,7 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
                                 val floatType = ShaderPrimitiveType.FLOAT_32.findOrInject(code)
                                 val vec2 = ShaderVectorType(ShaderPrimitiveType.FLOAT_32, 2).findOrInject(code)
 
-                                val output = code.addStaticVar(3, vec2, "VibrancyVertexLight")
+                                val output = code.addStaticVar(ShaderStorageClass.OUTPUT, vec2, "VibrancyVertexLight")
                                 code.addEntrypointVars(output.id)
 
                                 val location = locations.getMapper(ShaderStorageClass.OUTPUT, key.type)!!.map(1, "VibrancyVertexLight")
@@ -347,7 +347,7 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
                             if (uvVar != null) {
                                 val vec2 = ShaderVectorType(ShaderPrimitiveType.FLOAT_32, 2).findOrInject(code)
 
-                                val output = code.addStaticVar(3, vec2, "VibrancyVertexTexCoord")
+                                val output = code.addStaticVar(ShaderStorageClass.OUTPUT, vec2, "VibrancyVertexTexCoord")
                                 code.addEntrypointVars(output.id)
 
                                 val location = locations.getMapper(ShaderStorageClass.OUTPUT, key.type)!!.map(1, "VibrancyVertexTexCoord")
@@ -382,7 +382,7 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
                                     if (colorVar != null) {
                                         val vec4 = ShaderVectorType(ShaderPrimitiveType.FLOAT_32, 4).findOrInject(code)
 
-                                        val colorOutput = code.addStaticVar(3, vec4, "VibrancyVertexColor")
+                                        val colorOutput = code.addStaticVar(ShaderStorageClass.OUTPUT, vec4, "VibrancyVertexColor")
                                         code.addEntrypointVars(colorOutput.id)
 
                                         val colorLocation = locations.getMapper(ShaderStorageClass.OUTPUT, key.type)!!.map(1, "VibrancyVertexColor")
@@ -421,7 +421,7 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
                         if (normalLocation != null) {
                             val vec3 = ShaderVectorType(ShaderPrimitiveType.FLOAT_32, 3).findOrInject(code)
 
-                            val input = code.addStaticVar(1, vec3, "VibrancyVertexNormal")
+                            val input = code.addStaticVar(ShaderStorageClass.INPUT, vec3, "VibrancyVertexNormal")
 
                             code.insert(
                                 code.findOpcode(ShaderOpcode.OP_DECORATE)!!.index,
@@ -432,7 +432,7 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
                                     .build()
                             )
 
-                            val output = code.addStaticVar(3, vec3, "VibrancyFragmentNormal")
+                            val output = code.addStaticVar(ShaderStorageClass.OUTPUT, vec3, "VibrancyFragmentNormal")
 
                             code.addEntrypointVars(input.id, output.id)
 
@@ -465,7 +465,7 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
                         if (lightLocation != null) {
                             val vec2 = ShaderVectorType(ShaderPrimitiveType.FLOAT_32, 2).findOrInject(code)
 
-                            val input = code.addStaticVar(1, vec2, "VibrancyVertexLight")
+                            val input = code.addStaticVar(ShaderStorageClass.INPUT, vec2, "VibrancyVertexLight")
 
                             code.insert(
                                 code.findOpcode(ShaderOpcode.OP_DECORATE)!!.index,
@@ -476,7 +476,7 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
                                     .build()
                             )
 
-                            val output = code.addStaticVar(3, vec2, "VibrancyFragmentLight")
+                            val output = code.addStaticVar(ShaderStorageClass.OUTPUT, vec2, "VibrancyFragmentLight")
 
                             code.addEntrypointVars(input.id, output.id)
 
@@ -521,7 +521,7 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
                                 if (sodiumTexCoord != null) {
                                     input = sodiumTexCoord
                                 } else {
-                                    input = code.addStaticVar(1, vec2, "VibrancyVertexTexCoord")
+                                    input = code.addStaticVar(ShaderStorageClass.INPUT, vec2, "VibrancyVertexTexCoord")
 
                                     code.insert(
                                         code.findOpcode(ShaderOpcode.OP_DECORATE)!!.index,
@@ -533,7 +533,7 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
                                     )
                                 }
 
-                                val output = code.addStaticVar(3, vec4, "VibrancyFragmentAlbedo")
+                                val output = code.addStaticVar(ShaderStorageClass.OUTPUT, vec4, "VibrancyFragmentAlbedo")
 
                                 code.addEntrypointVars(input.id, output.id)
 
@@ -549,7 +549,7 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
                                 val vertexColorLocation = mapper.get("VibrancyVertexColor")
 
                                 if (vertexColorLocation != null) {
-                                    val vertexColor = code.addStaticVar(1, vec4, "VibrancyVertexColor")
+                                    val vertexColor = code.addStaticVar(ShaderStorageClass.INPUT, vec4, "VibrancyVertexColor")
 
                                     code.insert(
                                         code.findOpcode(ShaderOpcode.OP_DECORATE)!!.index,
