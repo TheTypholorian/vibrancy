@@ -170,9 +170,7 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
 
         return object : ShaderMixin {
             override fun mixinPostCompile(key: ShaderSourceKey, code: String): String {
-                println(key)
-                println(code)
-                return super.mixinPostCompile(key, code)
+                return code.replace("#version 450", "#version 430")
             }
 
             override fun mixinBytecode(key: ShaderSourceKey, code: ShaderBytecodeBuffer): ShaderBytecodeBuffer {
