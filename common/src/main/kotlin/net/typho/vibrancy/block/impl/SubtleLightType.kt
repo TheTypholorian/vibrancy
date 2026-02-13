@@ -6,11 +6,11 @@ import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.util.ExtraCodecs
 import net.minecraft.world.level.block.state.StateDefinition
-import net.typho.big_shot_lib.api.event.RenderData
-import net.typho.big_shot_lib.api.shaders.GlShaderRegistry
-import net.typho.big_shot_lib.api.state.*
-import net.typho.big_shot_lib.api.textures.GlFramebuffer
-import net.typho.big_shot_lib.api.textures.GlTexture
+import net.typho.big_shot_lib.api.client.rendering.event.RenderData
+import net.typho.big_shot_lib.api.client.rendering.shaders.NeoShaderRegistry
+import net.typho.big_shot_lib.api.client.rendering.state.*
+import net.typho.big_shot_lib.api.client.rendering.textures.GlFramebuffer
+import net.typho.big_shot_lib.api.client.rendering.textures.GlTexture
 import net.typho.big_shot_lib.api.util.IColor
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.LightRenderResult
@@ -70,7 +70,7 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight, SubtleLigh
             fbo.bind()
             GlStateManager._viewport(0, 0, fbo.width(), fbo.height())
 
-            val boxShader = GlShaderRegistry.get(Vibrancy.id("block/subtle/box"))!!
+            val boxShader = NeoShaderRegistry.get(Vibrancy.id("block/subtle/box"))!!
 
             boxShader.bind()
             boxShader.setCommonUniforms(data)

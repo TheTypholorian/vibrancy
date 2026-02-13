@@ -3,18 +3,16 @@ package net.typho.vibrancy
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.VertexFormatElement
 import net.minecraft.client.renderer.RenderType
-import net.minecraft.resources.ResourceLocation
-import net.typho.big_shot_lib.api.shaders.ShaderLoaderType
-import net.typho.big_shot_lib.api.shaders.ShaderProgramKey
-import net.typho.big_shot_lib.api.shaders.ShaderSourceKey
-import net.typho.big_shot_lib.api.shaders.ShaderSourceType
-import net.typho.big_shot_lib.api.shaders.mixins.*
-import net.typho.big_shot_lib.api.shaders.variables.ShaderPrimitiveType
-import net.typho.big_shot_lib.api.shaders.variables.ShaderVariable
-import net.typho.big_shot_lib.api.shaders.variables.ShaderVectorType
-import net.typho.big_shot_lib.api.textures.GlTexture
-import net.typho.big_shot_lib.api.textures.TextureFormat
-import net.typho.big_shot_lib.api.util.BigShotModUtil.equals
+import net.typho.big_shot_lib.api.client.rendering.shaders.ShaderLoaderType
+import net.typho.big_shot_lib.api.client.rendering.shaders.ShaderProgramKey
+import net.typho.big_shot_lib.api.client.rendering.shaders.ShaderSourceKey
+import net.typho.big_shot_lib.api.client.rendering.shaders.ShaderSourceType
+import net.typho.big_shot_lib.api.client.rendering.shaders.mixins.*
+import net.typho.big_shot_lib.api.client.rendering.shaders.variables.ShaderVariable
+import net.typho.big_shot_lib.api.client.rendering.shaders.variables.ShaderVariableType
+import net.typho.big_shot_lib.api.client.rendering.textures.NeoTexture2D
+import net.typho.big_shot_lib.api.client.rendering.textures.TextureFormat
+import net.typho.big_shot_lib.api.util.resources.ResourceIdentifier
 import org.jetbrains.annotations.ApiStatus
 import org.lwjgl.opengl.GL11.GL_NONE
 import org.lwjgl.opengl.GL11.glGetInteger
@@ -27,22 +25,22 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
     var normalLocation: Int = 0
 
     @JvmField
-    var normalTexture: GlTexture? = null
+    var normalTexture: NeoTexture2D? = null
 
     @JvmField
     var albedoLocation: Int = 0
 
     @JvmField
-    var albedoTexture: GlTexture? = null
+    var albedoTexture: NeoTexture2D? = null
 
     @JvmField
     var lightUVLocation: Int = 0
 
     @JvmField
-    var lightUVTexture: GlTexture? = null
+    var lightUVTexture: NeoTexture2D? = null
 
     @JvmField
-    val noVertexColor = HashSet<ResourceLocation>(
+    val noVertexColor = HashSet<ResourceIdentifier>(
         RenderType.chunkBufferLayers()
             .filterIsInstance<RenderType.CompositeRenderType>()
             .mapNotNull { type ->
@@ -50,16 +48,16 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
                     shader.get()?.name
                 }.orElse(null)
             }
-            .map { name -> ResourceLocation.withDefaultNamespace(name) }
+            .map { name -> ResourceIdentifier(name) }
     )
     @JvmField
-    val exclude = HashSet<ResourceLocation>(listOf(
-        ResourceLocation.withDefaultNamespace("rendertype_lines"),
-        ResourceLocation.withDefaultNamespace("particle")
+    val exclude = HashSet<ResourceIdentifier>(listOf(
+        ResourceIdentifier("rendertype_lines"),
+        ResourceIdentifier("particle")
     ))
     @JvmField
-    val builtin = HashSet<ResourceLocation>(listOf(
-        ResourceLocation.withDefaultNamespace("rendertype_end_portal")
+    val builtin = HashSet<ResourceIdentifier>(listOf(
+        ResourceIdentifier("rendertype_end_portal")
     ))
 
     init {
@@ -74,13 +72,13 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
     @JvmStatic
     fun init(width: Int, height: Int) {
         normalLocation = pickAvailableAttachment()!!
-        normalTexture = GlTexture(TextureFormat.RGB16_SNORM)
+        normalTexture = NeoTexture2D(TextureFormat.RGB16_SNORM)
 
         albedoLocation = pickAvailableAttachment(normalLocation)!!
-        albedoTexture = GlTexture(TextureFormat.RGB)
+        albedoTexture = NeoTexture2D(TextureFormat.RGB)
 
         lightUVLocation = pickAvailableAttachment(normalLocation, albedoLocation)!!
-        lightUVTexture = GlTexture(TextureFormat.RG)
+        lightUVTexture = NeoTexture2D(TextureFormat.RG)
 
         attach(width, height)
 
@@ -171,6 +169,12 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
         val locations = (parent.getOrCreateMixinInstance(ShaderLocationMapperMixin) as ShaderLocationMapperMixin.Instance).locations
 
         return object : ShaderMixin {
+            override fun mixinPostCompile(key: ShaderSourceKey, code: String): String {
+                println(key)
+                println(code)
+                return super.mixinPostCompile(key, code)
+            }
+
             override fun mixinBytecode(key: ShaderSourceKey, code: ShaderBytecodeBuffer): ShaderBytecodeBuffer {
                 if (exclude.contains(key.program.location) || key.program.location.namespace == Vibrancy.MOD_ID) {
                     return code
@@ -213,7 +217,7 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
                             val normalVar: ShaderVariable?
 
                             if (key.program.location.equals("sodium", "blocks/block_layer_opaque")) {
-                                val vec3 = ShaderVectorType(ShaderPrimitiveType.FLOAT_32, 3).findOrInject(code)
+                                val vec3 = ShaderVariableType.FLOAT_VEC3.findOrInjectBytecode(code)
 
                                 val input = code.addStaticVar(ShaderStorageClass.INPUT, vec3, "VibrancyInputNormal")
                                 code.addEntrypointVars(input.id)
@@ -273,8 +277,8 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
                             )
 
                             if (lightVar != null) {
-                                val floatType = ShaderPrimitiveType.FLOAT_32.findOrInject(code)
-                                val vec2 = ShaderVectorType(ShaderPrimitiveType.FLOAT_32, 2).findOrInject(code)
+                                val floatType = ShaderVariableType.FLOAT.findOrInjectBytecode(code)
+                                val vec2 = ShaderVariableType.FLOAT_VEC2.findOrInjectBytecode(code)
 
                                 val output = code.addStaticVar(ShaderStorageClass.OUTPUT, vec2, "VibrancyVertexLight")
                                 code.addEntrypointVars(output.id)
@@ -345,7 +349,7 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
                             )
 
                             if (uvVar != null) {
-                                val vec2 = ShaderVectorType(ShaderPrimitiveType.FLOAT_32, 2).findOrInject(code)
+                                val vec2 = ShaderVariableType.FLOAT_VEC2.findOrInjectBytecode(code)
 
                                 val output = code.addStaticVar(ShaderStorageClass.OUTPUT, vec2, "VibrancyVertexTexCoord")
                                 code.addEntrypointVars(output.id)
@@ -380,7 +384,7 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
                                     )
 
                                     if (colorVar != null) {
-                                        val vec4 = ShaderVectorType(ShaderPrimitiveType.FLOAT_32, 4).findOrInject(code)
+                                        val vec4 = ShaderVariableType.FLOAT_VEC4.findOrInjectBytecode(code)
 
                                         val colorOutput = code.addStaticVar(ShaderStorageClass.OUTPUT, vec4, "VibrancyVertexColor")
                                         code.addEntrypointVars(colorOutput.id)
@@ -419,7 +423,7 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
                         val normalLocation = mapper.get("VibrancyVertexNormal")
 
                         if (normalLocation != null) {
-                            val vec3 = ShaderVectorType(ShaderPrimitiveType.FLOAT_32, 3).findOrInject(code)
+                            val vec3 = ShaderVariableType.FLOAT_VEC3.findOrInjectBytecode(code)
 
                             val input = code.addStaticVar(ShaderStorageClass.INPUT, vec3, "VibrancyVertexNormal")
 
@@ -463,7 +467,7 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
                         val lightLocation = mapper.get("VibrancyVertexLight")
 
                         if (lightLocation != null) {
-                            val vec2 = ShaderVectorType(ShaderPrimitiveType.FLOAT_32, 2).findOrInject(code)
+                            val vec2 = ShaderVariableType.FLOAT_VEC2.findOrInjectBytecode(code)
 
                             val input = code.addStaticVar(ShaderStorageClass.INPUT, vec2, "VibrancyVertexLight")
 
@@ -513,8 +517,8 @@ object VibrancyDynamicBuffers : ShaderMixin.Factory {
                             ) ?: if (key.program.loader == ShaderLoaderType.SODIUM) code.findVariable(name = "u_BlockTex") else null
 
                             if (sampler0Var != null) {
-                                val vec4 = ShaderVectorType(ShaderPrimitiveType.FLOAT_32, 4).findOrInject(code)
-                                val vec2 = ShaderVectorType(ShaderPrimitiveType.FLOAT_32, 2).findOrInject(code)
+                                val vec4 = ShaderVariableType.FLOAT_VEC4.findOrInjectBytecode(code)
+                                val vec2 = ShaderVariableType.FLOAT_VEC2.findOrInjectBytecode(code)
 
                                 val input: ShaderVariable
 

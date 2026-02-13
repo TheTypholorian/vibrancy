@@ -9,11 +9,11 @@ import net.minecraft.world.level.block.state.StateHolder
 import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.level.chunk.LevelChunkSection
 import net.minecraft.world.phys.AABB
-import net.typho.big_shot_lib.api.buffers.BufferType
-import net.typho.big_shot_lib.api.buffers.BufferUsage
-import net.typho.big_shot_lib.api.buffers.GlBuffer
-import net.typho.big_shot_lib.api.event.RenderData
-import net.typho.big_shot_lib.api.meshes.Mesh
+import net.typho.big_shot_lib.api.client.rendering.buffers.BufferType
+import net.typho.big_shot_lib.api.client.rendering.buffers.BufferUsage
+import net.typho.big_shot_lib.api.client.rendering.buffers.GlBuffer
+import net.typho.big_shot_lib.api.client.rendering.event.RenderData
+import net.typho.big_shot_lib.api.client.rendering.meshes.Mesh
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.LightRenderResult
 import net.typho.vibrancy.Vibrancy

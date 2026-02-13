@@ -5,14 +5,15 @@ import me.fzzyhmstrs.fzzy_config.api.ConfigApi
 import me.fzzyhmstrs.fzzy_config.api.RegisterType
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
-import net.minecraft.resources.ResourceLocation
-import net.typho.big_shot_lib.api.event.PostProcessEvent
-import net.typho.big_shot_lib.api.event.RenderData
-import net.typho.big_shot_lib.api.event.WindowResizeEvent
-import net.typho.big_shot_lib.api.shaders.mixins.ShaderMixinManager
-import net.typho.big_shot_lib.api.textures.GlFramebuffer
-import net.typho.big_shot_lib.api.textures.GlTexture
-import net.typho.big_shot_lib.api.textures.TextureFormat
+import net.typho.big_shot_lib.api.client.rendering.event.PostProcessEvent
+import net.typho.big_shot_lib.api.client.rendering.event.RenderData
+import net.typho.big_shot_lib.api.client.rendering.event.WindowResizeEvent
+import net.typho.big_shot_lib.api.client.rendering.shaders.mixins.ShaderMixinManager
+import net.typho.big_shot_lib.api.client.rendering.textures.GlTexture
+import net.typho.big_shot_lib.api.client.rendering.textures.NeoFramebuffer
+import net.typho.big_shot_lib.api.client.rendering.textures.NeoTexture2D
+import net.typho.big_shot_lib.api.client.rendering.textures.TextureFormat
+import net.typho.big_shot_lib.api.util.resources.ResourceIdentifier
 import net.typho.vibrancy.block.BlockLightRegistry
 import org.joml.Matrix4f
 import org.joml.Vector3f
@@ -34,16 +35,16 @@ object Vibrancy {
     @JvmField
     val LIGHT_MANAGER = LightManager()
     val OUTPUT_FBO by lazy {
-        GlFramebuffer(
-            arrayOf(GlTexture(TextureFormat.RGB16F)),
+        NeoFramebuffer(
+            listOf(NeoTexture2D(TextureFormat.RGB16F)),
             null,
             Minecraft.getInstance().mainRenderTarget.width,
             Minecraft.getInstance().mainRenderTarget.height
         )
     }
     val WORLD_POS_FBO by lazy {
-        GlFramebuffer(
-            arrayOf(GlTexture(TextureFormat.RGB32F)),
+        NeoFramebuffer(
+            listOf(NeoTexture2D(TextureFormat.RGB32F)),
             null,
             Minecraft.getInstance().mainRenderTarget.width,
             Minecraft.getInstance().mainRenderTarget.height
@@ -101,5 +102,5 @@ object Vibrancy {
     }
 
     @JvmStatic
-    fun id(path: String): ResourceLocation = ResourceLocation.fromNamespaceAndPath(MOD_ID, path)
+    fun id(path: String): ResourceIdentifier = ResourceIdentifier(MOD_ID, path)
 }

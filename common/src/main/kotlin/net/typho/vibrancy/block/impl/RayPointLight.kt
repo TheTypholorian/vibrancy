@@ -11,13 +11,13 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateHolder
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
-import net.typho.big_shot_lib.api.buffers.BufferUsage
-import net.typho.big_shot_lib.api.event.RenderData
-import net.typho.big_shot_lib.api.meshes.Mesh
-import net.typho.big_shot_lib.api.shaders.GlShaderRegistry
-import net.typho.big_shot_lib.api.state.GlFlag
-import net.typho.big_shot_lib.api.textures.GlFramebuffer
-import net.typho.big_shot_lib.api.textures.GlTexture
+import net.typho.big_shot_lib.api.client.rendering.buffers.BufferUsage
+import net.typho.big_shot_lib.api.client.rendering.event.RenderData
+import net.typho.big_shot_lib.api.client.rendering.meshes.Mesh
+import net.typho.big_shot_lib.api.client.rendering.shaders.NeoShaderRegistry
+import net.typho.big_shot_lib.api.client.rendering.state.GlFlag
+import net.typho.big_shot_lib.api.client.rendering.textures.GlFramebuffer
+import net.typho.big_shot_lib.api.client.rendering.textures.GlTexture
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.LightRenderResult
 import net.typho.vibrancy.Vibrancy
@@ -37,7 +37,7 @@ class RayPointLight(
     val pos: BlockPos
 ) : BlockLight<RayPointLightInfo, RayPointLight> {
     val shadows = AsyncBlockShadowTexture(
-        { GlShaderRegistry.get(Vibrancy.id("block/raytraced/shadow"))!! },
+        { NeoShaderRegistry.get(Vibrancy.id("block/raytraced/shadow"))!! },
         { shader ->
             shader.getUniform("LightPos")?.setValue(getAbsolutePos())
             shader.getUniform("LightRadius")?.setValue(radius)
@@ -169,7 +169,7 @@ class RayPointLight(
         fbo.bind()
         GlStateManager._viewport(0, 0, fbo.width(), fbo.height())
 
-        val boxShader = GlShaderRegistry.get(Vibrancy.id("block/raytraced/box"))!!
+        val boxShader = NeoShaderRegistry.get(Vibrancy.id("block/raytraced/box"))!!
 
         boxShader.bind()
         boxShader.setCommonUniforms(data)
@@ -185,7 +185,7 @@ class RayPointLight(
 
         boxShader.getUniform("ShadowTextureSize")?.setValue(shadows.target.width(), shadows.target.height())
 
-        boxShader.getUniform("SampleShadows")?.setValue(if (raytrace) 1 else 0)
+        boxShader.getUniform("SampleShadows")?.setValue(raytrace)
 
         boxShader.getUniform("VibrancyShadowSampler")?.setSampler(shadows.target.colorAttachments[0] as GlTexture)
         boxShader.getUniform("VibrancyNormalSampler")?.setSampler(VibrancyDynamicBuffers.normalTexture!!)

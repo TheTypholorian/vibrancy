@@ -11,14 +11,14 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
-import net.typho.big_shot_lib.api.event.RenderData
-import net.typho.big_shot_lib.api.shaders.GlShaderRegistry
-import net.typho.big_shot_lib.api.state.DepthMaskShard
-import net.typho.big_shot_lib.api.state.GlFlag
-import net.typho.big_shot_lib.api.state.RenderSettings
-import net.typho.big_shot_lib.api.textures.GlFramebuffer
-import net.typho.big_shot_lib.api.textures.GlTexture
-import net.typho.big_shot_lib.api.util.MeshUtil
+import net.typho.big_shot_lib.api.client.rendering.event.RenderData
+import net.typho.big_shot_lib.api.client.rendering.shaders.NeoShaderRegistry
+import net.typho.big_shot_lib.api.client.rendering.state.DepthMaskShard
+import net.typho.big_shot_lib.api.client.rendering.state.GlFlag
+import net.typho.big_shot_lib.api.client.rendering.state.RenderSettings
+import net.typho.big_shot_lib.api.client.rendering.textures.GlFramebuffer
+import net.typho.big_shot_lib.api.client.rendering.textures.GlTexture
+import net.typho.big_shot_lib.api.client.rendering.util.MeshUtil
 import net.typho.vibrancy.block.*
 import net.typho.vibrancy.shadows.BasicShadowMesher
 import net.typho.vibrancy.shadows.ShadowMesher
@@ -135,7 +135,7 @@ open class LightManager {
     fun blitWorldPos(data: RenderData) {
         GlFlag.CULL_FACE.disable()
 
-        val shader = GlShaderRegistry.get(Vibrancy.id("world_pos"))!!
+        val shader = NeoShaderRegistry.get(Vibrancy.id("world_pos"))!!
         shader.bind()
         shader.setCommonUniforms(data)
 
@@ -156,7 +156,7 @@ open class LightManager {
     fun blitOutput(data: RenderData, output: GlTexture) {
         blitSettings.bind()
 
-        val shader = GlShaderRegistry.get(Vibrancy.id("post"))!!
+        val shader = NeoShaderRegistry.get(Vibrancy.id("post"))!!
         shader.bind()
         shader.setCommonUniforms(data)
 

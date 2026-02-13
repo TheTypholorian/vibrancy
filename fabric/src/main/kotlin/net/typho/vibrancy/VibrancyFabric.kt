@@ -5,6 +5,7 @@ import net.fabricmc.api.ClientModInitializer
 import net.minecraft.core.MappedRegistry
 import net.minecraft.core.Registry
 import net.minecraft.core.registries.BuiltInRegistries
+import net.minecraft.resources.ResourceLocation
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.block.BlockLightType
 import net.typho.vibrancy.block.impl.RayPointLightType
@@ -21,7 +22,7 @@ object VibrancyFabric : ClientModInitializer {
 
     override fun onInitializeClient() {
         Vibrancy.init()
-        Registry.register(blockLightRegistry, Vibrancy.id("raytraced_point"), RayPointLightType)
-        Registry.register(blockLightRegistry, Vibrancy.id("subtle"), SubtleLightType)
+        Registry.register(blockLightRegistry, ResourceLocation.fromNamespaceAndPath(Vibrancy.MOD_ID, "raytraced_point"), RayPointLightType)
+        Registry.register(blockLightRegistry, ResourceLocation.fromNamespaceAndPath(Vibrancy.MOD_ID, "subtle"), SubtleLightType)
     }
 }

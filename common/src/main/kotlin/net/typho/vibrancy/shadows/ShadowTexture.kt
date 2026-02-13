@@ -8,17 +8,17 @@ import com.mojang.blaze3d.vertex.VertexFormatElement
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.resources.ResourceLocation
-import net.typho.big_shot_lib.api.buffers.BufferType
-import net.typho.big_shot_lib.api.buffers.BufferUsage
-import net.typho.big_shot_lib.api.buffers.GlBuffer
-import net.typho.big_shot_lib.api.shaders.GlShader
-import net.typho.big_shot_lib.api.state.GlFlag
-import net.typho.big_shot_lib.api.textures.*
+import net.typho.big_shot_lib.api.client.rendering.buffers.BufferType
+import net.typho.big_shot_lib.api.client.rendering.buffers.BufferUsage
+import net.typho.big_shot_lib.api.client.rendering.buffers.GlBuffer
+import net.typho.big_shot_lib.api.client.rendering.services.TextureUtil
+import net.typho.big_shot_lib.api.client.rendering.shaders.GlShader
+import net.typho.big_shot_lib.api.client.rendering.state.GlFlag
+import net.typho.big_shot_lib.api.client.rendering.textures.*
+import net.typho.big_shot_lib.api.client.rendering.util.MeshUtil
 import net.typho.big_shot_lib.api.util.IColor
-import net.typho.big_shot_lib.api.util.MeshUtil
-import net.typho.big_shot_lib.api.util.TextureUtil
+import net.typho.big_shot_lib.api.util.resources.ResourceIdentifier
 import net.typho.vibrancy.util.EmptyVertexConsumer
-import org.lwjgl.opengl.GL11.GL_TEXTURE_2D
 import org.lwjgl.system.NativeResource
 import java.util.*
 import java.util.function.Consumer
@@ -31,14 +31,14 @@ open class ShadowTexture(
     val height: Int
 ) : NativeResource {
     val target by lazy {
-        val fbo = GlFramebuffer(
-            arrayOf(GlTexture(TextureFormat.R16F)),
+        val fbo = NeoFramebuffer(
+            listOf(NeoTexture2D(TextureFormat.R16F)),
             null,
             width,
             height
         )
 
-        val texture = (fbo.colorAttachments[0] as GlTexture)
+        val texture = fbo.colorAttachments[0] as GlTexture2D
 
         texture.bind()
         texture.setInterpolation(InterpolationType.LINEAR)
@@ -74,7 +74,7 @@ open class ShadowTexture(
         @JvmField
         val uniforms: Consumer<GlShader>
     ) : MultiBufferSource {
-        val builders = HashMap<ResourceLocation, ShadowBufferBuilder>()
+        val builders = HashMap<ResourceIdentifier, ShadowBufferBuilder>()
 
         override fun getBuffer(renderType: RenderType): VertexConsumer {
             val texture = getRenderTypeTexture(renderType)
@@ -87,7 +87,7 @@ open class ShadowTexture(
             ) {
                 EmptyVertexConsumer
             } else {
-                builders.computeIfAbsent(texture) {
+                builders.computeIfAbsent(ResourceIdentifier(texture.namespace, texture.path)) { // TODO
                     val builder = ByteBufferBuilder(renderType.bufferSize())
                     toFree.add(builder)
                     ShadowBufferBuilder(builder)
@@ -122,7 +122,7 @@ open class ShadowTexture(
                 for (entry in builders) {
                     size += entry.value.numQuads()
 
-                    shader.getUniform("Sampler0")?.setSampler(GL_TEXTURE_2D, TextureUtil.INSTANCE.getMinecraftTextureId(entry.key))
+                    shader.getUniform("Sampler0")?.setSampler(TextureUtil.INSTANCE.getMinecraftTexture(entry.key))
                     ssbo.upload(entry.value.build())
 
                     mesh.draw()

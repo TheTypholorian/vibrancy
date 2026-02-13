@@ -4,6 +4,7 @@ import com.mojang.serialization.MapCodec
 import net.minecraft.core.Registry
 import net.minecraft.core.RegistryAccess
 import net.minecraft.resources.ResourceKey
+import net.minecraft.resources.ResourceLocation
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.StateDefinition
 import net.typho.vibrancy.Vibrancy
@@ -11,7 +12,7 @@ import net.typho.vibrancy.Vibrancy
 object BlockLightRegistry {
     @JvmField
     val registryKey: ResourceKey<Registry<BlockLightType<*, *, *>>> =
-        ResourceKey.createRegistryKey(Vibrancy.id("block_light_types"))
+        ResourceKey.createRegistryKey(ResourceLocation.fromNamespaceAndPath(Vibrancy.MOD_ID, "block_light_types")) // TODO
 
     @JvmField
     val blockMap = HashMap<Block, BlockLightInfo<*, *>>()

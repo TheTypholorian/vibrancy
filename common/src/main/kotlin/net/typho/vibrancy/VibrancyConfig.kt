@@ -12,10 +12,11 @@ import me.fzzyhmstrs.fzzy_config.validation.number.ValidatedInt
 import me.fzzyhmstrs.fzzy_config.validation.number.ValidatedNumber
 import me.fzzyhmstrs.fzzy_config.validation.number.ValidatedNumber.Companion.setFormat
 import me.fzzyhmstrs.fzzy_config.validation.number.ValidatedNumber.Companion.withIncrement
+import net.minecraft.resources.ResourceLocation
 import java.text.DecimalFormat
 
 class VibrancyConfig : Config(
-    Vibrancy.id("config"),
+    ResourceLocation.fromNamespaceAndPath(Vibrancy.MOD_ID, "config"), // TODO
     folder = "",
     name = Vibrancy.MOD_ID
 ) {

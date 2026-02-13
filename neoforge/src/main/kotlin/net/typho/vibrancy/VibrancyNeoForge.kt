@@ -1,5 +1,6 @@
 package net.typho.vibrancy
 
+import net.minecraft.resources.ResourceLocation
 import net.neoforged.bus.api.IEventBus
 import net.neoforged.bus.api.SubscribeEvent
 import net.neoforged.fml.ModContainer
@@ -28,8 +29,8 @@ class VibrancyNeoForge(eventBus: IEventBus, mod: ModContainer) {
     @SubscribeEvent
     fun onRegister(event: RegisterEvent) {
         event.register(BlockLightRegistry.registryKey) { registrar ->
-            registrar.register(Vibrancy.id("raytraced_point"), RayPointLightType)
-            registrar.register(Vibrancy.id("subtle"), SubtleLightType)
+            registrar.register(ResourceLocation.fromNamespaceAndPath(Vibrancy.MOD_ID, "raytraced_point"), RayPointLightType)
+            registrar.register(ResourceLocation.fromNamespaceAndPath(Vibrancy.MOD_ID, "subtle"), SubtleLightType)
         }
     }
 }
