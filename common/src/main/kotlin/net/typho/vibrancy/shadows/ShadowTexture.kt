@@ -1,22 +1,18 @@
 package net.typho.vibrancy.shadows
 
 import com.mojang.blaze3d.platform.GlStateManager
-import com.mojang.blaze3d.vertex.ByteBufferBuilder
-import com.mojang.blaze3d.vertex.VertexConsumer
-import com.mojang.blaze3d.vertex.VertexFormat
-import com.mojang.blaze3d.vertex.VertexFormatElement
+import com.mojang.blaze3d.vertex.*
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.resources.ResourceLocation
-import net.typho.big_shot_lib.api.client.rendering.buffers.BufferType
 import net.typho.big_shot_lib.api.client.rendering.buffers.BufferUsage
-import net.typho.big_shot_lib.api.client.rendering.buffers.GlBuffer
+import net.typho.big_shot_lib.api.client.rendering.meshes.Mesh
 import net.typho.big_shot_lib.api.client.rendering.services.TextureUtil
 import net.typho.big_shot_lib.api.client.rendering.shaders.GlShader
+import net.typho.big_shot_lib.api.client.rendering.state.ComparisonFunc
 import net.typho.big_shot_lib.api.client.rendering.state.GlFlag
+import net.typho.big_shot_lib.api.client.rendering.state.OpenGL
 import net.typho.big_shot_lib.api.client.rendering.textures.*
-import net.typho.big_shot_lib.api.client.rendering.util.MeshUtil
-import net.typho.big_shot_lib.api.util.IColor
 import net.typho.big_shot_lib.api.util.resources.ResourceIdentifier
 import net.typho.vibrancy.util.EmptyVertexConsumer
 import org.lwjgl.system.NativeResource
@@ -32,16 +28,18 @@ open class ShadowTexture(
 ) : NativeResource {
     val target by lazy {
         val fbo = NeoFramebuffer(
-            listOf(NeoTexture2D(TextureFormat.R16F)),
-            null,
+            listOf(),
+            NeoTextureCube(TextureFormat.DEPTH_COMPONENT),
             width,
             height
         )
 
-        val texture = fbo.colorAttachments[0] as GlTexture2D
+        val texture = fbo.depthAttachment!! as GlTextureCube
 
         texture.bind()
-        texture.setInterpolation(InterpolationType.LINEAR)
+        texture.setInterpolation(InterpolationType.NEAREST)
+        texture.setCompareMode(TextureComparisonMode.COMPARE_REF_TO_TEXTURE)
+        texture.setCompareFunc(ComparisonFunc.LEQUAL)
         texture.unbind()
 
         return@lazy fbo
@@ -74,7 +72,7 @@ open class ShadowTexture(
         @JvmField
         val uniforms: Consumer<GlShader>
     ) : MultiBufferSource {
-        val builders = HashMap<ResourceIdentifier, ShadowBufferBuilder>()
+        val builders = HashMap<ResourceIdentifier, BufferBuilder>()
 
         override fun getBuffer(renderType: RenderType): VertexConsumer {
             val texture = getRenderTypeTexture(renderType)
@@ -90,7 +88,7 @@ open class ShadowTexture(
                 builders.computeIfAbsent(ResourceIdentifier(texture.namespace, texture.path)) { // TODO
                     val builder = ByteBufferBuilder(renderType.bufferSize())
                     toFree.add(builder)
-                    ShadowBufferBuilder(builder)
+                    BufferBuilder(builder, VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX)
                 }
             }
         }
@@ -99,38 +97,39 @@ open class ShadowTexture(
             target.bind()
 
             GlStateManager._viewport(0, 0, target.width(), target.height())
-            target.clear(ClearBit.Color(IColor.RGBAF(1f, 1f, 1f, 1f)))
+            target.clear(ClearBit.Depth(1f))
 
             shader.bind()
             uniforms.accept(shader)
 
             GlFlag.CULL_FACE.disable()
-            GlFlag.DEPTH_TEST.disable()
+            GlFlag.DEPTH_TEST.enable()
+            OpenGL.INSTANCE.depthFunc(ComparisonFunc.ALWAYS)
             GlFlag.BLEND.disable()
 
             size = 0
 
             if (!builders.isEmpty()) {
-                val mesh = MeshUtil.SCREEN_MESH
+                val mesh = Mesh(DefaultVertexFormat.POSITION_TEX, VertexFormat.Mode.QUADS, BufferUsage.DYNAMIC_DRAW)
                 mesh.bind()
-                //mesh.ebo.bind()
-
-                val ssbo = GlBuffer(BufferType.SHADER_STORAGE, BufferUsage.STREAM_DRAW)
-                ssbo.bind()
-                ssbo.bindBase(0)
 
                 for (entry in builders) {
-                    size += entry.value.numQuads()
-
                     shader.getUniform("Sampler0")?.setSampler(TextureUtil.INSTANCE.getMinecraftTexture(entry.key))
-                    ssbo.upload(entry.value.build())
+                    shader.getUniform("QuadStride")?.setValue(4)
 
-                    mesh.draw()
+                    val built = entry.value.buildOrThrow()
+                    size += built.drawState().indexCount / 6
+                    mesh.upload(built)
+
+                    for (face in GlTextureCube.Face.entries) {
+                        shader.getUniform("Face")?.setValue(face.ordinal)
+
+                        mesh.draw()
+                    }
                 }
 
-                ssbo.unbind()
-                //mesh.ebo.unbind()
                 mesh.unbind()
+                mesh.free()
             }
 
             for (builder in toFree) {

@@ -3,31 +3,18 @@
 #include "vibrancy:include/rays"
 #include "vibrancy:block/raytraced/shadow_utils"
 
-layout(std430, binding = 0) buffer Quads {
-    Quad quads[];
-};
-
 uniform sampler2D Sampler0;
 
 uniform vec3 LightPos;
 uniform float LightRadius;
 
-in vec2 texCoord;
-
-out float fragDistance;
+in vec3 delta;
+in flat Quad quad;
 
 void main() {
-    vec3 dir = shadowCoordsToDirection(texCoord);
-    fragDistance = LightRadius;
+    float t;
 
-    for (uint i = 0u; i < quads.length(); i++) {
-        Quad quad = quads[i];
-        float t;
-
-        if (!sampleQuad(Sampler0, LightPos, dir, fragDistance, 1e-3, quad, t)) {
-            fragDistance = t;
-        }
+    if (sampleQuad(Sampler0, LightPos, normalize(delta), LightRadius, 1e-3, quad, t)) {
+        discard;
     }
-
-    fragDistance /= LightRadius;
 }
