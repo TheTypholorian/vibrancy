@@ -1,6 +1,5 @@
 package net.typho.vibrancy.block.impl
 
-import com.mojang.blaze3d.platform.GlStateManager
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
@@ -68,7 +67,7 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight, SubtleLigh
             renderSettings.bind()
 
             fbo.bind()
-            GlStateManager._viewport(0, 0, fbo.width(), fbo.height())
+            fbo.viewport()
 
             val boxShader = NeoShaderRegistry.get(Vibrancy.id("block/subtle/box"))!!
 

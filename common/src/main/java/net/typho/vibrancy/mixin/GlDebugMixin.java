@@ -4,6 +4,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.blaze3d.platform.GlDebug;
+import net.typho.big_shot_lib.api.client.rendering.state.GlFlag;
 import org.slf4j.Logger;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -15,6 +16,11 @@ import static org.lwjgl.opengl.GL43.GL_DEBUG_TYPE_ERROR;
 
 @Mixin(GlDebug.class)
 public class GlDebugMixin {
+    static {
+        GlFlag.DEBUG_OUTPUT.enable();
+        GlFlag.DEBUG_OUTPUT_SYNCHRONOUS.enable();
+    }
+
     @WrapOperation(
             method = "printDebugLog",
             at = @At(
@@ -34,7 +40,7 @@ public class GlDebugMixin {
         if (type == GL_DEBUG_TYPE_ERROR && source != GL_DEBUG_SOURCE_SHADER_COMPILER) {
             IllegalStateException error = new IllegalStateException(o.toString());
             error.setStackTrace(Arrays.copyOfRange(error.getStackTrace(), 4, error.getStackTrace().length));
-            throw error;
+            //throw error;
         } else {
             original.call(instance, s, o);
         }

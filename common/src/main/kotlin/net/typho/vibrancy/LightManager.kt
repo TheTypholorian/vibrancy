@@ -26,7 +26,6 @@ import net.typho.vibrancy.util.PointLight
 import org.joml.Matrix4f
 import org.joml.Vector2f
 import org.joml.Vector4f
-import org.lwjgl.opengl.GL11.GL_TEXTURE_2D
 import java.util.*
 import java.util.function.Consumer
 
@@ -139,7 +138,7 @@ open class LightManager {
         shader.bind()
         shader.setCommonUniforms(data)
 
-        shader.getUniform("DiffuseDepthSampler")?.setSampler(GL_TEXTURE_2D, Minecraft.getInstance().mainRenderTarget.depthTextureId)
+        shader.getUniform("DiffuseDepthSampler")?.setSampler(GlFramebuffer.MAIN.depthAttachment!! as GlTexture)
 
         shader.getUniform("IProjMat")?.setValue(Matrix4f(Vibrancy.iProjMat))
         shader.getUniform("IModelMat")?.setValue(Matrix4f(Vibrancy.iModelMat))
@@ -160,7 +159,7 @@ open class LightManager {
         shader.bind()
         shader.setCommonUniforms(data)
 
-        shader.getUniform("DiffuseSampler0")?.setSampler(GL_TEXTURE_2D, Minecraft.getInstance().mainRenderTarget.colorTextureId)
+        shader.getUniform("DiffuseSampler0")?.setSampler(GlFramebuffer.MAIN.colorAttachments[0] as GlTexture)
         shader.getUniform("VibrancyWorldPosSampler")?.setSampler(Vibrancy.WORLD_POS_FBO.colorAttachments[0] as GlTexture)
         shader.getUniform("VibrancyOutputSampler")?.setSampler(output)
         shader.getUniform("VibrancyAlbedoSampler")?.setSampler(VibrancyDynamicBuffers.albedoTexture!!)

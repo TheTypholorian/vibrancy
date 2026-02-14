@@ -1,6 +1,5 @@
 package net.typho.vibrancy.block.impl
 
-import com.mojang.blaze3d.platform.GlStateManager
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.mojang.blaze3d.vertex.VertexFormat
 import net.minecraft.core.BlockBox
@@ -42,7 +41,7 @@ class RayPointLight(
             shader.getUniform("LightPos")?.setValue(getAbsolutePos())
             shader.getUniform("LightRadius")?.setValue(radius)
         },
-        Vibrancy.config.blockLights.raytraced.shadowTextureSize.get() * 6,
+        Vibrancy.config.blockLights.raytraced.shadowTextureSize.get(),
         Vibrancy.config.blockLights.raytraced.shadowTextureSize.get()
     )
     val boxBuffer by lazy {
@@ -167,7 +166,7 @@ class RayPointLight(
         )
 
         fbo.bind()
-        GlStateManager._viewport(0, 0, fbo.width(), fbo.height())
+        fbo.viewport()
 
         val boxShader = NeoShaderRegistry.get(Vibrancy.id("block/raytraced/box"))!!
 
@@ -187,7 +186,7 @@ class RayPointLight(
 
         boxShader.getUniform("SampleShadows")?.setValue(raytrace)
 
-        boxShader.getUniform("VibrancyShadowSampler")?.setSampler(shadows.target.depthAttachment as GlTexture)
+        boxShader.getUniform("VibrancyShadowSampler")?.setSampler(shadows.texture)
         boxShader.getUniform("VibrancyNormalSampler")?.setSampler(VibrancyDynamicBuffers.normalTexture!!)
         boxShader.getUniform("VibrancyWorldPosSampler")?.setSampler(Vibrancy.WORLD_POS_FBO.colorAttachments[0] as GlTexture)
 

@@ -32,8 +32,7 @@
     "java": ">=${java_version}",
     "fabric-language-kotlin": ">=${flk_version}",
     "big_shot_lib": ">=${big_shot_version}",
-    "fzzy_config": "*",
-    "modmenu": "*"
+    "fzzy_config": "*"
   },
   "breaks": {
     "iris": "*"

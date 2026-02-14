@@ -1,6 +1,5 @@
 package net.typho.vibrancy.shadows
 
-import com.mojang.blaze3d.platform.GlStateManager
 import com.mojang.blaze3d.vertex.*
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.RenderType
@@ -13,8 +12,10 @@ import net.typho.big_shot_lib.api.client.rendering.state.ComparisonFunc
 import net.typho.big_shot_lib.api.client.rendering.state.GlFlag
 import net.typho.big_shot_lib.api.client.rendering.state.OpenGL
 import net.typho.big_shot_lib.api.client.rendering.textures.*
+import net.typho.big_shot_lib.api.util.buffers.BufferUploader
 import net.typho.big_shot_lib.api.util.resources.ResourceIdentifier
 import net.typho.vibrancy.util.EmptyVertexConsumer
+import org.lwjgl.opengl.GL13.GL_TEXTURE_CUBE_MAP
 import org.lwjgl.system.NativeResource
 import java.util.*
 import java.util.function.Consumer
@@ -26,23 +27,27 @@ open class ShadowTexture(
     @JvmField
     val height: Int
 ) : NativeResource {
-    val target by lazy {
-        val fbo = NeoFramebuffer(
-            listOf(),
-            NeoTextureCube(TextureFormat.DEPTH_COMPONENT),
-            width,
-            height
-        )
+    val texture by lazy {
+        val texture = NeoTextureCube(TextureFormat.DEPTH_COMPONENT16)
 
-        val texture = fbo.depthAttachment!! as GlTextureCube
+        texture.resize(width, height).uploadNull()
 
         texture.bind()
         texture.setInterpolation(InterpolationType.NEAREST)
+        OpenGL.INSTANCE.textureWrapping(GL_TEXTURE_CUBE_MAP, WrappingType.CLAMP_TO_EDGE, WrappingType.CLAMP_TO_EDGE, WrappingType.CLAMP_TO_EDGE)
         texture.setCompareMode(TextureComparisonMode.COMPARE_REF_TO_TEXTURE)
         texture.setCompareFunc(ComparisonFunc.LEQUAL)
         texture.unbind()
 
-        return@lazy fbo
+        return@lazy texture
+    }
+    val target by lazy {
+        NeoFramebuffer(
+            listOf(NeoTexture2D(TextureFormat.R8)),
+            attachmentFace(GlTextureCube.Face.POS_X),
+            width,
+            height
+        )
     }
     @JvmField
     var shadows: Collection<LightFace> = emptyList()
@@ -50,6 +55,23 @@ open class ShadowTexture(
     val toFree = LinkedList<ByteBufferBuilder>()
     @JvmField
     var size = 0
+
+    fun attachmentFace(face: GlTextureCube.Face) : GlFramebufferAttachment {
+        return object : GlFramebufferAttachment { // TODO
+            override fun format() = texture.format
+
+            override fun attachToFramebuffer(attachment: Int) {
+                OpenGL.INSTANCE.attachFramebufferTexture2D(attachment, face.glId, texture.glId)
+            }
+
+            override fun resize(
+                width: Int,
+                height: Int
+            ): BufferUploader? {
+                return null//texture.resize(width, height)
+            }
+        }
+    }
 
     override fun free() {
         target.free()
@@ -96,8 +118,7 @@ open class ShadowTexture(
         fun finish() {
             target.bind()
 
-            GlStateManager._viewport(0, 0, target.width(), target.height())
-            target.clear(ClearBit.Depth(1f))
+            target.viewport()
 
             shader.bind()
             uniforms.accept(shader)
@@ -111,7 +132,6 @@ open class ShadowTexture(
 
             if (!builders.isEmpty()) {
                 val mesh = Mesh(DefaultVertexFormat.POSITION_TEX, VertexFormat.Mode.QUADS, BufferUsage.DYNAMIC_DRAW)
-                mesh.bind()
 
                 for (entry in builders) {
                     shader.getUniform("Sampler0")?.setSampler(TextureUtil.INSTANCE.getMinecraftTexture(entry.key))
@@ -120,9 +140,14 @@ open class ShadowTexture(
                     val built = entry.value.buildOrThrow()
                     size += built.drawState().indexCount / 6
                     mesh.upload(built)
+                    mesh.bind()
 
                     for (face in GlTextureCube.Face.entries) {
                         shader.getUniform("Face")?.setValue(face.ordinal)
+
+                        target.depthAttachment = attachmentFace(face)
+                        target.bind()
+                        target.clear(ClearBit.Depth(1f))
 
                         mesh.draw()
                     }

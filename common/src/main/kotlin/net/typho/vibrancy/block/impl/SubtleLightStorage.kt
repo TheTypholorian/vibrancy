@@ -196,6 +196,8 @@ class SubtleLightStorage : BlockLightStorage<SubtleLightInfo> {
                 //mesh.ebo.unbind()
                 mesh.unbind()
 
+                ssbo.unbindBase(0)
+
                 return LightRenderResult(numRendered = size)
             } else {
                 return LightRenderResult()
