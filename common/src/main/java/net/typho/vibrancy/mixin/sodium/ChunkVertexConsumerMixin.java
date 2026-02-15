@@ -23,7 +23,8 @@ public class ChunkVertexConsumerMixin {
 
     @Inject(
             method = "setNormal",
-            at = @At("HEAD")
+            at = @At("HEAD"),
+            remap = true
     )
     private void setNormal(float x, float y, float z, CallbackInfoReturnable<VertexConsumer> cir) {
         ((VertexWithNormal) vertices[vertexIndex]).vibrancy$setNormal(NormI8.pack(x, y, z));
