@@ -142,6 +142,13 @@ class RayPointLight(
     }
 
     fun render(manager: LightManager, data: RenderData, raytrace: Boolean, fbo: GlFramebuffer): LightRenderResult {
+        val result = LightRenderResult(
+            numRendered = 1,
+            numRaytraced = if (raytrace) 1 else 0,
+            numShadows = if (raytrace) shadows.size else 0,
+            numAsyncTasks = if (shadows.isTaskActive()) 1 else 0
+        )
+
         for (pos in manager.dirtyBlocks) {
             if (manager.getLevel().dimension() == pos.dimension && getShadowBox().contains(pos.pos)) {
                 shadowsDirty = true
@@ -157,13 +164,6 @@ class RayPointLight(
         if (shadows.checkIfFinished()) {
             getType().renderSettings.bind()
         }
-
-        val result = LightRenderResult(
-            numRendered = 1,
-            numRaytraced = if (raytrace) 1 else 0,
-            numShadows = if (raytrace) shadows.size else 0,
-            numAsyncTasks = if (shadows.isTaskActive()) 1 else 0
-        )
 
         fbo.bind()
         fbo.viewport()
@@ -193,9 +193,7 @@ class RayPointLight(
         GlFlag.CULL_FACE.enable()
 
         boxBuffer.bind()
-        //boxBuffer.ebo.bind()
         boxBuffer.draw()
-        //boxBuffer.ebo.unbind()
         boxBuffer.unbind()
 
         return result

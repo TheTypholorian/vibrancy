@@ -159,7 +159,7 @@ class SubtleLightStorage : BlockLightStorage<SubtleLightInfo> {
                         builder.end()
 
                         mesh.ssbo.bind()
-                        mesh.ssbo.upload(MemoryUtil.memByteBuffer(ssboBuffer.flip()))
+                        mesh.ssbo.upload(ssboBuffer.flip())
                         mesh.ssbo.unbind()
 
                         MemoryUtil.memFree(ssboBuffer)
