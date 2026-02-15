@@ -26,7 +26,8 @@ void main() {
 
     if (SampleShadows) {
         vec3 delta = pos - LightPos;
-        vec2 shadowUV = directionToShadowCoords(normalize(delta), vec2(ShadowTextureSize));
+        uint face;
+        vec2 shadowUV = directionToShadowCoords(normalize(delta), vec2(ShadowTextureSize), face);
         float shadow = texture(VibrancyShadowSampler, shadowUV).r;
 
         if (shadow * LightRadius + 2e-2 <= length(delta)) {
