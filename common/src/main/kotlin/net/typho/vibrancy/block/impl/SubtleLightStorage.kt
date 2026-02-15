@@ -178,7 +178,7 @@ class SubtleLightStorage : BlockLightStorage<SubtleLightInfo> {
     data class ChunkMesh(
         val pos: ChunkPos,
         val mesh: Mesh = Mesh(DefaultVertexFormat.POSITION, VertexFormat.Mode.QUADS, BufferUsage.STATIC_DRAW),
-        val ssbo: GlBuffer = GlBuffer(BufferType.SHADER_STORAGE, BufferUsage.STATIC_DRAW),
+        val ssbo: GlBuffer = GlBuffer(BufferType.SHADER_STORAGE_BUFFER, BufferUsage.STATIC_DRAW),
         var size: Int = 0,
         var box: AABB? = null
     ) : NativeResource {

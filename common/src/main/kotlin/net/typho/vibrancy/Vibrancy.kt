@@ -6,7 +6,6 @@ import net.minecraft.ChatFormatting
 import net.typho.big_shot_lib.api.client.rendering.event.PostProcessEvent
 import net.typho.big_shot_lib.api.client.rendering.event.RenderData
 import net.typho.big_shot_lib.api.client.rendering.event.WindowResizeEvent
-import net.typho.big_shot_lib.api.client.rendering.shaders.mixins.ShaderMixinManager
 import net.typho.big_shot_lib.api.client.rendering.textures.*
 import net.typho.big_shot_lib.api.util.IColor
 import net.typho.big_shot_lib.api.util.resources.ResourceIdentifier
@@ -54,7 +53,6 @@ object Vibrancy {
 
     @JvmStatic
     fun init() {
-        ShaderMixinManager.register(VibrancyDynamicBuffers)
         BlockLightRegistry.init()
         WindowResizeEvent.register { width, height ->
             OUTPUT_FBO.resize(width, height)
@@ -93,6 +91,7 @@ object Vibrancy {
     @JvmStatic
     fun render(data: RenderData) {
         WORLD_POS_FBO.bind()
+        WORLD_POS_FBO.viewport()
 
         LIGHT_MANAGER.blitWorldPos(data)
 
@@ -107,12 +106,10 @@ object Vibrancy {
 
         OUTPUT_FBO.unbind()
 
-        GlFramebuffer.MAIN.bind()
+        GlFramebuffer.MAIN.bind(false)
         GlFramebuffer.MAIN.viewport()
 
         LIGHT_MANAGER.blitOutput(data, OUTPUT_FBO.colorAttachments[0] as GlTexture)
-
-        GlFramebuffer.MAIN.bind()
     }
 
     @JvmStatic

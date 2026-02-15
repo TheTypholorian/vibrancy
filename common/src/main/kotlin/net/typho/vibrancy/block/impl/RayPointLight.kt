@@ -11,6 +11,7 @@ import net.minecraft.world.level.block.state.StateHolder
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import net.typho.big_shot_lib.api.client.rendering.buffers.BufferUsage
+import net.typho.big_shot_lib.api.client.rendering.buffers.NormalsDynamicBuffer
 import net.typho.big_shot_lib.api.client.rendering.event.RenderData
 import net.typho.big_shot_lib.api.client.rendering.meshes.Mesh
 import net.typho.big_shot_lib.api.client.rendering.shaders.NeoShaderRegistry
@@ -20,7 +21,6 @@ import net.typho.big_shot_lib.api.client.rendering.textures.GlTexture
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.LightRenderResult
 import net.typho.vibrancy.Vibrancy
-import net.typho.vibrancy.VibrancyDynamicBuffers
 import net.typho.vibrancy.block.BlockLight
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.shadows.AsyncBlockShadowTexture
@@ -187,14 +187,15 @@ class RayPointLight(
         boxShader.getUniform("SampleShadows")?.setValue(raytrace)
 
         boxShader.getUniform("VibrancyShadowSampler")?.setSampler(shadows.texture)
-        boxShader.getUniform("VibrancyNormalSampler")?.setSampler(VibrancyDynamicBuffers.normalTexture!!)
+        boxShader.getUniform("VibrancyNormalSampler")?.setSampler(NormalsDynamicBuffer.texture)
         boxShader.getUniform("VibrancyWorldPosSampler")?.setSampler(Vibrancy.WORLD_POS_FBO.colorAttachments[0] as GlTexture)
 
         GlFlag.CULL_FACE.enable()
 
-        boxBuffer.bind()
         boxBuffer.draw()
-        boxBuffer.unbind()
+
+        boxShader.unbind()
+        fbo.unbind()
 
         return result
     }

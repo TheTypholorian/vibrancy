@@ -6,24 +6,15 @@
   "compatibilityLevel": "JAVA_21",
   "mixins": [
     "LevelMixin",
-    "MeshMixin",
-    "OptionsMixin",
-    "sodium.BlockRendererMixin",
-    "sodium.ChunkVertexConsumerMixin",
-    "sodium.ChunkVertexEncoderVertexMixin",
-    "sodium.CompactChunkVertexMixin",
-    "sodium.DefaultFluidRendererMixin"
+    "OptionsMixin"
   ],
   "client": [
     "ClientChunkCacheStorageMixin",
     "DebugScreenOverlayMixin",
     "GlDebugMixin",
-    "GlStateManagerMixin",
     "KeyboardHandlerMixin",
     "LevelRendererMixin",
-    "MainTargetMixin",
-    "MinecraftMixin",
-    "RenderTargetMixin"
+    "MinecraftMixin"
   ],
   "injectors": {
     "defaultRequire": 1

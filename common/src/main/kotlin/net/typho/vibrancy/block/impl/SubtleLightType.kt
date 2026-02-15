@@ -94,6 +94,9 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight, SubtleLigh
             }
 
             renderSettings.unbind()
+
+            boxShader.unbind()
+            fbo.unbind()
         }
 
         return result

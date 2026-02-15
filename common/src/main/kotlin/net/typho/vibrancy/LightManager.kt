@@ -11,6 +11,8 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
+import net.typho.big_shot_lib.api.client.rendering.buffers.AlbedoDynamicBuffer
+import net.typho.big_shot_lib.api.client.rendering.buffers.NormalsDynamicBuffer
 import net.typho.big_shot_lib.api.client.rendering.event.RenderData
 import net.typho.big_shot_lib.api.client.rendering.shaders.NeoShaderRegistry
 import net.typho.big_shot_lib.api.client.rendering.state.DepthMaskShard
@@ -145,11 +147,9 @@ open class LightManager {
 
         shader.getUniform("CameraPos")?.setValue(Vibrancy.camera)
 
-        MeshUtil.SCREEN_MESH.bind()
-        //MeshUtil.SCREEN_MESH.ebo.bind()
         MeshUtil.SCREEN_MESH.draw()
-        //MeshUtil.SCREEN_MESH.ebo.unbind()
-        MeshUtil.SCREEN_MESH.unbind()
+
+        shader.unbind()
     }
 
     fun blitOutput(data: RenderData, output: GlTexture) {
@@ -162,8 +162,8 @@ open class LightManager {
         shader.getUniform("DiffuseSampler0")?.setSampler(GlFramebuffer.MAIN.colorAttachments[0] as GlTexture)
         shader.getUniform("VibrancyWorldPosSampler")?.setSampler(Vibrancy.WORLD_POS_FBO.colorAttachments[0] as GlTexture)
         shader.getUniform("VibrancyOutputSampler")?.setSampler(output)
-        shader.getUniform("VibrancyAlbedoSampler")?.setSampler(VibrancyDynamicBuffers.albedoTexture!!)
-        shader.getUniform("VibrancyNormalSampler")?.setSampler(VibrancyDynamicBuffers.normalTexture!!)
+        shader.getUniform("VibrancyAlbedoSampler")?.setSampler(AlbedoDynamicBuffer.texture)
+        shader.getUniform("VibrancyNormalSampler")?.setSampler(NormalsDynamicBuffer.texture)
 
         shader.getUniform("IProjMat")?.setValue(Matrix4f(Vibrancy.iProjMat))
         shader.getUniform("IModelMat")?.setValue(Matrix4f(Vibrancy.iModelMat))
@@ -174,12 +174,9 @@ open class LightManager {
 
         shader.getUniform("CameraPos")?.setValue(Vibrancy.camera)
 
-        MeshUtil.SCREEN_MESH.bind()
-        //MeshUtil.SCREEN_MESH.ebo.bind()
         MeshUtil.SCREEN_MESH.draw()
-        //MeshUtil.SCREEN_MESH.ebo.unbind()
-        MeshUtil.SCREEN_MESH.unbind()
 
+        shader.unbind()
         blitSettings.unbind()
     }
 
