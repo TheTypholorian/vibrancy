@@ -3,7 +3,7 @@
 #include "vibrancy:include/fragment"
 #include "vibrancy:block/raytraced/shadow_utils"
 
-uniform samplerCubeShadow VibrancyShadowSampler;
+uniform sampler2D VibrancyShadowSampler;
 uniform sampler2D VibrancyWorldPosSampler;
 uniform sampler2D VibrancyNormalSampler;
 
@@ -23,19 +23,16 @@ out vec4 fragColor;
 
 void main() {
     vec3 pos = texelFetch(VibrancyWorldPosSampler, ivec2(gl_FragCoord.xy), 0).xyz;
-    vec3 color = LightColor;
 
     if (SampleShadows) {
         vec3 delta = pos - LightPos;
-        //vec2 shadowUV = directionToShadowCoords(normalize(delta), vec2(ShadowTextureSize));
-        float shadow = texture(VibrancyShadowSampler, vec4(normalize(delta), length(delta) / LightRadius)).r;
+        vec2 shadowUV = directionToShadowCoords(normalize(delta), vec2(ShadowTextureSize));
+        float shadow = texture(VibrancyShadowSampler, shadowUV).r;
 
-        if (shadow == 0) {
+        if (shadow * LightRadius + 2e-2 <= length(delta)) {
             discard;
         }
-
-        color *= shadow;
     }
 
-    fragColor = sampleLight(VibrancyNormalSampler, gl_FragCoord.xy / ScreenSize, LightPos, pos, LightRadius, color);
+    fragColor = sampleLight(VibrancyNormalSampler, gl_FragCoord.xy / ScreenSize, LightPos, pos, LightRadius, LightColor);
 }

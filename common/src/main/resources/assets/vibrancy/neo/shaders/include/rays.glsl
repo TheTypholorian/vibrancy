@@ -39,16 +39,15 @@ bool raycastQuad(vec3 origin, vec3 dir, float len, float margin, Quad q, out vec
 
     if (a < 0 || b < 0 || a > 1 || b > 1) return false;
 
-    uv = mix(mix(q.uv1, q.uv2, a), mix(q.uv4, q.uv3, a), b);
+    uv = vec2(a, b);
 
     return true;
 }
 
-bool sampleQuad(sampler2D AtlasSampler, vec3 origin, vec3 dir, float len, float margin, Quad q, out float t) {
-    vec2 uv;
-
+bool sampleQuad(sampler2D AtlasSampler, vec3 origin, vec3 dir, float len, float margin, Quad q, inout vec2 uv, out float t) {
     if (raycastQuad(origin, dir, len, margin, q, uv, t)) {
-        return texture(AtlasSampler, uv).a < 0.9;
+        vec2 texUv = mix(mix(q.uv1, q.uv2, uv.x), mix(q.uv4, q.uv3, uv.x), uv.y);
+        return texture(AtlasSampler, texUv).a < 1;
     } else {
         return true;
     }

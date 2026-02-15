@@ -1,6 +1,5 @@
-vec2 directionToShadowCoords(vec3 dir, vec2 atlasSize) {
+vec2 directionToShadowCoords(vec3 dir, vec2 atlasSize, out uint face) {
     vec3 absDir = abs(dir);
-    uint face;
     vec2 faceUv;
 
     if (absDir.x >= absDir.y && absDir.x >= absDir.z) {
@@ -39,8 +38,7 @@ vec2 directionToShadowCoords(vec3 dir, vec2 atlasSize) {
     return faceUv;
 }
 
-vec3 shadowCoordsToDirection(vec2 uv) {
-    uint face = uint(floor(uv.x * 6.0));
+vec3 faceAndShadowCoordsToDirection(vec2 uv, uint face) {
     vec2 faceUv = vec2(fract(uv.x * 6.0), uv.y) * 2.0 - 1.0;
 
     if (face == 0) return normalize(vec3(1.0, faceUv.y, -faceUv.x));
@@ -49,6 +47,12 @@ vec3 shadowCoordsToDirection(vec2 uv) {
     if (face == 3) return normalize(vec3(faceUv.x, -1.0, faceUv.y));
     if (face == 4) return normalize(vec3(faceUv.x, faceUv.y, 1.0));
     return normalize(vec3(-faceUv.x, faceUv.y, -1.0));
+}
+
+float faceAndDirectionToDistance(vec3 dir, uint face) {
+    if (face == 0 || face == 1) return abs(dir.x);
+    if (face == 2 || face == 3) return abs(dir.y);
+    return abs(dir.z);
 }
 
 vec2 faceAndDirectionToShadowCoords(vec3 dir, uint face) {

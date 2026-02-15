@@ -34,7 +34,7 @@ open class AsyncBlockShadowTexture(
 
                 builder.finish()
 
-                //asyncTask = null // TODO
+                asyncTask = null
                 return true
             }
         }

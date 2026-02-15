@@ -41,7 +41,7 @@ class RayPointLight(
             shader.getUniform("LightPos")?.setValue(getAbsolutePos())
             shader.getUniform("LightRadius")?.setValue(radius)
         },
-        Vibrancy.config.blockLights.raytraced.shadowTextureSize.get(),
+        Vibrancy.config.blockLights.raytraced.shadowTextureSize.get() * 6,
         Vibrancy.config.blockLights.raytraced.shadowTextureSize.get()
     )
     val boxBuffer by lazy {

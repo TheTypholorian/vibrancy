@@ -1,21 +1,25 @@
 package net.typho.vibrancy.shadows
 
-import com.mojang.blaze3d.vertex.*
+import com.mojang.blaze3d.vertex.ByteBufferBuilder
+import com.mojang.blaze3d.vertex.VertexConsumer
+import com.mojang.blaze3d.vertex.VertexFormat
+import com.mojang.blaze3d.vertex.VertexFormatElement
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.resources.ResourceLocation
+import net.typho.big_shot_lib.api.client.rendering.buffers.BufferType
 import net.typho.big_shot_lib.api.client.rendering.buffers.BufferUsage
-import net.typho.big_shot_lib.api.client.rendering.meshes.Mesh
+import net.typho.big_shot_lib.api.client.rendering.buffers.GlBuffer
 import net.typho.big_shot_lib.api.client.rendering.services.TextureUtil
 import net.typho.big_shot_lib.api.client.rendering.shaders.GlShader
 import net.typho.big_shot_lib.api.client.rendering.state.ComparisonFunc
 import net.typho.big_shot_lib.api.client.rendering.state.GlFlag
 import net.typho.big_shot_lib.api.client.rendering.state.OpenGL
 import net.typho.big_shot_lib.api.client.rendering.textures.*
-import net.typho.big_shot_lib.api.util.buffers.BufferUploader
+import net.typho.big_shot_lib.api.client.rendering.util.MeshUtil
+import net.typho.big_shot_lib.api.util.IColor
 import net.typho.big_shot_lib.api.util.resources.ResourceIdentifier
 import net.typho.vibrancy.util.EmptyVertexConsumer
-import org.lwjgl.opengl.GL13.GL_TEXTURE_CUBE_MAP
 import org.lwjgl.system.NativeResource
 import java.util.*
 import java.util.function.Consumer
@@ -28,23 +32,15 @@ open class ShadowTexture(
     val height: Int
 ) : NativeResource {
     val texture by lazy {
-        val texture = NeoTextureCube(TextureFormat.DEPTH_COMPONENT16)
-
+        val texture = NeoTexture2D(TextureFormat.R16F)
         texture.resize(width, height).uploadNull()
-
-        texture.bind()
-        texture.setInterpolation(InterpolationType.NEAREST)
-        OpenGL.INSTANCE.textureWrapping(GL_TEXTURE_CUBE_MAP, WrappingType.CLAMP_TO_EDGE, WrappingType.CLAMP_TO_EDGE, WrappingType.CLAMP_TO_EDGE)
-        texture.setCompareMode(TextureComparisonMode.COMPARE_REF_TO_TEXTURE)
-        texture.setCompareFunc(ComparisonFunc.LEQUAL)
-        texture.unbind()
-
+        texture.setInterpolation(InterpolationType.LINEAR)
         return@lazy texture
     }
     val target by lazy {
         NeoFramebuffer(
-            listOf(NeoTexture2D(TextureFormat.R8)),
-            attachmentFace(GlTextureCube.Face.POS_X),
+            listOf(texture),
+            null,
             width,
             height
         )
@@ -55,23 +51,6 @@ open class ShadowTexture(
     val toFree = LinkedList<ByteBufferBuilder>()
     @JvmField
     var size = 0
-
-    fun attachmentFace(face: GlTextureCube.Face) : GlFramebufferAttachment {
-        return object : GlFramebufferAttachment { // TODO
-            override fun format() = texture.format
-
-            override fun attachToFramebuffer(attachment: Int) {
-                OpenGL.INSTANCE.attachFramebufferTexture2D(attachment, face.glId, texture.glId)
-            }
-
-            override fun resize(
-                width: Int,
-                height: Int
-            ): BufferUploader? {
-                return null//texture.resize(width, height)
-            }
-        }
-    }
 
     override fun free() {
         target.free()
@@ -94,7 +73,7 @@ open class ShadowTexture(
         @JvmField
         val uniforms: Consumer<GlShader>
     ) : MultiBufferSource {
-        val builders = HashMap<ResourceIdentifier, BufferBuilder>()
+        val builders = HashMap<ResourceIdentifier, ShadowBufferBuilder>()
 
         override fun getBuffer(renderType: RenderType): VertexConsumer {
             val texture = getRenderTypeTexture(renderType)
@@ -110,7 +89,7 @@ open class ShadowTexture(
                 builders.computeIfAbsent(ResourceIdentifier(texture.namespace, texture.path)) { // TODO
                     val builder = ByteBufferBuilder(renderType.bufferSize())
                     toFree.add(builder)
-                    BufferBuilder(builder, VertexFormat.Mode.QUADS, DefaultVertexFormat.POSITION_TEX)
+                    ShadowBufferBuilder(builder)
                 }
             }
         }
@@ -119,6 +98,7 @@ open class ShadowTexture(
             target.bind()
 
             target.viewport()
+            target.clear(ClearBit.Color(IColor.BLACK))
 
             shader.bind()
             uniforms.accept(shader)
@@ -131,30 +111,24 @@ open class ShadowTexture(
             size = 0
 
             if (!builders.isEmpty()) {
-                val mesh = Mesh(DefaultVertexFormat.POSITION_TEX, VertexFormat.Mode.QUADS, BufferUsage.DYNAMIC_DRAW)
+                val mesh = MeshUtil.SCREEN_MESH
+                mesh.bind()
+
+                val ssbo = GlBuffer(BufferType.SHADER_STORAGE, BufferUsage.STREAM_DRAW)
+                ssbo.bind()
+                ssbo.bindBase(0)
 
                 for (entry in builders) {
+                    size += entry.value.numQuads()
+
                     shader.getUniform("Sampler0")?.setSampler(TextureUtil.INSTANCE.getMinecraftTexture(entry.key))
-                    shader.getUniform("QuadStride")?.setValue(4)
+                    ssbo.upload(entry.value.build())
 
-                    val built = entry.value.buildOrThrow()
-                    size += built.drawState().indexCount / 6
-                    mesh.upload(built)
-                    mesh.bind()
-
-                    for (face in GlTextureCube.Face.entries) {
-                        shader.getUniform("Face")?.setValue(face.ordinal)
-
-                        target.depthAttachment = attachmentFace(face)
-                        target.bind()
-                        target.clear(ClearBit.Depth(1f))
-
-                        mesh.draw()
-                    }
+                    mesh.draw()
                 }
 
+                ssbo.unbind()
                 mesh.unbind()
-                mesh.free()
             }
 
             for (builder in toFree) {
