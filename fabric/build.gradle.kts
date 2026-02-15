@@ -25,7 +25,7 @@ modrinth {
     projectId = "vibrancy"
     versionName = "$modName $version for Fabric 1.21"
     versionNumber = "mc1.21-$version-fabric"
-    versionType = "beta"
+    versionType = "release"
     uploadFile.set(tasks.remapJar)
     additionalFiles.add(tasks.remapSourcesJar)
     gameVersions.addAll("1.21", "1.21.1")
