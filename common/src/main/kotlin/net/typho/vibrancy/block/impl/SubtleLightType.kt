@@ -27,7 +27,7 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight, SubtleLigh
             CullShard(true, CullFace.FRONT),
             BlendShard(
                 true,
-                IColor.from(0xFFFFFFFF.toInt()),
+                IColor.FULL_ON,
                 BlendEquation.ADD,
                 BlendFunction.Basic(
                     BlendFactor.ONE,

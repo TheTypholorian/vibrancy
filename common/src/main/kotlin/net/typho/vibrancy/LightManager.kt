@@ -15,7 +15,8 @@ import net.typho.big_shot_lib.api.client.rendering.buffers.AlbedoDynamicBuffer
 import net.typho.big_shot_lib.api.client.rendering.buffers.NormalsDynamicBuffer
 import net.typho.big_shot_lib.api.client.rendering.event.RenderData
 import net.typho.big_shot_lib.api.client.rendering.shaders.NeoShaderRegistry
-import net.typho.big_shot_lib.api.client.rendering.state.DepthMaskShard
+import net.typho.big_shot_lib.api.client.rendering.state.CullShard
+import net.typho.big_shot_lib.api.client.rendering.state.DepthTestShard
 import net.typho.big_shot_lib.api.client.rendering.state.GlFlag
 import net.typho.big_shot_lib.api.client.rendering.state.RenderSettings
 import net.typho.big_shot_lib.api.client.rendering.textures.GlFramebuffer
@@ -43,7 +44,8 @@ open class LightManager {
     val blitSettings = RenderSettings(
         Vibrancy.id("light_manager/blit"),
         listOf(
-            DepthMaskShard(false)
+            CullShard.getDefault(),
+            DepthTestShard.getDefault()
         )
     )
 
@@ -134,7 +136,7 @@ open class LightManager {
     }
 
     fun blitWorldPos(data: RenderData) {
-        GlFlag.CULL_FACE.disable()
+        GlFlag.CULL_FACE.stack.push(false)
 
         val shader = NeoShaderRegistry.get(Vibrancy.id("world_pos"))!!
         shader.bind()
@@ -150,10 +152,14 @@ open class LightManager {
         MeshUtil.SCREEN_MESH.draw()
 
         shader.unbind()
+
+        GlFlag.CULL_FACE.stack.pop()
     }
 
     fun blitOutput(data: RenderData, output: GlTexture) {
         blitSettings.bind()
+        GlFlag.CULL_FACE.disable()
+        GlFlag.DEPTH_TEST.disable()
 
         val shader = NeoShaderRegistry.get(Vibrancy.id("post"))!!
         shader.bind()

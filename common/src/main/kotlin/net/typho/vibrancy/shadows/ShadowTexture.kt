@@ -12,13 +12,14 @@ import net.typho.big_shot_lib.api.client.rendering.buffers.BufferUsage
 import net.typho.big_shot_lib.api.client.rendering.buffers.GlBuffer
 import net.typho.big_shot_lib.api.client.rendering.services.TextureUtil
 import net.typho.big_shot_lib.api.client.rendering.shaders.GlShader
-import net.typho.big_shot_lib.api.client.rendering.state.ComparisonFunc
-import net.typho.big_shot_lib.api.client.rendering.state.GlFlag
-import net.typho.big_shot_lib.api.client.rendering.state.OpenGL
+import net.typho.big_shot_lib.api.client.rendering.state.BlendShard
+import net.typho.big_shot_lib.api.client.rendering.state.CullShard
+import net.typho.big_shot_lib.api.client.rendering.state.RenderSettings
 import net.typho.big_shot_lib.api.client.rendering.textures.*
 import net.typho.big_shot_lib.api.client.rendering.util.MeshUtil
 import net.typho.big_shot_lib.api.util.IColor
 import net.typho.big_shot_lib.api.util.resources.ResourceIdentifier
+import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.util.EmptyVertexConsumer
 import org.lwjgl.system.NativeResource
 import java.util.*
@@ -51,6 +52,14 @@ open class ShadowTexture(
     val toFree = LinkedList<ByteBufferBuilder>()
     @JvmField
     var size = 0
+    @JvmField
+    val renderSettings = RenderSettings(
+        Vibrancy.id("shadow_texture"),
+        listOf(
+            CullShard.getDefault(),
+            BlendShard.getDefault()
+        )
+    )
 
     override fun free() {
         target.free()
@@ -103,10 +112,7 @@ open class ShadowTexture(
             shader.bind()
             uniforms.accept(shader)
 
-            GlFlag.CULL_FACE.disable()
-            GlFlag.DEPTH_TEST.enable()
-            OpenGL.INSTANCE.depthFunc(ComparisonFunc.ALWAYS)
-            GlFlag.BLEND.disable()
+            renderSettings.bind()
 
             size = 0
 
@@ -134,6 +140,8 @@ open class ShadowTexture(
             for (builder in toFree) {
                 builder.close()
             }
+
+            renderSettings.unbind()
 
             shader.unbind()
             target.unbind()

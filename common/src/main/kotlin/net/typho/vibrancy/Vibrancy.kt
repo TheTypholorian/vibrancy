@@ -3,9 +3,13 @@ package net.typho.vibrancy
 import me.fzzyhmstrs.fzzy_config.api.ConfigApi
 import me.fzzyhmstrs.fzzy_config.api.RegisterType
 import net.minecraft.ChatFormatting
+import net.minecraft.client.Minecraft
 import net.typho.big_shot_lib.api.client.rendering.event.PostProcessEvent
 import net.typho.big_shot_lib.api.client.rendering.event.RenderData
 import net.typho.big_shot_lib.api.client.rendering.event.WindowResizeEvent
+import net.typho.big_shot_lib.api.client.rendering.shaders.ShaderSourceKey
+import net.typho.big_shot_lib.api.client.rendering.shaders.mixins.ShaderMixin
+import net.typho.big_shot_lib.api.client.rendering.shaders.mixins.ShaderMixinManager
 import net.typho.big_shot_lib.api.client.rendering.textures.*
 import net.typho.big_shot_lib.api.util.IColor
 import net.typho.big_shot_lib.api.util.resources.ResourceIdentifier
@@ -59,6 +63,13 @@ object Vibrancy {
             WORLD_POS_FBO.resize(width, height)
         }
         PostProcessEvent.register(this::render)
+        ShaderMixinManager.register(object : ShaderMixin {
+            override fun mixinPreCompile(key: ShaderSourceKey, code: String): String {
+                //println(key)
+                //println(code)
+                return super.mixinPreCompile(key, code)
+            }
+        })
 
         /*
         if (Services.PLATFORM.isDevelopmentEnvironment()) {
@@ -106,8 +117,10 @@ object Vibrancy {
 
         OUTPUT_FBO.unbind()
 
-        GlFramebuffer.MAIN.bind(false)
-        GlFramebuffer.MAIN.viewport()
+        Minecraft.getInstance().mainRenderTarget.bindWrite(true)
+
+        //GlFramebuffer.MAIN.bind(false)
+        //GlFramebuffer.MAIN.viewport()
 
         LIGHT_MANAGER.blitOutput(data, OUTPUT_FBO.colorAttachments[0] as GlTexture)
     }

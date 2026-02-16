@@ -3,5 +3,9 @@
     "vertex": "vibrancy:block/raytraced/box",
     "fragment": "vibrancy:block/raytraced/box"
   },
-  "format": "POSITION"
+  "format": "POSITION",
+  "disabledDynamicBuffers": [
+    "big_shot_lib:dynamic_buffer/normals",
+    "big_shot_lib:dynamic_buffer/albedo"
+  ]
 }

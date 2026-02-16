@@ -25,7 +25,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, Hash
             CullShard(true, CullFace.FRONT),
             BlendShard(
                 true,
-                IColor.from(0xFFFFFFFF.toInt()),
+                IColor.FULL_ON,
                 BlendEquation.ADD,
                 BlendFunction.Basic(
                     BlendFactor.ONE,

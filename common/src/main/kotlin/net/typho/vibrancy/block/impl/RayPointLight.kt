@@ -15,7 +15,6 @@ import net.typho.big_shot_lib.api.client.rendering.buffers.NormalsDynamicBuffer
 import net.typho.big_shot_lib.api.client.rendering.event.RenderData
 import net.typho.big_shot_lib.api.client.rendering.meshes.Mesh
 import net.typho.big_shot_lib.api.client.rendering.shaders.NeoShaderRegistry
-import net.typho.big_shot_lib.api.client.rendering.state.GlFlag
 import net.typho.big_shot_lib.api.client.rendering.textures.GlFramebuffer
 import net.typho.big_shot_lib.api.client.rendering.textures.GlTexture
 import net.typho.vibrancy.LightManager
@@ -161,9 +160,7 @@ class RayPointLight(
             shadowsDirty = false
         }
 
-        if (shadows.checkIfFinished()) {
-            getType().renderSettings.bind()
-        }
+        shadows.checkIfFinished()
 
         fbo.bind()
         fbo.viewport()
@@ -189,8 +186,6 @@ class RayPointLight(
         boxShader.getUniform("VibrancyShadowSampler")?.setSampler(shadows.texture)
         boxShader.getUniform("VibrancyNormalSampler")?.setSampler(NormalsDynamicBuffer.texture)
         boxShader.getUniform("VibrancyWorldPosSampler")?.setSampler(Vibrancy.WORLD_POS_FBO.colorAttachments[0] as GlTexture)
-
-        GlFlag.CULL_FACE.enable()
 
         boxBuffer.draw()
 

@@ -3,5 +3,9 @@
     "vertex": "big_shot_lib:blit",
     "fragment": "vibrancy:post"
   },
-  "format": "POSITION_TEX"
+  "format": "POSITION_TEX",
+  "disabledDynamicBuffers": [
+    "big_shot_lib:dynamic_buffer/normals",
+    "big_shot_lib:dynamic_buffer/albedo"
+  ]
 }
