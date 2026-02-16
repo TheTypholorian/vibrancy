@@ -33,7 +33,7 @@ open class ShadowTexture(
 ) : NativeResource {
     val texture by lazy {
         val texture = NeoTexture2D(TextureFormat.R16F)
-        texture.resize(width, height).uploadNull()
+        texture.resize(width, height)
         texture.setInterpolation(InterpolationType.LINEAR)
         return@lazy texture
     }

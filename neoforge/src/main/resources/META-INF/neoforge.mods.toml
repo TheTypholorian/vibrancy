@@ -29,16 +29,9 @@ versionRange = "${minecraft_version_range}"
 ordering = "NONE"
 side = "BOTH"
 [[dependencies."${mod_id}"]]
-modId = "iris"
-type="incompatible"
-versionRange = "*"
-ordering = "NONE"
-side = "BOTH"
-reason = "Breaks dynamic buffers"
-[[dependencies."${mod_id}"]]
-modId = "big_shot_lib"
+modId = "big_shot_api"
 type="required"
-versionRange = "[${big_shot_version},)"
+versionRange = "${big_shot_version_range}"
 ordering = "NONE"
 side = "BOTH"
 [[dependencies."${mod_id}"]]
@@ -47,9 +40,6 @@ type="required"
 versionRange = "*"
 ordering = "NONE"
 side = "BOTH"
-
-[modproperties."${mod_id}"]
-"big_shot_lib:require_shader_mixins"=true
 
 # Features are specific properties of the game environment, that you may want to declare you require. This example declares
 # that your mod requires GL version 3.2 or higher. Other features will be added. They are side aware so declaring this won't
