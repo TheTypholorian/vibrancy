@@ -5,6 +5,7 @@ import me.fzzyhmstrs.fzzy_config.api.RegisterType
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
 import net.typho.big_shot_lib.api.client.rendering.event.*
+import net.typho.big_shot_lib.api.client.rendering.state.OpenGL
 import net.typho.big_shot_lib.api.client.rendering.textures.*
 import net.typho.big_shot_lib.api.util.IColor
 import net.typho.big_shot_lib.api.util.resources.ResourceIdentifier
@@ -59,16 +60,20 @@ object Vibrancy {
         }
         PostProcessEvent.register(this::render)
         ClientChunkChangedEvent.register { old, new ->
-            if (old != null) {
-                LIGHT_MANAGER.deloadChunk(old)
-            }
+            OpenGL.INSTANCE.recordRenderCall {
+                if (old != null) {
+                    LIGHT_MANAGER.deloadChunk(old)
+                }
 
-            if (new != null) {
-                LIGHT_MANAGER.loadChunk(new)
+                if (new != null) {
+                    LIGHT_MANAGER.loadChunk(new)
+                }
             }
         }
         BlockChangedEvent.register { level, pos, old, new ->
-            LIGHT_MANAGER.blockChanged(level, pos, old!!, new!!)
+            OpenGL.INSTANCE.recordRenderCall {
+                LIGHT_MANAGER.blockChanged(level, pos, old, new)
+            }
         }
 
         /*

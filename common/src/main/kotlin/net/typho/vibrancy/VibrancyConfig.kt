@@ -1,6 +1,5 @@
 package net.typho.vibrancy
 
-import com.mojang.blaze3d.systems.RenderSystem
 import me.fzzyhmstrs.fzzy_config.annotations.Action
 import me.fzzyhmstrs.fzzy_config.annotations.RequiresAction
 import me.fzzyhmstrs.fzzy_config.api.FileType
@@ -13,6 +12,7 @@ import me.fzzyhmstrs.fzzy_config.validation.number.ValidatedNumber
 import me.fzzyhmstrs.fzzy_config.validation.number.ValidatedNumber.Companion.setFormat
 import me.fzzyhmstrs.fzzy_config.validation.number.ValidatedNumber.Companion.withIncrement
 import net.minecraft.resources.ResourceLocation
+import net.typho.big_shot_lib.api.client.rendering.state.OpenGL
 import java.text.DecimalFormat
 
 class VibrancyConfig : Config(
@@ -47,7 +47,7 @@ class VibrancyConfig : Config(
             @JvmField
             var shadowRadius = ValidatedInt(8, 16, 1)
                 .withListener {
-                    RenderSystem.recordRenderCall {
+                    OpenGL.INSTANCE.recordRenderCall {
                         Vibrancy.LIGHT_MANAGER.rebuildAllShadows()
                     }
                 }
