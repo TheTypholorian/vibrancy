@@ -19,10 +19,8 @@ open class ShadowBufferBuilder(val builder: ByteBufferBuilder) : VertexConsumer 
     protected var currentVertexPointer: Long? = null
     protected var numVertices = 0
 
-    fun build(): ByteBuffer {
-        val result = builder.build() ?: throw NullPointerException()
-
-        return result.byteBuffer()
+    fun build(): ByteBuffer? {
+        return builder.build()?.byteBuffer()
     }
 
     override fun addVertex(

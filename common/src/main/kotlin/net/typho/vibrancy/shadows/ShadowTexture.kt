@@ -125,12 +125,14 @@ open class ShadowTexture(
                 ssbo.bindBase(0)
 
                 for (entry in builders) {
-                    size += entry.value.numQuads()
+                    entry.value.build()?.let { built ->
+                        size += entry.value.numQuads()
 
-                    shader.getUniform("Sampler0")?.setSampler(TextureUtil.INSTANCE.getMinecraftTexture(entry.key))
-                    ssbo.upload(entry.value.build())
+                        shader.getUniform("Sampler0")?.setSampler(TextureUtil.INSTANCE.getMinecraftTexture(entry.key))
+                        ssbo.upload(built)
 
-                    mesh.draw()
+                        mesh.draw()
+                    }
                 }
 
                 ssbo.unbind()
