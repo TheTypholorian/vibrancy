@@ -16,6 +16,7 @@ class SubtleLightInfo(
     val offset: StateFunction<Vector3f>,
     val enabled: StateFunction<Boolean>
 ) : BlockLightInfo<SubtleLightInfo, SubtleLight> {
+    @Suppress("DEPRECATION")
     override fun createBlockLight(manager: LightManager, level: Level, state: StateHolder<*, *>, pos: BlockPos): SubtleLight? {
         if (!enabled.apply(state)) {
             return null
@@ -25,7 +26,7 @@ class SubtleLightInfo(
             val rPos = pos.relative(direction)
             val rState = manager.getLevel().getBlockState(rPos)
 
-            if (!rState.isSolidRender(level, rPos) && !BlockLightRegistry.has(rState.block)) {
+            if (!rState.isSolid && !BlockLightRegistry.has(rState.block)) {
                 return SubtleLight(this, state, pos)
             }
         }

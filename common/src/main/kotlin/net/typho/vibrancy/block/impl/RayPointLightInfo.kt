@@ -26,7 +26,8 @@ class RayPointLightInfo(
 
     override fun type() = RayPointLightType
 
+    @Suppress("DEPRECATION")
     override fun shouldCastShadow(manager: LightManager, level: Level, state: StateHolder<*, *>, pos: BlockPos): Boolean {
-        return if (state is BlockBehaviour.BlockStateBase) state.isSolidRender(level, pos) else true
+        return if (state is BlockBehaviour.BlockStateBase) state.isSolid else true
     }
 }

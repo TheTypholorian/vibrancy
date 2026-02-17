@@ -74,11 +74,12 @@ open class LightManager {
 
     @Suppress("UNCHECKED_CAST")
     protected fun <I : BlockLightInfo<I, B>, B : BlockLight<I, B>> addBlockLight(
+        level: Level,
         pos: BlockPos,
         state: BlockState,
         light: BlockLightInfo<I, B>
     ) {
-        (blockLights[light.type()] as BlockLightStorage<I>).addLight(this, state, pos, light as I)
+        (blockLights[light.type()] as BlockLightStorage<I>).addLight(this, level, state, pos, light as I)
     }
 
     fun blockChanged(
@@ -97,7 +98,7 @@ open class LightManager {
         }
 
         if (newLight != null) {
-            addBlockLight(pos, new, newLight)
+            addBlockLight(level, pos, new, newLight)
         }
 
         dirtyBlocks.add(GlobalPos(level.dimension(), pos))

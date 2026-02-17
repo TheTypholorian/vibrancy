@@ -28,11 +28,12 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
     val allVoxels = LinkedList<Voxel>()
     val nonGreedy = LinkedList<LightFace>()
 
+    @Suppress("DEPRECATION")
     fun shouldGreedyMesh(
         state: BlockState,
         level: Level,
         pos: BlockPos
-    ) = state.isSolidRender(level, pos)
+    ) = state.isSolid
 
     @Suppress("DEPRECATION")
     override fun submit(

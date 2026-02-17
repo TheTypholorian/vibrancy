@@ -5,6 +5,7 @@ import com.mojang.blaze3d.vertex.VertexFormat
 import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
 import net.minecraft.world.level.ChunkPos
+import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.StateHolder
 import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.level.chunk.LevelChunkSection
@@ -41,6 +42,7 @@ class SubtleLightStorage : BlockLightStorage<SubtleLightInfo> {
 
     override fun addLight(
         manager: LightManager,
+        level: Level,
         state: StateHolder<*, *>,
         pos: BlockPos,
         info: SubtleLightInfo

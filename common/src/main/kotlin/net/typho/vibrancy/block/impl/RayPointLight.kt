@@ -88,14 +88,16 @@ class RayPointLight(
 
     override fun getShadowPredicate(): ShadowPredicate {
         return object : ShadowPredicate {
+            @Suppress("DEPRECATION")
             override fun shouldCastBlock(
                 state: BlockState,
                 level: Level,
                 pos: BlockPos
             ): Boolean {
-                return pos != this@RayPointLight.pos && (state.isSolidRender(level, pos) || !BlockLightRegistry.has(state.block))
+                return pos != this@RayPointLight.pos && (state.isSolid || !BlockLightRegistry.has(state.block))
             }
 
+            @Suppress("DEPRECATION")
             override fun shouldCastFace(
                 face: Direction?,
                 state: BlockState,
@@ -121,7 +123,7 @@ class RayPointLight(
 
                 val sideState = level.getBlockState(sidePos)
 
-                return !(state.isSolidRender(level, pos) && sideState.isSolidRender(level, pos))
+                return !(state.isSolid && sideState.isSolid)
             }
 
             override fun isInRange(pos: BlockPos): Boolean {
