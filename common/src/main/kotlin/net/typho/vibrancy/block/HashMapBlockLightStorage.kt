@@ -49,7 +49,7 @@ open class HashMapBlockLightStorage<I : BlockLightInfo<I, B>, B : BlockLight<I, 
                                 if (info.type() == type) {
                                     addLight(
                                         manager,
-                                        chunk.level,
+                                        chunk.level!!,
                                         state,
                                         BlockPos(
                                             x + minPos.x,
