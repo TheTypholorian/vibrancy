@@ -1,7 +1,7 @@
 package net.typho.vibrancy.block.impl
 
 import net.minecraft.core.BlockPos
-import net.minecraft.world.level.block.state.StateHolder
+import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import net.typho.vibrancy.LightManager
@@ -13,7 +13,7 @@ class SubtleLight(
     val offset: Vector3f,
     val pos: BlockPos
 ) : BlockLight<SubtleLightInfo, SubtleLight> {
-    constructor(info: SubtleLightInfo, state: StateHolder<*, *>, pos: BlockPos) : this(
+    constructor(info: SubtleLightInfo, state: BlockState, pos: BlockPos) : this(
         info.color.apply(state).mul(info.brightness.apply(state), Vector3f()),
         info.offset.apply(state),
         pos

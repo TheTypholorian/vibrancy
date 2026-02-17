@@ -4,8 +4,8 @@ import com.mojang.datafixers.util.Either
 import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
+import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
-import net.minecraft.world.level.block.state.StateHolder
 import net.minecraft.world.level.block.state.properties.Property
 
 data class StateFunction<T>(
@@ -14,7 +14,7 @@ data class StateFunction<T>(
 ) {
     constructor(default: T, vararg entries: Entry<T>) : this(entries.toList(), default)
 
-    fun apply(state: StateHolder<*, *>): T {
+    fun apply(state: BlockState): T {
         for (entry in entries) {
             if (entry.test(state)) {
                 return entry.value
@@ -30,7 +30,7 @@ data class StateFunction<T>(
     ) {
         constructor(property: Property<*>, comparable: Comparable<*>, value: T) : this(mapOf(Pair(property, comparable)), value)
 
-        fun test(state: StateHolder<*, *>): Boolean {
+        fun test(state: BlockState): Boolean {
             for (entry in map.entries) {
                 if (state.getValue(entry.key) != entry.value) {
                     return false

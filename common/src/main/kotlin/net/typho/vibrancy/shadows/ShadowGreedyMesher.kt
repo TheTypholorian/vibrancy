@@ -10,6 +10,7 @@ import net.minecraft.core.Direction
 import net.minecraft.util.RandomSource
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
+import net.typho.big_shot_lib.api.services.BlockUtil
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.shadows.LightFace.Companion.toLightFace
 import net.typho.vibrancy.shadows.ShadowMesher.Companion.createFace
@@ -28,12 +29,11 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
     val allVoxels = LinkedList<Voxel>()
     val nonGreedy = LinkedList<LightFace>()
 
-    @Suppress("DEPRECATION")
     fun shouldGreedyMesh(
         state: BlockState,
         level: Level,
         pos: BlockPos
-    ) = state.isSolid
+    ) = BlockUtil.INSTANCE.isSolidRender(state, pos, level)
 
     @Suppress("DEPRECATION")
     override fun submit(

@@ -7,7 +7,6 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
-import net.minecraft.world.level.block.state.StateHolder
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import net.typho.big_shot_lib.api.client.rendering.buffers.BufferUsage
@@ -17,6 +16,7 @@ import net.typho.big_shot_lib.api.client.rendering.meshes.Mesh
 import net.typho.big_shot_lib.api.client.rendering.shaders.NeoShaderRegistry
 import net.typho.big_shot_lib.api.client.rendering.textures.GlFramebuffer
 import net.typho.big_shot_lib.api.client.rendering.textures.GlTexture
+import net.typho.big_shot_lib.api.services.BlockUtil
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.LightRenderResult
 import net.typho.vibrancy.Vibrancy
@@ -56,7 +56,7 @@ class RayPointLight(
     }
     var shadowsDirty = true
 
-    constructor(info: RayPointLightInfo, state: StateHolder<*, *>, pos: BlockPos) : this(
+    constructor(info: RayPointLightInfo, state: BlockState, pos: BlockPos) : this(
         info.color.apply(state).mul(info.brightness.apply(state), Vector3f()),
         info.radius.apply(state),
         info.offset.apply(state),
@@ -88,16 +88,14 @@ class RayPointLight(
 
     override fun getShadowPredicate(): ShadowPredicate {
         return object : ShadowPredicate {
-            @Suppress("DEPRECATION")
             override fun shouldCastBlock(
                 state: BlockState,
                 level: Level,
                 pos: BlockPos
             ): Boolean {
-                return pos != this@RayPointLight.pos && (state.isSolid || !BlockLightRegistry.has(state.block))
+                return pos != this@RayPointLight.pos && (BlockUtil.INSTANCE.isSolidRender(state, pos, level) || !BlockLightRegistry.has(state.block))
             }
 
-            @Suppress("DEPRECATION")
             override fun shouldCastFace(
                 face: Direction?,
                 state: BlockState,
@@ -123,7 +121,7 @@ class RayPointLight(
 
                 val sideState = level.getBlockState(sidePos)
 
-                return !(state.isSolid && sideState.isSolid)
+                return !(BlockUtil.INSTANCE.isSolidRender(state, pos, level) && BlockUtil.INSTANCE.isSolidRender(sideState, sidePos, level))
             }
 
             override fun isInRange(pos: BlockPos): Boolean {
