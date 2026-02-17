@@ -26,7 +26,7 @@
     "${mod_id}.fabric.mixins.json"
   ],
   "depends": {
-    "fabricloader": ">=${fabric_loader_version}",
+    "fabricloader": "*",
     "fabric-api": "*",
     "minecraft": "*",
     "java": ">=${java_version}",
