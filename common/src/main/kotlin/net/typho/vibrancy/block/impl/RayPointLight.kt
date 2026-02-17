@@ -112,10 +112,7 @@ class RayPointLight(
                     return true
                 }
 
-                if (
-                    Vec3.atLowerCornerOf(face.normal).toVector3f()
-                        .dot(this@RayPointLight.pos.center.subtract(pos.center).toVector3f()) <= 0
-                ) {
+                if (face.step().dot(this@RayPointLight.pos.center.subtract(pos.center).toVector3f()) <= 0) {
                     return false
                 }
 
