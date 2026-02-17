@@ -1,6 +1,5 @@
 package net.typho.vibrancy
 
-import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Camera
 import net.minecraft.client.Minecraft
@@ -15,10 +14,7 @@ import net.typho.big_shot_lib.api.client.rendering.buffers.AlbedoDynamicBuffer
 import net.typho.big_shot_lib.api.client.rendering.buffers.NormalsDynamicBuffer
 import net.typho.big_shot_lib.api.client.rendering.event.RenderData
 import net.typho.big_shot_lib.api.client.rendering.shaders.NeoShaderRegistry
-import net.typho.big_shot_lib.api.client.rendering.state.CullShard
-import net.typho.big_shot_lib.api.client.rendering.state.DepthTestShard
-import net.typho.big_shot_lib.api.client.rendering.state.GlFlag
-import net.typho.big_shot_lib.api.client.rendering.state.RenderSettings
+import net.typho.big_shot_lib.api.client.rendering.state.*
 import net.typho.big_shot_lib.api.client.rendering.textures.GlFramebuffer
 import net.typho.big_shot_lib.api.client.rendering.textures.GlTexture
 import net.typho.big_shot_lib.api.client.rendering.util.MeshUtil
@@ -28,7 +24,6 @@ import net.typho.vibrancy.shadows.ShadowMesher
 import net.typho.vibrancy.util.PointLight
 import org.joml.Matrix4f
 import org.joml.Vector2f
-import org.joml.Vector4f
 import java.util.*
 import java.util.function.Consumer
 
@@ -174,9 +169,7 @@ open class LightManager {
         shader.getUniform("IProjMat")?.setValue(Matrix4f(Vibrancy.iProjMat))
         shader.getUniform("IModelMat")?.setValue(Matrix4f(Vibrancy.iModelMat))
 
-        shader.getUniform("FogStart")?.setValue(RenderSystem.getShaderFogStart())
-        shader.getUniform("FogEnd")?.setValue(RenderSystem.getShaderFogEnd())
-        shader.getUniform("FogColor")?.setValue(Vector4f(RenderSystem.getShaderFogColor()))
+        FogParameters.INSTANCE.get().upload(shader)
 
         shader.getUniform("CameraPos")?.setValue(Vibrancy.camera)
 
