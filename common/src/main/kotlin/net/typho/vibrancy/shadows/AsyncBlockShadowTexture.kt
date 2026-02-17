@@ -1,6 +1,5 @@
 package net.typho.vibrancy.shadows
 
-import net.minecraft.client.renderer.RenderType
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.util.RandomSource
@@ -26,7 +25,7 @@ open class AsyncBlockShadowTexture(
         asyncTask?.let { task ->
             if (task.isDone) {
                 val builder = begin(shader.get(), uniforms)
-                val consumer = builder.getBuffer(RenderType.solid())
+                val consumer = builder.mainBuffer()
 
                 for (face in task.get()) {
                     face.buildGeometry(consumer)

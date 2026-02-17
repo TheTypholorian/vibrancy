@@ -6,7 +6,6 @@ import com.mojang.blaze3d.vertex.VertexFormat
 import com.mojang.blaze3d.vertex.VertexFormatElement
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.RenderType
-import net.minecraft.resources.ResourceLocation
 import net.typho.big_shot_lib.api.client.rendering.buffers.BufferType
 import net.typho.big_shot_lib.api.client.rendering.buffers.BufferUsage
 import net.typho.big_shot_lib.api.client.rendering.buffers.GlBuffer
@@ -24,7 +23,6 @@ import net.typho.vibrancy.util.EmptyVertexConsumer
 import org.lwjgl.system.NativeResource
 import java.util.*
 import java.util.function.Consumer
-import kotlin.jvm.optionals.getOrNull
 
 open class ShadowTexture(
     @JvmField
@@ -65,15 +63,6 @@ open class ShadowTexture(
         target.free()
     }
 
-    fun getRenderTypeTexture(renderType: RenderType): ResourceLocation? {
-        return when (renderType) {
-            is RenderType.CompositeRenderType -> {
-                renderType.state().textureState.cutoutTexture().getOrNull()
-            }
-            else -> null
-        }
-    }
-
     fun begin(shader: GlShader, uniforms: Consumer<GlShader>) = Builder(shader, uniforms)
 
     inner class Builder(
@@ -84,8 +73,16 @@ open class ShadowTexture(
     ) : MultiBufferSource {
         val builders = HashMap<ResourceIdentifier, ShadowBufferBuilder>()
 
+        fun mainBuffer(): ShadowBufferBuilder {
+            return builders.computeIfAbsent(TextureUtil.INSTANCE.blockAtlasTexture()) {
+                val builder = ByteBufferBuilder(RenderType.SMALL_BUFFER_SIZE)
+                toFree.add(builder)
+                ShadowBufferBuilder(builder)
+            }
+        }
+
         override fun getBuffer(renderType: RenderType): VertexConsumer {
-            val texture = getRenderTypeTexture(renderType)
+            val texture = TextureUtil.INSTANCE.getRenderTypeTexture(renderType)
 
             return if (
                 texture == null
@@ -95,7 +92,7 @@ open class ShadowTexture(
             ) {
                 EmptyVertexConsumer
             } else {
-                builders.computeIfAbsent(ResourceIdentifier(texture.namespace, texture.path)) { // TODO
+                builders.computeIfAbsent(texture) {
                     val builder = ByteBufferBuilder(renderType.bufferSize())
                     toFree.add(builder)
                     ShadowBufferBuilder(builder)

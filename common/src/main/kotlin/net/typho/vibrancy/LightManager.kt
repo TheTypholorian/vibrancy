@@ -18,6 +18,7 @@ import net.typho.big_shot_lib.api.client.rendering.state.*
 import net.typho.big_shot_lib.api.client.rendering.textures.GlFramebuffer
 import net.typho.big_shot_lib.api.client.rendering.textures.GlTexture
 import net.typho.big_shot_lib.api.client.rendering.util.MeshUtil
+import net.typho.big_shot_lib.api.services.WrapperUtil
 import net.typho.vibrancy.block.*
 import net.typho.vibrancy.shadows.BasicShadowMesher
 import net.typho.vibrancy.shadows.ShadowMesher
@@ -66,7 +67,7 @@ open class LightManager {
 
     fun ensureStorageInitialized() {
         Minecraft.getInstance().level?.let { level ->
-            for (type in level.registryAccess().registryOrThrow(BlockLightRegistry.registryKey)) {
+            for (type in WrapperUtil.INSTANCE.wrap(level.registryAccess()).registry(BlockLightRegistry.registryKey)!!.values()) {
                 blockLights.computeIfAbsent(type) { type -> type.createStorage(this) }
             }
         }
@@ -186,7 +187,7 @@ open class LightManager {
         for (entry in blockLights) {
             out.accept("")
 
-            out.accept(ChatFormatting.UNDERLINE.toString() + getLevel().registryAccess().registryOrThrow(BlockLightRegistry.registryKey).getKey(entry.key)!!.toString())
+            out.accept(ChatFormatting.UNDERLINE.toString() + WrapperUtil.INSTANCE.wrap(getLevel().registryAccess()).registry(BlockLightRegistry.registryKey)!!.getKey(entry.key).location.toString())
             out.accept("${entry.value.size()} lights in world")
 
             blockRenderResults[entry.key]?.accept(out)

@@ -4,12 +4,12 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonParser.parseReader
 import com.google.gson.JsonSyntaxException
 import com.mojang.serialization.JsonOps.INSTANCE
-import net.minecraft.core.RegistryAccess
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.level.block.Block
 import net.typho.big_shot_lib.api.services.NeoFileToIdConverter
-import net.typho.big_shot_lib.api.services.ResourceManagerWrapper
+import net.typho.big_shot_lib.api.services.NeoResourceManager
 import net.typho.big_shot_lib.api.services.WrapperUtil
+import net.typho.big_shot_lib.api.util.NeoRegistryAccess
 import net.typho.big_shot_lib.api.util.resources.NeoTagKey
 import net.typho.big_shot_lib.api.util.resources.ResourceIdentifier
 import net.typho.vibrancy.Vibrancy
@@ -21,7 +21,7 @@ object BlockLightInfoLoader {
     val tagIdConverter: NeoFileToIdConverter = NeoFileToIdConverter.json("rtx/block_lights/by_block_tag")
 
     @JvmStatic
-    fun load(block: Block, key: ResourceIdentifier, json: JsonElement, registryAccess: RegistryAccess) {
+    fun load(block: Block, key: ResourceIdentifier, json: JsonElement, registryAccess: NeoRegistryAccess) {
         BlockLightRegistry.blockMap[block] = BlockLightRegistry.infoCodec(block.stateDefinition, registryAccess)
             .codec()
             .parse(INSTANCE, json)
@@ -29,7 +29,7 @@ object BlockLightInfoLoader {
     }
 
     @JvmStatic
-    fun load(manager: ResourceManagerWrapper, registryAccess: RegistryAccess) {
+    fun load(manager: NeoResourceManager, registryAccess: NeoRegistryAccess) {
         BlockLightRegistry.blockMap.clear()
         val blocks = WrapperUtil.INSTANCE.wrap(BuiltInRegistries.BLOCK)
 

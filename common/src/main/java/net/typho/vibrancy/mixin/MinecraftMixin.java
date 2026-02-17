@@ -27,6 +27,6 @@ public class MinecraftMixin {
     private void setLevel(ClientLevel level, ReceivingLevelScreen.Reason reason, CallbackInfo ci) {
         Vibrancy.LIGHT_MANAGER.clear();
 
-        BlockLightInfoLoader.load(WrapperUtil.INSTANCE.wrap(resourceManager), level.registryAccess());
+        BlockLightInfoLoader.load(WrapperUtil.INSTANCE.wrap(resourceManager), WrapperUtil.INSTANCE.wrap(level.registryAccess()));
     }
 }

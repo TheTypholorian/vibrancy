@@ -4,10 +4,11 @@ import com.mojang.blaze3d.vertex.ByteBufferBuilder
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.mojang.blaze3d.vertex.VertexConsumer
 import com.mojang.blaze3d.vertex.VertexFormat
+import net.typho.big_shot_lib.api.client.rendering.meshes.NeoVertexConsumer
 import org.lwjgl.system.MemoryUtil.memPutFloat
 import java.nio.ByteBuffer
 
-open class ShadowBufferBuilder(val builder: ByteBufferBuilder) : VertexConsumer {
+open class ShadowBufferBuilder(val builder: ByteBufferBuilder) : VertexConsumer, NeoVertexConsumer {
     companion object {
         const val VERTEX_SIZE = 8 * Float.SIZE_BYTES
         @JvmField
@@ -63,4 +64,56 @@ open class ShadowBufferBuilder(val builder: ByteBufferBuilder) : VertexConsumer 
     ): ShadowBufferBuilder = this
 
     fun numQuads() = numVertices / 4
+
+    override fun vertex(
+        x: Float,
+        y: Float,
+        z: Float
+    ): NeoVertexConsumer {
+        addVertex(x, y, z)
+        return this
+    }
+
+    override fun color(
+        r: Float,
+        g: Float,
+        b: Float,
+        a: Float
+    ): NeoVertexConsumer {
+        setColor(r, g, b, a)
+        return this
+    }
+
+    override fun textureUV(
+        u: Float,
+        v: Float
+    ): NeoVertexConsumer {
+        setUv(u, v)
+        return this
+    }
+
+    override fun overlayUV(
+        u: Int,
+        v: Int
+    ): NeoVertexConsumer {
+        setUv1(u, v)
+        return this
+    }
+
+    override fun lightUV(
+        u: Int,
+        v: Int
+    ): NeoVertexConsumer {
+        setUv2(u, v)
+        return this
+    }
+
+    override fun normal(
+        x: Float,
+        y: Float,
+        z: Float
+    ): NeoVertexConsumer {
+        setNormal(x, y, z)
+        return this
+    }
 }
