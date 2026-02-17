@@ -4,6 +4,7 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.screens.ReceivingLevelScreen;
 import net.minecraft.client.multiplayer.ClientLevel;
 import net.minecraft.server.packs.resources.ReloadableResourceManager;
+import net.typho.big_shot_lib.api.services.WrapperUtil;
 import net.typho.vibrancy.Vibrancy;
 import net.typho.vibrancy.block.BlockLightInfoLoader;
 import org.spongepowered.asm.mixin.Final;
@@ -26,6 +27,6 @@ public class MinecraftMixin {
     private void setLevel(ClientLevel level, ReceivingLevelScreen.Reason reason, CallbackInfo ci) {
         Vibrancy.LIGHT_MANAGER.clear();
 
-        BlockLightInfoLoader.load(resourceManager, level.registryAccess());
+        BlockLightInfoLoader.load(WrapperUtil.INSTANCE.wrap(resourceManager), level.registryAccess());
     }
 }

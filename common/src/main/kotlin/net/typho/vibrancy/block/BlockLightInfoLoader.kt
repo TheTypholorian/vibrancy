@@ -6,23 +6,22 @@ import com.google.gson.JsonSyntaxException
 import com.mojang.serialization.JsonOps.INSTANCE
 import net.minecraft.core.RegistryAccess
 import net.minecraft.core.registries.BuiltInRegistries
-import net.minecraft.core.registries.Registries
-import net.minecraft.resources.FileToIdConverter
-import net.minecraft.resources.ResourceLocation
-import net.minecraft.server.packs.resources.ResourceManager
-import net.minecraft.tags.TagKey.create
 import net.minecraft.world.level.block.Block
+import net.typho.big_shot_lib.api.services.NeoFileToIdConverter
+import net.typho.big_shot_lib.api.services.ResourceManagerWrapper
+import net.typho.big_shot_lib.api.services.WrapperUtil
+import net.typho.big_shot_lib.api.util.resources.NeoTagKey
+import net.typho.big_shot_lib.api.util.resources.ResourceIdentifier
 import net.typho.vibrancy.Vibrancy
-import kotlin.jvm.optionals.getOrNull
 
 object BlockLightInfoLoader {
     @JvmField
-    val singleIdConverter: FileToIdConverter = FileToIdConverter.json("rtx/block_lights/by_block")
+    val singleIdConverter: NeoFileToIdConverter = NeoFileToIdConverter.json("rtx/block_lights/by_block")
     @JvmField
-    val tagIdConverter: FileToIdConverter = FileToIdConverter.json("rtx/block_lights/by_block_tag")
+    val tagIdConverter: NeoFileToIdConverter = NeoFileToIdConverter.json("rtx/block_lights/by_block_tag")
 
     @JvmStatic
-    fun load(block: Block, key: ResourceLocation?, json: JsonElement, registryAccess: RegistryAccess) {
+    fun load(block: Block, key: ResourceIdentifier, json: JsonElement, registryAccess: RegistryAccess) {
         BlockLightRegistry.blockMap[block] = BlockLightRegistry.infoCodec(block.stateDefinition, registryAccess)
             .codec()
             .parse(INSTANCE, json)
@@ -30,15 +29,16 @@ object BlockLightInfoLoader {
     }
 
     @JvmStatic
-    fun load(manager: ResourceManager, registryAccess: RegistryAccess) {
+    fun load(manager: ResourceManagerWrapper, registryAccess: RegistryAccess) {
         BlockLightRegistry.blockMap.clear()
+        val blocks = WrapperUtil.INSTANCE.wrap(BuiltInRegistries.BLOCK)
 
         for (entry in singleIdConverter.listMatchingResources(manager)) {
             entry.value.openAsReader().use { jsonReader ->
                 val blockKey = singleIdConverter.fileToId(entry.key)
 
-                if (BuiltInRegistries.BLOCK.containsKey(blockKey)) {
-                    val block = BuiltInRegistries.BLOCK.get(blockKey)
+                if (blocks.contains(blockKey)) {
+                    val block = blocks.get(blockKey) ?: throw NullPointerException("Cannot find block $blockKey")
                     load(block, blockKey, parseReader(jsonReader), registryAccess)
                 }
             }
@@ -48,14 +48,13 @@ object BlockLightInfoLoader {
             entry.value.openAsReader().use { jsonReader ->
                 val blockKey = tagIdConverter.fileToId(entry.key)
 
-                BuiltInRegistries.BLOCK.getTag(create(Registries.BLOCK, blockKey))
-                    .ifPresent { tag ->
-                        val json = parseReader(jsonReader)
+                blocks.getTag(NeoTagKey(ResourceIdentifier("blocks"), blockKey))?.let { tag ->
+                    val json = parseReader(jsonReader)
 
-                        tag.forEach { block ->
-                            load(block.value(), block.unwrapKey().map { key -> key.location() }.getOrNull(), json, registryAccess)
-                        }
+                    tag.forEach { block ->
+                        load(block, blocks.getKey(block).location, json, registryAccess)
                     }
+                }
             }
         }
 
