@@ -3,7 +3,6 @@ package net.typho.vibrancy
 import me.fzzyhmstrs.fzzy_config.api.ConfigApi
 import me.fzzyhmstrs.fzzy_config.api.RegisterType
 import net.minecraft.ChatFormatting
-import net.minecraft.client.Minecraft
 import net.typho.big_shot_lib.api.client.rendering.event.*
 import net.typho.big_shot_lib.api.client.rendering.state.OpenGL
 import net.typho.big_shot_lib.api.client.rendering.textures.*
@@ -122,10 +121,10 @@ object Vibrancy {
 
         OUTPUT_FBO.unbind()
 
-        Minecraft.getInstance().mainRenderTarget.bindWrite(true)
+        GlFramebuffer.MAIN.bind(false)
+        GlFramebuffer.MAIN.viewport() // TODO
 
-        //GlFramebuffer.MAIN.bind(false)
-        //GlFramebuffer.MAIN.viewport()
+        //Minecraft.getInstance().mainRenderTarget.bindWrite(true)
 
         LIGHT_MANAGER.blitOutput(data, OUTPUT_FBO.colorAttachments[0] as GlTexture)
     }

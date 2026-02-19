@@ -9,7 +9,6 @@
   ],
   "client": [
     "DebugScreenOverlayMixin",
-    "GlDebugMixin",
     "KeyboardHandlerMixin",
     "LevelRendererMixin",
     "MinecraftMixin"

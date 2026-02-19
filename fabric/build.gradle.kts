@@ -61,6 +61,7 @@ dependencies {
     modImplementation(libs.sodium)
     modCompileOnly(libs.bigShot)
     modImplementation(libs.fzzyConfig.fabric)
+    include(libs.intermap)
 }
 
 loom {

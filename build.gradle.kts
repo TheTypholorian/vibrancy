@@ -18,9 +18,9 @@ subprojects {
         }
 
         ivy {
-            url = uri("https://github.com/TheTypholorian/big_shot_lib/releases/download")
+            url = uri("https://github.com/TheTypholorian/")
             patternLayout {
-                artifact("[revision]/[artifact]-[revision](-[classifier]).[ext]")
+                artifact("[organisation]/releases/download/[revision]/[artifact]-[revision](-[classifier]).[ext]")
             }
             metadataSources {
                 artifact()

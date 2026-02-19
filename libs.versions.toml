@@ -36,6 +36,8 @@ bigShotRange="[3.6.3, )"
 fzzyConfigFabric = "0.7.4-fix1+1.21"
 fzzyConfigNeo = "0.7.4+1.21+neoforge"
 
+intermap="1.0.0"
+
 [libraries]
 minecraft = { group = "com.mojang", name = "minecraft", version.ref = "minecraft" }
 fabricLoader = { group = "net.fabricmc", name = "fabric-loader", version.ref = "fabricLoader" }
@@ -46,7 +48,8 @@ kff = { group = "thedarkcolour", name = "kotlinforforge-neoforge", version.ref =
 mixin = { group = "org.spongepowered", name = "mixin", version.ref = "mixin" }
 mixinExtras-common = { group = "io.github.llamalad7", name = "mixinextras-common", version.ref = "mixinExtras" }
 sodium = { group = "maven.modrinth", name = "sodium", version.ref = "sodium" }
-bigShot = { group = "net.typho", name = "big_shot_api", version.ref = "bigShot" }
+bigShot = { group = "big_shot_lib", name = "big_shot_api", version.ref = "bigShot" }
+intermap = { group = "intermap", name = "intermap", version.ref = "intermap" }
 fzzyConfig-fabric = { group = "me.fzzyhmstrs", name = "fzzy_config", version.ref = "fzzyConfigFabric" }
 fzzyConfig-neoforge = { group = "me.fzzyhmstrs", name = "fzzy_config", version.ref = "fzzyConfigNeo" }
 
