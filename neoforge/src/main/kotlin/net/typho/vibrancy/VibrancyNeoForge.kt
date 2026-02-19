@@ -29,7 +29,7 @@ class VibrancyNeoForge(eventBus: IEventBus, mod: ModContainer) {
 
     @SubscribeEvent
     fun onRegister(event: RegisterEvent) {
-        event.register(ResourceKey.createRegistryKey<BlockLightType<*, *, *>>(ResourceLocation.fromNamespaceAndPath(Vibrancy.MOD_ID, "block_light_types"))) { registrar ->
+        event.register(ResourceKey.createRegistryKey(ResourceLocation.fromNamespaceAndPath(Vibrancy.MOD_ID, "block_light_types"))) { registrar ->
             registrar.register(ResourceLocation.fromNamespaceAndPath(Vibrancy.MOD_ID, "raytraced_point"), RayPointLightType)
             registrar.register(ResourceLocation.fromNamespaceAndPath(Vibrancy.MOD_ID, "subtle"), SubtleLightType)
         }
