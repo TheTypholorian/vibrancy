@@ -86,7 +86,7 @@ open class ShadowTexture(
 
             return if (
                 texture == null
-                || renderType.mode() != VertexFormat.Mode.QUADS
+                || renderType.mode() != VertexFormat.Mode.QUADS // TODO ?
                 || !renderType.format().contains(VertexFormatElement.POSITION)
                 || !renderType.format().contains(VertexFormatElement.UV0)
             ) {

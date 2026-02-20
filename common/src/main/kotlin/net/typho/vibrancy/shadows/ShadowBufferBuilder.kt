@@ -1,10 +1,10 @@
 package net.typho.vibrancy.shadows
 
 import com.mojang.blaze3d.vertex.ByteBufferBuilder
-import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.mojang.blaze3d.vertex.VertexConsumer
-import com.mojang.blaze3d.vertex.VertexFormat
 import net.typho.big_shot_lib.api.client.rendering.meshes.NeoVertexConsumer
+import net.typho.big_shot_lib.api.client.rendering.meshes.NeoVertexFormat
+import net.typho.big_shot_lib.api.client.rendering.util.GlShapeType
 import org.lwjgl.system.MemoryUtil.memPutFloat
 import java.nio.ByteBuffer
 
@@ -12,9 +12,9 @@ open class ShadowBufferBuilder(val builder: ByteBufferBuilder) : VertexConsumer,
     companion object {
         const val VERTEX_SIZE = 8 * Float.SIZE_BYTES
         @JvmField
-        val format: VertexFormat = DefaultVertexFormat.POSITION_TEX
+        val format = NeoVertexFormat.POSITION_TEX
         @JvmField
-        val mode = VertexFormat.Mode.QUADS
+        val mode = GlShapeType.QUADS
     }
 
     protected var currentVertexPointer: Long? = null

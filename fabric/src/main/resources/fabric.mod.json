@@ -31,7 +31,7 @@
     "minecraft": "*",
     "java": ">=${java_version}",
     "fabric-language-kotlin": ">=${flk_version}",
-    "big_shot_api": ">=${big_shot_version}",
+    "big_shot_api": "${big_shot_version}",
     "fzzy_config": "*"
   }
 }

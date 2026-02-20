@@ -32,7 +32,7 @@ side = "BOTH"
 modId = "big_shot_api"
 type="required"
 versionRange = "${big_shot_version_range}"
-ordering = "NONE"
+ordering = "BEFORE"
 side = "BOTH"
 [[dependencies."${mod_id}"]]
 modId = "fzzy_config"

@@ -1,7 +1,5 @@
 package net.typho.vibrancy.block.impl
 
-import com.mojang.blaze3d.vertex.DefaultVertexFormat
-import com.mojang.blaze3d.vertex.VertexFormat
 import net.minecraft.core.BlockPos
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
@@ -13,6 +11,8 @@ import net.typho.big_shot_lib.api.client.rendering.buffers.BufferUsage
 import net.typho.big_shot_lib.api.client.rendering.buffers.GlBuffer
 import net.typho.big_shot_lib.api.client.rendering.event.RenderData
 import net.typho.big_shot_lib.api.client.rendering.meshes.Mesh
+import net.typho.big_shot_lib.api.client.rendering.meshes.NeoVertexFormat
+import net.typho.big_shot_lib.api.client.rendering.util.GlShapeType
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.LightRenderResult
 import net.typho.vibrancy.Vibrancy
@@ -96,10 +96,12 @@ class SubtleLightStorage : BlockLightStorage<SubtleLightInfo> {
                     val lights = HashMap<BlockPos, SubtleLight>()
 
                     chunk.findBlocks({ BlockLightRegistry.has(it.block) }) { pos, state ->
+                        val actualPos = BlockPos(pos)
+
                         BlockLightRegistry.get(state.block)?.let { info ->
                             if (info is SubtleLightInfo) {
-                                info.createBlockLight(manager, manager.getLevel(), state, pos)?.let { light ->
-                                    lights[pos] = light
+                                info.createBlockLight(manager, manager.getLevel(), state, actualPos)?.let { light ->
+                                    lights[actualPos] = light
                                 }
                             }
                         }
@@ -157,7 +159,7 @@ class SubtleLightStorage : BlockLightStorage<SubtleLightInfo> {
 
     data class ChunkMesh(
         val pos: ChunkPos,
-        val mesh: Mesh = Mesh(DefaultVertexFormat.POSITION, VertexFormat.Mode.QUADS, BufferUsage.STATIC_DRAW),
+        val mesh: Mesh = Mesh(NeoVertexFormat.POSITION, GlShapeType.QUADS, BufferUsage.STATIC_DRAW),
         val ssbo: GlBuffer = GlBuffer(BufferType.SHADER_STORAGE_BUFFER, BufferUsage.STATIC_DRAW),
         var size: Int = 0,
         var box: AABB? = null

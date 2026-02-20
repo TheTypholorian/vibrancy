@@ -33,13 +33,15 @@ open class HashMapBlockLightStorage<I : BlockLightInfo<I, B>, B : BlockLight<I, 
         deloadChunk(manager, chunk)
 
         chunk.findBlocks({ BlockLightRegistry.has(it.block) }) { pos, state ->
+            val actualPos = BlockPos(pos)
+
             BlockLightRegistry.get(state.block)?.let { info ->
                 if (info.type() == type) {
                     addLight(
                         manager,
                         chunk.level!!,
                         state,
-                        pos,
+                        actualPos,
                         info as I
                     )
                 }

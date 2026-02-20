@@ -1,7 +1,5 @@
 package net.typho.vibrancy.block.impl
 
-import com.mojang.blaze3d.vertex.DefaultVertexFormat
-import com.mojang.blaze3d.vertex.VertexFormat
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -13,9 +11,11 @@ import net.typho.big_shot_lib.api.client.rendering.buffers.BufferUsage
 import net.typho.big_shot_lib.api.client.rendering.buffers.NormalsDynamicBuffer
 import net.typho.big_shot_lib.api.client.rendering.event.RenderData
 import net.typho.big_shot_lib.api.client.rendering.meshes.Mesh
+import net.typho.big_shot_lib.api.client.rendering.meshes.NeoVertexFormat
 import net.typho.big_shot_lib.api.client.rendering.shaders.NeoShaderRegistry
 import net.typho.big_shot_lib.api.client.rendering.textures.GlFramebuffer
 import net.typho.big_shot_lib.api.client.rendering.textures.GlTexture
+import net.typho.big_shot_lib.api.client.rendering.util.GlShapeType
 import net.typho.big_shot_lib.api.services.BlockUtil
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.LightRenderResult
@@ -45,8 +45,8 @@ class RayPointLight(
     )
     val boxBuffer by lazy {
         val mesh = Mesh(
-            DefaultVertexFormat.POSITION_TEX,
-            VertexFormat.Mode.QUADS,
+            NeoVertexFormat.POSITION,
+            GlShapeType.QUADS,
             BufferUsage.STATIC_DRAW
         )
         val builder = mesh.Builder()
