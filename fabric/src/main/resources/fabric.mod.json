@@ -33,11 +33,5 @@
     "fabric-language-kotlin": ">=${flk_version}",
     "big_shot_api": ">=${big_shot_version}",
     "fzzy_config": "*"
-  },
-  "accessWidener": "${mod_id}.accesswidener",
-  "custom": {
-    "intermap": {
-      "enabled": true
-    }
   }
 }

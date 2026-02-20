@@ -3,12 +3,10 @@ package net.typho.vibrancy.block.impl
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.mojang.blaze3d.vertex.VertexFormat
 import net.minecraft.core.BlockPos
-import net.minecraft.core.SectionPos
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
-import net.minecraft.world.level.chunk.LevelChunkSection
 import net.minecraft.world.phys.AABB
 import net.typho.big_shot_lib.api.client.rendering.buffers.BufferType
 import net.typho.big_shot_lib.api.client.rendering.buffers.BufferUsage
@@ -97,31 +95,11 @@ class SubtleLightStorage : BlockLightStorage<SubtleLightInfo> {
                     val chunk = manager.getLevel().getChunk(pos.x, pos.z)
                     val lights = HashMap<BlockPos, SubtleLight>()
 
-                    for (i in chunk.minSection until chunk.maxSection) {
-                        val section = chunk.getSection(chunk.getSectionIndexFromSectionY(i))
-
-                        if (section.maybeHas { BlockLightRegistry.has(it.block) }) {
-                            val minPos = SectionPos.of(chunk.pos, i).origin()
-
-                            for (x in 0 until LevelChunkSection.SECTION_WIDTH) {
-                                for (y in 0 until LevelChunkSection.SECTION_HEIGHT) {
-                                    for (z in 0 until LevelChunkSection.SECTION_WIDTH) {
-                                        val state = section.getBlockState(x, y, z)
-
-                                        BlockLightRegistry.get(state.block)?.let { info ->
-                                            if (info is SubtleLightInfo) {
-                                                val pos = BlockPos(
-                                                    x + minPos.x,
-                                                    y + minPos.y,
-                                                    z + minPos.z
-                                                )
-
-                                                info.createBlockLight(manager, manager.getLevel(), state, pos)?.let { light ->
-                                                    lights[pos] = light
-                                                }
-                                            }
-                                        }
-                                    }
+                    chunk.findBlocks({ BlockLightRegistry.has(it.block) }) { pos, state ->
+                        BlockLightRegistry.get(state.block)?.let { info ->
+                            if (info is SubtleLightInfo) {
+                                info.createBlockLight(manager, manager.getLevel(), state, pos)?.let { light ->
+                                    lights[pos] = light
                                 }
                             }
                         }

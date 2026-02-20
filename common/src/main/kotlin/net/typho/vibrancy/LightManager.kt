@@ -25,6 +25,8 @@ import net.typho.vibrancy.shadows.ShadowMesher
 import net.typho.vibrancy.util.PointLight
 import org.joml.Matrix4f
 import org.joml.Vector2f
+import org.lwjgl.opengl.GL11.glGetInteger
+import org.lwjgl.opengl.GL15.GL_ELEMENT_ARRAY_BUFFER_BINDING
 import java.util.*
 import java.util.function.Consumer
 
@@ -146,7 +148,13 @@ open class LightManager {
 
         shader.getUniform("CameraPos")?.setValue(Vibrancy.camera)
 
+        MeshUtil.SCREEN_MESH.bind()
+
+        print("ebo binding ${glGetInteger(GL_ELEMENT_ARRAY_BUFFER_BINDING)}")
+
         MeshUtil.SCREEN_MESH.draw()
+
+        MeshUtil.SCREEN_MESH.unbind()
 
         shader.unbind()
 
