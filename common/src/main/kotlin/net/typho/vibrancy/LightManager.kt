@@ -41,7 +41,8 @@ open class LightManager {
         Vibrancy.id("light_manager/blit"),
         listOf(
             CullShard.getDefault(),
-            DepthTestShard.getDefault()
+            DepthTestShard.getDefault(),
+            BlendShard.getDefault()
         )
     )
 
@@ -154,9 +155,8 @@ open class LightManager {
     }
 
     fun blitOutput(data: RenderData, output: GlTexture) {
+        GlFlag.BLEND.disable()
         blitSettings.bind()
-        GlFlag.CULL_FACE.disable()
-        GlFlag.DEPTH_TEST.disable()
 
         val shader = NeoShaderRegistry.get(Vibrancy.id("post"))!!
         shader.bind()
