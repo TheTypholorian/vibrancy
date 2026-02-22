@@ -36,9 +36,9 @@
   "key.vibrancy.toggle_subtle_block_lights": "Toggle subtle block lights",
   "key.vibrancy.config": "Open config",
 
-  "debug.vibrancy.rebuild_all_shadows": "[%s + %s] Reloaded all shadows",
-  "debug.vibrancy.enable_raytraced_block_lights": "[%s + %s] Enabled raytraced block lights",
-  "debug.vibrancy.disable_raytraced_block_lights": "[%s + %s] Disabled raytraced block lights",
-  "debug.vibrancy.enable_subtle_block_lights": "[%s + %s] Enabled subtle block lights",
-  "debug.vibrancy.disable_subtle_block_lights": "[%s + %s] Disabled subtle block lights"
+  "debug.vibrancy.rebuild_all_shadows": "[%s] Reloaded all shadows",
+  "debug.vibrancy.enable_raytraced_block_lights": "[%s] Enabled raytraced block lights",
+  "debug.vibrancy.disable_raytraced_block_lights": "[%s] Disabled raytraced block lights",
+  "debug.vibrancy.enable_subtle_block_lights": "[%s] Enabled subtle block lights",
+  "debug.vibrancy.disable_subtle_block_lights": "[%s] Disabled subtle block lights"
 }

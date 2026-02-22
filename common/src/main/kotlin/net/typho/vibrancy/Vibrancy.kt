@@ -55,7 +55,6 @@ object Vibrancy : BigShotCommonRegistrationEntrypoint, BigShotClientRegistration
             GlFramebuffer.MAIN.height()
         )
     }
-    var debugKey: KeyMapping? = null
     var reloadShadowsKey: KeyMapping? = null
     var toggleRaytracedLightsKey: KeyMapping? = null
     var toggleSubtleLightsKey: KeyMapping? = null
@@ -128,11 +127,10 @@ object Vibrancy : BigShotCommonRegistrationEntrypoint, BigShotClientRegistration
 
     override fun registerKeyMappings(factory: KeyMappingFactory) {
         val category = factory.getOrCreateCategory(id("keys"))
-        debugKey = factory.create("key.vibrancy.debug", GLFW.GLFW_KEY_F4, category)
-        reloadShadowsKey = factory.create("key.vibrancy.rebuild_all_shadows", GLFW.GLFW_KEY_R, category)
-        toggleRaytracedLightsKey = factory.create("key.vibrancy.toggle_raytraced_block_lights", GLFW.GLFW_KEY_T, category)
-        toggleSubtleLightsKey = factory.create("key.vibrancy.toggle_subtle_block_lights", GLFW.GLFW_KEY_Y, category)
-        openConfigKey = factory.create("key.vibrancy.config", GLFW.GLFW_KEY_C, category)
+        reloadShadowsKey = factory.create("key.vibrancy.rebuild_all_shadows", GLFW.GLFW_KEY_F6, category)
+        toggleRaytracedLightsKey = factory.create("key.vibrancy.toggle_raytraced_block_lights", GLFW.GLFW_KEY_F7, category)
+        toggleSubtleLightsKey = factory.create("key.vibrancy.toggle_subtle_block_lights", GLFW.GLFW_KEY_F8, category)
+        openConfigKey = factory.create("key.vibrancy.config", GLFW.GLFW_KEY_F10, category)
     }
 
     override fun registerEvents(factory: ClientEventFactory) {
@@ -146,38 +144,51 @@ object Vibrancy : BigShotCommonRegistrationEntrypoint, BigShotClientRegistration
             BlockLightInfoLoader.load(WrapperUtil.INSTANCE.wrap(Minecraft.getInstance().resourceManager))
         }
         factory.onFrameStart {
-            if (debugKey?.isDown == true) {
-                fun debugPrint(text: Component) {
-                    Minecraft.getInstance().gui.chat.addMessage(
-                        Component.empty()
-                            .append(Component.translatable("debug.prefix").withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD))
-                            .append(CommonComponents.SPACE)
-                            .append(text)
+            fun debugPrint(text: Component) {
+                Minecraft.getInstance().gui.chat.addMessage(
+                    Component.empty()
+                        .append(Component.translatable("debug.prefix").withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD))
+                        .append(CommonComponents.SPACE)
+                        .append(text)
+                )
+            }
+
+            while (reloadShadowsKey?.consumeClick() == true) {
+                lightManager.rebuildAllShadows()
+                debugPrint(
+                    Component.translatable(
+                        "debug.vibrancy.rebuild_all_shadows",
+                        reloadShadowsKey!!.translatedKeyMessage
                     )
-                }
+                )
+            }
 
-                while (reloadShadowsKey?.consumeClick() == true) {
-                    lightManager.rebuildAllShadows()
-                    debugPrint(Component.translatable("debug.vibrancy.rebuild_all_shadows", debugKey!!.translatedKeyMessage, reloadShadowsKey!!.translatedKeyMessage))
-                }
+            while (toggleRaytracedLightsKey?.consumeClick() == true) {
+                val enabled = !config.blockLights.raytraced.enabled
+                config.blockLights.raytraced.enabled = enabled
+                config.save()
+                debugPrint(
+                    Component.translatable(
+                        "debug.vibrancy.${if (enabled) "enable" else "disable"}_raytraced_block_lights",
+                        toggleRaytracedLightsKey!!.translatedKeyMessage
+                    )
+                )
+            }
 
-                while (toggleRaytracedLightsKey?.consumeClick() == true) {
-                    val enabled = !config.blockLights.raytraced.enabled
-                    config.blockLights.raytraced.enabled = enabled
-                    config.save()
-                    debugPrint(Component.translatable("debug.vibrancy.${if (enabled) "enable" else "disable"}_raytraced_block_lights", debugKey!!.translatedKeyMessage, toggleRaytracedLightsKey!!.translatedKeyMessage))
-                }
+            while (toggleSubtleLightsKey?.consumeClick() == true) {
+                val enabled = !config.blockLights.subtle.enabled
+                config.blockLights.subtle.enabled = enabled
+                config.save()
+                debugPrint(
+                    Component.translatable(
+                        "debug.vibrancy.${if (enabled) "enable" else "disable"}_subtle_block_lights",
+                        toggleSubtleLightsKey!!.translatedKeyMessage
+                    )
+                )
+            }
 
-                while (toggleSubtleLightsKey?.consumeClick() == true) {
-                    val enabled = !config.blockLights.subtle.enabled
-                    config.blockLights.subtle.enabled = enabled
-                    config.save()
-                    debugPrint(Component.translatable("debug.vibrancy.${if (enabled) "enable" else "disable"}_subtle_block_lights", debugKey!!.translatedKeyMessage, toggleSubtleLightsKey!!.translatedKeyMessage))
-                }
-
-                while (openConfigKey?.consumeClick() == true) {
-                    ConfigApi.openScreen("vibrancy.config")
-                }
+            while (openConfigKey?.consumeClick() == true) {
+                ConfigApi.openScreen("vibrancy.config")
             }
         }
     }
