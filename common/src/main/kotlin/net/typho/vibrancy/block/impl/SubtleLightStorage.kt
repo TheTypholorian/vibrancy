@@ -12,6 +12,7 @@ import net.typho.big_shot_lib.api.client.rendering.buffers.BufferUsage
 import net.typho.big_shot_lib.api.client.rendering.buffers.GlBuffer
 import net.typho.big_shot_lib.api.client.rendering.meshes.Mesh
 import net.typho.big_shot_lib.api.client.rendering.meshes.NeoVertexFormat
+import net.typho.big_shot_lib.api.client.rendering.shaders.GlShader
 import net.typho.big_shot_lib.api.client.rendering.util.GlShapeType
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.LightRenderResult
@@ -164,21 +165,16 @@ class SubtleLightStorage : BlockLightStorage<SubtleLightInfo> {
         var size: Int = 0,
         var box: AABB? = null
     ) : NativeResource {
-        fun render(data: RenderEventData, manager: LightManager): LightRenderResult {
+        fun render(data: RenderEventData, shader: GlShader, manager: LightManager): LightRenderResult {
             if (
                 size > 0
                 && manager.inRenderDistance(pos, Vibrancy.config.blockLights.subtle.renderDistance.get())
                 && box?.let { data.frustum.testAab(it.minPosition.toVector3f(), it.maxPosition.toVector3f()) || manager.inRenderDistance(pos, 6) } ?: true
             ) {
                 ssbo.bindBase(0)
+                //shader.getUniformBuffer("Quads")?.set(ssbo)
 
-                mesh.bind()
-                //mesh.ebo.bind()
                 mesh.draw()
-                //mesh.ebo.unbind()
-                mesh.unbind()
-
-                ssbo.unbindBase(0)
 
                 return LightRenderResult(numRendered = size)
             } else {

@@ -11,8 +11,8 @@ import net.typho.big_shot_lib.api.client.rendering.buffers.BufferUsage
 import net.typho.big_shot_lib.api.client.rendering.buffers.GlBuffer
 import net.typho.big_shot_lib.api.client.rendering.services.TextureUtil
 import net.typho.big_shot_lib.api.client.rendering.shaders.GlShader
-import net.typho.big_shot_lib.api.client.rendering.state.BlendShard
-import net.typho.big_shot_lib.api.client.rendering.state.CullShard
+import net.typho.big_shot_lib.api.client.rendering.state.DisableFlagsShard
+import net.typho.big_shot_lib.api.client.rendering.state.GlFlag
 import net.typho.big_shot_lib.api.client.rendering.state.RenderSettings
 import net.typho.big_shot_lib.api.client.rendering.textures.*
 import net.typho.big_shot_lib.api.client.rendering.util.MeshUtil
@@ -54,8 +54,10 @@ open class ShadowTexture(
     val renderSettings = RenderSettings(
         Vibrancy.id("shadow_texture"),
         listOf(
-            CullShard.getDefault(),
-            BlendShard.getDefault()
+            DisableFlagsShard(listOf(
+                GlFlag.CULL_FACE,
+                GlFlag.BLEND
+            ))
         )
     )
 
@@ -120,6 +122,7 @@ open class ShadowTexture(
                 val ssbo = GlBuffer(BufferType.SHADER_STORAGE_BUFFER, BufferUsage.STREAM_DRAW)
                 ssbo.bind()
                 ssbo.bindBase(0)
+                //shader.getUniformBuffer("Quads")?.set(ssbo)
 
                 for (entry in builders) {
                     entry.value.build()?.let { built ->

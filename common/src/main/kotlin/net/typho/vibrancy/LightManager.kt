@@ -14,7 +14,10 @@ import net.typho.big_shot_lib.api.client.registration.events.RenderEventData
 import net.typho.big_shot_lib.api.client.rendering.buffers.AlbedoDynamicBuffer
 import net.typho.big_shot_lib.api.client.rendering.buffers.NormalsDynamicBuffer
 import net.typho.big_shot_lib.api.client.rendering.shaders.NeoShaderRegistry
-import net.typho.big_shot_lib.api.client.rendering.state.*
+import net.typho.big_shot_lib.api.client.rendering.state.DisableFlagsShard
+import net.typho.big_shot_lib.api.client.rendering.state.FogUtil
+import net.typho.big_shot_lib.api.client.rendering.state.GlFlag
+import net.typho.big_shot_lib.api.client.rendering.state.RenderSettings
 import net.typho.big_shot_lib.api.client.rendering.textures.GlFramebuffer
 import net.typho.big_shot_lib.api.client.rendering.textures.GlTexture
 import net.typho.big_shot_lib.api.client.rendering.util.MeshUtil
@@ -40,9 +43,11 @@ open class LightManager {
     val blitSettings = RenderSettings(
         Vibrancy.id("light_manager/blit"),
         listOf(
-            CullShard.getDefault(),
-            DepthTestShard.getDefault(),
-            BlendShard.getDefault()
+            DisableFlagsShard(listOf(
+                GlFlag.CULL_FACE,
+                GlFlag.DEPTH_TEST,
+                GlFlag.BLEND
+            ))
         )
     )
 
@@ -173,7 +178,7 @@ open class LightManager {
 
         shader.getUniform("CameraPos")?.setValue(data.camera.position.toVector3f())
 
-        FogParameters.INSTANCE.get().upload(shader)
+        FogUtil.INSTANCE.upload(shader)
 
         MeshUtil.SCREEN_MESH.draw()
 
@@ -182,11 +187,7 @@ open class LightManager {
     }
 
     fun getDebugOutput(out: Consumer<String>) {
-        out.accept("Block Lights")
-
         for (entry in blockLights) {
-            out.accept("")
-
             out.accept(ChatFormatting.UNDERLINE.toString() + WrapperUtil.INSTANCE.wrap(getLevel().registryAccess()).registry(BlockLightRegistry.registryKey)!!.getKey(entry.key).location.toString())
             out.accept("${entry.value.size()} lights in world")
 

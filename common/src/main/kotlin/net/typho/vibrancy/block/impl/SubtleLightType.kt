@@ -90,7 +90,7 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight, SubtleLigh
                     break
                 }
 
-                result.add(mesh.render(data, manager))
+                result.add(mesh.render(data, boxShader, manager))
             }
 
             renderSettings.unbind()

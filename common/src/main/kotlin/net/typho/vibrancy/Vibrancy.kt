@@ -80,11 +80,10 @@ object Vibrancy : BigShotCommonRegistrationEntrypoint, BigShotClientRegistration
     fun id(path: String): ResourceIdentifier = ResourceIdentifier(MOD_ID, path)
 
     override fun registerRegistries(factory: RegistryFactory) {
-        BlockLightRegistry.registry = WrapperUtil.INSTANCE.wrap(
-            factory.create(
-                BlockLightRegistry.registryKey.location,
-                Lifecycle.stable()
-            )
+        BlockLightRegistry.registry = factory.create(
+            BlockLightRegistry.registryKey.location,
+            Lifecycle.stable(),
+            false
         )
     }
 
@@ -94,14 +93,14 @@ object Vibrancy : BigShotCommonRegistrationEntrypoint, BigShotClientRegistration
 
     override fun registerEvents(factory: CommonEventFactory) {
         factory.onBlockChanged { level, pos, old, new ->
-            if (level.isClientSide) {
+            if (level.isClientSide()) {
                 OpenGL.INSTANCE.recordRenderCall {
                     lightManager.blockChanged(level, pos, old, new)
                 }
             }
         }
-        factory.onChunkChanged { old, new ->
-            if (old?.level?.isClientSide == true || new?.level?.isClientSide == true) {
+        factory.onChunkChanged { level, old, new ->
+            if (level?.isClientSide() == true) {
                 OpenGL.INSTANCE.recordRenderCall {
                     if (old != null) {
                         lightManager.deloadChunk(old)
