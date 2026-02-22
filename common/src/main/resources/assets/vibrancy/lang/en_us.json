@@ -29,7 +29,16 @@
   "vibrancy.config.blockLights.subtle.maxRendered": "Max Rendered",
   "vibrancy.config.blockLights.subtle.maxRendered.prefix": "The maximum number of block lights that will be rendered, closest lights first.",
 
-  "debug.vibrancy.rebuild_all_shadows": "[F4 + R] Reloaded all shadows",
-  "debug.vibrancy.toggle_raytraced_block_lights": "[F4 + T] Toggled raytraced block lights",
-  "debug.vibrancy.toggle_subtle_block_lights": "[F4 + Y] Toggled subtle block lights"
+  "key.category.vibrancy.keys": "Vibrancy",
+  "key.vibrancy.debug": "Modifier key",
+  "key.vibrancy.rebuild_all_shadows": "Rebuild all shadows",
+  "key.vibrancy.toggle_raytraced_block_lights": "Toggle raytraced block lights",
+  "key.vibrancy.toggle_subtle_block_lights": "Toggle subtle block lights",
+  "key.vibrancy.config": "Open config",
+
+  "debug.vibrancy.rebuild_all_shadows": "[%s + %s] Reloaded all shadows",
+  "debug.vibrancy.enable_raytraced_block_lights": "[%s + %s] Enabled raytraced block lights",
+  "debug.vibrancy.disable_raytraced_block_lights": "[%s + %s] Disabled raytraced block lights",
+  "debug.vibrancy.enable_subtle_block_lights": "[%s + %s] Enabled subtle block lights",
+  "debug.vibrancy.disable_subtle_block_lights": "[%s + %s] Disabled subtle block lights"
 }
