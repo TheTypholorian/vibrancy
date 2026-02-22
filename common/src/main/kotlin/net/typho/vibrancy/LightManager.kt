@@ -73,6 +73,8 @@ open class LightManager {
         for (light in blockLights.values) {
             light.resizeShadows(this)
         }
+
+        rebuildAllShadows()
     }
 
     fun ensureStorageInitialized() {

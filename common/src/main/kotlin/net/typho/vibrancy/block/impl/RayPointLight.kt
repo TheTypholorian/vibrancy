@@ -40,8 +40,8 @@ class RayPointLight(
             shader.getUniform("LightPos")?.setValue(getAbsolutePos())
             shader.getUniform("LightRadius")?.setValue(radius)
         },
-        Vibrancy.config.blockLights.raytraced.shadowTextureSize.get() * 6,
-        Vibrancy.config.blockLights.raytraced.shadowTextureSize.get()
+        Vibrancy.config.blockLights.raytraced.backgroundShadowQuality.get() * 6,
+        Vibrancy.config.blockLights.raytraced.backgroundShadowQuality.get()
     )
     val boxBuffer by lazy {
         val mesh = Mesh(
@@ -80,8 +80,8 @@ class RayPointLight(
 
     override fun resizeShadows(manager: LightManager) {
         shadows.texture.resize(
-            Vibrancy.config.blockLights.raytraced.shadowTextureSize.get() * 6,
-            Vibrancy.config.blockLights.raytraced.shadowTextureSize.get()
+            Vibrancy.config.blockLights.raytraced.backgroundShadowQuality.get() * 6,
+            Vibrancy.config.blockLights.raytraced.backgroundShadowQuality.get()
         )
     }
 

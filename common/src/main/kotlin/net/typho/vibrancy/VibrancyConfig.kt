@@ -50,7 +50,7 @@ class VibrancyConfig : Config(
                     }
                 }
             @JvmField
-            var shadowTextureSize = ValidatedInt(48, 256, 16)
+            var backgroundShadowQuality = ValidatedInt(48, 256, 16)
                 .withIncrement(16)
                 .withListener {
                     OpenGL.INSTANCE.recordRenderCall {
