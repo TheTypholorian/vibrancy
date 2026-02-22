@@ -4,14 +4,9 @@
   "package": "net.typho.vibrancy.mixin",
   "refmap": "${mod_id}.refmap.json",
   "compatibilityLevel": "JAVA_21",
-  "mixins": [
-    "OptionsMixin"
-  ],
+  "mixins": [],
   "client": [
-    "DebugScreenOverlayMixin",
-    "KeyboardHandlerMixin",
-    "LevelRendererMixin",
-    "MinecraftMixin"
+    "KeyboardHandlerMixin"
   ],
   "injectors": {
     "defaultRequire": 1

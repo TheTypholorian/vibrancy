@@ -14,10 +14,16 @@
   "icon": "${mod_id}.png",
   "environment": "client",
   "entrypoints": {
-    "client": [
+    "big_shot_lib:client_events": [
       {
         "adapter": "kotlin",
-        "value": "net.typho.vibrancy.VibrancyFabric"
+        "value": "net.typho.vibrancy.Vibrancy"
+      }
+    ],
+    "big_shot_lib:common_events": [
+      {
+        "adapter": "kotlin",
+        "value": "net.typho.vibrancy.Vibrancy"
       }
     ]
   },
@@ -31,7 +37,7 @@
     "minecraft": "*",
     "java": ">=${java_version}",
     "fabric-language-kotlin": ">=${flk_version}",
-    "big_shot_api": "${big_shot_version}",
+    "big_shot_api": ">=${big_shot_version}",
     "fzzy_config": "*"
   }
 }

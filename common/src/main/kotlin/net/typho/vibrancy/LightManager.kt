@@ -10,9 +10,9 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
+import net.typho.big_shot_lib.api.client.registration.events.RenderEventData
 import net.typho.big_shot_lib.api.client.rendering.buffers.AlbedoDynamicBuffer
 import net.typho.big_shot_lib.api.client.rendering.buffers.NormalsDynamicBuffer
-import net.typho.big_shot_lib.api.client.rendering.event.RenderData
 import net.typho.big_shot_lib.api.client.rendering.shaders.NeoShaderRegistry
 import net.typho.big_shot_lib.api.client.rendering.state.*
 import net.typho.big_shot_lib.api.client.rendering.textures.GlFramebuffer
@@ -119,11 +119,11 @@ open class LightManager {
     }
 
     @Suppress("UNCHECKED_CAST")
-    protected fun <S : BlockLightStorage<*>> castAndRender(data: RenderData, fbo: GlFramebuffer, type: BlockLightType<*, *, S>, storage: BlockLightStorage<*>): LightRenderResult {
+    protected fun <S : BlockLightStorage<*>> castAndRender(data: RenderEventData, fbo: GlFramebuffer, type: BlockLightType<*, *, S>, storage: BlockLightStorage<*>): LightRenderResult {
         return type.render(this, data, storage as S, fbo)
     }
 
-    fun render(data: RenderData, fbo: GlFramebuffer) {
+    fun render(data: RenderEventData, fbo: GlFramebuffer) {
         blockRenderResults.clear()
 
         for (entry in blockLights) {
@@ -133,7 +133,7 @@ open class LightManager {
         dirtyBlocks.clear()
     }
 
-    fun blitWorldPos(data: RenderData) {
+    fun blitWorldPos(data: RenderEventData) {
         GlFlag.CULL_FACE.stack.push(false)
 
         val shader = NeoShaderRegistry.get(Vibrancy.id("world_pos"))!!
@@ -142,10 +142,10 @@ open class LightManager {
 
         shader.getUniform("DiffuseDepthSampler")?.setSampler(GlFramebuffer.MAIN.depthAttachment!! as GlTexture)
 
-        shader.getUniform("IProjMat")?.setValue(Matrix4f(Vibrancy.iProjMat))
-        shader.getUniform("IModelMat")?.setValue(Matrix4f(Vibrancy.iModelMat))
+        shader.getUniform("IProjMat")?.setValue(Matrix4f(data.inverseProjMat))
+        shader.getUniform("IModelMat")?.setValue(Matrix4f(data.inverseModelViewMat))
 
-        shader.getUniform("CameraPos")?.setValue(Vibrancy.camera)
+        shader.getUniform("CameraPos")?.setValue(data.camera.position.toVector3f())
 
         MeshUtil.SCREEN_MESH.draw()
 
@@ -154,7 +154,7 @@ open class LightManager {
         GlFlag.CULL_FACE.stack.pop()
     }
 
-    fun blitOutput(data: RenderData, output: GlTexture) {
+    fun blitOutput(data: RenderEventData, output: GlTexture) {
         GlFlag.BLEND.disable()
         blitSettings.bind()
 
@@ -163,17 +163,17 @@ open class LightManager {
         shader.setCommonUniforms(data)
 
         shader.getUniform("DiffuseSampler0")?.setSampler(GlFramebuffer.MAIN.colorAttachments[0] as GlTexture)
-        shader.getUniform("VibrancyWorldPosSampler")?.setSampler(Vibrancy.WORLD_POS_FBO.colorAttachments[0] as GlTexture)
+        shader.getUniform("VibrancyWorldPosSampler")?.setSampler(Vibrancy.worldPosFbo.colorAttachments[0] as GlTexture)
         shader.getUniform("VibrancyOutputSampler")?.setSampler(output)
         shader.getUniform("VibrancyAlbedoSampler")?.setSampler(AlbedoDynamicBuffer.texture)
         shader.getUniform("VibrancyNormalSampler")?.setSampler(NormalsDynamicBuffer.texture)
 
-        shader.getUniform("IProjMat")?.setValue(Matrix4f(Vibrancy.iProjMat))
-        shader.getUniform("IModelMat")?.setValue(Matrix4f(Vibrancy.iModelMat))
+        shader.getUniform("IProjMat")?.setValue(Matrix4f(data.inverseProjMat))
+        shader.getUniform("IModelMat")?.setValue(Matrix4f(data.inverseModelViewMat))
+
+        shader.getUniform("CameraPos")?.setValue(data.camera.position.toVector3f())
 
         FogParameters.INSTANCE.get().upload(shader)
-
-        shader.getUniform("CameraPos")?.setValue(Vibrancy.camera)
 
         MeshUtil.SCREEN_MESH.draw()
 

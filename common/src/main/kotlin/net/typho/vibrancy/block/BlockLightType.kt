@@ -2,7 +2,7 @@ package net.typho.vibrancy.block
 
 import com.mojang.serialization.MapCodec
 import net.minecraft.world.level.block.state.StateDefinition
-import net.typho.big_shot_lib.api.client.rendering.event.RenderData
+import net.typho.big_shot_lib.api.client.registration.events.RenderEventData
 import net.typho.big_shot_lib.api.client.rendering.textures.GlFramebuffer
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.LightRenderResult
@@ -12,5 +12,5 @@ interface BlockLightType<I : BlockLightInfo<I, B>, B : BlockLight<I, B>, S : Blo
 
     fun createStorage(manager: LightManager): S
 
-    fun render(manager: LightManager, data: RenderData, lights: S, fbo: GlFramebuffer): LightRenderResult
+    fun render(manager: LightManager, data: RenderEventData, lights: S, fbo: GlFramebuffer): LightRenderResult
 }

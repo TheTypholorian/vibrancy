@@ -13,7 +13,7 @@ object VibrancyDebugKeys {
     fun action(key: Int, feedback: Consumer<Component>) {
         when (key) {
             InputConstants.KEY_R -> {
-                Vibrancy.LIGHT_MANAGER.rebuildAllShadows()
+                Vibrancy.lightManager.rebuildAllShadows()
                 feedback.accept(Component.translatable("debug.vibrancy.rebuild_all_shadows"))
             }
             InputConstants.KEY_T -> {

@@ -24,6 +24,7 @@ public abstract class KeyboardHandlerMixin {
             cancellable = true
     )
     private void keyPress(long windowPointer, int key, int scanCode, int action, int modifiers, CallbackInfo ci) {
+        // TODO replace with keymapping
         if (InputConstants.isKeyDown(windowPointer, VibrancyDebugKeys.KEY) && key != VibrancyDebugKeys.KEY) {
             if (action == 0) {
                 VibrancyDebugKeys.action(key, this::debugFeedbackComponent);

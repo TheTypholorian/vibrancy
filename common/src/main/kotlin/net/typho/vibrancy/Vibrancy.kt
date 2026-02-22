@@ -1,33 +1,41 @@
 package net.typho.vibrancy
 
+import com.mojang.serialization.Lifecycle
 import me.fzzyhmstrs.fzzy_config.api.ConfigApi
 import me.fzzyhmstrs.fzzy_config.api.RegisterType
 import net.minecraft.ChatFormatting
-import net.typho.big_shot_lib.api.client.rendering.event.*
+import net.minecraft.client.Minecraft
+import net.typho.big_shot_lib.api.client.registration.BigShotClientRegistrationEntrypoint
+import net.typho.big_shot_lib.api.client.registration.DebugScreenFactory
+import net.typho.big_shot_lib.api.client.registration.KeyMappingFactory
+import net.typho.big_shot_lib.api.client.registration.ResourceListenerFactory
+import net.typho.big_shot_lib.api.client.registration.events.ClientEventFactory
+import net.typho.big_shot_lib.api.client.registration.events.RenderEventData
 import net.typho.big_shot_lib.api.client.rendering.state.OpenGL
 import net.typho.big_shot_lib.api.client.rendering.textures.*
+import net.typho.big_shot_lib.api.registration.BigShotCommonRegistrationEntrypoint
+import net.typho.big_shot_lib.api.registration.RegistrationFactory
+import net.typho.big_shot_lib.api.registration.RegistryFactory
+import net.typho.big_shot_lib.api.registration.events.CommonEventFactory
+import net.typho.big_shot_lib.api.services.WrapperUtil
 import net.typho.big_shot_lib.api.util.IColor
 import net.typho.big_shot_lib.api.util.resources.ResourceIdentifier
+import net.typho.vibrancy.block.BlockLightInfoLoader
 import net.typho.vibrancy.block.BlockLightRegistry
-import org.joml.Matrix4f
-import org.joml.Vector3f
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
-import java.util.function.Consumer
 
-object Vibrancy {
+object Vibrancy : BigShotCommonRegistrationEntrypoint, BigShotClientRegistrationEntrypoint {
     const val MOD_ID = "vibrancy"
     const val MOD_NAME = "Vibrancy"
-
     @JvmField
     val LOGGER: Logger = LoggerFactory.getLogger(MOD_NAME)
 
     @JvmField
     val config = ConfigApi.registerAndLoadConfig(::VibrancyConfig, RegisterType.CLIENT)
-
     @JvmField
-    val LIGHT_MANAGER = LightManager()
-    val OUTPUT_FBO by lazy {
+    val lightManager = LightManager()
+    val outputFbo by lazy {
         NeoFramebuffer(
             listOf(NeoTexture2D(TextureFormat.RGB16F)),
             null,
@@ -35,7 +43,7 @@ object Vibrancy {
             GlFramebuffer.MAIN.height()
         )
     }
-    val WORLD_POS_FBO by lazy {
+    val worldPosFbo by lazy {
         NeoFramebuffer(
             listOf(NeoTexture2D(TextureFormat.RGB32F)),
             null,
@@ -43,99 +51,92 @@ object Vibrancy {
             GlFramebuffer.MAIN.height()
         )
     }
-    @JvmField
-    var iProjMat = Matrix4f()
-    @JvmField
-    var iModelMat = Matrix4f()
-    @JvmField
-    var camera = Vector3f()
 
     @JvmStatic
-    fun init() {
-        BlockLightRegistry.init()
-        WindowResizeEvent.register { width, height ->
-            OUTPUT_FBO.resize(width, height)
-            WORLD_POS_FBO.resize(width, height)
-        }
-        PostProcessEvent.register(this::render)
-        ClientChunkChangedEvent.register { old, new ->
-            OpenGL.INSTANCE.recordRenderCall {
-                if (old != null) {
-                    LIGHT_MANAGER.deloadChunk(old)
-                }
+    fun render(data: RenderEventData) {
+        worldPosFbo.bind()
+        worldPosFbo.viewport()
 
-                if (new != null) {
-                    LIGHT_MANAGER.loadChunk(new)
-                }
-            }
-        }
-        BlockChangedEvent.register { level, pos, old, new ->
-            OpenGL.INSTANCE.recordRenderCall {
-                LIGHT_MANAGER.blockChanged(level, pos, old, new)
-            }
-        }
+        lightManager.blitWorldPos(data)
 
-        /*
-        if (Services.PLATFORM.isDevelopmentEnvironment()) {
-            OpenGL.INSTANCE.addDebugListener(object : OpenGL.DebugListener {
-                override fun accept(method: String, vararg args: Any) {
-                    LOGGER.info(
-                        "$method(${
-                            args.joinToString(", ") {
-                                when (it) {
-                                    is Array<*> -> it.contentDeepToString()
-                                    is BooleanArray -> it.contentToString()
-                                    is ByteArray -> it.contentToString()
-                                    is CharArray -> it.contentToString()
-                                    is ShortArray -> it.contentToString()
-                                    is IntArray -> it.contentToString()
-                                    is LongArray -> it.contentToString()
-                                    is FloatArray -> it.contentToString()
-                                    is DoubleArray -> it.contentToString()
-                                    else -> it.toString()
-                                }
-                            }
-                        })"
-                    )
-                }
-            })
-        }
-         */
-    }
+        worldPosFbo.unbind()
 
-    @JvmStatic
-    fun render(data: RenderData) {
-        WORLD_POS_FBO.bind()
-        WORLD_POS_FBO.viewport()
+        outputFbo.bind()
 
-        LIGHT_MANAGER.blitWorldPos(data)
+        outputFbo.viewport()
+        outputFbo.clear(ClearBit.Color(IColor.BLACK))
 
-        WORLD_POS_FBO.unbind()
+        lightManager.render(data, outputFbo)
 
-        OUTPUT_FBO.bind()
-
-        OUTPUT_FBO.viewport()
-        OUTPUT_FBO.clear(ClearBit.Color(IColor.BLACK))
-
-        LIGHT_MANAGER.render(data, OUTPUT_FBO)
-
-        OUTPUT_FBO.unbind()
+        outputFbo.unbind()
 
         GlFramebuffer.MAIN.bind(false)
         GlFramebuffer.MAIN.viewport() // TODO
 
-        //Minecraft.getInstance().mainRenderTarget.bindWrite(true)
-
-        LIGHT_MANAGER.blitOutput(data, OUTPUT_FBO.colorAttachments[0] as GlTexture)
-    }
-
-    @JvmStatic
-    fun addDebugInfo(out: Consumer<String>) {
-        out.accept(ChatFormatting.UNDERLINE.toString() + MOD_NAME)
-
-        LIGHT_MANAGER.getDebugOutput(out)
+        lightManager.blitOutput(data, outputFbo.colorAttachments[0] as GlTexture)
     }
 
     @JvmStatic
     fun id(path: String): ResourceIdentifier = ResourceIdentifier(MOD_ID, path)
+
+    override fun registerRegistries(factory: RegistryFactory) {
+        BlockLightRegistry.registry = WrapperUtil.INSTANCE.wrap(
+            factory.create(
+                BlockLightRegistry.registryKey.location,
+                Lifecycle.stable()
+            )
+        )
+    }
+
+    override fun registerContent(factory: RegistrationFactory) {
+        BlockLightRegistry.registerBuiltins(factory)
+    }
+
+    override fun registerEvents(factory: CommonEventFactory) {
+        factory.onBlockChanged { level, pos, old, new ->
+            if (level.isClientSide) {
+                OpenGL.INSTANCE.recordRenderCall {
+                    lightManager.blockChanged(level, pos, old, new)
+                }
+            }
+        }
+        factory.onChunkChanged { old, new ->
+            if (old?.level?.isClientSide == true || new?.level?.isClientSide == true) {
+                OpenGL.INSTANCE.recordRenderCall {
+                    if (old != null) {
+                        lightManager.deloadChunk(old)
+                    }
+
+                    if (new != null) {
+                        lightManager.loadChunk(new)
+                    }
+                }
+            }
+        }
+    }
+
+    override fun registerReloadListeners(factory: ResourceListenerFactory) {
+    }
+
+    override fun registerKeyMappings(factory: KeyMappingFactory) {
+    }
+
+    override fun registerEvents(factory: ClientEventFactory) {
+        factory.onLevelRenderEnd(this::render)
+        factory.onWindowResized { width, height ->
+            outputFbo.resize(width, height)
+            worldPosFbo.resize(width, height)
+        }
+        factory.onLevelChanged { old, new ->
+            lightManager.clear()
+            BlockLightInfoLoader.load(WrapperUtil.INSTANCE.wrap(Minecraft.getInstance().resourceManager))
+        }
+    }
+
+    override fun registerDebugScreenInfo(factory: DebugScreenFactory) {
+        factory.register(id("debug_info"), false) { out ->
+            out.accept(ChatFormatting.UNDERLINE.toString() + MOD_NAME)
+            lightManager.getDebugOutput(out)
+        }
+    }
 }

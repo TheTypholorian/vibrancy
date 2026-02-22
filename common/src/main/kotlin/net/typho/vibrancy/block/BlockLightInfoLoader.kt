@@ -1,15 +1,14 @@
 package net.typho.vibrancy.block
 
 import com.google.gson.JsonElement
-import com.google.gson.JsonParser.parseReader
+import com.google.gson.JsonParser
 import com.google.gson.JsonSyntaxException
-import com.mojang.serialization.JsonOps.INSTANCE
+import com.mojang.serialization.JsonOps
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.level.block.Block
 import net.typho.big_shot_lib.api.services.NeoFileToIdConverter
 import net.typho.big_shot_lib.api.services.NeoResourceManager
 import net.typho.big_shot_lib.api.services.WrapperUtil
-import net.typho.big_shot_lib.api.util.NeoRegistryAccess
 import net.typho.big_shot_lib.api.util.resources.NeoTagKey
 import net.typho.big_shot_lib.api.util.resources.ResourceIdentifier
 import net.typho.vibrancy.Vibrancy
@@ -21,15 +20,15 @@ object BlockLightInfoLoader {
     val tagIdConverter: NeoFileToIdConverter = NeoFileToIdConverter.json("rtx/block_lights/by_block_tag")
 
     @JvmStatic
-    fun load(block: Block, key: ResourceIdentifier, json: JsonElement, registryAccess: NeoRegistryAccess) {
-        BlockLightRegistry.blockMap[block] = BlockLightRegistry.infoCodec(block.stateDefinition, registryAccess)
+    fun load(block: Block, key: ResourceIdentifier, json: JsonElement) {
+        BlockLightRegistry.blockMap[block] = BlockLightRegistry.infoCodec(block.stateDefinition)
             .codec()
-            .parse(INSTANCE, json)
+            .parse(JsonOps.INSTANCE, json)
             .getOrThrow { message -> JsonSyntaxException("Error parsing block light info for $key: $message") }
     }
 
     @JvmStatic
-    fun load(manager: NeoResourceManager, registryAccess: NeoRegistryAccess) {
+    fun load(manager: NeoResourceManager) {
         BlockLightRegistry.blockMap.clear()
         val blocks = WrapperUtil.INSTANCE.wrap(BuiltInRegistries.BLOCK)
 
@@ -39,7 +38,7 @@ object BlockLightInfoLoader {
 
                 if (blocks.contains(blockKey)) {
                     val block = blocks.get(blockKey) ?: throw NullPointerException("Cannot find block $blockKey")
-                    load(block, blockKey, parseReader(jsonReader), registryAccess)
+                    load(block, blockKey, JsonParser.parseReader(jsonReader))
                 }
             }
         }
@@ -49,10 +48,10 @@ object BlockLightInfoLoader {
                 val blockKey = tagIdConverter.fileToId(entry.key)
 
                 blocks.getTag(NeoTagKey(ResourceIdentifier("blocks"), blockKey))?.let { tag ->
-                    val json = parseReader(jsonReader)
+                    val json = JsonParser.parseReader(jsonReader)
 
                     tag.forEach { block ->
-                        load(block, blocks.getKey(block).location, json, registryAccess)
+                        load(block, blocks.getKey(block).location, json)
                     }
                 }
             }

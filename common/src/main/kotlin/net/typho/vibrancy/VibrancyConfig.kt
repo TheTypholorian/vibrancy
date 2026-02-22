@@ -48,7 +48,7 @@ class VibrancyConfig : Config(
             var shadowRadius = ValidatedInt(8, 16, 1)
                 .withListener {
                     OpenGL.INSTANCE.recordRenderCall {
-                        Vibrancy.LIGHT_MANAGER.rebuildAllShadows()
+                        Vibrancy.lightManager.rebuildAllShadows()
                     }
                 }
             @RequiresAction(Action.RELOG)

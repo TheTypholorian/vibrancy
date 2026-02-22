@@ -6,10 +6,10 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.phys.AABB
+import net.typho.big_shot_lib.api.client.registration.events.RenderEventData
 import net.typho.big_shot_lib.api.client.rendering.buffers.BufferType
 import net.typho.big_shot_lib.api.client.rendering.buffers.BufferUsage
 import net.typho.big_shot_lib.api.client.rendering.buffers.GlBuffer
-import net.typho.big_shot_lib.api.client.rendering.event.RenderData
 import net.typho.big_shot_lib.api.client.rendering.meshes.Mesh
 import net.typho.big_shot_lib.api.client.rendering.meshes.NeoVertexFormat
 import net.typho.big_shot_lib.api.client.rendering.util.GlShapeType
@@ -164,7 +164,7 @@ class SubtleLightStorage : BlockLightStorage<SubtleLightInfo> {
         var size: Int = 0,
         var box: AABB? = null
     ) : NativeResource {
-        fun render(data: RenderData, manager: LightManager): LightRenderResult {
+        fun render(data: RenderEventData, manager: LightManager): LightRenderResult {
             if (
                 size > 0
                 && manager.inRenderDistance(pos, Vibrancy.config.blockLights.subtle.renderDistance.get())

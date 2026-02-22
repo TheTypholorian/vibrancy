@@ -7,9 +7,9 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
+import net.typho.big_shot_lib.api.client.registration.events.RenderEventData
 import net.typho.big_shot_lib.api.client.rendering.buffers.BufferUsage
 import net.typho.big_shot_lib.api.client.rendering.buffers.NormalsDynamicBuffer
-import net.typho.big_shot_lib.api.client.rendering.event.RenderData
 import net.typho.big_shot_lib.api.client.rendering.meshes.Mesh
 import net.typho.big_shot_lib.api.client.rendering.meshes.NeoVertexFormat
 import net.typho.big_shot_lib.api.client.rendering.shaders.NeoShaderRegistry
@@ -137,7 +137,7 @@ class RayPointLight(
         boxBuffer.free()
     }
 
-    fun render(manager: LightManager, data: RenderData, raytrace: Boolean, fbo: GlFramebuffer): LightRenderResult {
+    fun render(manager: LightManager, data: RenderEventData, raytrace: Boolean, fbo: GlFramebuffer): LightRenderResult {
         val result = LightRenderResult(
             numRendered = 1,
             numRaytraced = if (raytrace) 1 else 0,
@@ -167,13 +167,13 @@ class RayPointLight(
         boxShader.bind()
         boxShader.setCommonUniforms(data)
 
-        boxShader.getUniform("IProjMat")?.setValue(Matrix4f(Vibrancy.iProjMat))
-        boxShader.getUniform("IModelMat")?.setValue(Matrix4f(Vibrancy.iModelMat))
+        boxShader.getUniform("IProjMat")?.setValue(Matrix4f(data.inverseProjMat))
+        boxShader.getUniform("IModelMat")?.setValue(Matrix4f(data.inverseModelViewMat))
 
+        boxShader.getUniform("CameraPos")?.setValue(data.camera.position.toVector3f())
         boxShader.getUniform("LightPos")?.setValue(getAbsolutePos())
         boxShader.getUniform("LightColor")?.setValue(Vector3f(color).mul(Vibrancy.config.blockLights.raytraced.brightness.get()))
         boxShader.getUniform("LightRadius")?.setValue(radius)
-        boxShader.getUniform("CameraPos")?.setValue(Vibrancy.camera)
         boxShader.getUniform("ScreenSize")?.setValue(fbo.width().toFloat(), fbo.height().toFloat())
 
         boxShader.getUniform("ShadowTextureSize")?.setValue(shadows.target.width(), shadows.target.height())
@@ -182,7 +182,7 @@ class RayPointLight(
 
         boxShader.getUniform("VibrancyShadowSampler")?.setSampler(shadows.texture)
         boxShader.getUniform("VibrancyNormalSampler")?.setSampler(NormalsDynamicBuffer.texture)
-        boxShader.getUniform("VibrancyWorldPosSampler")?.setSampler(Vibrancy.WORLD_POS_FBO.colorAttachments[0] as GlTexture)
+        boxShader.getUniform("VibrancyWorldPosSampler")?.setSampler(Vibrancy.worldPosFbo.colorAttachments[0] as GlTexture)
 
         boxBuffer.draw()
 
