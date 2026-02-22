@@ -78,6 +78,13 @@ class RayPointLight(
         shadows.rebuildAsync(manager, manager.createShadowMesher(this), this)
     }
 
+    override fun resizeShadows(manager: LightManager) {
+        shadows.texture.resize(
+            Vibrancy.config.blockLights.raytraced.shadowTextureSize.get() * 6,
+            Vibrancy.config.blockLights.raytraced.shadowTextureSize.get()
+        )
+    }
+
     override fun getShadowBox(): BlockBox {
         val shadowRadius = ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.shadowRadius.get().toFloat())).toInt()
         return BlockBox.of(

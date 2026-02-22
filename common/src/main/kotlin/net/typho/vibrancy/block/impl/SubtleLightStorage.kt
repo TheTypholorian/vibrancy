@@ -56,6 +56,9 @@ class SubtleLightStorage : BlockLightStorage<SubtleLightInfo> {
     override fun rebuildShadows(manager: LightManager) {
     }
 
+    override fun resizeShadows(manager: LightManager) {
+    }
+
     override fun loadChunk(
         manager: LightManager,
         chunk: LevelChunk

@@ -28,6 +28,10 @@ open class HashMapBlockLightStorage<I : BlockLightInfo<I, B>, B : BlockLight<I, 
         map.values.forEach { light -> light.rebuildShadows(manager) }
     }
 
+    override fun resizeShadows(manager: LightManager) {
+        map.values.forEach { light -> light.resizeShadows(manager) }
+    }
+
     @Suppress("UNCHECKED_CAST")
     override fun loadChunk(manager: LightManager, chunk: LevelChunk) {
         deloadChunk(manager, chunk)

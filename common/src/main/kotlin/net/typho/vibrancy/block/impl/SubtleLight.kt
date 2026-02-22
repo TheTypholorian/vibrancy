@@ -29,6 +29,9 @@ class SubtleLight(
     override fun rebuildShadows(manager: LightManager) {
     }
 
+    override fun resizeShadows(manager: LightManager) {
+    }
+
     override fun getType() = SubtleLightType
 
     override fun shouldRaytrace(manager: LightManager) = false

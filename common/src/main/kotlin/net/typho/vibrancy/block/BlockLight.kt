@@ -9,6 +9,8 @@ interface BlockLight<I : BlockLightInfo<I, B>, B : BlockLight<I, B>> : PointLigh
 
     fun rebuildShadows(manager: LightManager)
 
+    fun resizeShadows(manager: LightManager)
+
     fun getType(): BlockLightType<I, B, *>
 
     fun shouldRaytrace(manager: LightManager): Boolean

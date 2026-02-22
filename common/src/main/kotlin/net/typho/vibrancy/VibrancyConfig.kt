@@ -1,7 +1,5 @@
 package net.typho.vibrancy
 
-import me.fzzyhmstrs.fzzy_config.annotations.Action
-import me.fzzyhmstrs.fzzy_config.annotations.RequiresAction
 import me.fzzyhmstrs.fzzy_config.api.FileType
 import me.fzzyhmstrs.fzzy_config.config.Config
 import me.fzzyhmstrs.fzzy_config.config.ConfigSection
@@ -16,7 +14,7 @@ import net.typho.big_shot_lib.api.client.rendering.state.OpenGL
 import java.text.DecimalFormat
 
 class VibrancyConfig : Config(
-    ResourceLocation.fromNamespaceAndPath(Vibrancy.MOD_ID, "config"), // TODO
+    ResourceLocation.fromNamespaceAndPath(Vibrancy.MOD_ID, "config"), // TODO switch to ResourceIdentifier (?)
     folder = "",
     name = Vibrancy.MOD_ID
 ) {
@@ -51,10 +49,14 @@ class VibrancyConfig : Config(
                         Vibrancy.lightManager.rebuildAllShadows()
                     }
                 }
-            @RequiresAction(Action.RELOG)
             @JvmField
-            var shadowTextureSize = ValidatedInt(144, 256, 16)
+            var shadowTextureSize = ValidatedInt(48, 256, 16)
                 .withIncrement(16)
+                .withListener {
+                    OpenGL.INSTANCE.recordRenderCall {
+                        Vibrancy.lightManager.resizeAllShadows()
+                    }
+                }
             @JvmField
             var maxRendered = ValidatedInt(200, 1000, 0)
                 .withIncrement(10)

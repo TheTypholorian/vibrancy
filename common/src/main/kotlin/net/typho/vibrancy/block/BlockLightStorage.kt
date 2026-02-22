@@ -22,6 +22,8 @@ interface BlockLightStorage<I : BlockLightInfo<I, *>> {
 
     fun rebuildShadows(manager: LightManager)
 
+    fun resizeShadows(manager: LightManager)
+
     fun loadChunk(
         manager: LightManager,
         chunk: LevelChunk
