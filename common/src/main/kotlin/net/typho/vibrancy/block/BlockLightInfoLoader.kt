@@ -6,12 +6,8 @@ import com.google.gson.JsonSyntaxException
 import com.mojang.serialization.JsonOps
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.level.block.Block
-import net.typho.big_shot_lib.api.services.NeoFileToIdConverter
-import net.typho.big_shot_lib.api.services.NeoResourceManager
-import net.typho.big_shot_lib.api.services.NeoResourceManagerReloadListener
-import net.typho.big_shot_lib.api.services.WrapperUtil
-import net.typho.big_shot_lib.api.util.resources.NeoTagKey
-import net.typho.big_shot_lib.api.util.resources.ResourceIdentifier
+import net.typho.big_shot_lib.api.util.WrapperUtil
+import net.typho.big_shot_lib.api.util.resources.*
 import net.typho.vibrancy.Vibrancy
 
 object BlockLightInfoLoader : NeoResourceManagerReloadListener {

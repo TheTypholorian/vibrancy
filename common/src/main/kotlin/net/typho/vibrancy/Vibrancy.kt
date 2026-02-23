@@ -8,20 +8,16 @@ import net.minecraft.client.KeyMapping
 import net.minecraft.client.Minecraft
 import net.minecraft.network.chat.CommonComponents
 import net.minecraft.network.chat.Component
-import net.typho.big_shot_lib.api.client.registration.BigShotClientRegistrationEntrypoint
-import net.typho.big_shot_lib.api.client.registration.DebugScreenFactory
-import net.typho.big_shot_lib.api.client.registration.KeyMappingFactory
-import net.typho.big_shot_lib.api.client.registration.ResourceListenerFactory
-import net.typho.big_shot_lib.api.client.registration.events.ClientEventFactory
-import net.typho.big_shot_lib.api.client.registration.events.RenderEventData
-import net.typho.big_shot_lib.api.client.rendering.state.OpenGL
-import net.typho.big_shot_lib.api.client.rendering.textures.*
-import net.typho.big_shot_lib.api.registration.BigShotCommonRegistrationEntrypoint
-import net.typho.big_shot_lib.api.registration.RegistrationFactory
-import net.typho.big_shot_lib.api.registration.RegistryFactory
-import net.typho.big_shot_lib.api.registration.events.CommonEventFactory
-import net.typho.big_shot_lib.api.services.WrapperUtil
-import net.typho.big_shot_lib.api.util.IColor
+import net.typho.big_shot_lib.api.client.opengl.buffers.*
+import net.typho.big_shot_lib.api.client.opengl.util.OpenGL
+import net.typho.big_shot_lib.api.client.opengl.util.TextureFormat
+import net.typho.big_shot_lib.api.client.util.*
+import net.typho.big_shot_lib.api.client.util.dynamic_buffers.AlbedoDynamicBuffer
+import net.typho.big_shot_lib.api.client.util.dynamic_buffers.NormalsDynamicBuffer
+import net.typho.big_shot_lib.api.client.util.events.ClientEventFactory
+import net.typho.big_shot_lib.api.client.util.events.RenderEventData
+import net.typho.big_shot_lib.api.util.*
+import net.typho.big_shot_lib.api.util.events.CommonEventFactory
 import net.typho.big_shot_lib.api.util.resources.ResourceIdentifier
 import net.typho.vibrancy.block.BlockLightInfoLoader
 import net.typho.vibrancy.block.BlockLightRegistry
@@ -29,7 +25,7 @@ import org.lwjgl.glfw.GLFW
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-object Vibrancy : BigShotCommonRegistrationEntrypoint, BigShotClientRegistrationEntrypoint {
+object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
     const val MOD_ID = "vibrancy"
     const val MOD_NAME = "Vibrancy"
     @JvmField
@@ -217,5 +213,10 @@ object Vibrancy : BigShotCommonRegistrationEntrypoint, BigShotClientRegistration
             out.accept(ChatFormatting.UNDERLINE.toString() + MOD_NAME)
             lightManager.getDebugOutput(out)
         }
+    }
+
+    override fun registerDynamicBuffers(factory: DynamicBufferFactory) {
+        factory.register(NormalsDynamicBuffer)
+        factory.register(AlbedoDynamicBuffer)
     }
 }

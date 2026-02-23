@@ -42,7 +42,7 @@ ordering = "NONE"
 side = "BOTH"
 
 [[modproperties."${mod_id}"]]
-entrypoints = { "big_shot_lib:client_events" = "net.typho.vibrancy.Vibrancy", "big_shot_lib:common_events" = "net.typho.vibrancy.Vibrancy" }
+entrypoints = { "big_shot_lib:client" = "net.typho.vibrancy.Vibrancy", "big_shot_lib:common" = "net.typho.vibrancy.Vibrancy" }
 
 # Features are specific properties of the game environment, that you may want to declare you require. This example declares
 # that your mod requires GL version 3.2 or higher. Other features will be added. They are side aware so declaring this won't

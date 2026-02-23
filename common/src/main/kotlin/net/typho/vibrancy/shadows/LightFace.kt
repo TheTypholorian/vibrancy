@@ -1,8 +1,8 @@
 package net.typho.vibrancy.shadows
 
 import net.minecraft.core.BlockPos
-import net.typho.big_shot_lib.api.client.rendering.meshes.NeoVertexConsumer
-import net.typho.big_shot_lib.api.client.rendering.meshes.TexturedQuad
+import net.typho.big_shot_lib.api.client.opengl.buffers.NeoVertexConsumer
+import net.typho.big_shot_lib.api.client.opengl.util.TexturedQuad
 import org.joml.Vector3f
 
 @JvmRecord

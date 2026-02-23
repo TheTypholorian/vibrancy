@@ -2,9 +2,9 @@ package net.typho.vibrancy.shadows
 
 import com.mojang.blaze3d.vertex.ByteBufferBuilder
 import com.mojang.blaze3d.vertex.VertexConsumer
-import net.typho.big_shot_lib.api.client.rendering.meshes.NeoVertexConsumer
-import net.typho.big_shot_lib.api.client.rendering.meshes.NeoVertexFormat
-import net.typho.big_shot_lib.api.client.rendering.util.GlShapeType
+import net.typho.big_shot_lib.api.client.opengl.buffers.NeoVertexConsumer
+import net.typho.big_shot_lib.api.client.opengl.buffers.NeoVertexFormat
+import net.typho.big_shot_lib.api.client.opengl.util.GlShapeType
 import org.lwjgl.system.MemoryUtil.memPutFloat
 import java.nio.ByteBuffer
 

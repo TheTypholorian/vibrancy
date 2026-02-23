@@ -2,16 +2,15 @@ package net.typho.vibrancy.shadows
 
 import com.mojang.blaze3d.vertex.ByteBufferBuilder
 import net.minecraft.client.renderer.RenderType
-import net.typho.big_shot_lib.api.client.rendering.buffers.BufferType
-import net.typho.big_shot_lib.api.client.rendering.buffers.BufferUsage
-import net.typho.big_shot_lib.api.client.rendering.buffers.GlBuffer
-import net.typho.big_shot_lib.api.client.rendering.services.TextureUtil
-import net.typho.big_shot_lib.api.client.rendering.shaders.GlShader
-import net.typho.big_shot_lib.api.client.rendering.state.DisableFlagsShard
-import net.typho.big_shot_lib.api.client.rendering.state.GlFlag
-import net.typho.big_shot_lib.api.client.rendering.state.RenderSettings
-import net.typho.big_shot_lib.api.client.rendering.textures.*
-import net.typho.big_shot_lib.api.client.rendering.util.MeshUtil
+import net.typho.big_shot_lib.api.client.opengl.buffers.*
+import net.typho.big_shot_lib.api.client.opengl.shaders.GlShader
+import net.typho.big_shot_lib.api.client.opengl.state.DisableFlagsShard
+import net.typho.big_shot_lib.api.client.opengl.state.GlFlag
+import net.typho.big_shot_lib.api.client.opengl.state.RenderSettings
+import net.typho.big_shot_lib.api.client.opengl.util.InterpolationType
+import net.typho.big_shot_lib.api.client.opengl.util.MeshUtil
+import net.typho.big_shot_lib.api.client.opengl.util.TextureFormat
+import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
 import net.typho.big_shot_lib.api.util.IColor
 import net.typho.big_shot_lib.api.util.resources.ResourceIdentifier
 import net.typho.vibrancy.Vibrancy
@@ -71,7 +70,7 @@ open class ShadowTexture(
         val builders = HashMap<ResourceIdentifier, ShadowBufferBuilder>()
 
         fun mainBuffer(): ShadowBufferBuilder {
-            return builders.computeIfAbsent(TextureUtil.INSTANCE.blockAtlasTexture()) {
+            return builders.computeIfAbsent(TextureUtil.INSTANCE.blockAtlasTexture) {
                 val builder = ByteBufferBuilder(RenderType.SMALL_BUFFER_SIZE)
                 toFree.add(builder)
                 ShadowBufferBuilder(builder)

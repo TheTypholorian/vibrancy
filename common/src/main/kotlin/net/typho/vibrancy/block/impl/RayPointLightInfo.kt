@@ -3,7 +3,7 @@ package net.typho.vibrancy.block.impl
 import net.minecraft.core.BlockPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
-import net.typho.big_shot_lib.api.services.BlockUtil
+import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.block.BlockLightInfo
 import net.typho.vibrancy.util.StateFunction

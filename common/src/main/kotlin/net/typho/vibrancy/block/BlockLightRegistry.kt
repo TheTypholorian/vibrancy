@@ -4,8 +4,8 @@ import com.mojang.serialization.MapCodec
 import net.minecraft.core.Registry
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.StateDefinition
-import net.typho.big_shot_lib.api.registration.RegistrationFactory
 import net.typho.big_shot_lib.api.util.NeoRegistry
+import net.typho.big_shot_lib.api.util.RegistrationFactory
 import net.typho.big_shot_lib.api.util.resources.NeoResourceKey
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.block.impl.RayPointLightType

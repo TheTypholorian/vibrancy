@@ -3,7 +3,7 @@ package net.typho.vibrancy.shadows
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.util.RandomSource
-import net.typho.big_shot_lib.api.client.rendering.shaders.GlShader
+import net.typho.big_shot_lib.api.client.opengl.shaders.GlShader
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.util.PointLight
 import java.util.*

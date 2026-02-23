@@ -5,11 +5,11 @@ import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.util.ExtraCodecs
 import net.minecraft.world.level.block.state.StateDefinition
-import net.typho.big_shot_lib.api.client.registration.events.RenderEventData
-import net.typho.big_shot_lib.api.client.rendering.shaders.NeoShaderRegistry
-import net.typho.big_shot_lib.api.client.rendering.state.*
-import net.typho.big_shot_lib.api.client.rendering.textures.GlFramebuffer
-import net.typho.big_shot_lib.api.client.rendering.textures.GlTexture
+import net.typho.big_shot_lib.api.client.opengl.buffers.GlFramebuffer
+import net.typho.big_shot_lib.api.client.opengl.buffers.GlTexture
+import net.typho.big_shot_lib.api.client.opengl.shaders.NeoShaderRegistry
+import net.typho.big_shot_lib.api.client.opengl.state.*
+import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.big_shot_lib.api.util.IColor
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.LightRenderResult

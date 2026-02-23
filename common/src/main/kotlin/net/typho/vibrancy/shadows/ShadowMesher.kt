@@ -5,7 +5,7 @@ import net.minecraft.util.RandomSource
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.Vec3
-import net.typho.big_shot_lib.api.client.rendering.util.MeshUtil
+import net.typho.big_shot_lib.api.client.opengl.util.MeshUtil
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.block.BlockLightRegistry
 import java.util.function.Consumer
