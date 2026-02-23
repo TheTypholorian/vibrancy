@@ -8,19 +8,14 @@ plugins {
 subprojects {
     repositories {
         maven {
-            name = "FzzyMaven"
-            url = uri("https://maven.fzzyhmstrs.me/")
-        }
-
-        maven {
             name = "Modrinth"
             url = uri("https://api.modrinth.com/maven")
         }
 
         ivy {
-            url = uri("https://github.com/TheTypholorian/")
+            url = uri("https://github.com/TheTypholorian/big_shot_lib/releases/download")
             patternLayout {
-                artifact("[organisation]/releases/download/[revision]/[artifact]-[revision](-[classifier]).[ext]")
+                artifact("[revision]/[artifact]-[revision](-[classifier]).[ext]")
             }
             metadataSources {
                 artifact()

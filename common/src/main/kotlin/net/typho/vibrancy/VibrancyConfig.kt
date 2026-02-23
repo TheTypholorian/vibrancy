@@ -1,87 +1,62 @@
 package net.typho.vibrancy
 
-import me.fzzyhmstrs.fzzy_config.api.FileType
-import me.fzzyhmstrs.fzzy_config.config.Config
-import me.fzzyhmstrs.fzzy_config.config.ConfigSection
-import me.fzzyhmstrs.fzzy_config.validation.ValidatedField.Companion.withListener
-import me.fzzyhmstrs.fzzy_config.validation.number.ValidatedFloat
-import me.fzzyhmstrs.fzzy_config.validation.number.ValidatedInt
-import me.fzzyhmstrs.fzzy_config.validation.number.ValidatedNumber
-import me.fzzyhmstrs.fzzy_config.validation.number.ValidatedNumber.Companion.setFormat
-import me.fzzyhmstrs.fzzy_config.validation.number.ValidatedNumber.Companion.withIncrement
-import net.minecraft.resources.ResourceLocation
-import net.typho.big_shot_lib.api.client.rendering.state.OpenGL
-import java.text.DecimalFormat
+import me.shedaniel.autoconfig.ConfigData
+import me.shedaniel.autoconfig.annotation.Config
+import me.shedaniel.autoconfig.annotation.ConfigEntry
 
-class VibrancyConfig : Config(
-    ResourceLocation.fromNamespaceAndPath(Vibrancy.MOD_ID, "config"), // TODO switch to ResourceIdentifier (?)
-    folder = "",
-    name = Vibrancy.MOD_ID
-) {
-    override fun fileType() = FileType.JSON
-
+@Config(name = Vibrancy.MOD_ID)
+class VibrancyConfig : ConfigData {
     @JvmField
+    @ConfigEntry.Gui.CollapsibleObject
     var blockLights = BlockLightsSection()
 
-    class BlockLightsSection : ConfigSection() {
+    class BlockLightsSection : ConfigData {
         @JvmField
+        @ConfigEntry.Gui.CollapsibleObject
         var raytraced = RaytracedSection()
 
-        class RaytracedSection : ConfigSection() {
+        class RaytracedSection : ConfigData {
             @JvmField
             var enabled = true
             @JvmField
-            var brightness = ValidatedFloat(1.25f, 2.5f, 0.25f)
-                .withIncrement(0.05f)
-                .setFormat(DecimalFormat("0%"))
+            @ConfigEntry.Gui.Tooltip(count = 2)
+            var brightness: Float = 1.25f // 0.25 to 2.5 + 0.25 (%)
             @JvmField
-            var raytraceDistance = ValidatedInt(8, 64, 4)
-                .withIncrement(4)
-                .setFormat(DecimalFormat("0 chunks"))
+            @ConfigEntry.Gui.Tooltip
+            var raytraceDistance: Int = 8 // 8 to 64 + 4 (chunks)
             @JvmField
-            var renderDistance = ValidatedInt(32, 64, 4)
-                .withIncrement(4)
-                .setFormat(DecimalFormat("0 chunks"))
+            @ConfigEntry.Gui.Tooltip
+            var renderDistance: Int = 32 // 4 to 64 + 4 (chunks)
             @JvmField
-            var shadowRadius = ValidatedInt(8, 16, 1)
-                .withListener {
-                    OpenGL.INSTANCE.recordRenderCall {
-                        Vibrancy.lightManager.rebuildAllShadows()
-                    }
-                }
+            @ConfigEntry.Gui.Tooltip
+            var shadowRadius: Int = 8 // 1 to 16 + 1
             @JvmField
-            var backgroundShadowQuality = ValidatedInt(48, 256, 16)
-                .withIncrement(16)
-                .withListener {
-                    OpenGL.INSTANCE.recordRenderCall {
-                        Vibrancy.lightManager.resizeAllShadows()
-                    }
-                }
+            @ConfigEntry.Gui.Tooltip(count = 3)
+            var backgroundShadowQuality: Int = 48 // 16 to 256 + 16
             @JvmField
-            var maxRendered = ValidatedInt(200, 1000, 0)
-                .withIncrement(10)
+            @ConfigEntry.Gui.Tooltip
+            var maxRendered: Int = 400 // 200 to 1000 + 25
             @JvmField
-            var maxRaytraced = ValidatedInt(100, 500, 0)
-                .withIncrement(10)
+            @ConfigEntry.Gui.Tooltip
+            var maxRaytraced: Int = 200 // 100 to 500 + 25
         }
 
         @JvmField
+        @ConfigEntry.Gui.CollapsibleObject
         var subtle = SubtleSection()
 
-        class SubtleSection : ConfigSection() {
+        class SubtleSection : ConfigData {
             @JvmField
             var enabled = true
             @JvmField
-            var brightness = ValidatedFloat(1f, 2.5f, 0.25f)
-                .withIncrement(0.05f)
-                .setFormat(DecimalFormat("0%"))
+            @ConfigEntry.Gui.Tooltip(count = 2)
+            var brightness = 1.25f // 0.25 to 2.5 + 0.25 (%)
             @JvmField
-            var renderDistance = ValidatedInt(32, 64, 4)
-                .withIncrement(4)
-                .setFormat(DecimalFormat("0 chunks"))
+            @ConfigEntry.Gui.Tooltip
+            var renderDistance: Int = 32 // 4 to 64 + 4 (chunks)
             @JvmField
-            var maxRendered = ValidatedInt(200_000, Int.MAX_VALUE, 0, ValidatedNumber.WidgetType.TEXTBOX_WITH_BUTTONS)
-                .withIncrement(50_000)
+            @ConfigEntry.Gui.Tooltip
+            var maxRendered: Int = 200_000 // 50_000 to inf + 50_000
         }
     }
 }

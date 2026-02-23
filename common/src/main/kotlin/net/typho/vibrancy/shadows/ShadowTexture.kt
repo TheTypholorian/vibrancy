@@ -1,10 +1,6 @@
 package net.typho.vibrancy.shadows
 
 import com.mojang.blaze3d.vertex.ByteBufferBuilder
-import com.mojang.blaze3d.vertex.VertexConsumer
-import com.mojang.blaze3d.vertex.VertexFormat
-import com.mojang.blaze3d.vertex.VertexFormatElement
-import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.RenderType
 import net.typho.big_shot_lib.api.client.rendering.buffers.BufferType
 import net.typho.big_shot_lib.api.client.rendering.buffers.BufferUsage
@@ -19,7 +15,6 @@ import net.typho.big_shot_lib.api.client.rendering.util.MeshUtil
 import net.typho.big_shot_lib.api.util.IColor
 import net.typho.big_shot_lib.api.util.resources.ResourceIdentifier
 import net.typho.vibrancy.Vibrancy
-import net.typho.vibrancy.util.EmptyVertexConsumer
 import org.lwjgl.system.NativeResource
 import java.util.*
 import java.util.function.Consumer
@@ -72,7 +67,7 @@ open class ShadowTexture(
         val shader: GlShader,
         @JvmField
         val uniforms: Consumer<GlShader>
-    ) : MultiBufferSource {
+    ) { // : MultiBufferSource
         val builders = HashMap<ResourceIdentifier, ShadowBufferBuilder>()
 
         fun mainBuffer(): ShadowBufferBuilder {
@@ -83,6 +78,7 @@ open class ShadowTexture(
             }
         }
 
+        /*
         override fun getBuffer(renderType: RenderType): VertexConsumer {
             val texture = TextureUtil.INSTANCE.getRenderTypeTexture(renderType)
 
@@ -101,6 +97,7 @@ open class ShadowTexture(
                 }
             }
         }
+         */
 
         fun finish() {
             target.bind()

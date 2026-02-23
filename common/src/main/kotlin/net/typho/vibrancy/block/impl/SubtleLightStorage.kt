@@ -171,7 +171,7 @@ class SubtleLightStorage : BlockLightStorage<SubtleLightInfo> {
         fun render(data: RenderEventData, shader: GlShader, manager: LightManager): LightRenderResult {
             if (
                 size > 0
-                && manager.inRenderDistance(pos, Vibrancy.config.blockLights.subtle.renderDistance.get())
+                && manager.inRenderDistance(pos, Vibrancy.config.blockLights.subtle.renderDistance)
                 && box?.let { data.frustum.testAab(it.minPosition.toVector3f(), it.maxPosition.toVector3f()) || manager.inRenderDistance(pos, 6) } ?: true
             ) {
                 ssbo.bindBase(0)

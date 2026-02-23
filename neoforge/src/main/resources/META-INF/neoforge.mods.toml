@@ -35,7 +35,7 @@ versionRange = "${big_shot_version_range}"
 ordering = "BEFORE"
 side = "BOTH"
 [[dependencies."${mod_id}"]]
-modId = "fzzy_config"
+modId = "cloth-config"
 type="required"
 versionRange = "*"
 ordering = "NONE"

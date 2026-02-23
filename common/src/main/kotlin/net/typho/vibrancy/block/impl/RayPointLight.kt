@@ -15,6 +15,7 @@ import net.typho.big_shot_lib.api.client.rendering.meshes.NeoVertexFormat
 import net.typho.big_shot_lib.api.client.rendering.shaders.NeoShaderRegistry
 import net.typho.big_shot_lib.api.client.rendering.textures.GlFramebuffer
 import net.typho.big_shot_lib.api.client.rendering.textures.GlTexture
+import net.typho.big_shot_lib.api.client.rendering.textures.InterpolationType
 import net.typho.big_shot_lib.api.client.rendering.util.GlShapeType
 import net.typho.big_shot_lib.api.services.BlockUtil
 import net.typho.vibrancy.LightManager
@@ -40,8 +41,8 @@ class RayPointLight(
             shader.getUniform("LightPos")?.setValue(getAbsolutePos())
             shader.getUniform("LightRadius")?.setValue(radius)
         },
-        Vibrancy.config.blockLights.raytraced.backgroundShadowQuality.get() * 6,
-        Vibrancy.config.blockLights.raytraced.backgroundShadowQuality.get()
+        Vibrancy.config.blockLights.raytraced.backgroundShadowQuality * 6,
+        Vibrancy.config.blockLights.raytraced.backgroundShadowQuality
     )
     val boxBuffer by lazy {
         val mesh = Mesh(
@@ -80,13 +81,14 @@ class RayPointLight(
 
     override fun resizeShadows(manager: LightManager) {
         shadows.texture.resize(
-            Vibrancy.config.blockLights.raytraced.backgroundShadowQuality.get() * 6,
-            Vibrancy.config.blockLights.raytraced.backgroundShadowQuality.get()
+            Vibrancy.config.blockLights.raytraced.backgroundShadowQuality * 6,
+            Vibrancy.config.blockLights.raytraced.backgroundShadowQuality
         )
+        shadows.texture.setInterpolation(InterpolationType.LINEAR)
     }
 
     override fun getShadowBox(): BlockBox {
-        val shadowRadius = ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.shadowRadius.get().toFloat())).toInt()
+        val shadowRadius = ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.shadowRadius.toFloat())).toInt()
         return BlockBox.of(
             BlockPos(pos.x - shadowRadius, pos.y - shadowRadius, pos.z - shadowRadius),
             BlockPos(pos.x + shadowRadius, pos.y + shadowRadius, pos.z + shadowRadius)
@@ -129,7 +131,7 @@ class RayPointLight(
             }
 
             override fun isInRange(pos: BlockPos): Boolean {
-                val shadowRadius = ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.shadowRadius.get().toFloat())).toInt()
+                val shadowRadius = ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.shadowRadius.toFloat())).toInt()
                 return pos.distSqr(this@RayPointLight.pos) <= shadowRadius * shadowRadius
             }
         }
@@ -179,7 +181,7 @@ class RayPointLight(
 
         boxShader.getUniform("CameraPos")?.setValue(data.camera.position.toVector3f())
         boxShader.getUniform("LightPos")?.setValue(getAbsolutePos())
-        boxShader.getUniform("LightColor")?.setValue(Vector3f(color).mul(Vibrancy.config.blockLights.raytraced.brightness.get()))
+        boxShader.getUniform("LightColor")?.setValue(Vector3f(color).mul(Vibrancy.config.blockLights.raytraced.brightness))
         boxShader.getUniform("LightRadius")?.setValue(radius)
         boxShader.getUniform("ScreenSize")?.setValue(fbo.width().toFloat(), fbo.height().toFloat())
 

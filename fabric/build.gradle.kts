@@ -35,7 +35,7 @@ modrinth {
         required.project("fabric-api")
         required.project("fabric-language-kotlin")
         required.project("big-shot-lib")
-        required.project("fzzy-config")
+        required.project("cloth-config")
         required.project("modmenu")
     }
 }
@@ -60,7 +60,8 @@ dependencies {
     modImplementation(libs.flk)
     modImplementation(libs.sodium)
     modCompileOnly(libs.bigShot)
-    modImplementation(libs.fzzyConfig.fabric)
+    modImplementation(libs.clothConfig)
+    modImplementation(libs.modmenu)
 }
 
 loom {

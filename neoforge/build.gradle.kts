@@ -35,7 +35,7 @@ modrinth {
     dependencies {
         required.project("kotlin-for-forge")
         required.project("big-shot-lib")
-        required.project("fzzy-config")
+        required.project("cloth-config")
     }
 }
 
@@ -78,5 +78,5 @@ dependencies {
     implementation(libs.kff)
     implementation(libs.sodium)
     implementation(libs.bigShot)
-    implementation(libs.fzzyConfig.neoforge)
+    implementation(libs.clothConfig)
 }

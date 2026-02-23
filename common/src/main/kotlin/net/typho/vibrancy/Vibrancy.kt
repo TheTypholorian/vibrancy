@@ -1,8 +1,8 @@
 package net.typho.vibrancy
 
 import com.mojang.serialization.Lifecycle
-import me.fzzyhmstrs.fzzy_config.api.ConfigApi
-import me.fzzyhmstrs.fzzy_config.api.RegisterType
+import me.shedaniel.autoconfig.AutoConfig
+import me.shedaniel.autoconfig.serializer.GsonConfigSerializer
 import net.minecraft.ChatFormatting
 import net.minecraft.client.KeyMapping
 import net.minecraft.client.Minecraft
@@ -35,8 +35,8 @@ object Vibrancy : BigShotCommonRegistrationEntrypoint, BigShotClientRegistration
     @JvmField
     val LOGGER: Logger = LoggerFactory.getLogger(MOD_NAME)
 
-    @JvmField
-    val config = ConfigApi.registerAndLoadConfig(::VibrancyConfig, RegisterType.CLIENT)
+    val config: VibrancyConfig
+        get() = AutoConfig.getConfigHolder(VibrancyConfig::class.java).config
     @JvmField
     val lightManager = LightManager()
     val outputFbo by lazy {
@@ -59,6 +59,27 @@ object Vibrancy : BigShotCommonRegistrationEntrypoint, BigShotClientRegistration
     var toggleRaytracedLightsKey: KeyMapping? = null
     var toggleSubtleLightsKey: KeyMapping? = null
     var openConfigKey: KeyMapping? = null
+
+    init {
+        val holder = AutoConfig.register(
+            VibrancyConfig::class.java,
+            ::GsonConfigSerializer
+        )
+        holder.registerLoadListener { holder, config ->
+            OpenGL.INSTANCE.recordRenderCall {
+                lightManager.resizeAllShadows()
+            }
+
+            return@registerLoadListener null
+        }
+        holder.registerSaveListener { holder, config ->
+            OpenGL.INSTANCE.recordRenderCall {
+                lightManager.resizeAllShadows()
+            }
+
+            return@registerSaveListener null
+        }
+    }
 
     @JvmStatic
     fun render(data: RenderEventData) {
@@ -166,7 +187,7 @@ object Vibrancy : BigShotCommonRegistrationEntrypoint, BigShotClientRegistration
             while (toggleRaytracedLightsKey?.consumeClick() == true) {
                 val enabled = !config.blockLights.raytraced.enabled
                 config.blockLights.raytraced.enabled = enabled
-                config.save()
+                AutoConfig.getConfigHolder(VibrancyConfig::class.java).save()
                 debugPrint(
                     Component.translatable(
                         "debug.vibrancy.${if (enabled) "enable" else "disable"}_raytraced_block_lights",
@@ -178,7 +199,7 @@ object Vibrancy : BigShotCommonRegistrationEntrypoint, BigShotClientRegistration
             while (toggleSubtleLightsKey?.consumeClick() == true) {
                 val enabled = !config.blockLights.subtle.enabled
                 config.blockLights.subtle.enabled = enabled
-                config.save()
+                AutoConfig.getConfigHolder(VibrancyConfig::class.java).save()
                 debugPrint(
                     Component.translatable(
                         "debug.vibrancy.${if (enabled) "enable" else "disable"}_subtle_block_lights",
@@ -188,7 +209,7 @@ object Vibrancy : BigShotCommonRegistrationEntrypoint, BigShotClientRegistration
             }
 
             while (openConfigKey?.consumeClick() == true) {
-                ConfigApi.openScreen("vibrancy.config")
+                Minecraft.getInstance().screen = AutoConfig.getConfigScreen(VibrancyConfig::class.java, Minecraft.getInstance().screen).get()
             }
         }
     }

@@ -14,6 +14,12 @@
   "icon": "${mod_id}.png",
   "environment": "client",
   "entrypoints": {
+    "modmenu": [
+      {
+        "adapter": "kotlin",
+        "value": "net.typho.vibrancy.VibrancyModMenuCompat"
+      }
+    ],
     "big_shot_lib:client_events": [
       {
         "adapter": "kotlin",
@@ -38,6 +44,6 @@
     "java": ">=${java_version}",
     "fabric-language-kotlin": ">=${flk_version}",
     "big_shot_api": ">=${big_shot_version}",
-    "fzzy_config": "*"
+    "cloth-config": "*"
   }
 }
