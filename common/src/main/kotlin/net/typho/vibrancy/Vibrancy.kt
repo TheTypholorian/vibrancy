@@ -143,13 +143,14 @@ object Vibrancy : BigShotCommonRegistrationEntrypoint, BigShotClientRegistration
     }
 
     override fun registerReloadListeners(factory: ResourceListenerFactory) {
+        factory.register(id("block_lights"), BlockLightInfoLoader)
     }
 
     override fun registerKeyMappings(factory: KeyMappingFactory) {
         val category = factory.getOrCreateCategory(id("keys"))
-        reloadShadowsKey = factory.create("key.vibrancy.rebuild_all_shadows", GLFW.GLFW_KEY_F6, category)
-        toggleRaytracedLightsKey = factory.create("key.vibrancy.toggle_raytraced_block_lights", GLFW.GLFW_KEY_F7, category)
-        toggleSubtleLightsKey = factory.create("key.vibrancy.toggle_subtle_block_lights", GLFW.GLFW_KEY_F8, category)
+        reloadShadowsKey = factory.create(id("rebuild_all_shadows"), GLFW.GLFW_KEY_F6, category)
+        toggleRaytracedLightsKey = factory.create(id("toggle_raytraced_block_lights"), GLFW.GLFW_KEY_F7, category)
+        toggleSubtleLightsKey = factory.create(id("toggle_subtle_block_lights"), GLFW.GLFW_KEY_F8, category)
     }
 
     override fun registerEvents(factory: ClientEventFactory) {
@@ -160,7 +161,10 @@ object Vibrancy : BigShotCommonRegistrationEntrypoint, BigShotClientRegistration
         }
         factory.onLevelChanged { old, new ->
             lightManager.clear()
-            BlockLightInfoLoader.load(WrapperUtil.INSTANCE.wrap(Minecraft.getInstance().resourceManager))
+
+            if (new != null) {
+                BlockLightInfoLoader.onResourceManagerReload(WrapperUtil.INSTANCE.wrap(Minecraft.getInstance().resourceManager))
+            }
         }
         factory.onFrameStart {
             fun debugPrint(text: Component) {

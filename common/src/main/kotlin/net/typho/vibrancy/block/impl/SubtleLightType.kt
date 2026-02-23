@@ -77,13 +77,13 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight, SubtleLigh
             boxShader.getUniform("IProjMat")?.setValue(Matrix4f(data.inverseProjMat))
             boxShader.getUniform("IModelMat")?.setValue(Matrix4f(data.inverseModelViewMat))
 
-            boxShader.getUniform("CameraPos")?.setValue(data.camera.position.toVector3f())
+            boxShader.getUniform("CameraPos")?.setValue(data.camera.pos)
             boxShader.getUniform("LightRadius")?.setValue(4f)
             boxShader.getUniform("LightBrightness")?.setValue(Vibrancy.config.blockLights.subtle.brightness)
 
             boxShader.getUniform("VibrancyWorldPosSampler")?.setSampler(Vibrancy.worldPosFbo.colorAttachments[0] as GlTexture)
 
-            val meshes = lights.meshes.values.sortedBy { mesh -> manager.getSortingOrder(mesh.pos) }
+            val meshes = lights.meshes.values.sortedBy { mesh -> manager.getSortingOrder(data, mesh.pos) }
 
             for (mesh in meshes) {
                 if (result.numRendered!! + mesh.size > Vibrancy.config.blockLights.subtle.maxRendered) {

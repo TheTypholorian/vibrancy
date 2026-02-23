@@ -1,7 +1,6 @@
 package net.typho.vibrancy
 
 import net.minecraft.ChatFormatting
-import net.minecraft.client.Camera
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
@@ -56,8 +55,6 @@ open class LightManager {
     fun clear() {
         blockLights.values.forEach { storage -> storage.clear(this) }
     }
-
-    fun getCamera(): Camera = Minecraft.getInstance().gameRenderer.mainCamera
 
     fun createShadowMesher(light: PointLight): ShadowMesher {
         return BasicShadowMesher()
@@ -156,7 +153,7 @@ open class LightManager {
         shader.getUniform("IProjMat")?.setValue(Matrix4f(data.inverseProjMat))
         shader.getUniform("IModelMat")?.setValue(Matrix4f(data.inverseModelViewMat))
 
-        shader.getUniform("CameraPos")?.setValue(data.camera.position.toVector3f())
+        shader.getUniform("CameraPos")?.setValue(data.camera.pos)
 
         MeshUtil.SCREEN_MESH.draw()
 
@@ -182,7 +179,7 @@ open class LightManager {
         shader.getUniform("IProjMat")?.setValue(Matrix4f(data.inverseProjMat))
         shader.getUniform("IModelMat")?.setValue(Matrix4f(data.inverseModelViewMat))
 
-        shader.getUniform("CameraPos")?.setValue(data.camera.position.toVector3f())
+        shader.getUniform("CameraPos")?.setValue(data.camera.pos)
 
         FogUtil.INSTANCE.upload(shader)
 
@@ -205,23 +202,22 @@ open class LightManager {
         return distance.coerceAtMost(Minecraft.getInstance().options.effectiveRenderDistance)
     }
 
-    fun inRenderDistance(pos: BlockPos, distance: Int): Boolean {
+    fun inRenderDistance(data: RenderEventData, pos: BlockPos, distance: Int): Boolean {
         val d = clampToRenderDistance(distance)
-        return pos.distSqr(getCamera().blockPosition) <= d * d * 16 * 16
+        return pos.center.toVector3f().distanceSquared(data.camera.pos) <= d * d * 16 * 16
     }
 
-    fun inRenderDistance(pos: ChunkPos, distance: Int): Boolean {
+    fun inRenderDistance(data: RenderEventData, pos: ChunkPos, distance: Int): Boolean {
         val centerChunk = Vector2f(pos.middleBlockX.toFloat(), pos.middleBlockZ.toFloat())
-        val camera = getCamera().blockPosition.center.toVector3f()
         val d = clampToRenderDistance(distance)
-        return centerChunk.distanceSquared(Vector2f(camera.x, camera.z)) <= d * d * 16 * 16
+        return centerChunk.distanceSquared(Vector2f(data.camera.pos.x, data.camera.pos.z)) <= d * d * 16 * 16
     }
 
-    fun getSortingOrder(pos: BlockPos): Double {
-        return pos.distSqr(getCamera().blockPosition)
+    fun getSortingOrder(data: RenderEventData, pos: BlockPos): Float {
+        return pos.center.toVector3f().distanceSquared(data.camera.pos)
     }
 
-    fun getSortingOrder(pos: ChunkPos): Double {
-        return pos.distanceSquared(ChunkPos(getCamera().blockPosition)).toDouble()
+    fun getSortingOrder(data: RenderEventData, pos: ChunkPos): Float {
+        return Vector2f(pos.x.toFloat(), pos.z.toFloat()).distanceSquared(Vector2f(data.camera.pos.x / 16, data.camera.pos.z / 16))
     }
 }

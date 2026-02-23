@@ -77,10 +77,10 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, Hash
 
             lights.map.values.stream()
                 .filter { light ->
-                    manager.inRenderDistance(light.pos, Vibrancy.config.blockLights.raytraced.renderDistance)
+                    manager.inRenderDistance(data, light.pos, Vibrancy.config.blockLights.raytraced.renderDistance)
                             && data.frustum.testAab(light.getBoundingBox().minPosition.toVector3f(), light.getBoundingBox().maxPosition.toVector3f())
                 }
-                .sorted(Comparator.comparingDouble { light -> manager.getSortingOrder(light.pos) })
+                .sorted(Comparator.comparingDouble { light -> manager.getSortingOrder(data, light.pos).toDouble() })
                 .limit(Vibrancy.config.blockLights.raytraced.maxRendered.toLong())
                 .forEachOrdered { light ->
                     result.add(
@@ -88,7 +88,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, Hash
                             manager,
                             data,
                             result.numRaytraced!! < Vibrancy.config.blockLights.raytraced.maxRaytraced
-                                    && manager.inRenderDistance(light.pos, Vibrancy.config.blockLights.raytraced.raytraceDistance),
+                                    && manager.inRenderDistance(data, light.pos, Vibrancy.config.blockLights.raytraced.raytraceDistance),
                             fbo
                         )
                     )

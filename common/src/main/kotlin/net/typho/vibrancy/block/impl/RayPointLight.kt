@@ -72,7 +72,8 @@ class RayPointLight(
 
     override fun getBoundingBox(): AABB {
         val radius2 = (radius * 2).toDouble()
-        return AABB.ofSize(Vec3(getAbsolutePos()), radius2, radius2, radius2)
+        val pos = getAbsolutePos()
+        return AABB.ofSize(Vec3(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()), radius2, radius2, radius2)
     }
 
     override fun rebuildShadows(manager: LightManager) {
@@ -179,7 +180,7 @@ class RayPointLight(
         boxShader.getUniform("IProjMat")?.setValue(Matrix4f(data.inverseProjMat))
         boxShader.getUniform("IModelMat")?.setValue(Matrix4f(data.inverseModelViewMat))
 
-        boxShader.getUniform("CameraPos")?.setValue(data.camera.position.toVector3f())
+        boxShader.getUniform("CameraPos")?.setValue(data.camera.pos)
         boxShader.getUniform("LightPos")?.setValue(getAbsolutePos())
         boxShader.getUniform("LightColor")?.setValue(Vector3f(color).mul(Vibrancy.config.blockLights.raytraced.brightness))
         boxShader.getUniform("LightRadius")?.setValue(radius)

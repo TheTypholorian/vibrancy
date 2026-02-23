@@ -8,12 +8,13 @@ import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.level.block.Block
 import net.typho.big_shot_lib.api.services.NeoFileToIdConverter
 import net.typho.big_shot_lib.api.services.NeoResourceManager
+import net.typho.big_shot_lib.api.services.NeoResourceManagerReloadListener
 import net.typho.big_shot_lib.api.services.WrapperUtil
 import net.typho.big_shot_lib.api.util.resources.NeoTagKey
 import net.typho.big_shot_lib.api.util.resources.ResourceIdentifier
 import net.typho.vibrancy.Vibrancy
 
-object BlockLightInfoLoader {
+object BlockLightInfoLoader : NeoResourceManagerReloadListener {
     @JvmField
     val singleIdConverter: NeoFileToIdConverter = NeoFileToIdConverter.json("rtx/block_lights/by_block")
     @JvmField
@@ -27,8 +28,7 @@ object BlockLightInfoLoader {
             .getOrThrow { message -> JsonSyntaxException("Error parsing block light info for $key: $message") }
     }
 
-    @JvmStatic
-    fun load(manager: NeoResourceManager) {
+    override fun onResourceManagerReload(manager: NeoResourceManager) {
         BlockLightRegistry.blockMap.clear()
         val blocks = WrapperUtil.INSTANCE.wrap(BuiltInRegistries.BLOCK)
 

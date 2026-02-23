@@ -19,12 +19,15 @@ class SubtleLight(
         pos
     )
 
-    override fun getBoundingBox(): AABB = AABB.ofSize(
-        Vec3(getAbsolutePos()),
-        8.0,
-        8.0,
-        8.0
-    )
+    override fun getBoundingBox(): AABB {
+        val pos = getAbsolutePos()
+        return AABB.ofSize(
+            Vec3(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()),
+            8.0,
+            8.0,
+            8.0
+        )
+    }
 
     override fun rebuildShadows(manager: LightManager) {
     }
