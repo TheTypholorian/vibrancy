@@ -58,7 +58,6 @@ object Vibrancy : BigShotCommonRegistrationEntrypoint, BigShotClientRegistration
     var reloadShadowsKey: KeyMapping? = null
     var toggleRaytracedLightsKey: KeyMapping? = null
     var toggleSubtleLightsKey: KeyMapping? = null
-    var openConfigKey: KeyMapping? = null
 
     init {
         val holder = AutoConfig.register(
@@ -151,7 +150,6 @@ object Vibrancy : BigShotCommonRegistrationEntrypoint, BigShotClientRegistration
         reloadShadowsKey = factory.create("key.vibrancy.rebuild_all_shadows", GLFW.GLFW_KEY_F6, category)
         toggleRaytracedLightsKey = factory.create("key.vibrancy.toggle_raytraced_block_lights", GLFW.GLFW_KEY_F7, category)
         toggleSubtleLightsKey = factory.create("key.vibrancy.toggle_subtle_block_lights", GLFW.GLFW_KEY_F8, category)
-        openConfigKey = factory.create("key.vibrancy.config", GLFW.GLFW_KEY_F10, category)
     }
 
     override fun registerEvents(factory: ClientEventFactory) {
@@ -206,10 +204,6 @@ object Vibrancy : BigShotCommonRegistrationEntrypoint, BigShotClientRegistration
                         toggleSubtleLightsKey!!.translatedKeyMessage
                     )
                 )
-            }
-
-            while (openConfigKey?.consumeClick() == true) {
-                Minecraft.getInstance().screen = AutoConfig.getConfigScreen(VibrancyConfig::class.java, Minecraft.getInstance().screen).get()
             }
         }
     }
