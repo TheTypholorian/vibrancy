@@ -1,0 +1,35 @@
+{
+  "type": "vibrancy:raytraced_point",
+  "color": [ 0.6, 0.92, 0.6 ],
+  "brightness": 0.5,
+  "radius": 16,
+  "offset": {
+    "default": [ 0.5, 0.5625, 0.5 ],
+    "entries": [
+      {
+        "matches": {
+          "facing": "east"
+        },
+        "value": [ 0.25, 0.8125, 0.5 ]
+      },
+      {
+        "matches": {
+          "facing": "west"
+        },
+        "value": [ 0.75, 0.8125, 0.5 ]
+      },
+      {
+        "matches": {
+          "facing": "south"
+        },
+        "value": [ 0.5, 0.8125, 0.25 ]
+      },
+      {
+        "matches": {
+          "facing": "north"
+        },
+        "value": [ 0.5, 0.8125, 0.75 ]
+      }
+    ]
+  }
+}
