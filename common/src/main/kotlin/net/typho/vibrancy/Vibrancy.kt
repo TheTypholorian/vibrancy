@@ -39,16 +39,16 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
         NeoFramebuffer(
             listOf(NeoTexture2D(TextureFormat.RGB16F)),
             null,
-            GlFramebuffer.MAIN.width(),
-            GlFramebuffer.MAIN.height()
+            GlFramebuffer.MAIN.width().coerceAtLeast(1),
+            GlFramebuffer.MAIN.height().coerceAtLeast(1)
         )
     }
     val worldPosFbo by lazy {
         NeoFramebuffer(
             listOf(NeoTexture2D(TextureFormat.RGB32F)),
             null,
-            GlFramebuffer.MAIN.width(),
-            GlFramebuffer.MAIN.height()
+            GlFramebuffer.MAIN.width().coerceAtLeast(1),
+            GlFramebuffer.MAIN.height().coerceAtLeast(1)
         )
     }
     var reloadShadowsKey: KeyMapping? = null
