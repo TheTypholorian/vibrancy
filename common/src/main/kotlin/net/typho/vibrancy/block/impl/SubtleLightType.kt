@@ -86,7 +86,7 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLight, SubtleLigh
             val meshes = lights.meshes.values.sortedBy { mesh -> manager.getSortingOrder(data, mesh.pos) }
 
             for (mesh in meshes) {
-                if (result.numRendered!! + mesh.size > Vibrancy.config.blockLights.subtle.maxRendered) {
+                if ((result.numRendered ?: 0) + mesh.size > Vibrancy.config.blockLights.subtle.maxRendered) {
                     break
                 }
 

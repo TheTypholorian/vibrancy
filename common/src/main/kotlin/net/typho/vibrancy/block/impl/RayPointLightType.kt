@@ -65,12 +65,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, Hash
         lights: HashMapBlockLightStorage<RayPointLightInfo, RayPointLight>,
         fbo: GlFramebuffer
     ): LightRenderResult {
-        val result = LightRenderResult(
-            numRendered = 0,
-            numRaytraced = 0,
-            numShadows = 0,
-            numAsyncTasks = 0
-        )
+        val result = LightRenderResult()
 
         if (Vibrancy.config.blockLights.raytraced.enabled) {
             renderSettings.bind()
@@ -83,12 +78,16 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLight, Hash
                 .sorted(Comparator.comparingDouble { light -> manager.getSortingOrder(data, light.pos).toDouble() })
                 .limit(Vibrancy.config.blockLights.raytraced.maxRendered.toLong())
                 .forEachOrdered { light ->
+                    val raytrace = (result.numRaytraced ?: 0) < Vibrancy.config.blockLights.raytraced.maxRaytraced
+                            && manager.inRenderDistance(data, light.pos, Vibrancy.config.blockLights.raytraced.raytraceDistance)
                     result.add(
                         light.render(
                             manager,
                             data,
-                            result.numRaytraced!! < Vibrancy.config.blockLights.raytraced.maxRaytraced
-                                    && manager.inRenderDistance(data, light.pos, Vibrancy.config.blockLights.raytraced.raytraceDistance),
+                            raytrace,
+                            raytrace
+                                    && (result.numForeground ?: 0) < Vibrancy.config.blockLights.raytraced.maxForeground
+                                    && manager.inRenderDistance(data, light.pos, Vibrancy.config.blockLights.raytraced.foregroundDistance),
                             fbo
                         )
                     )

@@ -143,10 +143,11 @@ class RayPointLight(
         boxBuffer.free()
     }
 
-    fun render(manager: LightManager, data: RenderEventData, raytrace: Boolean, fbo: GlFramebuffer): LightRenderResult {
+    fun render(manager: LightManager, data: RenderEventData, raytrace: Boolean, foreground: Boolean, fbo: GlFramebuffer): LightRenderResult {
         val result = LightRenderResult(
             numRendered = 1,
             numRaytraced = if (raytrace) 1 else 0,
+            numForeground = if (foreground) 1 else 0,
             numShadows = if (raytrace) shadows.size else 0,
             numAsyncTasks = if (shadows.isTaskActive()) 1 else 0
         )
@@ -182,11 +183,14 @@ class RayPointLight(
         boxShader.getUniform("LightRadius")?.setValue(radius)
         boxShader.getUniform("ScreenSize")?.setValue(fbo.width().toFloat(), fbo.height().toFloat())
 
-        boxShader.getUniform("ShadowTextureSize")?.setValue(shadows.target.width(), shadows.target.height())
+        if (raytrace && !foreground) {
+            boxShader.getUniform("ShadowTextureSize")?.setValue(shadows.target.width(), shadows.target.height())
+            boxShader.getUniform("SampleShadows")?.setValue(true)
+            boxShader.getUniform("VibrancyShadowSampler")?.setSampler(shadows.texture)
+        } else {
+            boxShader.getUniform("SampleShadows")?.setValue(false)
+        }
 
-        boxShader.getUniform("SampleShadows")?.setValue(raytrace)
-
-        boxShader.getUniform("VibrancyShadowSampler")?.setSampler(shadows.texture)
         boxShader.getUniform("VibrancyNormalSampler")?.setSampler(NormalsDynamicBuffer.texture)
         boxShader.getUniform("VibrancyWorldPosSampler")?.setSampler(Vibrancy.worldPosFbo.colorAttachments[0] as GlTexture)
 

@@ -31,6 +31,12 @@ class VibrancyConfig : ConfigData {
             @ConfigEntry.Gui.Tooltip
             var shadowRadius: Int = 8 // 1 to 16 + 1
             @JvmField
+            @ConfigEntry.Gui.Tooltip
+            var foregroundDistance: Int = 2
+            @JvmField
+            @ConfigEntry.Gui.Tooltip
+            var maxForeground: Int = 50
+            @JvmField
             @ConfigEntry.Gui.Tooltip(count = 3)
             var backgroundShadowQuality: Int = 48 // 16 to 256 + 16
             @JvmField
