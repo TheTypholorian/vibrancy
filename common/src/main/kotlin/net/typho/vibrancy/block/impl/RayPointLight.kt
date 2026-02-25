@@ -32,7 +32,7 @@ class RayPointLight(
     val pos: BlockPos
 ) : BlockLight<RayPointLightInfo, RayPointLight> {
     val shadows = AsyncBlockShadowTexture(
-        { NeoShaderRegistry.get(Vibrancy.id("block/raytraced/shadow"))!! },
+        { NeoShaderRegistry.get(Vibrancy.id("block/raytraced/shadow_texture"))!! },
         { shader ->
             shader.getUniform("LightPos")?.setValue(getAbsolutePos())
             shader.getUniform("LightRadius")?.setValue(radius)

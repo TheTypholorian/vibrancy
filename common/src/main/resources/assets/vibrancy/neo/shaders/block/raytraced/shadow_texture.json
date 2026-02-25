@@ -1,7 +1,7 @@
 {
   "sources": {
-    "vertex": "vibrancy:block/raytraced/shadow",
-    "fragment": "vibrancy:block/raytraced/shadow"
+    "vertex": "vibrancy:block/raytraced/shadow_texture",
+    "fragment": "vibrancy:block/raytraced/shadow_texture"
   },
   "format": "POSITION_TEX",
   "disabledDynamicBuffers": [
