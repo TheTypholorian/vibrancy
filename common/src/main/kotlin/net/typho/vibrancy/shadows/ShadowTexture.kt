@@ -1,18 +1,13 @@
 package net.typho.vibrancy.shadows
 
 import com.mojang.blaze3d.vertex.ByteBufferBuilder
-import net.minecraft.client.renderer.RenderType
 import net.typho.big_shot_lib.api.client.opengl.buffers.*
 import net.typho.big_shot_lib.api.client.opengl.shaders.GlShader
 import net.typho.big_shot_lib.api.client.opengl.state.DisableFlagsShard
 import net.typho.big_shot_lib.api.client.opengl.state.GlFlag
 import net.typho.big_shot_lib.api.client.opengl.state.RenderSettings
-import net.typho.big_shot_lib.api.client.opengl.util.InterpolationType
-import net.typho.big_shot_lib.api.client.opengl.util.MeshUtil
-import net.typho.big_shot_lib.api.client.opengl.util.TextureFormat
-import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
+import net.typho.big_shot_lib.api.client.opengl.util.*
 import net.typho.big_shot_lib.api.util.IColor
-import net.typho.big_shot_lib.api.util.resources.ResourceIdentifier
 import net.typho.vibrancy.Vibrancy
 import org.lwjgl.system.NativeResource
 import java.util.*
@@ -24,6 +19,16 @@ open class ShadowTexture(
     @JvmField
     val height: Int
 ) : NativeResource {
+    companion object {
+        @JvmField
+        val VERTEX_FORMAT = NeoVertexFormat.builder()
+            .add("Position", NeoVertexFormat.Element.POSITION)
+            .padding(Float.SIZE_BYTES)
+            .add("UV0", NeoVertexFormat.Element.TEXTURE_UV)
+            .padding(2 * Float.SIZE_BYTES)
+            .build()
+    }
+
     val texture by lazy {
         val texture = NeoTexture2D(TextureFormat.R16F)
         texture.resize(width, height)
@@ -54,6 +59,13 @@ open class ShadowTexture(
             ))
         )
     )
+    val mesh by lazy {
+        Mesh(
+            VERTEX_FORMAT,
+            GlShapeType.QUADS,
+            BufferUsage.STATIC_DRAW
+        )
+    }
 
     override fun free() {
         target.free()
@@ -67,15 +79,8 @@ open class ShadowTexture(
         @JvmField
         val uniforms: Consumer<GlShader>
     ) { // : MultiBufferSource
-        val builders = HashMap<ResourceIdentifier, ShadowBufferBuilder>()
-
-        fun mainBuffer(): ShadowBufferBuilder {
-            return builders.computeIfAbsent(TextureUtil.INSTANCE.blockAtlasTexture) {
-                val builder = ByteBufferBuilder(RenderType.SMALL_BUFFER_SIZE)
-                toFree.add(builder)
-                ShadowBufferBuilder(builder)
-            }
-        }
+        @JvmField
+        val meshBuilder = mesh.Builder()
 
         /*
         override fun getBuffer(renderType: RenderType): VertexConsumer {
@@ -111,32 +116,16 @@ open class ShadowTexture(
 
             size = 0
 
-            if (!builders.isEmpty()) {
-                val mesh = MeshUtil.SCREEN_MESH
-                mesh.bind()
+            meshBuilder.build()?.let { built ->
+                size += built.drawState().indexCount
 
-                val ssbo = GlBuffer(BufferType.SHADER_STORAGE_BUFFER, BufferUsage.STREAM_DRAW)
-                ssbo.bind()
-                ssbo.bindBase(0)
-                //shader.getUniformBuffer("Quads")?.set(ssbo)
+                mesh.upload(built)
+                meshBuilder.buffer.close()
 
-                for (entry in builders) {
-                    entry.value.build()?.let { built ->
-                        size += entry.value.numQuads()
+                shader.getUniform("Sampler0")?.setSampler(TextureUtil.INSTANCE.getMinecraftTexture(TextureUtil.INSTANCE.blockAtlasTexture))
+                OpenGL.INSTANCE.bindBufferBase(BufferType.SHADER_STORAGE_BUFFER, 0, mesh.vbo.glId)
 
-                        shader.getUniform("Sampler0")?.setSampler(TextureUtil.INSTANCE.getMinecraftTexture(entry.key))
-                        ssbo.upload(built)
-
-                        mesh.draw()
-                    }
-                }
-
-                ssbo.unbind()
-                mesh.unbind()
-            }
-
-            for (builder in toFree) {
-                builder.close()
+                MeshUtil.SCREEN_MESH.draw()
             }
 
             renderSettings.unbind()
@@ -144,8 +133,8 @@ open class ShadowTexture(
             shader.unbind()
             target.unbind()
 
+            toFree.forEach { it.close() }
             toFree.clear()
-            builders.clear()
         }
     }
 }

@@ -25,7 +25,7 @@ open class AsyncBlockShadowTexture(
         asyncTask?.let { task ->
             if (task.isDone) {
                 val builder = begin(shader.get(), uniforms)
-                val consumer = builder.mainBuffer()
+                val consumer = builder.meshBuilder
 
                 for (face in task.get()) {
                     face.buildGeometry(consumer)
@@ -33,7 +33,7 @@ open class AsyncBlockShadowTexture(
 
                 builder.finish()
 
-                asyncTask = null
+                //asyncTask = null
                 return true
             }
         }
