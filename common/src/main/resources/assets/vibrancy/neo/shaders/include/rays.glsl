@@ -44,9 +44,53 @@ bool raycastQuad(vec3 origin, vec3 dir, float len, float margin, Quad q, out vec
     return true;
 }
 
-bool sampleQuad(sampler2D AtlasSampler, vec3 origin, vec3 dir, float len, float margin, Quad q, inout vec2 uv, out float t) {
-    if (raycastQuad(origin, dir, len, margin, q, uv, t)) {
+bool sampleQuad(sampler2D AtlasSampler, vec3 origin, vec3 dir, float len, float margin, Quad q, out float dist) {
+    vec2 uv;
+
+    if (raycastQuad(origin, dir, len, margin, q, uv, dist)) {
         vec2 texUv = mix(mix(q.uv1, q.uv2, uv.x), mix(q.uv4, q.uv3, uv.x), uv.y);
+        return texture(AtlasSampler, texUv).a < 1;
+    } else {
+        return true;
+    }
+}
+
+struct Triangle {
+    vec3 v1; vec2 uv1;
+    vec3 v2; vec2 uv2;
+    vec3 v3; vec2 uv3;
+};
+
+bool raycastTriangle(vec3 origin, vec3 dir, float len, float margin, Triangle t, out vec2 uv, out float tt) {
+    vec3 edge1 = t.v2 - t.v1;
+    vec3 edge2 = t.v3 - t.v1;
+
+    vec3 pvec = cross(dir, edge2);
+    float det = dot(edge1, pvec);
+
+    float invDet = 1.0 / det;
+    vec3 tvec = origin - t.v1;
+
+    float u = dot(tvec, pvec) * invDet;
+    if (u < 0.0 || u > 1.0) return false;
+
+    vec3 qvec = cross(tvec, edge1);
+    float v = dot(dir, qvec) * invDet;
+    if (v < 0.0 || u + v > 1.0) return false;
+
+    tt = dot(edge2, qvec) * invDet;
+    if (tt < margin || tt > len - margin) return false;
+
+    uv = vec2(a, b);
+
+    return true;
+}
+
+bool sampleTriangle(sampler2D AtlasSampler, vec3 origin, vec3 dir, float len, float margin, Triangle t, out float dist) {
+    vec2 uv;
+
+    if (raycastTriangle(origin, dir, len, margin, t, uv, dist)) {
+        vec2 texUv = t.uv1 * (1.0 - u - v) + t.uv2 * u + t.uv3 * v;
         return texture(AtlasSampler, texUv).a < 1;
     } else {
         return true;
