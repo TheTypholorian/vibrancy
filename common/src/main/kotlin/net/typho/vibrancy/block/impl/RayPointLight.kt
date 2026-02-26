@@ -212,13 +212,9 @@ class RayPointLight(
         boxShader.getUniform("LightRadius")?.setValue(radius)
         boxShader.getUniform("ScreenSize")?.setValue(fbo.width().toFloat(), fbo.height().toFloat())
 
-        if (highQuality) {
-            boxShader.getUniform("SampleShadows")?.setValue(false)
-        } else {
-            boxShader.getUniform("ShadowTextureSize")?.setValue(shadows.target.width(), shadows.target.height())
-            boxShader.getUniform("SampleShadows")?.setValue(true)
-            boxShader.getUniform("VibrancyShadowSampler")?.setSampler(shadows.texture)
-        }
+        boxShader.getUniform("ShadowTextureSize")?.setValue(shadows.target.width(), shadows.target.height())
+        boxShader.getUniform("ShadowMultiplier")?.setValue(if (highQuality) 1f - Math.clamp((pos.center.toVector3f().distance(data.camera.pos) - (Vibrancy.config.blockLights.raytraced.foregroundDistance * 16 - 8)) / 8f, 0f, 1f) else 0f)
+        boxShader.getUniform("VibrancyShadowSampler")?.setSampler(shadows.texture)
 
         boxShader.getUniform("VibrancyNormalSampler")?.setSampler(NormalsDynamicBuffer.texture)
         boxShader.getUniform("VibrancyWorldPosSampler")?.setSampler(Vibrancy.worldPosFbo.colorAttachments[0] as GlTexture)
