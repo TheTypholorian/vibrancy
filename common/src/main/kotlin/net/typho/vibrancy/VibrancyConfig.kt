@@ -40,7 +40,7 @@ class VibrancyConfig : ConfigData {
             @JvmField
             @ConfigEntry.Gui.Tooltip
             @ConfigEntry.BoundedDiscrete(min = 1, max = Long.MAX_VALUE)
-            var maxForeground: Int = 50
+            var maxForeground: Int = 25
             @JvmField
             @ConfigEntry.Gui.Tooltip(count = 3)
             @ConfigEntry.BoundedDiscrete(min = 16, max = 256)
