@@ -9,12 +9,8 @@ import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import net.typho.big_shot_lib.api.client.opengl.buffers.*
 import net.typho.big_shot_lib.api.client.opengl.shaders.NeoShaderRegistry
-import net.typho.big_shot_lib.api.client.opengl.state.CullFace
-import net.typho.big_shot_lib.api.client.opengl.state.RenderSettings
-import net.typho.big_shot_lib.api.client.opengl.util.GlShapeType
-import net.typho.big_shot_lib.api.client.opengl.util.InterpolationType
-import net.typho.big_shot_lib.api.client.opengl.util.OpenGL
-import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
+import net.typho.big_shot_lib.api.client.opengl.state.*
+import net.typho.big_shot_lib.api.client.opengl.util.*
 import net.typho.big_shot_lib.api.client.util.dynamic_buffers.NormalsDynamicBuffer
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.big_shot_lib.api.util.BlockUtil
@@ -25,7 +21,6 @@ import net.typho.vibrancy.block.BlockLight
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.shadows.AsyncBlockShadowTexture
 import net.typho.vibrancy.shadows.ShadowPredicate
-import org.joml.Matrix4f
 import org.joml.Vector3f
 import kotlin.math.ceil
 
@@ -35,6 +30,29 @@ class RayPointLight(
     val offset: Vector3f,
     val pos: BlockPos
 ) : BlockLight<RayPointLightInfo, RayPointLight> {
+    companion object {
+        @JvmField
+        val stencilBlitSettings = RenderSettings(
+            Vibrancy.id("block/raytraced/stencil"),
+            listOf(
+                StencilShard(
+                    true,
+                    StencilFunc(
+                        ComparisonFunc.ALWAYS,
+                        1,
+                        1
+                    ),
+                    1,
+                    StencilOp(
+                        IntAction.ZERO,
+                        IntAction.ZERO,
+                        IntAction.REPLACE
+                    )
+                )
+            )
+        )
+    }
+
     val shadows = AsyncBlockShadowTexture(
         { NeoShaderRegistry.get(Vibrancy.id("block/raytraced/shadow_texture"))!! },
         { shader ->
@@ -178,13 +196,27 @@ class RayPointLight(
 
         if (highQuality) {
             fbo.clear(ClearBit.Stencil(0))
+
+            stencilBlitSettings.bind()
+
+            val stencilBlitShader = NeoShaderRegistry.get(Vibrancy.id("block/raytraced/stencil"))!!
+            stencilBlitShader.bind()
+
+            stencilBlitShader.getUniform("LightPos")?.setValue(getAbsolutePos())
+            stencilBlitShader.getUniform("LightRadius")?.setValue(radius)
+
+            stencilBlitShader.getUniform("VibrancyNormalSampler")?.setSampler(NormalsDynamicBuffer.texture)
+            stencilBlitShader.getUniform("VibrancyWorldPosSampler")?.setSampler(Vibrancy.worldPosFbo.colorAttachments[0] as GlTexture)
+
+            MeshUtil.SCREEN_MESH.draw()
+
+            stencilBlitShader.unbind()
+            stencilBlitSettings.unbind()
+
             val settings = shadows.renderStencil(
                 NeoShaderRegistry.get(Vibrancy.id("block/raytraced/shadow_volume"))!!,
             ) { shader ->
                 shader.setCommonUniforms(data)
-
-                shader.getUniform("IProjMat")?.setValue(Matrix4f(data.inverseProjMat))
-                shader.getUniform("IModelMat")?.setValue(Matrix4f(data.inverseModelViewMat))
 
                 shader.getUniform("LightPos")?.setValue(getAbsolutePos())
                 shader.getUniform("LightRadius")?.setValue(radius)
@@ -202,9 +234,6 @@ class RayPointLight(
 
         boxShader.bind()
         boxShader.setCommonUniforms(data)
-
-        boxShader.getUniform("IProjMat")?.setValue(Matrix4f(data.inverseProjMat))
-        boxShader.getUniform("IModelMat")?.setValue(Matrix4f(data.inverseModelViewMat))
 
         boxShader.getUniform("CameraPos")?.setValue(data.camera.pos)
         boxShader.getUniform("LightPos")?.setValue(getAbsolutePos())

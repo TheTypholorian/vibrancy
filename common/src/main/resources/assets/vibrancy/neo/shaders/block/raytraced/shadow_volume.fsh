@@ -5,9 +5,6 @@
 uniform sampler2D Sampler0;
 uniform sampler2D VibrancyWorldPosSampler;
 
-uniform mat4 IProjMat;
-uniform mat4 IModelMat;
-
 uniform vec3 LightPos;
 uniform float LightRadius;
 uniform vec2 ScreenSize;
