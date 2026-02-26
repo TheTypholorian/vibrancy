@@ -70,7 +70,7 @@ open class ShadowTexture(
                 StencilShard(
                     true,
                     StencilFunc(
-                        ComparisonFunc.ALWAYS,
+                        ComparisonFunc.EQUAL,
                         0,
                         1
                     ),
