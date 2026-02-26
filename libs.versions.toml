@@ -30,8 +30,8 @@ mixinExtras = "0.3.5"
 
 sodium="mc1.21.1-0.6.13-neoforge"
 
-bigShot="3.10.4"
-bigShotRange="[3.10.4,)"
+bigShot="3.11.1"
+bigShotRange="[3.11.1,)"
 
 clothConfig = "15.0.140+neoforge"
 modmenu = "11.0.3"
