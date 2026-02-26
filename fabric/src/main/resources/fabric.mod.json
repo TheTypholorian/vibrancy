@@ -19,18 +19,6 @@
         "adapter": "kotlin",
         "value": "net.typho.vibrancy.VibrancyModMenuCompat"
       }
-    ],
-    "big_shot_lib:client": [
-      {
-        "adapter": "kotlin",
-        "value": "net.typho.vibrancy.Vibrancy"
-      }
-    ],
-    "big_shot_lib:common": [
-      {
-        "adapter": "kotlin",
-        "value": "net.typho.vibrancy.Vibrancy"
-      }
     ]
   },
   "mixins": [

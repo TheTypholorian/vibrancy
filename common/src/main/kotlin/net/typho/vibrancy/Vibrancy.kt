@@ -26,7 +26,7 @@ import org.lwjgl.glfw.GLFW
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
+object Vibrancy {
     const val MOD_ID = "vibrancy"
     const val MOD_NAME = "Vibrancy"
     @JvmField
@@ -107,120 +107,122 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
     @JvmStatic
     fun id(path: String): ResourceIdentifier = ResourceIdentifier(MOD_ID, path)
 
-    override fun registerRegistries(factory: RegistryFactory) {
-        BlockLightRegistry.registry = factory.create(
-            BlockLightRegistry.registryKey.location,
-            Lifecycle.stable(),
-            false
-        )
-    }
-
-    override fun registerContent(factory: RegistrationFactory) {
-        BlockLightRegistry.registerBuiltins(factory)
-    }
-
-    override fun registerEvents(factory: CommonEventFactory) {
-        factory.onBlockChanged { level, pos, old, new ->
-            if (level.isClientSide()) {
-                OpenGL.INSTANCE.recordRenderCall {
-                    lightManager.blockChanged(level, pos, old, new)
-                }
-            }
+    class Entrypoint : BigShotCommonEntrypoint, BigShotClientEntrypoint {
+        override fun registerRegistries(factory: RegistryFactory) {
+            BlockLightRegistry.registry = factory.create(
+                BlockLightRegistry.registryKey.location,
+                Lifecycle.stable(),
+                false
+            )
         }
-        factory.onChunkChanged { level, old, new ->
-            if (level?.isClientSide() == true) {
-                OpenGL.INSTANCE.recordRenderCall {
-                    if (old != null) {
-                        lightManager.deloadChunk(old)
-                    }
 
-                    if (new != null) {
-                        lightManager.loadChunk(new)
+        override fun registerContent(factory: RegistrationFactory) {
+            BlockLightRegistry.registerBuiltins(factory)
+        }
+
+        override fun registerEvents(factory: CommonEventFactory) {
+            factory.onBlockChanged { level, pos, old, new ->
+                if (level.isClientSide()) {
+                    OpenGL.INSTANCE.recordRenderCall {
+                        lightManager.blockChanged(level, pos, old, new)
                     }
                 }
             }
-        }
-    }
+            factory.onChunkChanged { level, old, new ->
+                if (level?.isClientSide() == true) {
+                    OpenGL.INSTANCE.recordRenderCall {
+                        if (old != null) {
+                            lightManager.deloadChunk(old)
+                        }
 
-    override fun registerReloadListeners(factory: ResourceListenerFactory) {
-        factory.register(id("block_lights"), BlockLightInfoLoader)
-    }
-
-    override fun registerKeyMappings(factory: KeyMappingFactory) {
-        val category = factory.getOrCreateCategory(id("keys"))
-        reloadShadowsKey = factory.create(id("rebuild_all_shadows"), GLFW.GLFW_KEY_F6, category)
-        toggleRaytracedLightsKey = factory.create(id("toggle_raytraced_block_lights"), GLFW.GLFW_KEY_F7, category)
-        toggleSubtleLightsKey = factory.create(id("toggle_subtle_block_lights"), GLFW.GLFW_KEY_F8, category)
-    }
-
-    override fun registerEvents(factory: ClientEventFactory) {
-        factory.onLevelRenderEnd(this::render)
-        factory.onWindowResized { width, height ->
-            outputFbo.resize(width, height)
-            worldPosFbo.resize(width, height)
-        }
-        factory.onLevelChanged { old, new ->
-            lightManager.clear()
-
-            if (new != null) {
-                BlockLightInfoLoader.onResourceManagerReload(WrapperUtil.INSTANCE.wrap(Minecraft.getInstance().resourceManager))
+                        if (new != null) {
+                            lightManager.loadChunk(new)
+                        }
+                    }
+                }
             }
         }
-        factory.onFrameStart {
-            fun debugPrint(text: Component) {
-                Minecraft.getInstance().gui.chat.addMessage(
-                    Component.empty()
-                        .append(Component.translatable("debug.prefix").withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD))
-                        .append(CommonComponents.SPACE)
-                        .append(text)
-                )
-            }
 
-            while (reloadShadowsKey?.consumeClick() == true) {
-                lightManager.rebuildAllShadows()
-                debugPrint(
-                    Component.translatable(
-                        "debug.vibrancy.rebuild_all_shadows",
-                        reloadShadowsKey!!.translatedKeyMessage
+        override fun registerReloadListeners(factory: ResourceListenerFactory) {
+            factory.register(id("block_lights"), BlockLightInfoLoader)
+        }
+
+        override fun registerKeyMappings(factory: KeyMappingFactory) {
+            val category = factory.getOrCreateCategory(id("keys"))
+            reloadShadowsKey = factory.create(id("rebuild_all_shadows"), GLFW.GLFW_KEY_F6, category)
+            toggleRaytracedLightsKey = factory.create(id("toggle_raytraced_block_lights"), GLFW.GLFW_KEY_F7, category)
+            toggleSubtleLightsKey = factory.create(id("toggle_subtle_block_lights"), GLFW.GLFW_KEY_F8, category)
+        }
+
+        override fun registerEvents(factory: ClientEventFactory) {
+            factory.onLevelRenderEnd(Vibrancy::render)
+            factory.onWindowResized { width, height ->
+                outputFbo.resize(width, height)
+                worldPosFbo.resize(width, height)
+            }
+            factory.onLevelChanged { old, new ->
+                lightManager.clear()
+
+                if (new != null) {
+                    BlockLightInfoLoader.onResourceManagerReload(WrapperUtil.INSTANCE.wrap(Minecraft.getInstance().resourceManager))
+                }
+            }
+            factory.onFrameStart {
+                fun debugPrint(text: Component) {
+                    Minecraft.getInstance().gui.chat.addMessage(
+                        Component.empty()
+                            .append(Component.translatable("debug.prefix").withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD))
+                            .append(CommonComponents.SPACE)
+                            .append(text)
                     )
-                )
-            }
+                }
 
-            while (toggleRaytracedLightsKey?.consumeClick() == true) {
-                val enabled = !config.blockLights.raytraced.enabled
-                config.blockLights.raytraced.enabled = enabled
-                AutoConfig.getConfigHolder(VibrancyConfig::class.java).save()
-                debugPrint(
-                    Component.translatable(
-                        "debug.vibrancy.${if (enabled) "enable" else "disable"}_raytraced_block_lights",
-                        toggleRaytracedLightsKey!!.translatedKeyMessage
+                while (reloadShadowsKey?.consumeClick() == true) {
+                    lightManager.rebuildAllShadows()
+                    debugPrint(
+                        Component.translatable(
+                            "debug.vibrancy.rebuild_all_shadows",
+                            reloadShadowsKey!!.translatedKeyMessage
+                        )
                     )
-                )
-            }
+                }
 
-            while (toggleSubtleLightsKey?.consumeClick() == true) {
-                val enabled = !config.blockLights.subtle.enabled
-                config.blockLights.subtle.enabled = enabled
-                AutoConfig.getConfigHolder(VibrancyConfig::class.java).save()
-                debugPrint(
-                    Component.translatable(
-                        "debug.vibrancy.${if (enabled) "enable" else "disable"}_subtle_block_lights",
-                        toggleSubtleLightsKey!!.translatedKeyMessage
+                while (toggleRaytracedLightsKey?.consumeClick() == true) {
+                    val enabled = !config.blockLights.raytraced.enabled
+                    config.blockLights.raytraced.enabled = enabled
+                    AutoConfig.getConfigHolder(VibrancyConfig::class.java).save()
+                    debugPrint(
+                        Component.translatable(
+                            "debug.vibrancy.${if (enabled) "enable" else "disable"}_raytraced_block_lights",
+                            toggleRaytracedLightsKey!!.translatedKeyMessage
+                        )
                     )
-                )
+                }
+
+                while (toggleSubtleLightsKey?.consumeClick() == true) {
+                    val enabled = !config.blockLights.subtle.enabled
+                    config.blockLights.subtle.enabled = enabled
+                    AutoConfig.getConfigHolder(VibrancyConfig::class.java).save()
+                    debugPrint(
+                        Component.translatable(
+                            "debug.vibrancy.${if (enabled) "enable" else "disable"}_subtle_block_lights",
+                            toggleSubtleLightsKey!!.translatedKeyMessage
+                        )
+                    )
+                }
             }
         }
-    }
 
-    override fun registerDebugScreenInfo(factory: DebugScreenFactory) {
-        factory.register(id("debug_info"), false) { out ->
-            out.accept(ChatFormatting.UNDERLINE.toString() + MOD_NAME)
-            lightManager.getDebugOutput(out)
+        override fun registerDebugScreenInfo(factory: DebugScreenFactory) {
+            factory.register(id("debug_info"), false) { out ->
+                out.accept(ChatFormatting.UNDERLINE.toString() + MOD_NAME)
+                lightManager.getDebugOutput(out)
+            }
         }
-    }
 
-    override fun registerDynamicBuffers(factory: DynamicBufferFactory) {
-        factory.register(NormalsDynamicBuffer)
-        factory.register(AlbedoDynamicBuffer)
+        override fun registerDynamicBuffers(factory: DynamicBufferFactory) {
+            factory.register(NormalsDynamicBuffer)
+            factory.register(AlbedoDynamicBuffer)
+        }
     }
 }
