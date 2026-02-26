@@ -3,9 +3,7 @@ package net.typho.vibrancy.shadows
 import com.mojang.blaze3d.vertex.ByteBufferBuilder
 import net.typho.big_shot_lib.api.client.opengl.buffers.*
 import net.typho.big_shot_lib.api.client.opengl.shaders.GlShader
-import net.typho.big_shot_lib.api.client.opengl.state.DisableFlagsShard
-import net.typho.big_shot_lib.api.client.opengl.state.GlFlag
-import net.typho.big_shot_lib.api.client.opengl.state.RenderSettings
+import net.typho.big_shot_lib.api.client.opengl.state.*
 import net.typho.big_shot_lib.api.client.opengl.util.*
 import net.typho.big_shot_lib.api.util.IColor
 import net.typho.vibrancy.Vibrancy
@@ -27,6 +25,64 @@ open class ShadowTexture(
             .add("UV0", NeoVertexFormat.Element.TEXTURE_UV)
             .padding(2 * Float.SIZE_BYTES)
             .build()
+        @JvmField
+        val textureRenderSettings = RenderSettings(
+            Vibrancy.id("shadow_texture"),
+            listOf(
+                DisableFlagsShard(listOf(
+                    GlFlag.CULL_FACE,
+                    GlFlag.BLEND
+                ))
+            )
+        )
+        @JvmField
+        val volumeWriteSettings = RenderSettings(
+            Vibrancy.id("shadow_volume_write"),
+            listOf(
+                ColorMaskShard(ColorMask(false, false, false, false)),
+                DisableFlagsShard(listOf(
+                    GlFlag.DEPTH_TEST
+                )),
+                CullShard(
+                    true,
+                    CullFace.FRONT
+                ),
+                StencilShard(
+                    true,
+                    StencilFunc(
+                        ComparisonFunc.ALWAYS,
+                        1,
+                        1
+                    ),
+                    1,
+                    StencilOp(
+                        IntAction.KEEP,
+                        IntAction.KEEP,
+                        IntAction.REPLACE
+                    )
+                )
+            )
+        )
+        @JvmField
+        val volumeReadSettings = RenderSettings(
+            Vibrancy.id("shadow_volume_read"),
+            listOf(
+                StencilShard(
+                    true,
+                    StencilFunc(
+                        ComparisonFunc.ALWAYS,
+                        0,
+                        1
+                    ),
+                    1,
+                    StencilOp(
+                        IntAction.KEEP,
+                        IntAction.KEEP,
+                        IntAction.KEEP
+                    )
+                )
+            )
+        )
     }
 
     val texture by lazy {
@@ -49,16 +105,6 @@ open class ShadowTexture(
     val toFree = LinkedList<ByteBufferBuilder>()
     @JvmField
     var size = 0
-    @JvmField
-    val renderSettings = RenderSettings(
-        Vibrancy.id("shadow_texture"),
-        listOf(
-            DisableFlagsShard(listOf(
-                GlFlag.CULL_FACE,
-                GlFlag.BLEND
-            ))
-        )
-    )
     val mesh by lazy {
         Mesh(
             VERTEX_FORMAT,
@@ -69,6 +115,21 @@ open class ShadowTexture(
 
     override fun free() {
         target.free()
+    }
+
+    fun renderStencil(shader: GlShader, uniforms: Consumer<GlShader>): RenderSettings {
+        shader.bind()
+        uniforms.accept(shader)
+
+        volumeWriteSettings.bind()
+
+        mesh.draw()
+
+        volumeWriteSettings.unbind()
+
+        shader.unbind()
+
+        return volumeReadSettings
     }
 
     fun begin(shader: GlShader, uniforms: Consumer<GlShader>) = Builder(shader, uniforms)
@@ -107,12 +168,12 @@ open class ShadowTexture(
             target.bind()
 
             target.viewport()
-            target.clear(ClearBit.Color(IColor.BLACK))
+            target.clear(ClearBit.Color(IColor.FULL_OFF))
 
             shader.bind()
             uniforms.accept(shader)
 
-            renderSettings.bind()
+            textureRenderSettings.bind()
 
             size = 0
 
@@ -128,7 +189,7 @@ open class ShadowTexture(
                 MeshUtil.SCREEN_MESH.draw()
             }
 
-            renderSettings.unbind()
+            textureRenderSettings.unbind()
 
             shader.unbind()
             target.unbind()

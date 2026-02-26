@@ -9,8 +9,12 @@ import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import net.typho.big_shot_lib.api.client.opengl.buffers.*
 import net.typho.big_shot_lib.api.client.opengl.shaders.NeoShaderRegistry
+import net.typho.big_shot_lib.api.client.opengl.state.CullFace
+import net.typho.big_shot_lib.api.client.opengl.state.RenderSettings
 import net.typho.big_shot_lib.api.client.opengl.util.GlShapeType
 import net.typho.big_shot_lib.api.client.opengl.util.InterpolationType
+import net.typho.big_shot_lib.api.client.opengl.util.OpenGL
+import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
 import net.typho.big_shot_lib.api.client.util.dynamic_buffers.NormalsDynamicBuffer
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.big_shot_lib.api.util.BlockUtil
@@ -169,6 +173,31 @@ class RayPointLight(
         fbo.bind()
         fbo.viewport()
 
+        val highQuality = raytrace && foreground
+        var highQualitySettings: RenderSettings? = null
+
+        if (highQuality) {
+            fbo.clear(ClearBit.Stencil(0))
+            val settings = shadows.renderStencil(
+                NeoShaderRegistry.get(Vibrancy.id("block/raytraced/shadow_volume"))!!,
+            ) { shader ->
+                shader.setCommonUniforms(data)
+
+                shader.getUniform("IProjMat")?.setValue(Matrix4f(data.inverseProjMat))
+                shader.getUniform("IModelMat")?.setValue(Matrix4f(data.inverseModelViewMat))
+
+                shader.getUniform("LightPos")?.setValue(getAbsolutePos())
+                shader.getUniform("LightRadius")?.setValue(radius)
+                shader.getUniform("ScreenSize")?.setValue(fbo.width().toFloat(), fbo.height().toFloat())
+                shader.getUniform("CameraPos")?.setValue(data.camera.pos)
+
+                shader.getUniform("Sampler0")?.setSampler(TextureUtil.INSTANCE.getMinecraftTexture(TextureUtil.INSTANCE.blockAtlasTexture))
+                shader.getUniform("VibrancyWorldPosSampler")?.setSampler(Vibrancy.worldPosFbo.colorAttachments[0] as GlTexture)
+            }
+            settings.bind()
+            highQualitySettings = settings
+        }
+
         val boxShader = NeoShaderRegistry.get(Vibrancy.id("block/raytraced/box"))!!
 
         boxShader.bind()
@@ -183,20 +212,25 @@ class RayPointLight(
         boxShader.getUniform("LightRadius")?.setValue(radius)
         boxShader.getUniform("ScreenSize")?.setValue(fbo.width().toFloat(), fbo.height().toFloat())
 
-        if (raytrace && !foreground) {
+        if (highQuality) {
+            boxShader.getUniform("SampleShadows")?.setValue(false)
+        } else {
             boxShader.getUniform("ShadowTextureSize")?.setValue(shadows.target.width(), shadows.target.height())
             boxShader.getUniform("SampleShadows")?.setValue(true)
             boxShader.getUniform("VibrancyShadowSampler")?.setSampler(shadows.texture)
-        } else {
-            boxShader.getUniform("SampleShadows")?.setValue(false)
         }
 
         boxShader.getUniform("VibrancyNormalSampler")?.setSampler(NormalsDynamicBuffer.texture)
         boxShader.getUniform("VibrancyWorldPosSampler")?.setSampler(Vibrancy.worldPosFbo.colorAttachments[0] as GlTexture)
 
+        OpenGL.INSTANCE.cullFace(CullFace.FRONT)
+
         boxBuffer.draw()
 
         boxShader.unbind()
+
+        highQualitySettings?.unbind()
+
         fbo.unbind()
 
         return result

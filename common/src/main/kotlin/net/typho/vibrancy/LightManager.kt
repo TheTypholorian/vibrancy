@@ -142,7 +142,7 @@ open class LightManager {
     }
 
     fun blitWorldPos(data: RenderEventData) {
-        GlFlag.CULL_FACE.stack.push(false)
+        blitSettings.bind()
 
         val shader = NeoShaderRegistry.get(Vibrancy.id("world_pos"))!!
         shader.bind()
@@ -158,12 +158,10 @@ open class LightManager {
         MeshUtil.SCREEN_MESH.draw()
 
         shader.unbind()
-
-        GlFlag.CULL_FACE.stack.pop()
+        blitSettings.unbind()
     }
 
     fun blitOutput(data: RenderEventData, output: GlTexture) {
-        GlFlag.BLEND.disable()
         blitSettings.bind()
 
         val shader = NeoShaderRegistry.get(Vibrancy.id("post"))!!
@@ -198,18 +196,18 @@ open class LightManager {
         }
     }
 
-    fun clampToRenderDistance(distance: Int): Int {
+    fun clampToChunkRenderDistance(distance: Int): Int {
         return distance.coerceAtMost(Minecraft.getInstance().options.effectiveRenderDistance)
     }
 
     fun inRenderDistance(data: RenderEventData, pos: BlockPos, distance: Int): Boolean {
-        val d = clampToRenderDistance(distance)
+        val d = clampToChunkRenderDistance(distance)
         return pos.center.toVector3f().distanceSquared(data.camera.pos) <= d * d * 16 * 16
     }
 
     fun inRenderDistance(data: RenderEventData, pos: ChunkPos, distance: Int): Boolean {
         val centerChunk = Vector2f(pos.middleBlockX.toFloat(), pos.middleBlockZ.toFloat())
-        val d = clampToRenderDistance(distance)
+        val d = clampToChunkRenderDistance(distance)
         return centerChunk.distanceSquared(Vector2f(data.camera.pos.x, data.camera.pos.z)) <= d * d * 16 * 16
     }
 

@@ -9,6 +9,7 @@ import net.minecraft.client.Minecraft
 import net.minecraft.network.chat.CommonComponents
 import net.minecraft.network.chat.Component
 import net.typho.big_shot_lib.api.client.opengl.buffers.*
+import net.typho.big_shot_lib.api.client.opengl.state.GlFlag
 import net.typho.big_shot_lib.api.client.opengl.util.OpenGL
 import net.typho.big_shot_lib.api.client.opengl.util.TextureFormat
 import net.typho.big_shot_lib.api.client.util.*
@@ -38,7 +39,7 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
     val outputFbo by lazy {
         NeoFramebuffer(
             listOf(NeoTexture2D(TextureFormat.RGB16F)),
-            null,
+            NeoTexture2D(TextureFormat.DEPTH24_STENCIL8),
             GlFramebuffer.MAIN.width().coerceAtLeast(1),
             GlFramebuffer.MAIN.height().coerceAtLeast(1)
         )
@@ -78,6 +79,8 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
 
     @JvmStatic
     fun render(data: RenderEventData) {
+        GlFlag.DEPTH_TEST.stack.push(false)
+
         worldPosFbo.bind()
         worldPosFbo.viewport()
 
@@ -86,9 +89,8 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
         worldPosFbo.unbind()
 
         outputFbo.bind()
-
         outputFbo.viewport()
-        outputFbo.clear(ClearBit.Color(IColor.BLACK))
+        outputFbo.clear(ClearBit.Color(IColor.FULL_OFF))
 
         lightManager.render(data, outputFbo)
 
@@ -98,6 +100,8 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
         GlFramebuffer.MAIN.viewport() // TODO
 
         lightManager.blitOutput(data, outputFbo.colorAttachments[0] as GlTexture)
+
+        GlFlag.DEPTH_TEST.stack.pop()
     }
 
     @JvmStatic
