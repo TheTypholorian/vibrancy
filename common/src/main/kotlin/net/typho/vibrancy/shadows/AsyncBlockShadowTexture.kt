@@ -3,17 +3,14 @@ package net.typho.vibrancy.shadows
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.util.RandomSource
-import net.typho.big_shot_lib.api.client.opengl.shaders.GlShader
+import net.typho.big_shot_lib.api.client.opengl.state.ShaderShard
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.util.PointLight
 import java.util.*
 import java.util.concurrent.CompletableFuture
-import java.util.function.Consumer
 import java.util.function.Supplier
 
 open class AsyncBlockShadowTexture(
-    val shader: Supplier<GlShader>,
-    val uniforms: Consumer<GlShader>,
     width: Int,
     height: Int
 ) : ShadowTexture(width, height) {
@@ -21,10 +18,10 @@ open class AsyncBlockShadowTexture(
 
     fun isTaskActive() = asyncTask?.let { task -> !task.isDone } ?: false
 
-    fun checkIfFinished(): Boolean {
+    fun checkIfFinished(shader: Supplier<ShaderShard>): Boolean {
         asyncTask?.let { task ->
             if (task.isDone) {
-                val builder = begin(shader.get(), uniforms)
+                val builder = Builder(shader.get())
                 val consumer = builder.meshBuilder
 
                 for (face in task.get()) {

@@ -8,9 +8,11 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import net.typho.big_shot_lib.api.client.opengl.buffers.*
-import net.typho.big_shot_lib.api.client.opengl.shaders.NeoShaderRegistry
 import net.typho.big_shot_lib.api.client.opengl.state.*
-import net.typho.big_shot_lib.api.client.opengl.util.*
+import net.typho.big_shot_lib.api.client.opengl.util.GlShapeType
+import net.typho.big_shot_lib.api.client.opengl.util.InterpolationType
+import net.typho.big_shot_lib.api.client.opengl.util.MeshUtil
+import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
 import net.typho.big_shot_lib.api.client.util.dynamic_buffers.NormalsDynamicBuffer
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.big_shot_lib.api.util.BlockUtil
@@ -31,34 +33,107 @@ class RayPointLight(
     val pos: BlockPos
 ) : BlockLight<RayPointLightInfo, RayPointLight> {
     companion object {
-        @JvmField
-        val stencilBlitSettings = RenderSettings(
-            Vibrancy.id("block/raytraced/stencil"),
+        @JvmStatic
+        fun stencilCullSettings(fbo: GlFramebuffer, light: RayPointLight) = RenderSettings(
+            Vibrancy.id("block/raytraced/stencil_cull"),
             listOf(
+                FramebufferShard(
+                    { fbo },
+                    true,
+                    ClearBit.Stencil(0)
+                ),
                 StencilShard(
                     true,
-                    StencilFunc(
-                        ComparisonFunc.ALWAYS,
-                        1,
-                        1
-                    ),
+                    StencilFunc(ComparisonFunc.ALWAYS, 1, 1),
                     1,
-                    StencilOp(
-                        IntAction.ZERO,
-                        IntAction.ZERO,
-                        IntAction.REPLACE
+                    StencilOp(IntAction.ZERO, IntAction.ZERO, IntAction.REPLACE)
+                ),
+                ShaderShard(
+                    Vibrancy.id("block/raytraced/stencil_cull")
+                ) { shader ->
+                    shader.getUniform("LightPos")?.setValue(light.getAbsolutePos())
+                    shader.getUniform("LightRadius")?.setValue(light.radius)
+
+                    shader.getUniform("VibrancyNormalSampler")?.setSampler(NormalsDynamicBuffer.texture)
+                    shader.getUniform("VibrancyWorldPosSampler")?.setSampler(Vibrancy.worldPosFbo.colorAttachments[0] as GlTexture)
+                }
+            )
+        )
+
+        @JvmStatic
+        fun shadowVolumeSettings(fbo: GlFramebuffer, light: RayPointLight, data: RenderEventData) = RenderSettings(
+            Vibrancy.id("block/raytraced/shadow_volume"),
+            listOf(
+                FramebufferShard(
+                    { fbo },
+                    true
+                ),
+                ShaderShard(
+                    Vibrancy.id("block/raytraced/shadow_volume")
+                ) { shader ->
+                    shader.setCommonUniforms(data)
+
+                    shader.getUniform("LightPos")?.setValue(light.getAbsolutePos())
+                    shader.getUniform("LightRadius")?.setValue(light.radius)
+                    shader.getUniform("ScreenSize")?.setValue(fbo.width.toFloat(), fbo.height.toFloat())
+                    shader.getUniform("CameraPos")?.setValue(data.camera.pos)
+
+                    shader.getUniform("Sampler0")?.setSampler(TextureUtil.INSTANCE.getMinecraftTexture(TextureUtil.INSTANCE.blockAtlasTexture))
+                    shader.getUniform("VibrancyWorldPosSampler")?.setSampler(Vibrancy.worldPosFbo.colorAttachments[0] as GlTexture)
+                }
+            )
+        )
+
+        @JvmStatic
+        fun boxSettings(fbo: GlFramebuffer, light: RayPointLight, data: RenderEventData, highQuality: Boolean) =
+            RenderSettings(
+                Vibrancy.id("block/raytraced/box"),
+                listOf(
+                    FramebufferShard(
+                        { fbo },
+                        true
+                    ),
+                    ShaderShard(
+                        Vibrancy.id("block/raytraced/box")
+                    ) { shader ->
+                        shader.setCommonUniforms(data)
+
+                        shader.getUniform("CameraPos")?.setValue(data.camera.pos)
+                        shader.getUniform("LightPos")?.setValue(light.getAbsolutePos())
+                        shader.getUniform("LightColor")?.setValue(Vector3f(light.color).mul(Vibrancy.config.blockLights.raytraced.brightness))
+                        shader.getUniform("LightRadius")?.setValue(light.radius)
+                        shader.getUniform("ScreenSize")?.setValue(fbo.width.toFloat(), fbo.height.toFloat())
+
+                        shader.getUniform("ShadowTextureSize")?.setValue(light.shadows.target.width, light.shadows.target.height)
+                        shader.getUniform("ShadowMultiplier")?.setValue(
+                            if (highQuality)
+                                1f - Math.clamp((light.pos.center.toVector3f().distance(data.camera.pos) - (Vibrancy.config.blockLights.raytraced.foregroundDistance * 16 - 8)) / 8f, 0f, 1f)
+                            else
+                                0f
+                        )
+                        shader.getUniform("VibrancyShadowSampler")?.setSampler(light.shadows.texture)
+
+                        shader.getUniform("VibrancyNormalSampler")?.setSampler(NormalsDynamicBuffer.texture)
+                        shader.getUniform("VibrancyWorldPosSampler")?.setSampler(Vibrancy.worldPosFbo.colorAttachments[0] as GlTexture)
+                    },
+                    CullShard(
+                        true,
+                        CullFace.FRONT
                     )
                 )
             )
-        )
+
+        @JvmStatic
+        fun shadowTextureShaderShard(light: RayPointLight) = ShaderShard(
+            Vibrancy.id("block/raytraced/shadow_texture")
+        ) { shader ->
+            shader.getUniform("LightPos")?.setValue(light.getAbsolutePos())
+            shader.getUniform("LightRadius")?.setValue(light.radius)
+            shader.getUniform("Sampler0")?.setSampler(TextureUtil.INSTANCE.getMinecraftTexture(TextureUtil.INSTANCE.blockAtlasTexture))
+        }
     }
 
     val shadows = AsyncBlockShadowTexture(
-        { NeoShaderRegistry.get(Vibrancy.id("block/raytraced/shadow_texture"))!! },
-        { shader ->
-            shader.getUniform("LightPos")?.setValue(getAbsolutePos())
-            shader.getUniform("LightRadius")?.setValue(radius)
-        },
         Vibrancy.config.blockLights.raytraced.backgroundShadowQuality * 6,
         Vibrancy.config.blockLights.raytraced.backgroundShadowQuality
     )
@@ -186,7 +261,7 @@ class RayPointLight(
             shadowsDirty = false
         }
 
-        shadows.checkIfFinished()
+        shadows.checkIfFinished { shadowTextureShaderShard(this) }
 
         fbo.bind()
         fbo.viewport()
@@ -195,64 +270,24 @@ class RayPointLight(
         var highQualitySettings: RenderSettings? = null
 
         if (highQuality) {
-            fbo.clear(ClearBit.Stencil(0))
+            val stencilCullSettings = stencilCullSettings(fbo, this)
 
-            stencilBlitSettings.bind()
-
-            val stencilBlitShader = NeoShaderRegistry.get(Vibrancy.id("block/raytraced/stencil"))!!
-            stencilBlitShader.bind()
-
-            stencilBlitShader.getUniform("LightPos")?.setValue(getAbsolutePos())
-            stencilBlitShader.getUniform("LightRadius")?.setValue(radius)
-
-            stencilBlitShader.getUniform("VibrancyNormalSampler")?.setSampler(NormalsDynamicBuffer.texture)
-            stencilBlitShader.getUniform("VibrancyWorldPosSampler")?.setSampler(Vibrancy.worldPosFbo.colorAttachments[0] as GlTexture)
-
+            stencilCullSettings.bind()
             MeshUtil.SCREEN_MESH.draw()
+            stencilCullSettings.unbind()
 
-            stencilBlitShader.unbind()
-            stencilBlitSettings.unbind()
+            val shadowVolumeSettings = shadowVolumeSettings(fbo, this, data)
 
-            val settings = shadows.renderStencil(
-                NeoShaderRegistry.get(Vibrancy.id("block/raytraced/shadow_volume"))!!,
-            ) { shader ->
-                shader.setCommonUniforms(data)
-
-                shader.getUniform("LightPos")?.setValue(getAbsolutePos())
-                shader.getUniform("LightRadius")?.setValue(radius)
-                shader.getUniform("ScreenSize")?.setValue(fbo.width().toFloat(), fbo.height().toFloat())
-                shader.getUniform("CameraPos")?.setValue(data.camera.pos)
-
-                shader.getUniform("Sampler0")?.setSampler(TextureUtil.INSTANCE.getMinecraftTexture(TextureUtil.INSTANCE.blockAtlasTexture))
-                shader.getUniform("VibrancyWorldPosSampler")?.setSampler(Vibrancy.worldPosFbo.colorAttachments[0] as GlTexture)
-            }
-            settings.bind()
-            highQualitySettings = settings
+            shadowVolumeSettings.bind()
+            highQualitySettings = shadows.renderStencil().also { it.bind() }
+            shadowVolumeSettings.unbind()
         }
 
-        val boxShader = NeoShaderRegistry.get(Vibrancy.id("block/raytraced/box"))!!
+        val boxSettings = boxSettings(fbo, this, data, highQuality)
 
-        boxShader.bind()
-        boxShader.setCommonUniforms(data)
-
-        boxShader.getUniform("CameraPos")?.setValue(data.camera.pos)
-        boxShader.getUniform("LightPos")?.setValue(getAbsolutePos())
-        boxShader.getUniform("LightColor")?.setValue(Vector3f(color).mul(Vibrancy.config.blockLights.raytraced.brightness))
-        boxShader.getUniform("LightRadius")?.setValue(radius)
-        boxShader.getUniform("ScreenSize")?.setValue(fbo.width().toFloat(), fbo.height().toFloat())
-
-        boxShader.getUniform("ShadowTextureSize")?.setValue(shadows.target.width(), shadows.target.height())
-        boxShader.getUniform("ShadowMultiplier")?.setValue(if (highQuality) 1f - Math.clamp((pos.center.toVector3f().distance(data.camera.pos) - (Vibrancy.config.blockLights.raytraced.foregroundDistance * 16 - 8)) / 8f, 0f, 1f) else 0f)
-        boxShader.getUniform("VibrancyShadowSampler")?.setSampler(shadows.texture)
-
-        boxShader.getUniform("VibrancyNormalSampler")?.setSampler(NormalsDynamicBuffer.texture)
-        boxShader.getUniform("VibrancyWorldPosSampler")?.setSampler(Vibrancy.worldPosFbo.colorAttachments[0] as GlTexture)
-
-        OpenGL.INSTANCE.cullFace(CullFace.FRONT)
-
+        boxSettings.bind()
         boxBuffer.draw()
-
-        boxShader.unbind()
+        boxSettings.unbind()
 
         highQualitySettings?.unbind()
 

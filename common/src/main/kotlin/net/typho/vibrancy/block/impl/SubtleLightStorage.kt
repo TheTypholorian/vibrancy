@@ -7,7 +7,6 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.phys.AABB
 import net.typho.big_shot_lib.api.client.opengl.buffers.*
-import net.typho.big_shot_lib.api.client.opengl.shaders.GlShader
 import net.typho.big_shot_lib.api.client.opengl.util.GlShapeType
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.vibrancy.LightManager
@@ -164,14 +163,13 @@ class SubtleLightStorage : BlockLightStorage<SubtleLightInfo> {
         var size: Int = 0,
         var box: AABB? = null
     ) : NativeResource {
-        fun render(data: RenderEventData, shader: GlShader, manager: LightManager): LightRenderResult {
+        fun render(data: RenderEventData, manager: LightManager): LightRenderResult {
             if (
                 size > 0
                 && manager.inRenderDistance(data, pos, Vibrancy.config.blockLights.subtle.renderDistance)
                 && box?.let { data.frustum.testAab(it.minPosition.toVector3f(), it.maxPosition.toVector3f()) || manager.inRenderDistance(data, pos, 6) } ?: true
             ) {
                 ssbo.bindBase(0)
-                //shader.getUniformBuffer("Quads")?.set(ssbo)
 
                 mesh.draw()
 

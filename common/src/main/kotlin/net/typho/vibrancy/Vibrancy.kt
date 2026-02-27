@@ -40,16 +40,16 @@ object Vibrancy {
         NeoFramebuffer(
             listOf(NeoTexture2D(TextureFormat.RGB16F)),
             NeoTexture2D(TextureFormat.DEPTH24_STENCIL8),
-            GlFramebuffer.MAIN.width().coerceAtLeast(1),
-            GlFramebuffer.MAIN.height().coerceAtLeast(1)
+            GlFramebuffer.MAIN.width.coerceAtLeast(1),
+            GlFramebuffer.MAIN.height.coerceAtLeast(1)
         )
     }
     val worldPosFbo by lazy {
         NeoFramebuffer(
             listOf(NeoTexture2D(TextureFormat.RGB32F)),
             null,
-            GlFramebuffer.MAIN.width().coerceAtLeast(1),
-            GlFramebuffer.MAIN.height().coerceAtLeast(1)
+            GlFramebuffer.MAIN.width.coerceAtLeast(1),
+            GlFramebuffer.MAIN.height.coerceAtLeast(1)
         )
     }
     var reloadShadowsKey: KeyMapping? = null

@@ -2,14 +2,12 @@ package net.typho.vibrancy.shadows
 
 import com.mojang.blaze3d.vertex.ByteBufferBuilder
 import net.typho.big_shot_lib.api.client.opengl.buffers.*
-import net.typho.big_shot_lib.api.client.opengl.shaders.GlShader
 import net.typho.big_shot_lib.api.client.opengl.state.*
 import net.typho.big_shot_lib.api.client.opengl.util.*
 import net.typho.big_shot_lib.api.util.IColor
 import net.typho.vibrancy.Vibrancy
 import org.lwjgl.system.NativeResource
 import java.util.*
-import java.util.function.Consumer
 
 open class ShadowTexture(
     @JvmField
@@ -25,16 +23,6 @@ open class ShadowTexture(
             .add("UV0", NeoVertexFormat.Element.TEXTURE_UV)
             .padding(2 * Float.SIZE_BYTES)
             .build()
-        @JvmField
-        val textureRenderSettings = RenderSettings(
-            Vibrancy.id("shadow_texture"),
-            listOf(
-                DisableFlagsShard(listOf(
-                    GlFlag.CULL_FACE,
-                    GlFlag.BLEND
-                ))
-            )
-        )
         @JvmField
         val volumeWriteSettings = RenderSettings(
             Vibrancy.id("shadow_volume_write"),
@@ -83,6 +71,22 @@ open class ShadowTexture(
                 )
             )
         )
+        @JvmStatic
+        fun builderSettings(shader: ShaderShard, target: GlFramebuffer) = RenderSettings(
+            Vibrancy.id("shadow_texture_builder"),
+            listOf(
+                DisableFlagsShard(listOf(
+                    GlFlag.CULL_FACE,
+                    GlFlag.BLEND
+                )),
+                FramebufferShard(
+                    { target },
+                    true,
+                    ClearBit.Color(IColor.FULL_OFF)
+                ),
+                shader
+            )
+        )
     }
 
     val texture by lazy {
@@ -117,31 +121,21 @@ open class ShadowTexture(
         target.free()
     }
 
-    fun renderStencil(shader: GlShader, uniforms: Consumer<GlShader>): RenderSettings {
-        shader.bind()
-        uniforms.accept(shader)
-
+    fun renderStencil(): RenderSettings {
         volumeWriteSettings.bind()
-
         mesh.draw()
-
         volumeWriteSettings.unbind()
-
-        shader.unbind()
 
         return volumeReadSettings
     }
 
-    fun begin(shader: GlShader, uniforms: Consumer<GlShader>) = Builder(shader, uniforms)
-
     inner class Builder(
-        @JvmField
-        val shader: GlShader,
-        @JvmField
-        val uniforms: Consumer<GlShader>
+        shader: ShaderShard
     ) { // : MultiBufferSource
         @JvmField
         val meshBuilder = mesh.Builder()
+        @JvmField
+        val builderSettings = builderSettings(shader, target)
 
         /*
         override fun getBuffer(renderType: RenderType): VertexConsumer {
@@ -165,15 +159,7 @@ open class ShadowTexture(
          */
 
         fun finish() {
-            target.bind()
-
-            target.viewport()
-            target.clear(ClearBit.Color(IColor.FULL_OFF))
-
-            shader.bind()
-            uniforms.accept(shader)
-
-            textureRenderSettings.bind()
+            builderSettings.bind()
 
             size = 0
 
@@ -183,16 +169,12 @@ open class ShadowTexture(
                 mesh.upload(built)
                 meshBuilder.buffer.close()
 
-                shader.getUniform("Sampler0")?.setSampler(TextureUtil.INSTANCE.getMinecraftTexture(TextureUtil.INSTANCE.blockAtlasTexture))
                 OpenGL.INSTANCE.bindBufferBase(BufferType.SHADER_STORAGE_BUFFER, 0, mesh.vbo.glId)
 
                 MeshUtil.SCREEN_MESH.draw()
             }
 
-            textureRenderSettings.unbind()
-
-            shader.unbind()
-            target.unbind()
+            builderSettings.unbind()
 
             toFree.forEach { it.close() }
             toFree.clear()
