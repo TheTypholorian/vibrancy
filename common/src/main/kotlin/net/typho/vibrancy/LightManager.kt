@@ -11,10 +11,10 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
 import net.typho.big_shot_lib.api.client.opengl.buffers.GlFramebuffer
 import net.typho.big_shot_lib.api.client.opengl.buffers.GlTexture
-import net.typho.big_shot_lib.api.client.opengl.shaders.NeoShaderRegistry
 import net.typho.big_shot_lib.api.client.opengl.state.DisableFlagsShard
 import net.typho.big_shot_lib.api.client.opengl.state.GlFlag
 import net.typho.big_shot_lib.api.client.opengl.state.RenderSettings
+import net.typho.big_shot_lib.api.client.opengl.state.ShaderShard
 import net.typho.big_shot_lib.api.client.opengl.util.FogUtil
 import net.typho.big_shot_lib.api.client.opengl.util.MeshUtil
 import net.typho.big_shot_lib.api.client.util.dynamic_buffers.AlbedoDynamicBuffer
@@ -31,24 +31,69 @@ import java.util.*
 import java.util.function.Consumer
 
 open class LightManager {
+    companion object {
+        @JvmStatic
+        fun blitWorldPosSettings(data: RenderEventData) = RenderSettings(
+            Vibrancy.id("light_manager/blit_world_pos"),
+            listOf(
+                DisableFlagsShard(listOf(
+                    GlFlag.CULL_FACE,
+                    GlFlag.DEPTH_TEST,
+                    GlFlag.BLEND
+                )),
+                ShaderShard(
+                    Vibrancy.id("world_pos")
+                ) { shader ->
+                    shader.setCommonUniforms(data)
+
+                    shader.getUniform("DiffuseDepthSampler")?.setSampler(GlFramebuffer.MAIN.depthAttachment!! as GlTexture)
+
+                    shader.getUniform("IProjMat")?.setValue(Matrix4f(data.inverseProjMat))
+                    shader.getUniform("IModelMat")?.setValue(Matrix4f(data.inverseModelViewMat))
+
+                    shader.getUniform("CameraPos")?.setValue(data.camera.pos)
+                }
+            )
+        )
+
+        @JvmStatic
+        fun blitOutputSettings(data: RenderEventData, output: GlTexture) = RenderSettings(
+            Vibrancy.id("light_manager/blit_output"),
+            listOf(
+                DisableFlagsShard(listOf(
+                    GlFlag.CULL_FACE,
+                    GlFlag.DEPTH_TEST,
+                    GlFlag.BLEND
+                )),
+                ShaderShard(
+                    Vibrancy.id("post")
+                ) { shader ->
+                    shader.setCommonUniforms(data)
+
+                    shader.getUniform("DiffuseSampler0")?.setSampler(GlFramebuffer.MAIN.colorAttachments[0] as GlTexture)
+                    shader.getUniform("VibrancyWorldPosSampler")?.setSampler(Vibrancy.worldPosFbo.colorAttachments[0] as GlTexture)
+                    shader.getUniform("VibrancyOutputSampler")?.setSampler(output)
+                    shader.getUniform("VibrancyAlbedoSampler")?.setSampler(AlbedoDynamicBuffer.texture)
+                    shader.getUniform("VibrancyNormalSampler")?.setSampler(NormalsDynamicBuffer.texture)
+
+                    shader.getUniform("IProjMat")?.setValue(Matrix4f(data.inverseProjMat))
+                    shader.getUniform("IModelMat")?.setValue(Matrix4f(data.inverseModelViewMat))
+
+                    shader.getUniform("CameraPos")?.setValue(data.camera.pos)
+                    shader.getUniform("LightBrightnessLimit")?.setValue(Vibrancy.config.lightBrightnessLimit)
+
+                    FogUtil.INSTANCE.upload(shader)
+                }
+            )
+        )
+    }
+
     @JvmField
     val dirtyBlocks = LinkedList<GlobalPos>()
     @JvmField
     val blockLights = HashMap<BlockLightType<*, *, *>, BlockLightStorage<*>>()
     @JvmField
     protected var blockRenderResults = HashMap<BlockLightType<*, *, *>, LightRenderResult>()
-
-    @JvmField
-    val blitSettings = RenderSettings(
-        Vibrancy.id("light_manager/blit"),
-        listOf(
-            DisableFlagsShard(listOf(
-                GlFlag.CULL_FACE,
-                GlFlag.DEPTH_TEST,
-                GlFlag.BLEND
-            ))
-        )
-    )
 
     fun getLevel(): ClientLevel = Minecraft.getInstance().level!!
 
@@ -142,50 +187,19 @@ open class LightManager {
     }
 
     fun blitWorldPos(data: RenderEventData) {
-        blitSettings.bind()
+        val blitWorldPosSettings = blitWorldPosSettings(data)
 
-        val shader = NeoShaderRegistry.get(Vibrancy.id("world_pos"))!!
-        shader.bind()
-        shader.setCommonUniforms(data)
-
-        shader.getUniform("DiffuseDepthSampler")?.setSampler(GlFramebuffer.MAIN.depthAttachment!! as GlTexture)
-
-        shader.getUniform("IProjMat")?.setValue(Matrix4f(data.inverseProjMat))
-        shader.getUniform("IModelMat")?.setValue(Matrix4f(data.inverseModelViewMat))
-
-        shader.getUniform("CameraPos")?.setValue(data.camera.pos)
-
+        blitWorldPosSettings.bind()
         MeshUtil.SCREEN_MESH.draw()
-
-        shader.unbind()
-        blitSettings.unbind()
+        blitWorldPosSettings.unbind()
     }
 
     fun blitOutput(data: RenderEventData, output: GlTexture) {
-        blitSettings.bind()
+        val blitOutputSettings = blitOutputSettings(data, output)
 
-        val shader = NeoShaderRegistry.get(Vibrancy.id("post"))!!
-        shader.bind()
-        shader.setCommonUniforms(data)
-
-        shader.getUniform("DiffuseSampler0")?.setSampler(GlFramebuffer.MAIN.colorAttachments[0] as GlTexture)
-        shader.getUniform("VibrancyWorldPosSampler")?.setSampler(Vibrancy.worldPosFbo.colorAttachments[0] as GlTexture)
-        shader.getUniform("VibrancyOutputSampler")?.setSampler(output)
-        shader.getUniform("VibrancyAlbedoSampler")?.setSampler(AlbedoDynamicBuffer.texture)
-        shader.getUniform("VibrancyNormalSampler")?.setSampler(NormalsDynamicBuffer.texture)
-
-        shader.getUniform("IProjMat")?.setValue(Matrix4f(data.inverseProjMat))
-        shader.getUniform("IModelMat")?.setValue(Matrix4f(data.inverseModelViewMat))
-
-        shader.getUniform("CameraPos")?.setValue(data.camera.pos)
-        shader.getUniform("LightBrightnessLimit")?.setValue(Vibrancy.config.lightBrightnessLimit)
-
-        FogUtil.INSTANCE.upload(shader)
-
+        blitOutputSettings.bind()
         MeshUtil.SCREEN_MESH.draw()
-
-        shader.unbind()
-        blitSettings.unbind()
+        blitOutputSettings.unbind()
     }
 
     fun getDebugOutput(out: Consumer<String>) {
