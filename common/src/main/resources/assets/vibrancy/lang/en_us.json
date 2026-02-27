@@ -1,6 +1,9 @@
 {
   "text.autoconfig.vibrancy.title": "Vibrancy Config",
 
+  "text.autoconfig.vibrancy.option.lightBrightnessLimit": "Light Brightness Limit",
+  "text.autoconfig.vibrancy.option.lightBrightnessLimit.@Tooltip": "The maximum multiplier that Vibrancy lights can reach in a pixel.",
+
   "text.autoconfig.vibrancy.option.blockLights": "Block Lights",
 
   "text.autoconfig.vibrancy.option.blockLights.raytraced": "Raytraced",

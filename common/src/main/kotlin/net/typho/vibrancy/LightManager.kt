@@ -178,6 +178,7 @@ open class LightManager {
         shader.getUniform("IModelMat")?.setValue(Matrix4f(data.inverseModelViewMat))
 
         shader.getUniform("CameraPos")?.setValue(data.camera.pos)
+        shader.getUniform("LightBrightnessLimit")?.setValue(Vibrancy.config.lightBrightnessLimit)
 
         FogUtil.INSTANCE.upload(shader)
 

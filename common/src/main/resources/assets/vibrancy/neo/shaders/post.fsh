@@ -10,6 +10,7 @@ uniform sampler2D VibrancyAlbedoSampler;
 
 uniform vec2 ScreenSize;
 uniform vec3 CameraPos;
+uniform float LightBrightnessLimit;
 
 in vec2 uv;
 
@@ -17,7 +18,7 @@ out vec4 fragColor;
 
 void main() {
     vec3 outputColor = texture(VibrancyOutputSampler, gl_FragCoord.xy / ScreenSize).rgb;
-    float outputScale = min(1, 1 / max(outputColor.r, max(outputColor.g, outputColor.b)));
+    float outputScale = min(LightBrightnessLimit, LightBrightnessLimit / max(outputColor.r, max(outputColor.g, outputColor.b)));
     vec3 pos = texelFetch(VibrancyWorldPosSampler, ivec2(gl_FragCoord.xy), 0).xyz;
     vec4 finalColor = bigShotFog(vec4(outputColor * outputScale, 1), pos - CameraPos, vec4(0));
 
