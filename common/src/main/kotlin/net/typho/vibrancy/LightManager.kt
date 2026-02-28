@@ -139,7 +139,7 @@ open class LightManager {
         for (entry in blockLights) {
             entry.value.removeLight(this, pos)
 
-            BlockLightRegistry.get(new.block, entry.key)?.let { addBlockLight(pos, old, entry.key, it) }
+            BlockLightRegistry.get(new.block, entry.key)?.let { addBlockLight(pos, new, entry.key, it) }
         }
 
         dirtyBlocks.add(GlobalPos(level.dimension(), pos))

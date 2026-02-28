@@ -8,6 +8,7 @@ import net.typho.big_shot_lib.api.util.WrapperUtil
 import net.typho.big_shot_lib.api.util.resources.NeoResourceKey
 import net.typho.big_shot_lib.api.util.resources.ResourceIdentifier
 import net.typho.vibrancy.Vibrancy
+import net.typho.vibrancy.sky.impl.OverworldSkyLightType
 
 object SkyLightRegistry {
     @JvmField
@@ -28,5 +29,6 @@ object SkyLightRegistry {
     @JvmStatic
     fun registerBuiltins(factory: RegistrationFactory) {
         val consumer = factory.begin(registryKey, Vibrancy.MOD_ID)
+        consumer.register("overworld") { OverworldSkyLightType }
     }
 }

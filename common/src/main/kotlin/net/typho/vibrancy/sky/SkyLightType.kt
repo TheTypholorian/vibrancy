@@ -7,9 +7,9 @@ import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.LightRenderResult
 
 interface SkyLightType<I, S : SkyLightStorage<I>> {
-    fun createStorage(manager: LightManager): S
+    val infoCodec: MapCodec<I>
 
-    fun infoCodec(): MapCodec<I>
+    fun createStorage(manager: LightManager): S
 
     fun castInfo(info: Any?): I?
 

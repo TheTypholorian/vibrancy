@@ -1,0 +1,12 @@
+{
+  "sources": {
+    "vertex": "vibrancy:sky/overworld/shadow_volume",
+    "geometry": "vibrancy:sky/overworld/shadow_volume",
+    "fragment": "vibrancy:sky/overworld/shadow_volume"
+  },
+  "format": "POSITION_TEX",
+  "disabledDynamicBuffers": [
+    "big_shot_lib:dynamic_buffer/normals",
+    "big_shot_lib:dynamic_buffer/albedo"
+  ]
+}

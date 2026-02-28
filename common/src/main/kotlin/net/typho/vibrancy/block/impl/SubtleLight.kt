@@ -16,7 +16,7 @@ open class SubtleLight(
 ) {
     constructor(info: SubtleLightInfo, state: BlockState, pos: BlockPos) : this(
         info.color.apply(state).mul(info.brightness.apply(state), Vector3f()),
-        info.offset.apply(state),
+        Vector3f(info.offset.apply(state)),
         pos
     )
 

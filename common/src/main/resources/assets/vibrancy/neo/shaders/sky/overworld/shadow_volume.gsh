@@ -8,8 +8,8 @@ layout(triangle_strip, max_vertices = 12) out;
 uniform mat4 ModelViewMat;
 uniform mat4 ProjMat;
 
-uniform vec3 LightPos;
-uniform float LightRadius;
+uniform vec3 LightDirection;
+uniform float LightLength;
 
 in vec2 texCoord0[];
 
@@ -21,7 +21,7 @@ void vertex(vec4 v) {
 }
 
 vec3 interpolateVertex(vec3 v, float len) {
-    return LightPos + normalize(v - LightPos) * len;
+    return v + LightDirection * -len;
 }
 
 vec4 projectVertex(vec3 v) {
@@ -40,7 +40,7 @@ void main() {
         v2, texCoord0[2]
     );
 
-    float len = LightRadius * 2;
+    float len = LightLength;
 
     vec3 v3 = interpolateVertex(v0, len);
     vec3 v4 = interpolateVertex(v1, len);

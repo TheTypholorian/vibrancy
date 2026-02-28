@@ -19,7 +19,15 @@ float attenuateNoCusp(float distance, float radius) {
     return oneMinusS * oneMinusS * oneMinusS;
 }
 
-vec4 sampleLight(sampler2D normalSampler, vec2 uv, vec3 lightPos, vec3 fragPos, float radius, vec3 lightColor) {
+vec4 sampleSkyLight(sampler2D normalSampler, vec2 uv, vec3 lightDirection, vec3 lightColor) {
+    return vec4(
+        getNormalDot(normalSampler, lightDirection, uv) *
+        lightColor,
+        1
+    );
+}
+
+vec4 samplePointLight(sampler2D normalSampler, vec2 uv, vec3 lightPos, vec3 fragPos, float radius, vec3 lightColor) {
     return vec4(
         getNormalDot(normalSampler, normalize(lightPos - fragPos), uv) *
         attenuateNoCusp(distance(lightPos, fragPos), radius) *
@@ -28,7 +36,7 @@ vec4 sampleLight(sampler2D normalSampler, vec2 uv, vec3 lightPos, vec3 fragPos, 
     );
 }
 
-vec4 sampleLight(vec2 screenSize, vec3 lightPos, vec3 fragPos, float radius, vec3 lightColor) {
+vec4 samplePointLight(vec2 screenSize, vec3 lightPos, vec3 fragPos, float radius, vec3 lightColor) {
     return vec4(
         attenuateNoCusp(distance(lightPos, fragPos), radius) *
         lightColor,
