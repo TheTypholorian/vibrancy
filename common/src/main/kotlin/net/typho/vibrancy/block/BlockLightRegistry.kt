@@ -29,7 +29,7 @@ object BlockLightRegistry {
 
     @JvmStatic
     fun infoCodec(stateDefinition: StateDefinition<*, *>): MapCodec<BlockLightInfo<*, *>> {
-        return NeoResourceKey.codec<BlockLightType<*, *, *>>(registryKey.location).dispatchMap(
+        return NeoResourceKey.codec(registryKey).dispatchMap(
             { info -> registry!!.getKey(info.type()) },
             { key -> registry!!.get(key)!!.infoCodec(stateDefinition) }
         )

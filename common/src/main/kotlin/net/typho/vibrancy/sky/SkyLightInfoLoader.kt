@@ -16,7 +16,7 @@ object SkyLightInfoLoader : NeoResourceManagerReloadListener {
 
     @JvmStatic
     fun load(key: ResourceIdentifier, json: JsonElement) {
-        SkyLightRegistry.dimensionMap[dimension] = SkyLightRegistry.infoCodec(dimension)
+        SkyLightRegistry.dimensionMap[key] = SkyLightRegistry.infoCodec(key)
             .codec()
             .parse(INSTANCE, json)
             .getOrThrow { message -> JsonSyntaxException("Error parsing sky light info for $key: $message") }

@@ -1,42 +1,35 @@
 package net.typho.vibrancy.sky
 
-import com.mojang.serialization.Lifecycle
 import com.mojang.serialization.MapCodec
-import net.minecraft.core.MappedRegistry
 import net.minecraft.core.Registry
-import net.minecraft.core.registries.BuiltInRegistries
-import net.minecraft.resources.ResourceKey
 import net.minecraft.world.level.Level
+import net.typho.big_shot_lib.api.util.NeoRegistry
+import net.typho.big_shot_lib.api.util.WrapperUtil
+import net.typho.big_shot_lib.api.util.resources.NeoResourceKey
+import net.typho.big_shot_lib.api.util.resources.ResourceIdentifier
 import net.typho.vibrancy.Vibrancy
 
 object SkyLightRegistry {
     @JvmField
-    val typesKey: ResourceKey<Registry<SkyLightType<*, *, *>>> =
-        ResourceKey.createRegistryKey(Vibrancy.id("sky_light_types"))
+    val registryKey: NeoResourceKey<Registry<SkyLightType<*, *>>> =
+        NeoResourceKey.registry(Vibrancy.id("sky_light_types"))
     @JvmField
-    @Suppress("UNCHECKED_CAST")
-    val types: Registry<SkyLightType<*, *, *>> = Registry.register(
-        BuiltInRegistries.REGISTRY as Registry<Registry<SkyLightType<*, *, *>>>,
-        typesKey,
-        MappedRegistry(typesKey, Lifecycle.stable())
-    )
+    var registry: NeoRegistry<SkyLightType<*, *>>? = null
 
     @JvmField
-    val dimensionMap = HashMap<Level, SkyLightInfo<*, *>>()
+    val dimensionMap = HashMap<ResourceIdentifier, SkyLightInfo<*, *>>()
 
     @JvmStatic
-    fun get(level: Level): SkyLightInfo<*, *>? = dimensionMap[level]
+    fun get(level: Level): SkyLightInfo<*, *>? = dimensionMap[WrapperUtil.INSTANCE.wrap(level.dimension()).location]
 
     @JvmStatic
-    fun has(level: Level): Boolean = dimensionMap.containsKey(level)
+    fun has(level: Level): Boolean = dimensionMap.containsKey(WrapperUtil.INSTANCE.wrap(level.dimension()).location)
 
     @JvmStatic
-    fun infoCodec(level: Level): MapCodec<SkyLightInfo<*, *>> {
-        return ResourceKey.codec(typesKey).dispatchMap(
-            { info -> types.getResourceKey(info.type()).orElseThrow() },
-            { key -> types.get(key)!!.infoCodec(level) }
+    fun infoCodec(level: ResourceIdentifier): MapCodec<SkyLightInfo<*, *>> {
+        return NeoResourceKey.codec(registryKey).dispatchMap(
+            { info -> registry!!.getKey(info.type()) },
+            { key -> registry!!.get(key)!!.infoCodec(level) }
         )
     }
-
-    fun init() = Unit
 }

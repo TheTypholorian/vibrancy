@@ -1,13 +1,13 @@
 package net.typho.vibrancy.sky
 
 import com.mojang.serialization.MapCodec
-import net.minecraft.world.level.Level
+import net.typho.big_shot_lib.api.util.resources.ResourceIdentifier
 import net.typho.vibrancy.LightManager
 
-interface SkyLightType<I : SkyLightInfo<I, L>, L : SkyLight<I, L>, S : SkyLightStorage<I>> {
-    fun infoCodec(level: Level): MapCodec<I>
+interface SkyLightType<I : SkyLightInfo<I, L>, L : SkyLight<I, L>> {
+    fun infoCodec(level: ResourceIdentifier): MapCodec<I>
 
-    fun createStorage(): S
+    fun create(): L
 
-    fun render(manager: LightManager, lights: S): SkyRenderResult
+    fun render(manager: LightManager, light: L)
 }
