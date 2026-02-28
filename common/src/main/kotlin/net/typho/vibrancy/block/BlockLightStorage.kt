@@ -1,15 +1,15 @@
 package net.typho.vibrancy.block
 
 import net.minecraft.core.BlockPos
-import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
 import net.typho.vibrancy.LightManager
 
-interface BlockLightStorage<I : BlockLightInfo<I, *>> {
+interface BlockLightStorage<I> {
+    val size: Int
+
     fun addLight(
         manager: LightManager,
-        level: Level,
         state: BlockState,
         pos: BlockPos,
         info: I
@@ -20,9 +20,7 @@ interface BlockLightStorage<I : BlockLightInfo<I, *>> {
         pos: BlockPos
     )
 
-    fun rebuildShadows(manager: LightManager)
-
-    fun resizeShadows(manager: LightManager)
+    fun reload(manager: LightManager)
 
     fun loadChunk(
         manager: LightManager,
@@ -35,6 +33,4 @@ interface BlockLightStorage<I : BlockLightInfo<I, *>> {
     )
 
     fun clear(manager: LightManager)
-
-    fun size(): Int
 }

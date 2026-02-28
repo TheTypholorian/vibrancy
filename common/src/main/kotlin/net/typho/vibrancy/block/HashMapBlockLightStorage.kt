@@ -2,34 +2,24 @@ package net.typho.vibrancy.block
 
 import net.minecraft.core.BlockPos
 import net.minecraft.world.level.ChunkPos
-import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
 import net.typho.vibrancy.LightManager
+import org.lwjgl.system.NativeResource
 
-open class HashMapBlockLightStorage<I : BlockLightInfo<I, B>, B : BlockLight<I, B>>(val type: BlockLightType<I, B, *>) : BlockLightStorage<I> {
-    val map = HashMap<BlockPos, B>()
+abstract class HashMapBlockLightStorage<I, L>(val type: BlockLightType<I, *>) : BlockLightStorage<I> {
+    val map = HashMap<BlockPos, L>()
+    override val size: Int
+        get() = map.size
 
-    override fun addLight(manager: LightManager, level: Level, state: BlockState, pos: BlockPos, info: I) {
-        val light = info.createBlockLight(manager, level, state, pos)
+    abstract fun createLight(manager: LightManager, state: BlockState, pos: BlockPos, info: I): L
 
-        if (light == null) {
-            map.remove(pos)?.free(manager)
-        } else {
-            map.put(pos, light)?.free(manager)
-        }
+    override fun addLight(manager: LightManager, state: BlockState, pos: BlockPos, info: I) {
+        (map.put(pos, createLight(manager, state, pos, info)) as? NativeResource)?.free()
     }
 
     override fun removeLight(manager: LightManager, pos: BlockPos) {
-        map.remove(pos)?.free(manager)
-    }
-
-    override fun rebuildShadows(manager: LightManager) {
-        map.values.forEach { light -> light.rebuildShadows(manager) }
-    }
-
-    override fun resizeShadows(manager: LightManager) {
-        map.values.forEach { light -> light.resizeShadows(manager) }
+        (map.remove(pos) as? NativeResource)?.free()
     }
 
     @Suppress("UNCHECKED_CAST")
@@ -39,14 +29,13 @@ open class HashMapBlockLightStorage<I : BlockLightInfo<I, B>, B : BlockLight<I, 
         chunk.findBlocks({ BlockLightRegistry.has(it.block) }) { pos, state ->
             val actualPos = BlockPos(pos)
 
-            BlockLightRegistry.get(state.block)?.let { info ->
-                if (info.type() == type) {
+            BlockLightRegistry.get(state.block, type)?.let { info ->
+                type.castInfo(info)?.let {
                     addLight(
                         manager,
-                        chunk.level!!,
                         state,
                         actualPos,
-                        info as I
+                        it
                     )
                 }
             }
@@ -58,7 +47,7 @@ open class HashMapBlockLightStorage<I : BlockLightInfo<I, B>, B : BlockLight<I, 
             val removed = ChunkPos(entry.key) == chunk.pos
 
             if (removed) {
-                entry.value.free(manager)
+                (entry.value as? NativeResource)?.free()
             }
 
             return@removeIf removed
@@ -66,11 +55,7 @@ open class HashMapBlockLightStorage<I : BlockLightInfo<I, B>, B : BlockLight<I, 
     }
 
     override fun clear(manager: LightManager) {
-        map.values.forEach { light -> light.free(manager) }
+        map.values.forEach { light -> (light as? NativeResource)?.free() }
         map.clear()
-    }
-
-    override fun size(): Int {
-        return map.size
     }
 }

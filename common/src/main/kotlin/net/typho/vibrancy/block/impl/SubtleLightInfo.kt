@@ -1,38 +1,41 @@
 package net.typho.vibrancy.block.impl
 
-import net.minecraft.core.BlockPos
-import net.minecraft.core.Direction
-import net.minecraft.world.level.Level
-import net.minecraft.world.level.block.state.BlockState
-import net.typho.big_shot_lib.api.util.BlockUtil
-import net.typho.vibrancy.LightManager
-import net.typho.vibrancy.block.BlockLightInfo
-import net.typho.vibrancy.block.BlockLightRegistry
+import com.mojang.serialization.Codec
+import com.mojang.serialization.MapCodec
+import com.mojang.serialization.codecs.RecordCodecBuilder
+import net.minecraft.util.ExtraCodecs
+import net.minecraft.world.level.block.state.StateDefinition
 import net.typho.vibrancy.util.StateFunction
 import org.joml.Vector3f
 
-class SubtleLightInfo(
+@JvmRecord
+data class SubtleLightInfo(
+    @JvmField
     val color: StateFunction<Vector3f>,
+    @JvmField
     val brightness: StateFunction<Float>,
+    @JvmField
     val offset: StateFunction<Vector3f>,
+    @JvmField
     val enabled: StateFunction<Boolean>
-) : BlockLightInfo<SubtleLightInfo, SubtleLight> {
-    override fun createBlockLight(manager: LightManager, level: Level, state: BlockState, pos: BlockPos): SubtleLight? {
-        if (!enabled.apply(state)) {
-            return null
+) {
+    companion object {
+        @JvmStatic
+        fun codec(stateDefinition: StateDefinition<*, *>): MapCodec<SubtleLightInfo> = RecordCodecBuilder.mapCodec {
+            it.group(
+                StateFunction.codec(ExtraCodecs.VECTOR3F, stateDefinition)
+                    .fieldOf("color")
+                    .forGetter { info -> info.color },
+                StateFunction.codec(Codec.FLOAT, stateDefinition)
+                    .fieldOf("brightness")
+                    .forGetter { info -> info.brightness },
+                StateFunction.codec(ExtraCodecs.VECTOR3F, stateDefinition)
+                    .optionalFieldOf("offset", StateFunction(Vector3f(0.5f)))
+                    .forGetter { info -> info.offset },
+                StateFunction.codec(Codec.BOOL, stateDefinition)
+                    .optionalFieldOf("enabled", StateFunction(true))
+                    .forGetter { info -> info.enabled }
+            ).apply(it, ::SubtleLightInfo)
         }
-
-        for (direction in Direction.entries) {
-            val rPos = pos.relative(direction)
-            val rState = level.getBlockState(rPos)
-
-            if (!BlockUtil.INSTANCE.isSolidRender(rState, rPos, level) && !BlockLightRegistry.has(rState.block)) {
-                return SubtleLight(this, state, pos)
-            }
-        }
-
-        return null
     }
-
-    override fun type() = SubtleLightType
 }

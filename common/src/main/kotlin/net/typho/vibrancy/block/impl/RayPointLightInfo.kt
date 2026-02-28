@@ -1,32 +1,46 @@
 package net.typho.vibrancy.block.impl
 
-import net.minecraft.core.BlockPos
-import net.minecraft.world.level.Level
-import net.minecraft.world.level.block.state.BlockState
-import net.typho.big_shot_lib.api.util.BlockUtil
-import net.typho.vibrancy.LightManager
-import net.typho.vibrancy.block.BlockLightInfo
+import com.mojang.serialization.Codec
+import com.mojang.serialization.MapCodec
+import com.mojang.serialization.codecs.RecordCodecBuilder
+import net.minecraft.util.ExtraCodecs
+import net.minecraft.world.level.block.state.StateDefinition
 import net.typho.vibrancy.util.StateFunction
 import org.joml.Vector3f
 
-class RayPointLightInfo(
+@JvmRecord
+data class RayPointLightInfo(
+    @JvmField
     val color: StateFunction<Vector3f>,
+    @JvmField
     val radius: StateFunction<Float>,
+    @JvmField
     val brightness: StateFunction<Float>,
+    @JvmField
     val offset: StateFunction<Vector3f>,
+    @JvmField
     val enabled: StateFunction<Boolean>
-) : BlockLightInfo<RayPointLightInfo, RayPointLight> {
-    override fun createBlockLight(manager: LightManager, level: Level, state: BlockState, pos: BlockPos): RayPointLight? {
-        if (!enabled.apply(state)) {
-            return null
+) {
+    companion object {
+        @JvmStatic
+        fun codec(stateDefinition: StateDefinition<*, *>): MapCodec<RayPointLightInfo> = RecordCodecBuilder.mapCodec {
+            it.group(
+                StateFunction.codec(ExtraCodecs.VECTOR3F, stateDefinition)
+                    .fieldOf("color")
+                    .forGetter { info -> info.color },
+                StateFunction.codec(Codec.FLOAT, stateDefinition)
+                    .fieldOf("radius")
+                    .forGetter { info -> info.radius },
+                StateFunction.codec(Codec.FLOAT, stateDefinition)
+                    .fieldOf("brightness")
+                    .forGetter { info -> info.brightness },
+                StateFunction.codec(ExtraCodecs.VECTOR3F, stateDefinition)
+                    .optionalFieldOf("offset", StateFunction(Vector3f(0.5f)))
+                    .forGetter { info -> info.offset },
+                StateFunction.codec(Codec.BOOL, stateDefinition)
+                    .optionalFieldOf("enabled", StateFunction(true))
+                    .forGetter { info -> info.enabled }
+            ).apply(it, ::RayPointLightInfo)
         }
-
-        return RayPointLight(this, state, pos)
-    }
-
-    override fun type() = RayPointLightType
-
-    override fun shouldCastShadow(manager: LightManager, level: Level, state: BlockState, pos: BlockPos): Boolean {
-        return BlockUtil.INSTANCE.isSolidRender(state, pos, level)
     }
 }

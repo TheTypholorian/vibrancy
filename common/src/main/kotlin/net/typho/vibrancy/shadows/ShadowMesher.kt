@@ -7,7 +7,6 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.Vec3
 import net.typho.big_shot_lib.api.client.opengl.util.MeshUtil
 import net.typho.vibrancy.LightManager
-import net.typho.vibrancy.block.BlockLightRegistry
 import java.util.function.Consumer
 
 interface ShadowMesher {
@@ -37,10 +36,6 @@ interface ShadowMesher {
             predicate: ShadowPredicate,
             out: Consumer<LightFace>
         ) {
-            if (BlockLightRegistry.get(state.block)?.shouldCastShadow(manager, level, state, pos) == false) {
-                return
-            }
-
             MeshUtil.INSTANCE.getBlockQuads(state, level, pos) { dir, quads ->
                 if (predicate.shouldCastFace(dir, state, level, pos)) {
                     quads.forEach { out.accept(LightFace(pos, it.offset(Vec3.atLowerCornerOf(pos).toVector3f()), 1, 1)) }

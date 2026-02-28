@@ -63,14 +63,14 @@ object Vibrancy {
         )
         holder.registerLoadListener { holder, config ->
             OpenGL.INSTANCE.recordRenderCall {
-                lightManager.resizeAllShadows()
+                lightManager.reload()
             }
 
             return@registerLoadListener null
         }
         holder.registerSaveListener { holder, config ->
             OpenGL.INSTANCE.recordRenderCall {
-                lightManager.resizeAllShadows()
+                lightManager.reload()
             }
 
             return@registerSaveListener null
@@ -178,7 +178,7 @@ object Vibrancy {
                 }
 
                 while (reloadShadowsKey?.consumeClick() == true) {
-                    lightManager.rebuildAllShadows()
+                    lightManager.reload()
                     debugPrint(
                         Component.translatable(
                             "debug.vibrancy.rebuild_all_shadows",

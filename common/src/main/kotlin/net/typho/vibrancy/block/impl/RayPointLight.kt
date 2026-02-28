@@ -19,19 +19,23 @@ import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.LightRenderResult
 import net.typho.vibrancy.Vibrancy
-import net.typho.vibrancy.block.BlockLight
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.shadows.AsyncBlockShadowTexture
 import net.typho.vibrancy.shadows.ShadowPredicate
+import net.typho.vibrancy.util.PointLight
 import org.joml.Vector3f
+import org.lwjgl.system.NativeResource
 import kotlin.math.ceil
 
-class RayPointLight(
+open class RayPointLight(
+    @JvmField
     val color: Vector3f,
+    @JvmField
     val radius: Float,
+    @JvmField
     val offset: Vector3f,
-    val pos: BlockPos
-) : BlockLight<RayPointLightInfo, RayPointLight> {
+    override val blockPos: BlockPos
+) : PointLight, NativeResource {
     companion object {
         @JvmStatic
         fun stencilCullSettings(fbo: GlFramebuffer, light: RayPointLight) = RenderSettings(
@@ -51,7 +55,7 @@ class RayPointLight(
                 ShaderShard(
                     Vibrancy.id("block/raytraced/stencil_cull")
                 ) { shader ->
-                    shader.getUniform("LightPos")?.setValue(light.getAbsolutePos())
+                    shader.getUniform("LightPos")?.setValue(light.absolutePos)
                     shader.getUniform("LightRadius")?.setValue(light.radius)
 
                     shader.getUniform("VibrancyNormalSampler")?.setSampler(NormalsDynamicBuffer.texture)
@@ -73,7 +77,7 @@ class RayPointLight(
                 ) { shader ->
                     shader.setCommonUniforms(data)
 
-                    shader.getUniform("LightPos")?.setValue(light.getAbsolutePos())
+                    shader.getUniform("LightPos")?.setValue(light.absolutePos)
                     shader.getUniform("LightRadius")?.setValue(light.radius)
                     shader.getUniform("ScreenSize")?.setValue(fbo.width.toFloat(), fbo.height.toFloat())
                     shader.getUniform("CameraPos")?.setValue(data.camera.pos)
@@ -99,7 +103,7 @@ class RayPointLight(
                         shader.setCommonUniforms(data)
 
                         shader.getUniform("CameraPos")?.setValue(data.camera.pos)
-                        shader.getUniform("LightPos")?.setValue(light.getAbsolutePos())
+                        shader.getUniform("LightPos")?.setValue(light.absolutePos)
                         shader.getUniform("LightColor")?.setValue(Vector3f(light.color).mul(Vibrancy.config.blockLights.raytraced.brightness))
                         shader.getUniform("LightRadius")?.setValue(light.radius)
                         shader.getUniform("ScreenSize")?.setValue(fbo.width.toFloat(), fbo.height.toFloat())
@@ -107,7 +111,7 @@ class RayPointLight(
                         shader.getUniform("ShadowTextureSize")?.setValue(light.shadows.target.width, light.shadows.target.height)
                         shader.getUniform("ShadowMultiplier")?.setValue(
                             if (highQuality)
-                                1f - Math.clamp((light.pos.center.toVector3f().distance(data.camera.pos) - (Vibrancy.config.blockLights.raytraced.foregroundDistance * 16 - 8)) / 8f, 0f, 1f)
+                                1f - Math.clamp((light.blockPos.center.toVector3f().distance(data.camera.pos) - (Vibrancy.config.blockLights.raytraced.foregroundDistance * 16 - 8)) / 8f, 0f, 1f)
                             else
                                 0f
                         )
@@ -127,7 +131,7 @@ class RayPointLight(
         fun shadowTextureShaderShard(light: RayPointLight) = ShaderShard(
             Vibrancy.id("block/raytraced/shadow_texture")
         ) { shader ->
-            shader.getUniform("LightPos")?.setValue(light.getAbsolutePos())
+            shader.getUniform("LightPos")?.setValue(light.absolutePos)
             shader.getUniform("LightRadius")?.setValue(light.radius)
             shader.getUniform("Sampler0")?.setSampler(TextureUtil.INSTANCE.getMinecraftTexture(TextureUtil.INSTANCE.blockAtlasTexture))
         }
@@ -144,7 +148,7 @@ class RayPointLight(
             BufferUsage.STATIC_DRAW
         )
         val builder = mesh.Builder()
-        builder.cube(getBoundingBox())
+        builder.cube(boundingBox)
         builder.end()
         return@lazy mesh
     }
@@ -157,85 +161,71 @@ class RayPointLight(
         pos
     )
 
-    override fun getBlockPos() = pos
+    override val absolutePos: Vector3f
+        get() = Vector3f(blockPos.x.toFloat(), blockPos.y.toFloat(), blockPos.z.toFloat()).add(offset)
+    override val boundingBox: AABB
+        get() {
+            val radius2 = (radius * 2).toDouble()
+            return AABB.ofSize(Vec3(absolutePos.x.toDouble(), absolutePos.y.toDouble(), absolutePos.z.toDouble()), radius2, radius2, radius2)
+        }
+    override val shadowBox: BlockBox
+        get() {
+            val shadowRadius = ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.shadowRadius.toFloat())).toInt()
+            return BlockBox.of(
+                BlockPos(blockPos.x - shadowRadius, blockPos.y - shadowRadius, blockPos.z - shadowRadius),
+                BlockPos(blockPos.x + shadowRadius, blockPos.y + shadowRadius, blockPos.z + shadowRadius)
+            )
+        }
+    override val shadowPredicate = object : ShadowPredicate {
+        override fun shouldCastBlock(
+            state: BlockState,
+            level: Level,
+            pos: BlockPos
+        ): Boolean {
+            return pos != blockPos && (BlockUtil.INSTANCE.isSolidRender(state, pos, level) || !BlockLightRegistry.has(state.block))
+        }
 
-    override fun getAbsolutePos(): Vector3f {
-        return Vector3f(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat()).add(offset)
+        override fun shouldCastFace(
+            face: Direction?,
+            state: BlockState,
+            level: Level,
+            pos: BlockPos
+        ): Boolean {
+            if (face == null) {
+                return true
+            }
+
+            val sidePos = pos.relative(face)
+
+            if (sidePos == blockPos) {
+                return true
+            }
+
+            if (face.step().dot(blockPos.center.subtract(pos.center).toVector3f()) <= 0) {
+                return false
+            }
+
+            val sideState = level.getBlockState(sidePos)
+
+            return !(BlockUtil.INSTANCE.isSolidRender(state, pos, level) && BlockUtil.INSTANCE.isSolidRender(sideState, sidePos, level))
+        }
+
+        override fun isInRange(pos: BlockPos): Boolean {
+            val shadowRadius = ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.shadowRadius.toFloat())).toInt()
+            return pos.distSqr(blockPos) <= shadowRadius * shadowRadius
+        }
     }
 
-    override fun getBoundingBox(): AABB {
-        val radius2 = (radius * 2).toDouble()
-        val pos = getAbsolutePos()
-        return AABB.ofSize(Vec3(pos.x.toDouble(), pos.y.toDouble(), pos.z.toDouble()), radius2, radius2, radius2)
-    }
-
-    override fun rebuildShadows(manager: LightManager) {
-        shadows.rebuildAsync(manager, manager.createShadowMesher(this), this)
-    }
-
-    override fun resizeShadows(manager: LightManager) {
+    fun reload(manager: LightManager) {
         shadows.texture.resize(
             Vibrancy.config.blockLights.raytraced.backgroundShadowQuality * 6,
             Vibrancy.config.blockLights.raytraced.backgroundShadowQuality
         )
         shadows.texture.setInterpolation(InterpolationType.LINEAR)
+        shadows.rebuildAsync(manager, manager.createShadowMesher(this), this)
     }
 
-    override fun getShadowBox(): BlockBox {
-        val shadowRadius = ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.shadowRadius.toFloat())).toInt()
-        return BlockBox.of(
-            BlockPos(pos.x - shadowRadius, pos.y - shadowRadius, pos.z - shadowRadius),
-            BlockPos(pos.x + shadowRadius, pos.y + shadowRadius, pos.z + shadowRadius)
-        )
-    }
-
-    override fun getShadowPredicate(): ShadowPredicate {
-        return object : ShadowPredicate {
-            override fun shouldCastBlock(
-                state: BlockState,
-                level: Level,
-                pos: BlockPos
-            ): Boolean {
-                return pos != this@RayPointLight.pos && (BlockUtil.INSTANCE.isSolidRender(state, pos, level) || !BlockLightRegistry.has(state.block))
-            }
-
-            override fun shouldCastFace(
-                face: Direction?,
-                state: BlockState,
-                level: Level,
-                pos: BlockPos
-            ): Boolean {
-                if (face == null) {
-                    return true
-                }
-
-                val sidePos = pos.relative(face)
-
-                if (sidePos == this@RayPointLight.pos) {
-                    return true
-                }
-
-                if (face.step().dot(this@RayPointLight.pos.center.subtract(pos.center).toVector3f()) <= 0) {
-                    return false
-                }
-
-                val sideState = level.getBlockState(sidePos)
-
-                return !(BlockUtil.INSTANCE.isSolidRender(state, pos, level) && BlockUtil.INSTANCE.isSolidRender(sideState, sidePos, level))
-            }
-
-            override fun isInRange(pos: BlockPos): Boolean {
-                val shadowRadius = ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.shadowRadius.toFloat())).toInt()
-                return pos.distSqr(this@RayPointLight.pos) <= shadowRadius * shadowRadius
-            }
-        }
-    }
-
-    override fun getType() = RayPointLightType
-
-    override fun shouldRaytrace(manager: LightManager) = true
-
-    override fun free(manager: LightManager) {
+    override fun free() {
         shadows.free()
         boxBuffer.free()
     }
@@ -250,14 +240,14 @@ class RayPointLight(
         )
 
         for (pos in manager.dirtyBlocks) {
-            if (manager.getLevel().dimension() == pos.dimension && getShadowBox().contains(pos.pos)) {
+            if (manager.getLevel().dimension() == pos.dimension && shadowBox.contains(pos.pos)) {
                 shadowsDirty = true
                 break
             }
         }
 
         if (shadowsDirty && raytrace) {
-            rebuildShadows(manager)
+            shadows.rebuildAsync(manager, manager.createShadowMesher(this), this)
             shadowsDirty = false
         }
 
@@ -266,10 +256,9 @@ class RayPointLight(
         fbo.bind()
         fbo.viewport()
 
-        val highQuality = raytrace && foreground
-        var highQualitySettings: RenderSettings? = null
+        var foregroundSettings: RenderSettings? = null
 
-        if (highQuality) {
+        if (foreground) {
             val stencilCullSettings = stencilCullSettings(fbo, this)
 
             stencilCullSettings.bind()
@@ -279,17 +268,17 @@ class RayPointLight(
             val shadowVolumeSettings = shadowVolumeSettings(fbo, this, data)
 
             shadowVolumeSettings.bind()
-            highQualitySettings = shadows.renderStencil().also { it.bind() }
+            foregroundSettings = shadows.renderStencil().also { it.bind() }
             shadowVolumeSettings.unbind()
         }
 
-        val boxSettings = boxSettings(fbo, this, data, highQuality)
+        val boxSettings = boxSettings(fbo, this, data, foreground)
 
         boxSettings.bind()
         boxBuffer.draw()
         boxSettings.unbind()
 
-        highQualitySettings?.unbind()
+        foregroundSettings?.unbind()
 
         fbo.unbind()
 

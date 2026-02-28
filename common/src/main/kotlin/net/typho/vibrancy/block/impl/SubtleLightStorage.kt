@@ -2,9 +2,7 @@ package net.typho.vibrancy.block.impl
 
 import net.minecraft.core.BlockPos
 import net.minecraft.world.level.ChunkPos
-import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
-import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.phys.AABB
 import net.typho.big_shot_lib.api.client.opengl.buffers.*
 import net.typho.big_shot_lib.api.client.opengl.util.GlShapeType
@@ -13,64 +11,22 @@ import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.LightRenderResult
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.block.BlockLightRegistry
-import net.typho.vibrancy.block.BlockLightStorage
+import net.typho.vibrancy.block.ChunkedBlockLightStorage
+import net.typho.vibrancy.block.HashMapBlockLightStorage
 import org.lwjgl.system.MemoryUtil
 import org.lwjgl.system.NativeResource
 import java.util.concurrent.CompletableFuture
 
-class SubtleLightStorage : BlockLightStorage<SubtleLightInfo> {
-    @JvmField
-    val meshes = HashMap<ChunkPos, ChunkMesh>()
+class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLightStorage.Chunk>(SubtleLightType) {
     @JvmField
     val dirty = HashSet<ChunkPos>()
     @JvmField
-    val tasks = HashMap<ChunkPos, CompletableFuture<Runnable>>()
+    val tasks = HashMap<ChunkPos, CompletableFuture<Runnable?>>()
 
-    fun markDirty(pos: ChunkPos) {
-        dirty.add(pos)
-        dirty.add(ChunkPos(pos.x + 1, pos.z))
-        dirty.add(ChunkPos(pos.x - 1, pos.z))
-        dirty.add(ChunkPos(pos.x, pos.z + 1))
-        dirty.add(ChunkPos(pos.x, pos.z - 1))
-    }
-
-    override fun addLight(
-        manager: LightManager,
-        level: Level,
-        state: BlockState,
-        pos: BlockPos,
-        info: SubtleLightInfo
-    ) {
-        markDirty(ChunkPos(pos))
-    }
-
-    override fun removeLight(manager: LightManager, pos: BlockPos) {
-        markDirty(ChunkPos(pos))
-    }
-
-    override fun rebuildShadows(manager: LightManager) {
-    }
-
-    override fun resizeShadows(manager: LightManager) {
-    }
-
-    override fun loadChunk(
-        manager: LightManager,
-        chunk: LevelChunk
-    ) {
-        markDirty(chunk.pos)
-    }
-
-    override fun deloadChunk(
-        manager: LightManager,
-        chunk: LevelChunk
-    ) {
-        markDirty(chunk.pos)
-    }
+    override fun createChunk(pos: ChunkPos) = Chunk(pos)
 
     override fun clear(manager: LightManager) {
-        meshes.values.forEach { chunk -> chunk.free() }
-        meshes.clear()
+        super.clear(manager)
         dirty.clear()
     }
 
@@ -79,7 +35,7 @@ class SubtleLightStorage : BlockLightStorage<SubtleLightInfo> {
     ) {
         tasks.values.removeIf { task ->
             if (task.isDone) {
-                task.get().run()
+                task.get()?.run()
                 return@removeIf true
             } else {
                 return@removeIf false
@@ -87,82 +43,74 @@ class SubtleLightStorage : BlockLightStorage<SubtleLightInfo> {
         }
 
         for (pos in dirty) {
-            val mesh = meshes.computeIfAbsent(pos, ::ChunkMesh)
-
             tasks.put(
-                pos, CompletableFuture.supplyAsync {
-                    val chunk = manager.getLevel().getChunk(pos.x, pos.z)
-                    val lights = HashMap<BlockPos, SubtleLight>()
+                pos,
+                CompletableFuture.supplyAsync {
+                    val newChunk = createChunk(pos)
 
-                    chunk.findBlocks({ BlockLightRegistry.has(it.block) }) { pos, state ->
-                        val actualPos = BlockPos(pos)
+                    manager.getLevel().getChunk(pos.x, pos.z)
+                        .findBlocks({ BlockLightRegistry.has(it.block) }) { pos, state ->
+                            val actualPos = BlockPos(pos)
 
-                        BlockLightRegistry.get(state.block)?.let { info ->
-                            if (info is SubtleLightInfo) {
-                                info.createBlockLight(manager, manager.getLevel(), state, actualPos)?.let { light ->
-                                    lights[actualPos] = light
-                                }
+                            BlockLightRegistry.get(state.block, SubtleLightType)?.let { info ->
+                                newChunk.addLight(manager, state, actualPos, info)
                             }
                         }
+
+                    if (newChunk.map.isEmpty()) {
+                        return@supplyAsync null
                     }
 
-                    if (lights.isEmpty()) {
-                        return@supplyAsync Runnable {
-                            mesh.size = 0
-                        }
-                    }
-
-                    val builder = mesh.mesh.Builder()
-                    val ssboBuffer = MemoryUtil.memAllocFloat(8 * lights.size)
+                    val builder = newChunk.mesh.Builder()
+                    val ssboBuffer = MemoryUtil.memAllocFloat(8 * newChunk.size)
 
                     var box: AABB? = null
 
-                    for (light in lights.values) {
+                    for (light in newChunk.map.values) {
                         box = if (box == null) {
-                            light.getBoundingBox()
+                            light.boundingBox
                         } else {
-                            box.intersect(light.getBoundingBox())
+                            box.intersect(light.boundingBox)
                         }
 
-                        builder.cube(light.getBoundingBox())
+                        builder.cube(light.boundingBox)
 
                         val color = light.color
-                        val pos = light.getAbsolutePos()
+                        val pos = light.absolutePos
 
                         ssboBuffer.put(color.x).put(color.y).put(color.z).put(0f)
                         ssboBuffer.put(pos.x).put(pos.y).put(pos.z).put(0f)
                     }
 
                     return@supplyAsync Runnable {
-                        mesh.size = lights.size
-                        mesh.box = box
-
                         builder.end()
 
-                        mesh.ssbo.bind()
-                        mesh.ssbo.upload(ssboBuffer.flip())
-                        mesh.ssbo.unbind()
+                        newChunk.ssbo.bind()
+                        newChunk.ssbo.upload(ssboBuffer.flip())
+                        newChunk.ssbo.unbind()
 
                         MemoryUtil.memFree(ssboBuffer)
+
+                        chunks.put(pos, newChunk)?.free()
                     }
-            }
+                }
             )?.cancel(true)
         }
 
         dirty.clear()
     }
 
-    override fun size(): Int {
-        return meshes.values.sumOf { mesh -> mesh.size }
-    }
-
-    data class ChunkMesh(
+    inner class Chunk(
+        @JvmField
         val pos: ChunkPos,
+        @JvmField
         val mesh: Mesh = Mesh(NeoVertexFormat.POSITION, GlShapeType.QUADS, BufferUsage.STATIC_DRAW),
-        val ssbo: GlBuffer = GlBuffer(BufferType.SHADER_STORAGE_BUFFER, BufferUsage.STATIC_DRAW),
-        var size: Int = 0,
-        var box: AABB? = null
-    ) : NativeResource {
+        @JvmField
+        val ssbo: GlBuffer = GlBuffer(BufferType.SHADER_STORAGE_BUFFER, BufferUsage.STATIC_DRAW)
+    ) : HashMapBlockLightStorage<SubtleLightInfo, SubtleLight>(SubtleLightType), NativeResource {
+        val box: AABB?
+            get() = map.values.fold(null) { box, light -> if (box == null) light.boundingBox else box.minmax(light.boundingBox) }
+
         fun render(data: RenderEventData, manager: LightManager): LightRenderResult {
             if (
                 size > 0
@@ -177,6 +125,19 @@ class SubtleLightStorage : BlockLightStorage<SubtleLightInfo> {
             } else {
                 return LightRenderResult()
             }
+        }
+
+        override fun createLight(
+            manager: LightManager,
+            state: BlockState,
+            pos: BlockPos,
+            info: SubtleLightInfo
+        ): SubtleLight {
+            return SubtleLight(info, state, pos)
+        }
+
+        override fun reload(manager: LightManager) {
+            dirty.add(pos)
         }
 
         override fun free() {

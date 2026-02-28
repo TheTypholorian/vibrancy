@@ -20,7 +20,9 @@ import net.typho.big_shot_lib.api.client.opengl.util.MeshUtil
 import net.typho.big_shot_lib.api.client.util.dynamic_buffers.AlbedoDynamicBuffer
 import net.typho.big_shot_lib.api.client.util.dynamic_buffers.NormalsDynamicBuffer
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
-import net.typho.vibrancy.block.*
+import net.typho.vibrancy.block.BlockLightRegistry
+import net.typho.vibrancy.block.BlockLightStorage
+import net.typho.vibrancy.block.BlockLightType
 import net.typho.vibrancy.shadows.BasicShadowMesher
 import net.typho.vibrancy.shadows.ShadowMesher
 import net.typho.vibrancy.util.PointLight
@@ -90,9 +92,9 @@ open class LightManager {
     @JvmField
     val dirtyBlocks = LinkedList<GlobalPos>()
     @JvmField
-    val blockLights = HashMap<BlockLightType<*, *, *>, BlockLightStorage<*>>()
+    val blockLights = HashMap<BlockLightType<*, *>, BlockLightStorage<*>>()
     @JvmField
-    protected var blockRenderResults = HashMap<BlockLightType<*, *, *>, LightRenderResult>()
+    protected var blockRenderResults = HashMap<BlockLightType<*, *>, LightRenderResult>()
 
     fun getLevel(): ClientLevel = Minecraft.getInstance().level!!
 
@@ -104,36 +106,26 @@ open class LightManager {
         return BasicShadowMesher()
     }
 
-    fun rebuildAllShadows() {
+    fun reload() {
         for (light in blockLights.values) {
-            light.rebuildShadows(this)
+            light.reload(this)
         }
-    }
-
-    fun resizeAllShadows() {
-        for (light in blockLights.values) {
-            light.resizeShadows(this)
-        }
-
-        rebuildAllShadows()
     }
 
     fun ensureStorageInitialized() {
-        Minecraft.getInstance().level?.let { level ->
-            for (type in BlockLightRegistry.registry!!.values()) {
-                blockLights.computeIfAbsent(type) { type -> type.createStorage(this) }
-            }
+        for (type in BlockLightRegistry.registry!!.values()) {
+            blockLights.computeIfAbsent(type) { type -> type.createStorage(this) }
         }
     }
 
     @Suppress("UNCHECKED_CAST")
-    protected fun <I : BlockLightInfo<I, B>, B : BlockLight<I, B>> addBlockLight(
-        level: Level,
+    protected fun <I> addBlockLight(
         pos: BlockPos,
         state: BlockState,
-        light: BlockLightInfo<I, B>
+        type: BlockLightType<I, *>,
+        info: Any
     ) {
-        (blockLights[light.type()] as BlockLightStorage<I>).addLight(this, level, state, pos, light as I)
+        (blockLights[type] as BlockLightStorage<I>).addLight(this, state, pos, info as I)
     }
 
     fun blockChanged(
@@ -144,15 +136,10 @@ open class LightManager {
     ) {
         ensureStorageInitialized()
 
-        val oldLight = BlockLightRegistry.get(old.block)
-        val newLight = BlockLightRegistry.get(new.block)
+        for (entry in blockLights) {
+            entry.value.removeLight(this, pos)
 
-        if (oldLight != null) {
-            blockLights[oldLight.type()]!!.removeLight(this, pos)
-        }
-
-        if (newLight != null) {
-            addBlockLight(level, pos, new, newLight)
+            BlockLightRegistry.get(new.block, entry.key)?.let { addBlockLight(pos, old, entry.key, it) }
         }
 
         dirtyBlocks.add(GlobalPos(level.dimension(), pos))
@@ -171,7 +158,7 @@ open class LightManager {
     }
 
     @Suppress("UNCHECKED_CAST")
-    protected fun <S : BlockLightStorage<*>> castAndRender(data: RenderEventData, fbo: GlFramebuffer, type: BlockLightType<*, *, S>, storage: BlockLightStorage<*>): LightRenderResult {
+    protected fun <S : BlockLightStorage<*>> castAndRender(data: RenderEventData, fbo: GlFramebuffer, type: BlockLightType<*, S>, storage: BlockLightStorage<*>): LightRenderResult {
         return type.render(this, data, storage as S, fbo)
     }
 
@@ -204,7 +191,7 @@ open class LightManager {
     fun getDebugOutput(out: Consumer<String>) {
         for (entry in blockLights) {
             out.accept(ChatFormatting.UNDERLINE.toString() + BlockLightRegistry.registry!!.getKey(entry.key).location.toString())
-            out.accept("${entry.value.size()} lights in world")
+            out.accept("${entry.value.size} lights in world")
 
             blockRenderResults[entry.key]?.accept(out)
         }
