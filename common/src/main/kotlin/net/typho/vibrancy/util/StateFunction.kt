@@ -48,7 +48,7 @@ data class StateFunction<T>(
                 it.group(
                     Codec.dispatchedMap(
                         Codec.STRING.xmap(
-                            { name -> requireNotNull(stateDefinition.getProperty(name), { name }) },
+                            { name -> stateDefinition.getProperty(name) ?: throw NullPointerException("Couldn't find property $name in ${stateDefinition.owner}") },
                             { property -> property.name }
                         ),
                         { property -> property.codec() }

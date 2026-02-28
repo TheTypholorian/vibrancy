@@ -115,7 +115,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
             if (
                 size > 0
                 && manager.inRenderDistance(data, pos, Vibrancy.config.blockLights.subtle.renderDistance)
-                && box?.let { data.frustum.testAab(it.minPosition.toVector3f(), it.maxPosition.toVector3f()) || manager.inRenderDistance(data, pos, 6) } ?: true
+                && box?.let { data.frustum.testAab(it.minPosition.toVector3f(), it.maxPosition.toVector3f()) } ?: true
             ) {
                 ssbo.bindBase(0)
 

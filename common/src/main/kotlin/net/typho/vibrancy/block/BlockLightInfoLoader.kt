@@ -6,6 +6,7 @@ import com.google.gson.JsonParser
 import com.mojang.serialization.JsonOps
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.Blocks
 import net.typho.big_shot_lib.api.util.WrapperUtil
 import net.typho.big_shot_lib.api.util.resources.*
 import net.typho.vibrancy.Vibrancy
@@ -15,6 +16,7 @@ object BlockLightInfoLoader : NeoResourceManagerReloadListener {
     val singleIdConverter = NeoFileToIdConverter.json("rtx/block_lights/by_block")
     @JvmField
     val tagIdConverter = NeoFileToIdConverter.json("rtx/block_lights/by_block_tag")
+    private val warned = HashSet<ResourceIdentifier>()
 
     @JvmStatic
     fun load(block: Block, key: ResourceIdentifier, json: JsonElement, file: ResourceIdentifier) {
@@ -35,10 +37,12 @@ object BlockLightInfoLoader : NeoResourceManagerReloadListener {
         for (entry in singleIdConverter.listMatchingResources(manager)) {
             entry.value.openAsReader().use { jsonReader ->
                 val blockKey = singleIdConverter.fileToId(entry.key)
-                val block = blocks.get(blockKey)
+                val block = blocks.get(blockKey)?.let { if (it == Blocks.AIR) null else it }
 
                 if (block == null) {
-                    Vibrancy.LOGGER.warn("Couldn't find block $blockKey to give a block light to")
+                    if (warned.add(blockKey)) {
+                        Vibrancy.LOGGER.warn("Couldn't find block $blockKey to give a block light to")
+                    }
                 } else {
                     load(block, blockKey, JsonParser.parseReader(jsonReader), entry.key)
                 }
