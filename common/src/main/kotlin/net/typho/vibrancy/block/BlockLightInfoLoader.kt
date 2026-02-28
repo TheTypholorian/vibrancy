@@ -12,9 +12,9 @@ import net.typho.vibrancy.Vibrancy
 
 object BlockLightInfoLoader : NeoResourceManagerReloadListener {
     @JvmField
-    val singleIdConverter: NeoFileToIdConverter = NeoFileToIdConverter.json("rtx/block_lights/by_block")
+    val singleIdConverter = NeoFileToIdConverter.json("rtx/block_lights/by_block")
     @JvmField
-    val tagIdConverter: NeoFileToIdConverter = NeoFileToIdConverter.json("rtx/block_lights/by_block_tag")
+    val tagIdConverter = NeoFileToIdConverter.json("rtx/block_lights/by_block_tag")
 
     @JvmStatic
     fun load(block: Block, key: ResourceIdentifier, json: JsonElement) {
