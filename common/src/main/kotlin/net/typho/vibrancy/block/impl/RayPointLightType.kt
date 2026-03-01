@@ -22,7 +22,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                 IColor.FULL_ON,
                 BlendEquation.ADD,
                 BlendFunction.Basic(
-                    BlendFactor.ONE,
+                    BlendFactor.SRC_ALPHA,
                     BlendFactor.ONE
                 )
             )
