@@ -10,6 +10,7 @@ layout(std430, binding = 0) buffer QuadBuffer {
 uniform sampler2D Sampler0;
 
 uniform int ShadowWidth;
+uniform int ShadowScale;
 uniform vec3 LightPos;
 uniform vec3 LightColor;
 uniform float LightRadius;
@@ -46,7 +47,9 @@ void main() {
     Quad self = quads[index];
     vec2 mappedUV = vec2((texCoord0.x - float(index) / ShadowWidth) * ShadowWidth, texCoord0.y);
 
-    float step = 1.0 / 48.0;
+    mappedUV *= clamp(vec2(ShadowScale) / (vec2(self.uv2.x - self.uv1.x, self.uv4.y - self.uv1.y) * textureSize(Sampler0, 0)), 0, 1);
+
+    float step = 1.0 / (ShadowScale * 3);
     Check checkA = check(self, mappedUV);
     Check checkB = check(self, mappedUV + vec2(step, 0));
     Check checkC = check(self, mappedUV + vec2(-step, 0));

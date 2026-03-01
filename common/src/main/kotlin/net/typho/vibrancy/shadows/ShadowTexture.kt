@@ -48,6 +48,7 @@ open class ShadowTexture(
                     shader.getUniform("Sampler0")?.setSampler(TextureUtil.INSTANCE.getMinecraftTexture(TextureUtil.INSTANCE.blockAtlasTexture))
 
                     shader.getUniform("ShadowWidth")?.setValue(light.shadows.size)
+                    shader.getUniform("ShadowScale")?.setValue(light.shadows.scale)
                     shader.getUniform("LightPos")?.setValue(light.absolutePos)
                     shader.getUniform("LightColor")?.setValue(light.color)
                     shader.getUniform("LightRadius")?.setValue(light.radius)
