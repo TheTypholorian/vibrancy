@@ -17,8 +17,6 @@ import net.typho.big_shot_lib.api.client.opengl.state.RenderSettings
 import net.typho.big_shot_lib.api.client.opengl.state.ShaderShard
 import net.typho.big_shot_lib.api.client.opengl.util.FogUtil
 import net.typho.big_shot_lib.api.client.opengl.util.MeshUtil
-import net.typho.big_shot_lib.api.client.util.dynamic_buffers.AlbedoDynamicBuffer
-import net.typho.big_shot_lib.api.client.util.dynamic_buffers.NormalsDynamicBuffer
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.block.BlockLightStorage
@@ -76,8 +74,6 @@ open class LightManager {
                     shader.getUniform("DiffuseSampler0")?.setSampler(GlFramebuffer.MAIN.colorAttachments[0] as GlTexture)
                     shader.getUniform("VibrancyWorldPosSampler")?.setSampler(Vibrancy.worldPosFbo.colorAttachments[0] as GlTexture)
                     shader.getUniform("VibrancyOutputSampler")?.setSampler(output)
-                    shader.getUniform("VibrancyAlbedoSampler")?.setSampler(AlbedoDynamicBuffer.texture)
-                    shader.getUniform("VibrancyNormalSampler")?.setSampler(NormalsDynamicBuffer.texture)
 
                     shader.getUniform("IProjMat")?.setValue(Matrix4f(data.inverseProjMat))
                     shader.getUniform("IModelMat")?.setValue(Matrix4f(data.inverseModelViewMat))

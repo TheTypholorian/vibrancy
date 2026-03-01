@@ -1,4 +1,4 @@
-#version 430
+#version 150
 
 #include "vibrancy:include/rays"
 
@@ -10,7 +10,7 @@ uniform float LightLength;
 uniform vec2 ScreenSize;
 uniform vec3 CameraPos;
 
-in flat Triangle triangle;
+flat in Triangle triangle;
 
 out vec4 fragColor;
 

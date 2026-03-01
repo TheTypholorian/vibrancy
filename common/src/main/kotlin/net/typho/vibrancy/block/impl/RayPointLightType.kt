@@ -63,9 +63,6 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                             manager,
                             data,
                             raytrace,
-                            raytrace
-                                    && (result.numForeground ?: 0) < Vibrancy.config.blockLights.raytraced.maxForeground
-                                    && manager.inRenderDistance(data, light.blockPos, Vibrancy.config.blockLights.raytraced.foregroundDistance),
                             fbo
                         )
                     )

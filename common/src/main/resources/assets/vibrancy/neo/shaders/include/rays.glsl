@@ -44,15 +44,31 @@ bool raycastQuad(vec3 origin, vec3 dir, float len, float margin, Quad q, out vec
     return true;
 }
 
-bool sampleQuad(sampler2D AtlasSampler, vec3 origin, vec3 dir, float len, float margin, Quad q, out float dist) {
+vec4 sampleQuad(sampler2D AtlasSampler, vec3 origin, vec3 dir, float len, float margin, Quad q, out float dist) {
     vec2 uv;
 
     if (raycastQuad(origin, dir, len, margin, q, uv, dist)) {
         vec2 texUv = mix(mix(q.uv1, q.uv2, uv.x), mix(q.uv4, q.uv3, uv.x), uv.y);
-        return texture(AtlasSampler, texUv).a < 1;
+        vec4 pixel = texelFetch(AtlasSampler, ivec2(texUv * textureSize(AtlasSampler, 0)), 0);
+
+        if (pixel.a == 0) {
+            return vec4(1);
+        }
+
+        if (pixel.a == 1) {
+            return vec4(0);
+        }
+
+        return vec4(pixel.rgb, 1);
     } else {
-        return true;
+        return vec4(1);
     }
+}
+
+vec3 interpolateQuadPos(Quad q, vec2 uv) {
+    vec3 a = mix(q.v1, q.v2, uv.x);
+    vec3 b = mix(q.v4, q.v3, uv.x);
+    return mix(a, b, uv.y);
 }
 
 struct Triangle {

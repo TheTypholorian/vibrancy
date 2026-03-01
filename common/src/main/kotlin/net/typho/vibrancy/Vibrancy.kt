@@ -12,12 +12,12 @@ import net.typho.big_shot_lib.api.client.opengl.buffers.ClearBit
 import net.typho.big_shot_lib.api.client.opengl.buffers.GlFramebuffer
 import net.typho.big_shot_lib.api.client.opengl.buffers.NeoFramebuffer
 import net.typho.big_shot_lib.api.client.opengl.buffers.NeoTexture2D
-import net.typho.big_shot_lib.api.client.opengl.state.GlFlag
 import net.typho.big_shot_lib.api.client.opengl.util.OpenGL
 import net.typho.big_shot_lib.api.client.opengl.util.TextureFormat
-import net.typho.big_shot_lib.api.client.util.*
-import net.typho.big_shot_lib.api.client.util.dynamic_buffers.AlbedoDynamicBuffer
-import net.typho.big_shot_lib.api.client.util.dynamic_buffers.NormalsDynamicBuffer
+import net.typho.big_shot_lib.api.client.util.BigShotClientEntrypoint
+import net.typho.big_shot_lib.api.client.util.DebugScreenFactory
+import net.typho.big_shot_lib.api.client.util.KeyMappingFactory
+import net.typho.big_shot_lib.api.client.util.ResourceListenerFactory
 import net.typho.big_shot_lib.api.client.util.events.ClientEventFactory
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.big_shot_lib.api.util.*
@@ -43,14 +43,6 @@ object Vibrancy {
         get() = AutoConfig.getConfigHolder(VibrancyConfig::class.java).config
     @JvmField
     val lightManager = LightManager()
-    val outputFbo by lazy {
-        NeoFramebuffer(
-            listOf(NeoTexture2D(TextureFormat.RGB16F)),
-            NeoTexture2D(TextureFormat.DEPTH24_STENCIL8),
-            GlFramebuffer.MAIN.width.coerceAtLeast(1),
-            GlFramebuffer.MAIN.height.coerceAtLeast(1)
-        )
-    }
     val worldPosFbo by lazy {
         NeoFramebuffer(
             listOf(NeoTexture2D(TextureFormat.RGB32F)),
@@ -86,8 +78,6 @@ object Vibrancy {
 
     @JvmStatic
     fun render(data: RenderEventData) {
-        GlFlag.DEPTH_TEST.stack.push(false)
-
         worldPosFbo.bind()
         worldPosFbo.viewport()
         worldPosFbo.clear(ClearBit.Color(IColor.FULL_OFF))
@@ -100,7 +90,7 @@ object Vibrancy {
         //outputFbo.viewport()
         //outputFbo.clear(ClearBit.Color(IColor.FULL_OFF))
 
-        lightManager.render(data, GlFramebuffer.MAIN)
+        lightManager.render(data, GlFramebuffer.MAIN) // outputFbo
 
         //outputFbo.unbind()
 
@@ -108,8 +98,6 @@ object Vibrancy {
         //GlFramebuffer.MAIN.viewport() // TODO
 
         //lightManager.blitOutput(data, outputFbo.colorAttachments[0] as GlTexture)
-
-        GlFlag.DEPTH_TEST.stack.pop()
     }
 
     @JvmStatic
@@ -165,7 +153,7 @@ object Vibrancy {
         override fun registerEvents(factory: ClientEventFactory) {
             factory.onLevelRenderEnd(Vibrancy::render)
             factory.onWindowResized { width, height ->
-                outputFbo.resize(width, height)
+                //outputFbo.resize(width, height)
                 worldPosFbo.resize(width, height)
             }
             factory.onLevelChanged { old, new ->
@@ -247,11 +235,6 @@ object Vibrancy {
                 out.accept(ChatFormatting.UNDERLINE.toString() + MOD_NAME)
                 lightManager.getDebugOutput(out)
             }
-        }
-
-        override fun registerDynamicBuffers(factory: DynamicBufferFactory) {
-            factory.register(NormalsDynamicBuffer)
-            factory.register(AlbedoDynamicBuffer)
         }
     }
 }

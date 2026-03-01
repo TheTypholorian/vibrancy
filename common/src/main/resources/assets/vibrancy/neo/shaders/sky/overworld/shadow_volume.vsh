@@ -1,4 +1,4 @@
-#version 430
+#version 150
 
 uniform mat4 ModelViewMat;
 uniform mat4 ProjMat;

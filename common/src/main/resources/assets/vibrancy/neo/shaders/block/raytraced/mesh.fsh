@@ -1,34 +1,13 @@
-#version 430
+#version 150
 
-#include "vibrancy:include/fragment"
-#include "vibrancy:block/raytraced/shadow_texture_utils"
-
+uniform sampler2D Sampler0;
 uniform sampler2D VibrancyShadowSampler;
-uniform sampler2D VibrancyWorldPosSampler;
-uniform sampler2D VibrancyNormalSampler;
 
-uniform vec2 ScreenSize;
-uniform vec3 LightPos;
-uniform vec3 LightColor;
-uniform float LightRadius;
-uniform vec3 CameraPos;
-
-uniform float ShadowMultiplier = 0;
-uniform ivec2 ShadowTextureSize;
+in vec2 texCoord0;
+in vec2 texCoord1;
 
 out vec4 fragColor;
 
 void main() {
-    vec3 pos = texelFetch(VibrancyWorldPosSampler, ivec2(gl_FragCoord.xy), 0).xyz;
-
-    fragColor = samplePointLight(VibrancyNormalSampler, gl_FragCoord.xy / ScreenSize, LightPos, pos, LightRadius, LightColor);
-
-    vec3 delta = pos - LightPos;
-    uint face;
-    vec2 shadowUV = directionToShadowCoords(normalize(delta), vec2(ShadowTextureSize), face);
-    float shadow = texture(VibrancyShadowSampler, shadowUV).r;
-
-    if (shadow * LightRadius + 2e-2 <= length(delta)) {
-        fragColor *= ShadowMultiplier;
-    }
+    fragColor = texture(Sampler0, texCoord0) * texelFetch(VibrancyShadowSampler, ivec2(texCoord1), 0);
 }

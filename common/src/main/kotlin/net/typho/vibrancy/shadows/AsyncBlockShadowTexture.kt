@@ -1,5 +1,6 @@
 package net.typho.vibrancy.shadows
 
+import com.mojang.blaze3d.vertex.VertexSorting
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.util.RandomSource
@@ -9,14 +10,13 @@ import java.util.*
 import java.util.concurrent.CompletableFuture
 
 open class AsyncBlockShadowTexture(
-    width: Int,
-    height: Int
-) : ShadowTexture(width, height) {
+    width: Int
+) : ShadowTexture(width) {
     protected var asyncTask: CompletableFuture<List<LightFace>>? = null
 
     fun isTaskActive() = asyncTask?.let { task -> !task.isDone } ?: false
 
-    fun checkIfFinished(): Boolean {
+    fun checkIfFinished(sorting: VertexSorting? = null): Boolean {
         asyncTask?.let { task ->
             if (task.isDone) {
                 val builder = Builder()
@@ -26,7 +26,7 @@ open class AsyncBlockShadowTexture(
                     face.buildGeometry(consumer)
                 }
 
-                builder.finish()
+                builder.finish(sorting)
 
                 asyncTask = null
                 return true

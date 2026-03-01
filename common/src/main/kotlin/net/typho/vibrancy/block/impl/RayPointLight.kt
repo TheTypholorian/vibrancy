@@ -1,5 +1,6 @@
 package net.typho.vibrancy.block.impl
 
+import com.mojang.blaze3d.vertex.VertexSorting
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -10,9 +11,8 @@ import net.minecraft.world.phys.Vec3
 import net.typho.big_shot_lib.api.client.opengl.buffers.*
 import net.typho.big_shot_lib.api.client.opengl.state.*
 import net.typho.big_shot_lib.api.client.opengl.util.GlShapeType
-import net.typho.big_shot_lib.api.client.opengl.util.InterpolationType
+import net.typho.big_shot_lib.api.client.opengl.util.MeshUtil
 import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
-import net.typho.big_shot_lib.api.client.util.dynamic_buffers.NormalsDynamicBuffer
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.vibrancy.LightManager
@@ -21,8 +21,10 @@ import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.shadows.AsyncBlockShadowTexture
 import net.typho.vibrancy.shadows.ShadowPredicate
+import net.typho.vibrancy.shadows.ShadowTexture
 import net.typho.vibrancy.util.PointLight
 import org.joml.Vector3f
+import org.lwjgl.opengl.GL11.glPolygonOffset
 import org.lwjgl.system.NativeResource
 import kotlin.math.ceil
 
@@ -37,13 +39,24 @@ open class RayPointLight(
 ) : PointLight, NativeResource {
     companion object {
         @JvmStatic
-        fun meshSettings(fbo: GlFramebuffer, light: RayPointLight, data: RenderEventData, highQuality: Boolean) =
+        fun meshSettings(fbo: GlFramebuffer, light: RayPointLight, data: RenderEventData) =
             RenderSettings(
                 Vibrancy.id("block/raytraced/mesh"),
                 listOf(
                     FramebufferShard(
                         { fbo },
                         true
+                    ),
+                    CullShard(
+                        true,
+                        CullFace.BACK
+                    ),
+                    DepthMaskShard(
+                        false
+                    ),
+                    DepthTestShard(
+                        true,
+                        ComparisonFunc.LEQUAL
                     ),
                     ShaderShard(
                         Vibrancy.id("block/raytraced/mesh")
@@ -56,6 +69,11 @@ open class RayPointLight(
                         shader.getUniform("LightRadius")?.setValue(light.radius)
                         shader.getUniform("ScreenSize")?.setValue(fbo.width.toFloat(), fbo.height.toFloat())
 
+                        shader.getUniform("ShadowScale")?.setValue(light.shadows.scale)
+                        shader.getUniform("Sampler0")?.setSampler(TextureUtil.INSTANCE.getMinecraftTexture(TextureUtil.INSTANCE.blockAtlasTexture))
+                        shader.getUniform("VibrancyShadowSampler")?.setSampler(light.shadows.texture)
+
+                        /*
                         shader.getUniform("ShadowTextureSize")?.setValue(light.shadows.target.width, light.shadows.target.height)
                         shader.getUniform("ShadowMultiplier")?.setValue(
                             if (highQuality)
@@ -64,22 +82,18 @@ open class RayPointLight(
                                 0f
                         )
                         shader.getUniform("VibrancyShadowSampler")?.setSampler(light.shadows.texture)
+                         */
 
-                        shader.getUniform("VibrancyNormalSampler")?.setSampler(NormalsDynamicBuffer.texture)
                         shader.getUniform("VibrancyWorldPosSampler")?.setSampler(Vibrancy.worldPosFbo.colorAttachments[0] as GlTexture)
-                        shader.getUniform("Sampler0")?.setSampler(TextureUtil.INSTANCE.getMinecraftTexture(TextureUtil.INSTANCE.blockAtlasTexture))
-                    },
-                    CullShard(
-                        true,
-                        CullFace.FRONT
-                    )
+                    }
                 )
             )
     }
 
     val shadows = AsyncBlockShadowTexture(
-        Vibrancy.config.blockLights.raytraced.backgroundShadowQuality * 6,
-        Vibrancy.config.blockLights.raytraced.backgroundShadowQuality
+        16 // TODO
+        //Vibrancy.config.blockLights.raytraced.backgroundShadowQuality * 6,
+        //Vibrancy.config.blockLights.raytraced.backgroundShadowQuality
     )
     val boxBuffer by lazy {
         val mesh = Mesh(
@@ -157,11 +171,11 @@ open class RayPointLight(
     }
 
     fun reload(manager: LightManager) {
-        shadows.texture.resize(
-            Vibrancy.config.blockLights.raytraced.backgroundShadowQuality * 6,
-            Vibrancy.config.blockLights.raytraced.backgroundShadowQuality
-        )
-        shadows.texture.setInterpolation(InterpolationType.LINEAR)
+        //shadows.texture.resize(
+        //    Vibrancy.config.blockLights.raytraced.backgroundShadowQuality * 6,
+        //    Vibrancy.config.blockLights.raytraced.backgroundShadowQuality
+        //)
+        //shadows.texture.setInterpolation(InterpolationType.LINEAR)
         shadows.rebuildAsync(manager, manager.createShadowMesher(this), this)
     }
 
@@ -170,11 +184,10 @@ open class RayPointLight(
         boxBuffer.free()
     }
 
-    fun render(manager: LightManager, data: RenderEventData, raytrace: Boolean, foreground: Boolean, fbo: GlFramebuffer): LightRenderResult {
+    fun render(manager: LightManager, data: RenderEventData, raytrace: Boolean, fbo: GlFramebuffer): LightRenderResult {
         val result = LightRenderResult(
             numRendered = 1,
             numRaytraced = if (raytrace) 1 else 0,
-            numForeground = if (foreground) 1 else 0,
             numShadows = if (raytrace) shadows.size else 0,
             numAsyncTasks = if (shadows.isTaskActive()) 1 else 0
         )
@@ -191,19 +204,24 @@ open class RayPointLight(
             shadowsDirty = false
         }
 
-        shadows.checkIfFinished()
+        if (shadows.checkIfFinished(VertexSorting.byDistance(absolutePos))) {
+            val blitSettings = ShadowTexture.blitSettings(data, this)
+            blitSettings.bind()
+            MeshUtil.SCREEN_MESH.draw()
+            blitSettings.unbind()
+        }
 
-        fbo.bind()
-        fbo.viewport()
+        GlFlag.POLYGON_OFFSET_FILL.stack.push(true)
+        glPolygonOffset(-1f, -1f)
 
-        val meshSettings = meshSettings(fbo, this, data, foreground)
+        val meshSettings = meshSettings(fbo, this, data)
 
         meshSettings.bind()
         shadows.mesh.draw()
         //boxBuffer.draw()
         meshSettings.unbind()
 
-        fbo.unbind()
+        GlFlag.POLYGON_OFFSET_FILL.stack.pop()
 
         return result
     }
