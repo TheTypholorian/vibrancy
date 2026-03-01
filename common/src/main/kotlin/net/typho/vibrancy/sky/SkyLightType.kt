@@ -6,12 +6,12 @@ import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.LightRenderResult
 
-interface SkyLightType<I, S : SkyLightStorage<I>> {
+interface SkyLightType<I : SkyLightInfo, S : SkyLightStorage<I>> {
     val infoCodec: MapCodec<I>
 
     fun createStorage(manager: LightManager): S
 
-    fun castInfo(info: Any?): I?
+    fun castInfo(info: SkyLightInfo?): I?
 
     fun render(
         manager: LightManager,

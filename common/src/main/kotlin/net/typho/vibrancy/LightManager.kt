@@ -25,6 +25,8 @@ import net.typho.vibrancy.block.BlockLightStorage
 import net.typho.vibrancy.block.BlockLightType
 import net.typho.vibrancy.shadows.BasicShadowMesher
 import net.typho.vibrancy.shadows.ShadowMesher
+import net.typho.vibrancy.sky.SkyLightStorage
+import net.typho.vibrancy.sky.SkyLightType
 import net.typho.vibrancy.util.PointLight
 import org.joml.Matrix4f
 import org.joml.Vector2f
@@ -95,11 +97,16 @@ open class LightManager {
     val blockLights = HashMap<BlockLightType<*, *>, BlockLightStorage<*>>()
     @JvmField
     protected var blockRenderResults = HashMap<BlockLightType<*, *>, LightRenderResult>()
+    @JvmField
+    var skyLight: Pair<SkyLightType<*, *>, SkyLightStorage<*>>? = null
+    @JvmField
+    var skyRenderResult: LightRenderResult? = null
 
     fun getLevel(): ClientLevel = Minecraft.getInstance().level!!
 
     fun clear() {
         blockLights.values.forEach { storage -> storage.clear(this) }
+        skyLight?.second?.clear(this)
     }
 
     fun createShadowMesher(light: PointLight): ShadowMesher {
@@ -110,6 +117,8 @@ open class LightManager {
         for (light in blockLights.values) {
             light.reload(this)
         }
+
+        skyLight?.second?.reload(this)
     }
 
     fun ensureStorageInitialized() {
@@ -149,16 +158,23 @@ open class LightManager {
         ensureStorageInitialized()
 
         blockLights.values.forEach { storage -> storage.loadChunk(this, chunk) }
+        skyLight?.second?.loadChunk(this, chunk)
     }
 
     fun deloadChunk(chunk: LevelChunk) {
         ensureStorageInitialized()
 
         blockLights.values.forEach { storage -> storage.deloadChunk(this, chunk) }
+        skyLight?.second?.deloadChunk(this, chunk)
     }
 
     @Suppress("UNCHECKED_CAST")
     protected fun <S : BlockLightStorage<*>> castAndRender(data: RenderEventData, fbo: GlFramebuffer, type: BlockLightType<*, S>, storage: BlockLightStorage<*>): LightRenderResult {
+        return type.render(this, data, storage as S, fbo)
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    protected fun <S : SkyLightStorage<*>> castAndRender(data: RenderEventData, fbo: GlFramebuffer, type: SkyLightType<*, S>, storage: SkyLightStorage<*>): LightRenderResult {
         return type.render(this, data, storage as S, fbo)
     }
 
@@ -168,6 +184,8 @@ open class LightManager {
         for (entry in blockLights) {
             blockRenderResults[entry.key] = castAndRender(data, fbo, entry.key, entry.value)
         }
+
+        skyRenderResult = skyLight?.let { castAndRender(data, fbo, it.first, it.second) }
 
         dirtyBlocks.clear()
     }

@@ -22,7 +22,11 @@ import net.typho.big_shot_lib.api.util.events.CommonEventFactory
 import net.typho.big_shot_lib.api.util.resources.ResourceIdentifier
 import net.typho.vibrancy.block.BlockLightInfoLoader
 import net.typho.vibrancy.block.BlockLightRegistry
+import net.typho.vibrancy.sky.SkyLightInfo
+import net.typho.vibrancy.sky.SkyLightRegistry
+import net.typho.vibrancy.sky.SkyLightStorage
 import org.lwjgl.glfw.GLFW
+import org.lwjgl.system.NativeResource
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -163,8 +167,29 @@ object Vibrancy {
             factory.onLevelChanged { old, new ->
                 lightManager.clear()
 
-                if (new != null) {
+                if (new == null) {
+                    (lightManager.skyLight?.second as? NativeResource)?.free()
+                    lightManager.skyLight = null
+                } else {
                     BlockLightInfoLoader.onResourceManagerReload(WrapperUtil.INSTANCE.wrap(Minecraft.getInstance().resourceManager))
+
+                    SkyLightRegistry.get(new)?.let { info ->
+                        if (lightManager.skyLight?.first != info.type) {
+                            (lightManager.skyLight?.second as? NativeResource)?.free()
+                            lightManager.skyLight = null
+                        }
+
+                        if (lightManager.skyLight == null) {
+                            lightManager.skyLight = info.type to info.type.createStorage(lightManager)
+                        }
+
+                        @Suppress("UNCHECKED_CAST")
+                        fun <I : SkyLightInfo> load(storage: SkyLightStorage<I>) {
+                            storage.load(lightManager, info as I)
+                        }
+
+                        load(lightManager.skyLight!!.second)
+                    }
                 }
             }
             factory.onFrameStart {

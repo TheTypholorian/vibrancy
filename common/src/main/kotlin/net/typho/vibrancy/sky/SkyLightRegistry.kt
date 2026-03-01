@@ -18,10 +18,10 @@ object SkyLightRegistry {
     var registry: NeoRegistry<SkyLightType<*, *>>? = null
 
     @JvmField
-    val dimensionMap = HashMap<ResourceIdentifier, Any>()
+    val dimensionMap = HashMap<ResourceIdentifier, SkyLightInfo>()
 
     @JvmStatic
-    fun <I> get(level: Level, type: SkyLightType<I, *>): I? = type.castInfo(dimensionMap[WrapperUtil.INSTANCE.wrap(level.dimension()).location])
+    fun get(level: Level): SkyLightInfo? = dimensionMap[WrapperUtil.INSTANCE.wrap(level.dimension()).location]
 
     @JvmStatic
     fun has(level: Level): Boolean = dimensionMap.containsKey(WrapperUtil.INSTANCE.wrap(level.dimension()).location)

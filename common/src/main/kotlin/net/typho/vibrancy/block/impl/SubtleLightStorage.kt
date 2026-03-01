@@ -3,6 +3,7 @@ package net.typho.vibrancy.block.impl
 import net.minecraft.core.BlockPos
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.phys.AABB
 import net.typho.big_shot_lib.api.client.opengl.buffers.*
 import net.typho.big_shot_lib.api.client.opengl.util.GlShapeType
@@ -30,6 +31,21 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
         dirty.clear()
     }
 
+    override fun reload(manager: LightManager) {
+        super.reload(manager)
+        dirty.addAll(chunks.keys)
+    }
+
+    override fun loadChunk(manager: LightManager, chunk: LevelChunk) {
+        super.loadChunk(manager, chunk)
+        dirty.add(chunk.pos)
+    }
+
+    override fun deloadChunk(manager: LightManager, chunk: LevelChunk) {
+        super.deloadChunk(manager, chunk)
+        dirty.add(chunk.pos)
+    }
+
     fun checkDirty(
         manager: LightManager
     ) {
@@ -43,11 +59,11 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
         }
 
         for (pos in dirty) {
+            val newChunk = createChunk(pos)
+
             tasks.put(
                 pos,
                 CompletableFuture.supplyAsync {
-                    val newChunk = createChunk(pos)
-
                     manager.getLevel().getChunk(pos.x, pos.z)
                         .findBlocks({ BlockLightRegistry.has(it.block) }) { pos, state ->
                             val actualPos = BlockPos(pos)
@@ -64,15 +80,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                     val builder = newChunk.mesh.Builder()
                     val ssboBuffer = MemoryUtil.memAllocFloat(8 * newChunk.size)
 
-                    var box: AABB? = null
-
                     for (light in newChunk.map.values) {
-                        box = if (box == null) {
-                            light.boundingBox
-                        } else {
-                            box.intersect(light.boundingBox)
-                        }
-
                         builder.cube(light.boundingBox)
 
                         val color = light.color
@@ -85,9 +93,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                     return@supplyAsync Runnable {
                         builder.end()
 
-                        newChunk.ssbo.bind()
                         newChunk.ssbo.upload(ssboBuffer.flip())
-                        newChunk.ssbo.unbind()
 
                         MemoryUtil.memFree(ssboBuffer)
 
@@ -100,7 +106,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
         dirty.clear()
     }
 
-    inner class Chunk(
+    class Chunk(
         @JvmField
         val pos: ChunkPos,
         @JvmField
@@ -137,7 +143,6 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
         }
 
         override fun reload(manager: LightManager) {
-            dirty.add(pos)
         }
 
         override fun free() {

@@ -20,7 +20,7 @@ object SkyLightInfoLoader : NeoResourceManagerReloadListener {
             .getOrThrow { JsonParseException("Error while parsing block light info $file: $it") }
             .first
         val codec = (SkyLightRegistry.registry!!.get(typeKey) ?: throw JsonParseException("No block light type $typeKey"))
-                .infoCodec()
+                .infoCodec
         SkyLightRegistry.dimensionMap[key] = codec.codec()
             .parse(JsonOps.INSTANCE, json)
             .getOrThrow { message -> JsonParseException("Error parsing block light info for $key: $message") }

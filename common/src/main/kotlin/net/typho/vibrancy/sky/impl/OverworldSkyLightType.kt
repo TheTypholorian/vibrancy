@@ -4,6 +4,7 @@ import net.typho.big_shot_lib.api.client.opengl.buffers.GlFramebuffer
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.LightRenderResult
+import net.typho.vibrancy.sky.SkyLightInfo
 import net.typho.vibrancy.sky.SkyLightType
 
 object OverworldSkyLightType : SkyLightType<OverworldSkyLightInfo, OverworldSkyLightStorage> {
@@ -11,7 +12,7 @@ object OverworldSkyLightType : SkyLightType<OverworldSkyLightInfo, OverworldSkyL
 
     override fun createStorage(manager: LightManager) = OverworldSkyLightStorage()
 
-    override fun castInfo(info: Any?): OverworldSkyLightInfo? {
+    override fun castInfo(info: SkyLightInfo?): OverworldSkyLightInfo? {
         return info as? OverworldSkyLightInfo
     }
 

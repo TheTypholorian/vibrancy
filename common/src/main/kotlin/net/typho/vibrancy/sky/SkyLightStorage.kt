@@ -3,7 +3,9 @@ package net.typho.vibrancy.sky
 import net.minecraft.world.level.chunk.LevelChunk
 import net.typho.vibrancy.LightManager
 
-interface SkyLightStorage<I> {
+interface SkyLightStorage<I : SkyLightInfo> {
+    fun load(manager: LightManager, info: I)
+
     fun reload(manager: LightManager)
 
     fun loadChunk(

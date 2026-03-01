@@ -1,7 +1,6 @@
 #version 430
 
 #include "vibrancy:include/fragment"
-//#include "vibrancy:block/raytraced/shadow_texture_utils"
 
 //uniform sampler2D VibrancyShadowSampler;
 uniform sampler2D VibrancyWorldPosSampler;

@@ -5,6 +5,13 @@ import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.sky.SkyLightStorage
 
 class OverworldSkyLightStorage : SkyLightStorage<OverworldSkyLightInfo> {
+    override fun load(
+        manager: LightManager,
+        info: OverworldSkyLightInfo
+    ) {
+        TODO("Not yet implemented")
+    }
+
     override fun reload(manager: LightManager) {
         TODO("Not yet implemented")
     }
