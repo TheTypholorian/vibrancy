@@ -11,7 +11,6 @@ import net.typho.big_shot_lib.api.client.opengl.buffers.*
 import net.typho.big_shot_lib.api.client.opengl.state.*
 import net.typho.big_shot_lib.api.client.opengl.util.GlShapeType
 import net.typho.big_shot_lib.api.client.opengl.util.InterpolationType
-import net.typho.big_shot_lib.api.client.opengl.util.MeshUtil
 import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
 import net.typho.big_shot_lib.api.client.util.dynamic_buffers.NormalsDynamicBuffer
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
@@ -38,67 +37,16 @@ open class RayPointLight(
 ) : PointLight, NativeResource {
     companion object {
         @JvmStatic
-        fun stencilCullSettings(fbo: GlFramebuffer, light: RayPointLight) = RenderSettings(
-            Vibrancy.id("block/raytraced/stencil_cull"),
-            listOf(
-                FramebufferShard(
-                    { fbo },
-                    true,
-                    ClearBit.Stencil(0)
-                ),
-                StencilShard(
-                    true,
-                    StencilFunc(ComparisonFunc.ALWAYS, 1, 1),
-                    1,
-                    StencilOp(IntAction.ZERO, IntAction.ZERO, IntAction.REPLACE)
-                ),
-                ShaderShard(
-                    Vibrancy.id("block/raytraced/stencil_cull")
-                ) { shader ->
-                    shader.getUniform("LightPos")?.setValue(light.absolutePos)
-                    shader.getUniform("LightRadius")?.setValue(light.radius)
-
-                    shader.getUniform("VibrancyNormalSampler")?.setSampler(NormalsDynamicBuffer.texture)
-                    shader.getUniform("VibrancyWorldPosSampler")?.setSampler(Vibrancy.worldPosFbo.colorAttachments[0] as GlTexture)
-                }
-            )
-        )
-
-        @JvmStatic
-        fun shadowVolumeSettings(fbo: GlFramebuffer, light: RayPointLight, data: RenderEventData) = RenderSettings(
-            Vibrancy.id("block/raytraced/shadow_volume"),
-            listOf(
-                FramebufferShard(
-                    { fbo },
-                    true
-                ),
-                ShaderShard(
-                    Vibrancy.id("block/raytraced/shadow_volume")
-                ) { shader ->
-                    shader.setCommonUniforms(data)
-
-                    shader.getUniform("LightPos")?.setValue(light.absolutePos)
-                    shader.getUniform("LightRadius")?.setValue(light.radius)
-                    shader.getUniform("ScreenSize")?.setValue(fbo.width.toFloat(), fbo.height.toFloat())
-                    shader.getUniform("CameraPos")?.setValue(data.camera.pos)
-
-                    shader.getUniform("Sampler0")?.setSampler(TextureUtil.INSTANCE.getMinecraftTexture(TextureUtil.INSTANCE.blockAtlasTexture))
-                    shader.getUniform("VibrancyWorldPosSampler")?.setSampler(Vibrancy.worldPosFbo.colorAttachments[0] as GlTexture)
-                }
-            )
-        )
-
-        @JvmStatic
-        fun boxSettings(fbo: GlFramebuffer, light: RayPointLight, data: RenderEventData, highQuality: Boolean) =
+        fun meshSettings(fbo: GlFramebuffer, light: RayPointLight, data: RenderEventData, highQuality: Boolean) =
             RenderSettings(
-                Vibrancy.id("block/raytraced/box"),
+                Vibrancy.id("block/raytraced/mesh"),
                 listOf(
                     FramebufferShard(
                         { fbo },
                         true
                     ),
                     ShaderShard(
-                        Vibrancy.id("block/raytraced/box")
+                        Vibrancy.id("block/raytraced/mesh")
                     ) { shader ->
                         shader.setCommonUniforms(data)
 
@@ -119,6 +67,7 @@ open class RayPointLight(
 
                         shader.getUniform("VibrancyNormalSampler")?.setSampler(NormalsDynamicBuffer.texture)
                         shader.getUniform("VibrancyWorldPosSampler")?.setSampler(Vibrancy.worldPosFbo.colorAttachments[0] as GlTexture)
+                        shader.getUniform("Sampler0")?.setSampler(TextureUtil.INSTANCE.getMinecraftTexture(TextureUtil.INSTANCE.blockAtlasTexture))
                     },
                     CullShard(
                         true,
@@ -126,15 +75,6 @@ open class RayPointLight(
                     )
                 )
             )
-
-        @JvmStatic
-        fun shadowTextureShaderShard(light: RayPointLight) = ShaderShard(
-            Vibrancy.id("block/raytraced/shadow_texture")
-        ) { shader ->
-            shader.getUniform("LightPos")?.setValue(light.absolutePos)
-            shader.getUniform("LightRadius")?.setValue(light.radius)
-            shader.getUniform("Sampler0")?.setSampler(TextureUtil.INSTANCE.getMinecraftTexture(TextureUtil.INSTANCE.blockAtlasTexture))
-        }
     }
 
     val shadows = AsyncBlockShadowTexture(
@@ -251,34 +191,17 @@ open class RayPointLight(
             shadowsDirty = false
         }
 
-        shadows.checkIfFinished { shadowTextureShaderShard(this) }
+        shadows.checkIfFinished()
 
         fbo.bind()
         fbo.viewport()
 
-        var foregroundSettings: RenderSettings? = null
+        val meshSettings = meshSettings(fbo, this, data, foreground)
 
-        if (foreground) {
-            val stencilCullSettings = stencilCullSettings(fbo, this)
-
-            stencilCullSettings.bind()
-            MeshUtil.SCREEN_MESH.draw()
-            stencilCullSettings.unbind()
-
-            val shadowVolumeSettings = shadowVolumeSettings(fbo, this, data)
-
-            shadowVolumeSettings.bind()
-            foregroundSettings = shadows.renderStencil().also { it.bind() }
-            shadowVolumeSettings.unbind()
-        }
-
-        val boxSettings = boxSettings(fbo, this, data, foreground)
-
-        boxSettings.bind()
-        boxBuffer.draw()
-        boxSettings.unbind()
-
-        foregroundSettings?.unbind()
+        meshSettings.bind()
+        shadows.mesh.draw()
+        //boxBuffer.draw()
+        meshSettings.unbind()
 
         fbo.unbind()
 

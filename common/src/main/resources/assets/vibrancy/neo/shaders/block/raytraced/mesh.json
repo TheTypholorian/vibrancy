@@ -1,9 +1,9 @@
 {
   "sources": {
-    "vertex": "vibrancy:block/raytraced/box",
-    "fragment": "vibrancy:block/raytraced/box"
+    "vertex": "vibrancy:block/raytraced/mesh",
+    "fragment": "vibrancy:block/raytraced/mesh"
   },
-  "format": "POSITION",
+  "format": "POSITION_TEX",
   "disabledDynamicBuffers": [
     "big_shot_lib:dynamic_buffer/normals",
     "big_shot_lib:dynamic_buffer/albedo"

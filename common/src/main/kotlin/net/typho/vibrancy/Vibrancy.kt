@@ -8,7 +8,10 @@ import net.minecraft.client.KeyMapping
 import net.minecraft.client.Minecraft
 import net.minecraft.network.chat.CommonComponents
 import net.minecraft.network.chat.Component
-import net.typho.big_shot_lib.api.client.opengl.buffers.*
+import net.typho.big_shot_lib.api.client.opengl.buffers.ClearBit
+import net.typho.big_shot_lib.api.client.opengl.buffers.GlFramebuffer
+import net.typho.big_shot_lib.api.client.opengl.buffers.NeoFramebuffer
+import net.typho.big_shot_lib.api.client.opengl.buffers.NeoTexture2D
 import net.typho.big_shot_lib.api.client.opengl.state.GlFlag
 import net.typho.big_shot_lib.api.client.opengl.util.OpenGL
 import net.typho.big_shot_lib.api.client.opengl.util.TextureFormat
@@ -93,18 +96,18 @@ object Vibrancy {
 
         worldPosFbo.unbind()
 
-        outputFbo.bind()
-        outputFbo.viewport()
-        outputFbo.clear(ClearBit.Color(IColor.FULL_OFF))
+        //outputFbo.bind()
+        //outputFbo.viewport()
+        //outputFbo.clear(ClearBit.Color(IColor.FULL_OFF))
 
-        lightManager.render(data, outputFbo)
+        lightManager.render(data, GlFramebuffer.MAIN)
 
-        outputFbo.unbind()
+        //outputFbo.unbind()
 
-        GlFramebuffer.MAIN.bind(false)
-        GlFramebuffer.MAIN.viewport() // TODO
+        //GlFramebuffer.MAIN.bind(false)
+        //GlFramebuffer.MAIN.viewport() // TODO
 
-        lightManager.blitOutput(data, outputFbo.colorAttachments[0] as GlTexture)
+        //lightManager.blitOutput(data, outputFbo.colorAttachments[0] as GlTexture)
 
         GlFlag.DEPTH_TEST.stack.pop()
     }

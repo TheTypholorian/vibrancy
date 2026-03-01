@@ -1,9 +1,10 @@
 package net.typho.vibrancy.shadows
 
-import net.typho.big_shot_lib.api.client.opengl.buffers.*
+import net.typho.big_shot_lib.api.client.opengl.buffers.BufferUsage
+import net.typho.big_shot_lib.api.client.opengl.buffers.Mesh
+import net.typho.big_shot_lib.api.client.opengl.buffers.NeoVertexFormat
 import net.typho.big_shot_lib.api.client.opengl.state.*
-import net.typho.big_shot_lib.api.client.opengl.util.*
-import net.typho.big_shot_lib.api.util.IColor
+import net.typho.big_shot_lib.api.client.opengl.util.GlShapeType
 import net.typho.vibrancy.Vibrancy
 import org.lwjgl.system.NativeResource
 
@@ -69,41 +70,10 @@ open class ShadowTexture(
                 )
             )
         )
-
-        @JvmStatic
-        fun builderSettings(shader: ShaderShard, target: GlFramebuffer) = RenderSettings(
-            Vibrancy.id("shadow_texture_builder"),
-            listOf(
-                DisableFlagsShard(listOf(
-                    GlFlag.CULL_FACE,
-                    GlFlag.BLEND
-                )),
-                FramebufferShard(
-                    { target },
-                    true,
-                    ClearBit.Color(IColor.FULL_OFF)
-                ),
-                shader
-            )
-        )
     }
 
-    val texture by lazy {
-        val texture = NeoTexture2D(TextureFormat.R16F)
-        texture.resize(width, height)
-        texture.setInterpolation(InterpolationType.LINEAR)
-        return@lazy texture
-    }
-    val target by lazy {
-        NeoFramebuffer(
-            listOf(texture),
-            null,
-            width,
-            height
-        )
-    }
-    @JvmField
     var size = 0
+        private set
     val mesh by lazy {
         Mesh(
             VERTEX_FORMAT,
@@ -113,8 +83,6 @@ open class ShadowTexture(
     }
 
     override fun free() {
-        target.free()
-        texture.free()
         mesh.free()
     }
 
@@ -126,13 +94,9 @@ open class ShadowTexture(
         return volumeReadSettings
     }
 
-    inner class Builder(
-        shader: ShaderShard
-    ) { // : MultiBufferSource
+    inner class Builder { // : MultiBufferSource
         @JvmField
         val meshBuilder = mesh.Builder()
-        @JvmField
-        val builderSettings = builderSettings(shader, target)
 
         /*
         override fun getBuffer(renderType: RenderType): VertexConsumer {
@@ -156,22 +120,15 @@ open class ShadowTexture(
          */
 
         fun finish() {
-            builderSettings.bind()
-
             size = 0
 
             meshBuilder.build()?.let { built ->
                 size += built.drawState().indexCount
 
                 mesh.upload(built)
-                meshBuilder.buffer.close()
-
-                OpenGL.INSTANCE.bindBufferBase(BufferType.SHADER_STORAGE_BUFFER, 0, mesh.vbo.glId)
-
-                MeshUtil.SCREEN_MESH.draw()
             }
 
-            builderSettings.unbind()
+            meshBuilder.buffer.close()
         }
     }
 }
