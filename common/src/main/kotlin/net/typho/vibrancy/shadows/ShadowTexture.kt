@@ -1,13 +1,11 @@
 package net.typho.vibrancy.shadows
 
-import com.mojang.blaze3d.vertex.ByteBufferBuilder
 import net.typho.big_shot_lib.api.client.opengl.buffers.*
 import net.typho.big_shot_lib.api.client.opengl.state.*
 import net.typho.big_shot_lib.api.client.opengl.util.*
 import net.typho.big_shot_lib.api.util.IColor
 import net.typho.vibrancy.Vibrancy
 import org.lwjgl.system.NativeResource
-import java.util.*
 
 open class ShadowTexture(
     @JvmField
@@ -71,6 +69,7 @@ open class ShadowTexture(
                 )
             )
         )
+
         @JvmStatic
         fun builderSettings(shader: ShaderShard, target: GlFramebuffer) = RenderSettings(
             Vibrancy.id("shadow_texture_builder"),
@@ -104,10 +103,6 @@ open class ShadowTexture(
         )
     }
     @JvmField
-    var shadows: Collection<LightFace> = emptyList()
-    @JvmField
-    val toFree = LinkedList<ByteBufferBuilder>()
-    @JvmField
     var size = 0
     val mesh by lazy {
         Mesh(
@@ -119,6 +114,8 @@ open class ShadowTexture(
 
     override fun free() {
         target.free()
+        texture.free()
+        mesh.free()
     }
 
     fun renderStencil(): RenderSettings {
@@ -175,9 +172,6 @@ open class ShadowTexture(
             }
 
             builderSettings.unbind()
-
-            toFree.forEach { it.close() }
-            toFree.clear()
         }
     }
 }
