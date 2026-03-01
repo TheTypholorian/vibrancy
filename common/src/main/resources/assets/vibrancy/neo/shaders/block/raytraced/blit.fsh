@@ -19,25 +19,53 @@ in vec2 texCoord0;
 
 out vec4 fragColor;
 
-void main() {
-    uint index = uint(floor(texCoord0.x * ShadowWidth));
+struct Check {
+    vec3 pos;
+    vec3 dir;
+    float len;
+};
 
-    vec2 mappedUV = vec2((texCoord0.x - float(index) / ShadowWidth) * ShadowWidth, texCoord0.y);
-    vec3 pos = interpolateQuadPos(quads[index], mappedUV);
+Check check(Quad self, vec2 mappedUV) {
+    vec3 pos = interpolateQuadPos(self, mappedUV);
 
-    vec3 delta = pos - LightPos;
+    vec3 delta = LightPos - pos;
     vec3 dir = normalize(delta);
     float len = length(delta);
 
-    fragColor = samplePointLight(ScreenSize, LightPos, pos, LightRadius, LightColor);
+    return Check(pos, dir, len);
+}
+
+vec4 test(Quad q, Check check) {
+    float dist;
+
+    return sampleQuad(Sampler0, check.pos, check.dir, check.len, 1e-3, q, dist);
+}
+
+void main() {
+    uint index = uint(floor(texCoord0.x * ShadowWidth));
+    Quad self = quads[index];
+    vec2 mappedUV = vec2((texCoord0.x - float(index) / ShadowWidth) * ShadowWidth, texCoord0.y);
+
+    float step = 1.0 / 32.0;
+    Check checkA = check(self, mappedUV);
+    Check checkB = check(self, mappedUV + vec2(step, 0));
+    Check checkC = check(self, mappedUV + vec2(-step, 0));
+    Check checkD = check(self, mappedUV + vec2(0, step));
+    Check checkE = check(self, mappedUV + vec2(0, -step));
+
+    fragColor = samplePointLight(ScreenSize, LightPos, checkA.pos, LightRadius, LightColor);
 
     for (uint i = 0u; i < quads.length(); i++) {
         if (i != index) {
-            float dist;
+            Quad q = quads[i];
 
-            fragColor *= sampleQuad(Sampler0, LightPos, dir, len, 1e-3, quads[i], dist);
+            vec4 a = test(q, checkA);
+            vec4 b = test(q, checkB);
+            vec4 c = test(q, checkC);
+            vec4 d = test(q, checkD);
+            vec4 e = test(q, checkE);
+
+            fragColor *= (a + b + c + d + e) / 5;
         }
     }
-
-    fragColor.rgb *= fragColor.a;
 }
