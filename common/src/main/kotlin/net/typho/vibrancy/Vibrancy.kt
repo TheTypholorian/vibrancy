@@ -87,6 +87,7 @@ object Vibrancy {
 
         worldPosFbo.bind()
         worldPosFbo.viewport()
+        worldPosFbo.clear(ClearBit.Color(IColor.FULL_OFF))
 
         lightManager.blitWorldPos(data)
 
