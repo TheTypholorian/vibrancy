@@ -1,6 +1,5 @@
 package net.typho.vibrancy.block.impl
 
-import com.mojang.blaze3d.vertex.VertexSorting
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -90,11 +89,7 @@ open class RayPointLight(
             )
     }
 
-    val shadows = AsyncBlockShadowTexture(
-        16 // TODO
-        //Vibrancy.config.blockLights.raytraced.backgroundShadowQuality * 6,
-        //Vibrancy.config.blockLights.raytraced.backgroundShadowQuality
-    )
+    val shadows = AsyncBlockShadowTexture()
     val boxBuffer by lazy {
         val mesh = Mesh(
             NeoVertexFormat.POSITION,
@@ -171,11 +166,6 @@ open class RayPointLight(
     }
 
     fun reload(manager: LightManager) {
-        //shadows.texture.resize(
-        //    Vibrancy.config.blockLights.raytraced.backgroundShadowQuality * 6,
-        //    Vibrancy.config.blockLights.raytraced.backgroundShadowQuality
-        //)
-        //shadows.texture.setInterpolation(InterpolationType.LINEAR)
         shadows.rebuildAsync(manager, manager.createShadowMesher(this), this)
     }
 
@@ -184,11 +174,10 @@ open class RayPointLight(
         boxBuffer.free()
     }
 
-    fun render(manager: LightManager, data: RenderEventData, raytrace: Boolean, fbo: GlFramebuffer): LightRenderResult {
+    fun render(manager: LightManager, data: RenderEventData, fbo: GlFramebuffer): LightRenderResult {
         val result = LightRenderResult(
             numRendered = 1,
-            numRaytraced = if (raytrace) 1 else 0,
-            numShadows = if (raytrace) shadows.size else 0,
+            numShadows = shadows.size,
             numAsyncTasks = if (shadows.isTaskActive()) 1 else 0
         )
 
@@ -199,12 +188,12 @@ open class RayPointLight(
             }
         }
 
-        if (shadowsDirty && raytrace) {
+        if (shadowsDirty) {
             shadows.rebuildAsync(manager, manager.createShadowMesher(this), this)
             shadowsDirty = false
         }
 
-        if (shadows.checkIfFinished(VertexSorting.byDistance(absolutePos))) {
+        if (shadows.checkIfFinished()) { // VertexSorting.byDistance(absolutePos)
             val blitSettings = ShadowTexture.blitSettings(data, this)
             blitSettings.bind()
             MeshUtil.SCREEN_MESH.draw()
@@ -218,7 +207,6 @@ open class RayPointLight(
 
         meshSettings.bind()
         shadows.mesh.draw()
-        //boxBuffer.draw()
         meshSettings.unbind()
 
         GlFlag.POLYGON_OFFSET_FILL.stack.pop()

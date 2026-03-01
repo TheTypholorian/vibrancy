@@ -50,19 +50,15 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
 
             lights.map.values.stream()
                 .filter { light ->
-                    manager.inRenderDistance(data, light.blockPos, Vibrancy.config.blockLights.raytraced.renderDistance)
-                            && data.frustum.testAab(light.boundingBox.minPosition.toVector3f(), light.boundingBox.maxPosition.toVector3f())
+                    data.frustum.testAab(light.boundingBox.minPosition.toVector3f(), light.boundingBox.maxPosition.toVector3f())
                 }
                 .sorted(Comparator.comparingDouble { light -> manager.getSortingOrder(data, light.blockPos).toDouble() })
                 .limit(Vibrancy.config.blockLights.raytraced.maxRendered.toLong())
                 .forEachOrdered { light ->
-                    val raytrace = (result.numRaytraced ?: 0) < Vibrancy.config.blockLights.raytraced.maxRaytraced
-                            && manager.inRenderDistance(data, light.blockPos, Vibrancy.config.blockLights.raytraced.raytraceDistance)
                     result.add(
                         light.render(
                             manager,
                             data,
-                            raytrace,
                             fbo
                         )
                     )

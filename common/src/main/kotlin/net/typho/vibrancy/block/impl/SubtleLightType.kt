@@ -70,7 +70,7 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
                     break
                 }
 
-                result.add(mesh.render(data, manager))
+                result.add(mesh.render(data))
             }
 
             renderSettings.unbind()

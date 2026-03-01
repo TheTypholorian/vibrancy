@@ -10,10 +10,7 @@ import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.block.impl.RayPointLight
 import org.lwjgl.system.NativeResource
 
-open class ShadowTexture(
-    @JvmField
-    val scale: Int
-) : NativeResource {
+open class ShadowTexture : NativeResource {
     companion object {
         @JvmField
         val VERTEX_FORMAT = NeoVertexFormat.builder()
@@ -59,6 +56,8 @@ open class ShadowTexture(
 
     var size = 0
         private set
+    val scale: Int
+        get() = Vibrancy.config.shadowResolution
     val mesh by lazy {
         Mesh(
             VERTEX_FORMAT,

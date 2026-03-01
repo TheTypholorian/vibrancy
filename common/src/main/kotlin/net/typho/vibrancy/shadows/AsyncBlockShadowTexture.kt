@@ -9,9 +9,7 @@ import net.typho.vibrancy.util.PointLight
 import java.util.*
 import java.util.concurrent.CompletableFuture
 
-open class AsyncBlockShadowTexture(
-    width: Int
-) : ShadowTexture(width) {
+open class AsyncBlockShadowTexture : ShadowTexture() {
     protected var asyncTask: CompletableFuture<List<LightFace>>? = null
 
     fun isTaskActive() = asyncTask?.let { task -> !task.isDone } ?: false

@@ -10,7 +10,6 @@ import net.typho.big_shot_lib.api.client.opengl.util.GlShapeType
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.LightRenderResult
-import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.block.ChunkedBlockLightStorage
 import net.typho.vibrancy.block.HashMapBlockLightStorage
@@ -117,10 +116,9 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
         val box: AABB?
             get() = map.values.fold(null) { box, light -> if (box == null) light.boundingBox else box.minmax(light.boundingBox) }
 
-        fun render(data: RenderEventData, manager: LightManager): LightRenderResult {
+        fun render(data: RenderEventData): LightRenderResult {
             if (
                 size > 0
-                && manager.inRenderDistance(data, pos, Vibrancy.config.blockLights.subtle.renderDistance)
                 && box?.let { data.frustum.testAab(it.minPosition.toVector3f(), it.maxPosition.toVector3f()) } ?: true
             ) {
                 ssbo.bindBase(0)
