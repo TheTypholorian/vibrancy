@@ -46,7 +46,7 @@ void main() {
     Quad self = quads[index];
     vec2 mappedUV = vec2((texCoord0.x - float(index) / ShadowWidth) * ShadowWidth, texCoord0.y);
 
-    float step = 1.0 / 32.0;
+    float step = 1.0 / 48.0;
     Check checkA = check(self, mappedUV);
     Check checkB = check(self, mappedUV + vec2(step, 0));
     Check checkC = check(self, mappedUV + vec2(-step, 0));
