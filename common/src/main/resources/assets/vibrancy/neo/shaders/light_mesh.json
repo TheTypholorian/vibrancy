@@ -1,7 +1,7 @@
 {
   "sources": {
-    "vertex": "vibrancy:block/raytraced/mesh",
-    "fragment": "vibrancy:block/raytraced/mesh"
+    "vertex": "vibrancy:light_mesh",
+    "fragment": "vibrancy:light_mesh"
   },
   "format": "POSITION_TEX",
   "disabledDynamicBuffers": [

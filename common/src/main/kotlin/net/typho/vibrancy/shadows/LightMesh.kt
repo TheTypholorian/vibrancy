@@ -1,10 +1,12 @@
 package net.typho.vibrancy.shadows
 
 import net.typho.big_shot_lib.api.client.opengl.buffers.*
-import net.typho.big_shot_lib.api.client.opengl.state.GlFlag
+import net.typho.big_shot_lib.api.client.opengl.state.*
 import net.typho.big_shot_lib.api.client.opengl.util.GlShapeType
 import net.typho.big_shot_lib.api.client.opengl.util.TextureFormat
+import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.vibrancy.TextureAtlas
+import net.typho.vibrancy.Vibrancy
 import org.lwjgl.opengl.GL11.glPolygonOffset
 import org.lwjgl.system.NativeResource
 import java.awt.Dimension
@@ -20,6 +22,41 @@ open class LightMesh : NativeResource {
             .add("UV0", NeoVertexFormat.Element.TEXTURE_UV)
             .padding(2 * Float.SIZE_BYTES)
             .build()
+
+        @JvmStatic
+        fun renderSettings(fbo: GlFramebuffer, mesh: LightMesh, data: RenderEventData, sampler0: GlTexture) =
+            RenderSettings(
+                Vibrancy.id("light_mesh"),
+                listOf(
+                    FramebufferShard(
+                        { fbo },
+                        true
+                    ),
+                    CullShard(
+                        true,
+                        CullFace.BACK
+                    ),
+                    DepthMaskShard(
+                        false
+                    ),
+                    DepthTestShard(
+                        true,
+                        ComparisonFunc.LEQUAL
+                    ),
+                    BindBufferBaseShard(
+                        { mesh.atlas },
+                        0
+                    ),
+                    ShaderShard(
+                        Vibrancy.id("light_mesh")
+                    ) { shader ->
+                        shader.setCommonUniforms(data)
+
+                        shader.getUniform("Sampler0")?.setSampler(sampler0)
+                        shader.getUniform("Sampler1")?.setSampler(mesh.texture)
+                    }
+                )
+            )
     }
 
     val atlas = GlBuffer(
@@ -41,11 +78,15 @@ open class LightMesh : NativeResource {
         1
     )
 
-    fun draw() {
-        GlFlag.POLYGON_OFFSET_FILL.stack.push(true)
+    fun draw(fbo: GlFramebuffer, data: RenderEventData, sampler0: GlTexture) {
+        val settings = renderSettings(fbo, this, data, sampler0)
+
+        GlFlag.POLYGON_OFFSET_FILL.stack.push(true) // TODO polygon offset shard
         glPolygonOffset(-1f, -1f)
 
+        settings.bind()
         mesh.draw()
+        settings.unbind()
 
         GlFlag.POLYGON_OFFSET_FILL.stack.pop()
     }

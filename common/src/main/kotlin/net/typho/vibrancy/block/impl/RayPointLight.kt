@@ -7,22 +7,19 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
-import net.typho.big_shot_lib.api.client.opengl.buffers.BufferUsage
-import net.typho.big_shot_lib.api.client.opengl.buffers.GlFramebuffer
-import net.typho.big_shot_lib.api.client.opengl.buffers.Mesh
-import net.typho.big_shot_lib.api.client.opengl.buffers.NeoVertexFormat
+import net.typho.big_shot_lib.api.client.opengl.buffers.*
 import net.typho.big_shot_lib.api.client.opengl.state.*
 import net.typho.big_shot_lib.api.client.opengl.util.GlShapeType
 import net.typho.big_shot_lib.api.client.opengl.util.MeshUtil
 import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.big_shot_lib.api.util.BlockUtil
+import net.typho.big_shot_lib.api.util.IColor
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.LightRenderResult
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.shadows.AsyncBlockShadowMesh
-import net.typho.vibrancy.shadows.ShadowMesh
 import net.typho.vibrancy.shadows.ShadowPredicate
 import net.typho.vibrancy.util.PointLight
 import org.joml.Vector3f
@@ -40,39 +37,43 @@ open class RayPointLight(
 ) : PointLight, NativeResource {
     companion object {
         @JvmStatic
-        fun meshSettings(fbo: GlFramebuffer, light: RayPointLight, data: RenderEventData) =
-            RenderSettings(
-                Vibrancy.id("block/raytraced/mesh"),
-                listOf(
-                    FramebufferShard(
-                        { fbo },
-                        true
-                    ),
-                    CullShard(
-                        true,
-                        CullFace.BACK
-                    ),
-                    DepthMaskShard(
-                        false
-                    ),
-                    DepthTestShard(
-                        true,
-                        ComparisonFunc.LEQUAL
-                    ),
-                    BindBufferBaseShard(
-                        { light.shadows.lightMesh.atlas },
-                        0
-                    ),
-                    ShaderShard(
-                        Vibrancy.id("block/raytraced/mesh")
-                    ) { shader ->
-                        shader.setCommonUniforms(data)
+        fun meshBlitSettings(data: RenderEventData, light: RayPointLight) = RenderSettings(
+            Vibrancy.id("block/raytraced/blit"),
+            listOf(
+                DisableFlagsShard(listOf(
+                    GlFlag.DEPTH_TEST,
+                    GlFlag.CULL_FACE,
+                    GlFlag.BLEND
+                )),
+                BindBufferBaseShard(
+                    { light.shadows.shadowMesh.vbo.cast(BufferType.SHADER_STORAGE_BUFFER) },
+                    0
+                ),
+                BindBufferBaseShard(
+                    { light.shadows.lightMesh.mesh.vbo.cast(BufferType.SHADER_STORAGE_BUFFER) },
+                    1
+                ),
+                BindBufferBaseShard(
+                    { light.shadows.lightMesh.atlas },
+                    2
+                ),
+                FramebufferShard(
+                    { light.shadows.lightMesh.target },
+                    true,
+                    ClearBit.Color(IColor.FULL_OFF)
+                ),
+                ShaderShard(
+                    Vibrancy.id("block/raytraced/blit")
+                ) { shader ->
+                    shader.setCommonUniforms(data)
+                    shader.getUniform("Sampler0")?.setSampler(TextureUtil.INSTANCE.getMinecraftTexture(TextureUtil.INSTANCE.blockAtlasTexture))
 
-                        shader.getUniform("Sampler0")?.setSampler(TextureUtil.INSTANCE.getMinecraftTexture(TextureUtil.INSTANCE.blockAtlasTexture))
-                        shader.getUniform("Sampler1")?.setSampler(light.shadows.lightMesh.texture)
-                    }
-                )
+                    shader.getUniform("LightPos")?.setValue(light.absolutePos)
+                    shader.getUniform("LightColor")?.setValue(light.color)
+                    shader.getUniform("LightRadius")?.setValue(light.radius)
+                }
             )
+        )
     }
 
     val shadows = AsyncBlockShadowMesh()
@@ -183,17 +184,13 @@ open class RayPointLight(
         }
 
         if (shadows.checkIfFinished()) { // VertexSorting.byDistance(absolutePos)
-            val blitSettings = ShadowMesh.blitSettings(data, this)
+            val blitSettings = meshBlitSettings(data, this)
             blitSettings.bind()
             MeshUtil.SCREEN_MESH.draw()
             blitSettings.unbind()
         }
 
-        val meshSettings = meshSettings(fbo, this, data)
-
-        meshSettings.bind()
-        shadows.lightMesh.draw()
-        meshSettings.unbind()
+        shadows.lightMesh.draw(fbo, data, TextureUtil.INSTANCE.getMinecraftTexture(TextureUtil.INSTANCE.blockAtlasTexture))
 
         return result
     }
