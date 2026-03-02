@@ -21,12 +21,11 @@ import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.LightRenderResult
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.block.BlockLightRegistry
-import net.typho.vibrancy.shadows.AsyncBlockShadowTexture
+import net.typho.vibrancy.shadows.AsyncBlockShadowMesh
+import net.typho.vibrancy.shadows.ShadowMesh
 import net.typho.vibrancy.shadows.ShadowPredicate
-import net.typho.vibrancy.shadows.ShadowTexture
 import net.typho.vibrancy.util.PointLight
 import org.joml.Vector3f
-import org.lwjgl.opengl.GL11.glPolygonOffset
 import org.lwjgl.system.NativeResource
 import kotlin.math.ceil
 
@@ -61,7 +60,7 @@ open class RayPointLight(
                         ComparisonFunc.LEQUAL
                     ),
                     BindBufferBaseShard(
-                        { light.shadows.atlas },
+                        { light.shadows.lightMesh.atlas },
                         0
                     ),
                     ShaderShard(
@@ -70,13 +69,13 @@ open class RayPointLight(
                         shader.setCommonUniforms(data)
 
                         shader.getUniform("Sampler0")?.setSampler(TextureUtil.INSTANCE.getMinecraftTexture(TextureUtil.INSTANCE.blockAtlasTexture))
-                        shader.getUniform("VibrancyShadowSampler")?.setSampler(light.shadows.texture)
+                        shader.getUniform("Sampler1")?.setSampler(light.shadows.lightMesh.texture)
                     }
                 )
             )
     }
 
-    val shadows = AsyncBlockShadowTexture()
+    val shadows = AsyncBlockShadowMesh()
     val boxBuffer by lazy {
         val mesh = Mesh(
             NeoVertexFormat.POSITION,
@@ -184,22 +183,17 @@ open class RayPointLight(
         }
 
         if (shadows.checkIfFinished()) { // VertexSorting.byDistance(absolutePos)
-            val blitSettings = ShadowTexture.blitSettings(data, this)
+            val blitSettings = ShadowMesh.blitSettings(data, this)
             blitSettings.bind()
             MeshUtil.SCREEN_MESH.draw()
             blitSettings.unbind()
         }
-
-        GlFlag.POLYGON_OFFSET_FILL.stack.push(true)
-        glPolygonOffset(-1f, -1f)
 
         val meshSettings = meshSettings(fbo, this, data)
 
         meshSettings.bind()
         shadows.lightMesh.draw()
         meshSettings.unbind()
-
-        GlFlag.POLYGON_OFFSET_FILL.stack.pop()
 
         return result
     }

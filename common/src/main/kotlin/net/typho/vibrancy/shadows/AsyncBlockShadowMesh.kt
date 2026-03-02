@@ -11,15 +11,15 @@ import org.lwjgl.opengl.GL11.*
 import java.util.*
 import java.util.concurrent.CompletableFuture
 
-open class AsyncBlockShadowTexture : ShadowTexture() {
-    protected var asyncTask: CompletableFuture<Builder>? = null
+open class AsyncBlockShadowMesh : ShadowMesh() {
+    protected var asyncTask: CompletableFuture<Runnable>? = null
 
     fun isTaskActive() = asyncTask?.let { task -> !task.isDone } ?: false
 
     fun checkIfFinished(): Boolean {
         asyncTask?.let { task ->
             if (task.isDone) {
-                task.get().upload()
+                task.get().run()
 
                 asyncTask = null
                 return true
@@ -87,11 +87,7 @@ open class AsyncBlockShadowTexture : ShadowTexture() {
             val lightFaces = LinkedList<LightFace>()
             mesher.finish(manager, predicate, level, shadowFaces::add, lightFaces::add)
 
-            val builder = Builder(shadowFaces, lightFaces, width, height)
-
-            builder.finish()
-
-            return@supplyAsync builder
+            return@supplyAsync build(shadowFaces, lightFaces, width, height)
         }
     }
 }

@@ -2,18 +2,15 @@ package net.typho.vibrancy.shadows
 
 import net.typho.big_shot_lib.api.client.opengl.buffers.*
 import net.typho.big_shot_lib.api.client.opengl.state.*
-import net.typho.big_shot_lib.api.client.opengl.util.*
+import net.typho.big_shot_lib.api.client.opengl.util.GlShapeType
+import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.big_shot_lib.api.util.IColor
-import net.typho.vibrancy.TextureAtlas
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.block.impl.RayPointLight
 import org.lwjgl.system.NativeResource
-import java.awt.Dimension
-import java.util.*
-import kotlin.math.abs
 
-open class ShadowTexture : NativeResource {
+open class ShadowMesh : NativeResource {
     companion object {
         @JvmField
         val VERTEX_FORMAT = NeoVertexFormat.builder()
@@ -37,15 +34,15 @@ open class ShadowTexture : NativeResource {
                     0
                 ),
                 BindBufferBaseShard(
-                    { light.shadows.lightMesh.vbo.cast(BufferType.SHADER_STORAGE_BUFFER) },
+                    { light.shadows.lightMesh.mesh.vbo.cast(BufferType.SHADER_STORAGE_BUFFER) },
                     1
                 ),
                 BindBufferBaseShard(
-                    { light.shadows.atlas },
+                    { light.shadows.lightMesh.atlas },
                     2
                 ),
                 FramebufferShard(
-                    { light.shadows.target },
+                    { light.shadows.lightMesh.target },
                     true,
                     ClearBit.Color(IColor.FULL_OFF)
                 ),
@@ -63,74 +60,35 @@ open class ShadowTexture : NativeResource {
         )
     }
 
-    val atlas = GlBuffer(
-        BufferType.SHADER_STORAGE_BUFFER,
-        BufferUsage.STATIC_DRAW
-    )
     val shadowMesh = Mesh(
         VERTEX_FORMAT,
         GlShapeType.QUADS,
         BufferUsage.STATIC_DRAW
     )
-    val lightMesh = Mesh(
-        VERTEX_FORMAT,
-        GlShapeType.QUADS,
-        BufferUsage.STATIC_DRAW
-    )
-    val texture = NeoTexture2D(
-        OpenGL.INSTANCE.createTexture(),
-        TextureFormat.RGB16F,
-        true,
-        TextureType.TEXTURE_2D
-    )
-    val target = NeoFramebuffer(
-        listOf(texture),
-        null,
-        1,
-        1
-    )
+    val lightMesh = LightMesh()
 
     override fun free() {
-        atlas.free()
         shadowMesh.free()
         lightMesh.free()
-        target.free()
-        texture.free()
     }
 
-    inner class Builder(
-        private val shadowFaces: List<LightFace>,
-        private val lightFaces: List<LightFace>,
-        private val atlasWidth: Int,
-        private val atlasHeight: Int
-    ) {
-        private val textures = LinkedList<Dimension>()
-        private var result: TextureAtlas.Result? = null
-        private val shadowBuilder = shadowMesh.Builder()
-        private val lightBuilder = lightMesh.Builder()
+    fun build(
+        shadowFaces: List<LightFace>,
+        lightFaces: List<LightFace>,
+        atlasWidth: Int,
+        atlasHeight: Int
+    ): Runnable {
+        val shadowBuilder = shadowMesh.Builder()
 
-        fun finish() {
-            for (face in shadowFaces) {
-                face.buildGeometry(shadowBuilder)
-            }
-
-            for (face in lightFaces) {
-                face.buildGeometry(lightBuilder)
-                textures.add(Dimension(
-                    (abs(face.quad.uv1.x - face.quad.uv3.x) * atlasWidth * face.width).toInt(),
-                    (abs(face.quad.uv1.y - face.quad.uv3.y) * atlasHeight * face.height).toInt()
-                ))
-            }
-
-            result = TextureAtlas.pack(*textures.toTypedArray())
+        for (face in shadowFaces) {
+            face.buildGeometry(shadowBuilder)
         }
 
-        fun upload() {
-            shadowBuilder.end()
-            lightBuilder.end()
+        val light = lightMesh.build(lightFaces, atlasWidth, atlasHeight)
 
-            target.resize(result!!.width, result!!.height)
-            TextureAtlas.store(result!!, atlas)
+        return Runnable {
+            shadowBuilder.end()
+            light.run()
         }
     }
 }
