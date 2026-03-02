@@ -106,7 +106,7 @@ open class LightManager {
     }
 
     fun createShadowMesher(light: PointLight): ShadowMesher {
-        return ShadowGreedyMesher(light.shadowBox)//BasicShadowMesher()
+        return ShadowGreedyMesher(light.shadowBox)
     }
 
     fun reload() {

@@ -7,7 +7,10 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
-import net.typho.big_shot_lib.api.client.opengl.buffers.*
+import net.typho.big_shot_lib.api.client.opengl.buffers.BufferUsage
+import net.typho.big_shot_lib.api.client.opengl.buffers.GlFramebuffer
+import net.typho.big_shot_lib.api.client.opengl.buffers.Mesh
+import net.typho.big_shot_lib.api.client.opengl.buffers.NeoVertexFormat
 import net.typho.big_shot_lib.api.client.opengl.state.*
 import net.typho.big_shot_lib.api.client.opengl.util.GlShapeType
 import net.typho.big_shot_lib.api.client.opengl.util.MeshUtil
@@ -62,28 +65,8 @@ open class RayPointLight(
                     ) { shader ->
                         shader.setCommonUniforms(data)
 
-                        shader.getUniform("CameraPos")?.setValue(data.camera.pos)
-                        shader.getUniform("LightPos")?.setValue(light.absolutePos)
-                        shader.getUniform("LightColor")?.setValue(Vector3f(light.color).mul(Vibrancy.config.blockLights.raytraced.brightness))
-                        shader.getUniform("LightRadius")?.setValue(light.radius)
-                        shader.getUniform("ScreenSize")?.setValue(fbo.width.toFloat(), fbo.height.toFloat())
-
-                        shader.getUniform("ShadowScale")?.setValue(light.shadows.scale)
                         shader.getUniform("Sampler0")?.setSampler(TextureUtil.INSTANCE.getMinecraftTexture(TextureUtil.INSTANCE.blockAtlasTexture))
                         shader.getUniform("VibrancyShadowSampler")?.setSampler(light.shadows.texture)
-
-                        /*
-                        shader.getUniform("ShadowTextureSize")?.setValue(light.shadows.target.width, light.shadows.target.height)
-                        shader.getUniform("ShadowMultiplier")?.setValue(
-                            if (highQuality)
-                                1f - Math.clamp((light.blockPos.center.toVector3f().distance(data.camera.pos) - (Vibrancy.config.blockLights.raytraced.foregroundDistance * 16 - 8)) / 8f, 0f, 1f)
-                            else
-                                0f
-                        )
-                        shader.getUniform("VibrancyShadowSampler")?.setSampler(light.shadows.texture)
-                         */
-
-                        shader.getUniform("VibrancyWorldPosSampler")?.setSampler(Vibrancy.worldPosFbo.colorAttachments[0] as GlTexture)
                     }
                 )
             )
@@ -206,7 +189,7 @@ open class RayPointLight(
         val meshSettings = meshSettings(fbo, this, data)
 
         meshSettings.bind()
-        shadows.mesh.draw()
+        shadows.lightMesh.draw()
         meshSettings.unbind()
 
         GlFlag.POLYGON_OFFSET_FILL.stack.pop()

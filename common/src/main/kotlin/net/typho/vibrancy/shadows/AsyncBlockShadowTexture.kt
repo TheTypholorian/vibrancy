@@ -1,6 +1,5 @@
 package net.typho.vibrancy.shadows
 
-import com.mojang.blaze3d.vertex.VertexSorting
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.util.RandomSource
@@ -12,30 +11,16 @@ import java.util.*
 import java.util.concurrent.CompletableFuture
 
 open class AsyncBlockShadowTexture : ShadowTexture() {
-    protected var asyncTask: CompletableFuture<List<LightFace>>? = null
+    protected var asyncTask: CompletableFuture<Builder>? = null
 
     fun isTaskActive() = asyncTask?.let { task -> !task.isDone } ?: false
 
-    fun checkIfFinished(sorting: VertexSorting? = null): Boolean {
+    fun checkIfFinished(): Boolean {
         asyncTask?.let { task ->
             if (task.isDone) {
-                val builder = Builder()
-                val atlas = TextureUtil.INSTANCE.getMinecraftTexture(TextureUtil.INSTANCE.blockAtlasTexture)
+                task.get().upload()
 
-                atlas.bind()
-
-                val width = glGetTexLevelParameteri(atlas.type.glId, 0, GL_TEXTURE_WIDTH)
-                val height = glGetTexLevelParameteri(atlas.type.glId, 0, GL_TEXTURE_HEIGHT)
-
-                atlas.unbind()
-
-                for (face in task.get()) {
-                    builder.accept(face, width, height)
-                }
-
-                builder.finish(sorting)
-
-                //asyncTask = null
+                asyncTask = null
                 return true
             }
         }
@@ -64,6 +49,15 @@ open class AsyncBlockShadowTexture : ShadowTexture() {
         box: BlockBox,
         predicate: ShadowPredicate
     ) {
+        val atlas = TextureUtil.INSTANCE.getMinecraftTexture(TextureUtil.INSTANCE.blockAtlasTexture)
+
+        atlas.bind()
+
+        val width = glGetTexLevelParameteri(atlas.type.glId, 0, GL_TEXTURE_WIDTH)
+        val height = glGetTexLevelParameteri(atlas.type.glId, 0, GL_TEXTURE_HEIGHT)
+
+        atlas.unbind()
+
         asyncTask?.cancel(true)
         asyncTask = CompletableFuture.supplyAsync {
             val level = manager.getLevel()
@@ -87,9 +81,19 @@ open class AsyncBlockShadowTexture : ShadowTexture() {
                     }
                 }
             }
+
             val shadows = LinkedList<LightFace>()
             mesher.finish(manager, predicate, level, shadows::add)
-            return@supplyAsync shadows
+
+            val builder = Builder()
+
+            for (face in shadows) {
+                builder.accept(face, width, height)
+            }
+
+            builder.finish()
+
+            return@supplyAsync builder
         }
     }
 }

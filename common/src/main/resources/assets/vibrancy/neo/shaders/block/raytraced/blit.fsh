@@ -69,27 +69,25 @@ void main() {
     }
 
     Quad self = quads[index];
-    vec2 mappedUV = interpolateSprite(sprite, spriteCoords); // TODO antialiasing no work
-    float step = 0;//1.0 / (ShadowScale * 3);
+    vec2 mappedUV = interpolateSprite(sprite, spriteCoords);
+    vec2 step = 1 / (vec2(sprite.width, sprite.height) * 3);
     Check checkA = check(self, mappedUV);
-    Check checkB = check(self, mappedUV + vec2(step, 0));
-    Check checkC = check(self, mappedUV + vec2(-step, 0));
-    Check checkD = check(self, mappedUV + vec2(0, step));
-    Check checkE = check(self, mappedUV + vec2(0, -step));
+    Check checkB = check(self, mappedUV + vec2(step.x, 0));
+    Check checkC = check(self, mappedUV + vec2(-step.x, 0));
+    Check checkD = check(self, mappedUV + vec2(0, step.y));
+    Check checkE = check(self, mappedUV + vec2(0, -step.y));
 
     fragColor = samplePointLight(ScreenSize, LightPos, checkA.pos, LightRadius, LightColor);
 
     for (uint i = 0u; i < quads.length(); i++) {
-        if (i != index) {
-            Quad q = quads[i];
+        Quad q = quads[i];
 
-            vec4 a = test(q, checkA);
-            vec4 b = test(q, checkB);
-            vec4 c = test(q, checkC);
-            vec4 d = test(q, checkD);
-            vec4 e = test(q, checkE);
+        vec4 a = test(q, checkA);
+        vec4 b = test(q, checkB);
+        vec4 c = test(q, checkC);
+        vec4 d = test(q, checkD);
+        vec4 e = test(q, checkE);
 
-            fragColor *= (a + b + c + d + e) / 5;
-        }
+        fragColor *= (a + b + c + d + e) / 5;
     }
 }

@@ -45,9 +45,8 @@ object TextureAtlas {
     }
 
     @JvmStatic
-    fun pack(buffer: GlBuffer, vararg textures: Dimension): Result {
+    fun store(result: Result, buffer: GlBuffer) {
         MemoryStack.stackPush().use { stack ->
-            val result = pack(*textures)
             buffer.upload(
                 result.textures.fold(stack.mallocInt(result.textures.size * 4)) { buffer, texture ->
                     buffer.put(texture.x)
@@ -56,7 +55,6 @@ object TextureAtlas {
                         .put(texture.height)
                 }.flip()
             )
-            return result
         }
     }
 
