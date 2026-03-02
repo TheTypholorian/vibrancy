@@ -137,27 +137,35 @@ open class ShadowTexture : NativeResource {
         }
     }
 
-    inner class Builder {
+    inner class Builder(
+        private val shadowFaces: List<LightFace>,
+        private val lightFaces: List<LightFace>,
+        private val atlasWidth: Int,
+        private val atlasHeight: Int
+    ) {
         private val textures = LinkedList<Dimension>()
         private var result: TextureAtlas.Result? = null
-        private val greedyFaces = LinkedList<LightFace>()
         private val shadowBuilder = shadowMesh.Builder()
         private val lightBuilder = lightMesh.Builder()
 
-        fun accept(face: LightFace, width: Int, height: Int) {
-            face.buildGeometry(shadowBuilder)
-            textures.add(Dimension(
-                (abs(face.quad.uv2.x - face.quad.uv1.x) * width * face.width).toInt(),
-                (abs(face.quad.uv4.y - face.quad.uv1.y) * height * face.height).toInt()
-            ))
-            greedyFaces.add(face)
+        init {
+            for (face in shadowFaces) {
+                face.buildGeometry(shadowBuilder)
+            }
+
+            for (face in lightFaces) {
+                textures.add(Dimension(
+                    (abs(face.quad.uv2.x - face.quad.uv1.x) * atlasWidth * face.width).toInt(),
+                    (abs(face.quad.uv4.y - face.quad.uv1.y) * atlasHeight * face.height).toInt()
+                ))
+            }
         }
 
         fun finish() {
             val result = TextureAtlas.pack(*textures.toTypedArray())
             this.result = result
 
-            greedyFaces.forEachIndexed { index, face ->
+            lightFaces.forEachIndexed { index, face ->
                 val texture = result.textures[index]
 
                 fun accept(

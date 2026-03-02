@@ -9,7 +9,8 @@ import java.util.*
 import java.util.function.Consumer
 
 open class BasicShadowMesher : ShadowMesher {
-    val shadows = LinkedList<LightFace>()
+    val shadowFaces = LinkedList<LightFace>()
+    val lightFaces = LinkedList<LightFace>()
 
     override fun submit(
         manager: LightManager,
@@ -19,8 +20,21 @@ open class BasicShadowMesher : ShadowMesher {
         random: RandomSource,
         predicate: ShadowPredicate
     ) {
-        if (predicate.isInRange(pos) && predicate.shouldCastBlock(state, level, pos)) {
-            ShadowMesher.collectLightFaces(manager, state, level, pos, predicate, shadows::add)
+        if (predicate.shouldCastBlock(state, level, pos)) {
+            val shadow = predicate.isInShadowRange(pos)
+            val light = predicate.isInLightRange(pos)
+
+            if (shadow || light) {
+                ShadowMesher.collectLightFaces(manager, state, level, pos, predicate) { face ->
+                    if (shadow) {
+                        shadowFaces.add(face)
+                    }
+
+                    if (light) {
+                        lightFaces.add(face)
+                    }
+                }
+            }
         }
     }
 
@@ -28,10 +42,10 @@ open class BasicShadowMesher : ShadowMesher {
         manager: LightManager,
         predicate: ShadowPredicate,
         level: Level,
-        out: Consumer<LightFace>
+        shadowOut: Consumer<LightFace>,
+        lightOut: Consumer<LightFace>
     ) {
-        for (face in shadows) {
-            out.accept(face)
-        }
+        shadowFaces.forEach(shadowOut)
+        lightFaces.forEach(lightOut)
     }
 }

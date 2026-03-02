@@ -19,5 +19,7 @@ interface ShadowPredicate {
         pos: BlockPos
     ): Boolean
 
-    fun isInRange(pos: BlockPos): Boolean
+    fun isInLightRange(pos: BlockPos): Boolean
+
+    fun isInShadowRange(pos: BlockPos): Boolean
 }

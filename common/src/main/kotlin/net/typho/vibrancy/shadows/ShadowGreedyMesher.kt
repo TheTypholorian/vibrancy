@@ -30,6 +30,7 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
     }
     val allVoxels = LinkedList<Voxel>()
     val nonGreedy = LinkedList<LightFace>()
+    val lightFaces = LinkedList<LightFace>()
 
     fun shouldGreedyMesh(
         state: BlockState,
@@ -46,7 +47,11 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
         random: RandomSource,
         predicate: ShadowPredicate
     ) {
-        if (predicate.shouldCastBlock(state, level, pos) && !state.isAir) {
+        if (predicate.shouldCastBlock(state, level, pos)) {
+            if (predicate.isInLightRange(pos)) {
+                ShadowMesher.collectLightFaces(manager, state, level, pos, predicate, lightFaces::add)
+            }
+
             if (shouldGreedyMesh(state, level, pos)) {
                 val voxel = Voxel(pos, ItemBlockRenderTypes.getChunkRenderType(state) == RenderType.solid())
                 val model = Minecraft.getInstance().blockRenderer.getBlockModel(state)
@@ -63,13 +68,19 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
 
                 grid[pos.x - box.min.x][pos.y - box.min.y][pos.z - box.min.z] = voxel
                 allVoxels.add(voxel)
-            } else if (predicate.isInRange(pos)) {
+            } else if (predicate.isInShadowRange(pos)) {
                 ShadowMesher.collectLightFaces(manager, state, level, pos, predicate, nonGreedy::add)
             }
         }
     }
 
-    override fun finish(manager: LightManager, predicate: ShadowPredicate, level: Level, out: Consumer<LightFace>) {
+    override fun finish(
+        manager: LightManager,
+        predicate: ShadowPredicate,
+        level: Level,
+        shadowOut: Consumer<LightFace>,
+        lightOut: Consumer<LightFace>
+    ) {
         var start: BlockPos? = null
         var length = 0
         var texture: TextureCoordinates? = null
@@ -85,8 +96,7 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
 
         fun end(direction: Direction, axis: Direction.Axis) {
             if (length > 1) {
-                faces.computeIfAbsent(direction) { HashMap() }.put(
-                    start!!,
+                faces.computeIfAbsent(direction) { HashMap() }[start!!] =
                     if (axis != Direction.Axis.X && (axis == Direction.Axis.Y || direction.axis == Direction.Axis.Y)) {
                         direction.createFace(
                             start!!,
@@ -100,7 +110,6 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
                             width = length
                         )
                     }
-                )
 
                 for (voxel in currentVoxels) {
                     voxel.quads[direction.ordinal] = null
@@ -264,12 +273,12 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
             }
         }
 
-        extraGreedy.forEach(out::accept)
+        extraGreedy.forEach(shadowOut::accept)
 
         for (map in faces.values) {
             for (face in map.values) {
                 if (!removed.contains(face)) {
-                    out.accept(face)
+                    shadowOut.accept(face)
                 }
             }
         }
@@ -282,18 +291,17 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
         //}
 
         for (voxel in allVoxels) {
-            if (predicate.isInRange(voxel.pos)) {
+            if (predicate.isInShadowRange(voxel.pos)) {
                 for (direction in Direction.entries) {
                     voxel.quads[direction.ordinal]?.let { quad ->
-                        out.accept(LightFace(voxel.pos, WrapperUtil.INSTANCE.wrap(quad), 1, 1))
+                        shadowOut.accept(LightFace(voxel.pos, WrapperUtil.INSTANCE.wrap(quad), 1, 1))
                     }
                 }
             }
         }
 
-        for (face in nonGreedy) {
-            out.accept(face)
-        }
+        nonGreedy.forEach(shadowOut)
+        lightFaces.forEach(lightOut)
     }
 
     class Voxel(val pos: BlockPos, val solid: Boolean) {

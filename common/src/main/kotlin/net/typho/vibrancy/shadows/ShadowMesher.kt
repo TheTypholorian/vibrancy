@@ -23,7 +23,8 @@ interface ShadowMesher {
         manager: LightManager,
         predicate: ShadowPredicate,
         level: Level,
-        out: Consumer<LightFace>
+        shadowOut: Consumer<LightFace>,
+        lightOut: Consumer<LightFace>
     )
 
     companion object {

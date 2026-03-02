@@ -142,8 +142,13 @@ open class RayPointLight(
             return !(BlockUtil.INSTANCE.isSolidRender(state, pos, level) && BlockUtil.INSTANCE.isSolidRender(sideState, sidePos, level))
         }
 
-        override fun isInRange(pos: BlockPos): Boolean {
+        override fun isInShadowRange(pos: BlockPos): Boolean {
             val shadowRadius = ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.shadowRadius.toFloat())).toInt()
+            return pos.distSqr(blockPos) <= shadowRadius * shadowRadius
+        }
+
+        override fun isInLightRange(pos: BlockPos): Boolean {
+            val shadowRadius = ceil(radius).toInt()
             return pos.distSqr(blockPos) <= shadowRadius * shadowRadius
         }
     }

@@ -82,14 +82,11 @@ open class AsyncBlockShadowTexture : ShadowTexture() {
                 }
             }
 
-            val shadows = LinkedList<LightFace>()
-            mesher.finish(manager, predicate, level, shadows::add)
+            val shadowFaces = LinkedList<LightFace>()
+            val lightFaces = LinkedList<LightFace>()
+            mesher.finish(manager, predicate, level, shadowFaces::add, lightFaces::add)
 
-            val builder = Builder()
-
-            for (face in shadows) {
-                builder.accept(face, width, height)
-            }
+            val builder = Builder(shadowFaces, lightFaces, width, height)
 
             builder.finish()
 
