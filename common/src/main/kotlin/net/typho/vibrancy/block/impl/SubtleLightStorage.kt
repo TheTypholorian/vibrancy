@@ -57,13 +57,15 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
             }
         }
 
+        val level = manager.getLevel() ?: return
+
         for (pos in dirty) {
             val newChunk = createChunk(pos)
 
             tasks.put(
                 pos,
                 CompletableFuture.supplyAsync {
-                    manager.getLevel().getChunk(pos.x, pos.z)
+                    level.getChunk(pos.x, pos.z)
                         .findBlocks({ BlockLightRegistry.has(it.block) }) { pos, state ->
                             val actualPos = BlockPos(pos)
 

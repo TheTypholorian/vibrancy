@@ -6,8 +6,11 @@ import me.shedaniel.autoconfig.serializer.GsonConfigSerializer
 import net.minecraft.ChatFormatting
 import net.minecraft.client.KeyMapping
 import net.minecraft.client.Minecraft
+import net.minecraft.core.BlockBox
+import net.minecraft.core.BlockPos
 import net.minecraft.network.chat.CommonComponents
 import net.minecraft.network.chat.Component
+import net.minecraft.world.phys.AABB
 import net.typho.big_shot_lib.api.client.opengl.buffers.ClearBit
 import net.typho.big_shot_lib.api.client.opengl.buffers.GlFramebuffer
 import net.typho.big_shot_lib.api.client.opengl.buffers.NeoFramebuffer
@@ -102,6 +105,12 @@ object Vibrancy {
 
     @JvmStatic
     fun id(path: String): ResourceIdentifier = ResourceIdentifier(MOD_ID, path)
+
+    @JvmStatic
+    fun AABB.toBlockBox() = BlockBox(
+        BlockPos.containing(minPosition),
+        BlockPos.containing(maxPosition)
+    )
 
     class Entrypoint : BigShotCommonEntrypoint, BigShotClientEntrypoint {
         override fun registerRegistries(factory: RegistryFactory) {

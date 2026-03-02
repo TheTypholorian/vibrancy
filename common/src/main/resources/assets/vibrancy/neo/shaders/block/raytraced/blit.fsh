@@ -4,16 +4,18 @@
 #include "vibrancy:include/fragment"
 #include "vibrancy:include/sprite"
 
-layout(std430, binding = 0) buffer QuadBuffer {
-    Quad quads[];
+layout(std140, binding = 0) buffer ShadowQuadBuffer {
+    Quad shadowQuads[];
 };
-layout(std430, binding = 1) buffer SpriteBuffer {
+layout(std140, binding = 1) buffer LightQuadBuffer {
+    Quad lightQuads[];
+};
+layout(std140, binding = 2) buffer SpriteBuffer {
     Sprite sprites[];
 };
 
 uniform sampler2D Sampler0;
 
-uniform int ShadowScale;
 uniform vec3 LightPos;
 uniform vec3 LightColor;
 uniform float LightRadius;
@@ -68,7 +70,7 @@ void main() {
         discard;
     }
 
-    Quad self = quads[index];
+    Quad self = lightQuads[index];
     vec2 mappedUV = interpolateSprite(sprite, spriteCoords);
     vec2 step = 1 / (vec2(sprite.width, sprite.height) * 3);
     Check checkA = check(self, mappedUV);
@@ -79,8 +81,8 @@ void main() {
 
     fragColor = samplePointLight(ScreenSize, LightPos, checkA.pos, LightRadius, LightColor);
 
-    for (uint i = 0u; i < quads.length(); i++) {
-        Quad q = quads[i];
+    for (uint i = 0u; i < shadowQuads.length(); i++) {
+        Quad q = shadowQuads[i];
 
         vec4 a = test(q, checkA);
         vec4 b = test(q, checkB);

@@ -273,7 +273,7 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
             }
         }
 
-        extraGreedy.forEach(shadowOut::accept)
+        extraGreedy.forEach(shadowOut)
 
         for (map in faces.values) {
             for (face in map.values) {
@@ -294,7 +294,20 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
             if (predicate.isInShadowRange(voxel.pos)) {
                 for (direction in Direction.entries) {
                     voxel.quads[direction.ordinal]?.let { quad ->
-                        shadowOut.accept(LightFace(voxel.pos, WrapperUtil.INSTANCE.wrap(quad), 1, 1))
+                        shadowOut.accept(
+                            LightFace(
+                                voxel.pos,
+                                WrapperUtil.INSTANCE.wrap(quad).offset(
+                                    Vector3f(
+                                        voxel.pos.x.toFloat(),
+                                        voxel.pos.y.toFloat(),
+                                        voxel.pos.z.toFloat(),
+                                    )
+                                ),
+                                1,
+                                1
+                            )
+                        )
                     }
                 }
             }

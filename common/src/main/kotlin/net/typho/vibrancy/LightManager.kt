@@ -18,6 +18,7 @@ import net.typho.big_shot_lib.api.client.opengl.state.ShaderShard
 import net.typho.big_shot_lib.api.client.opengl.util.FogUtil
 import net.typho.big_shot_lib.api.client.opengl.util.MeshUtil
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
+import net.typho.vibrancy.Vibrancy.toBlockBox
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.block.BlockLightStorage
 import net.typho.vibrancy.block.BlockLightType
@@ -98,7 +99,7 @@ open class LightManager {
     @JvmField
     var skyRenderResult: LightRenderResult? = null
 
-    fun getLevel(): ClientLevel = Minecraft.getInstance().level!!
+    fun getLevel(): ClientLevel? = Minecraft.getInstance().level
 
     fun clear() {
         blockLights.values.forEach { storage -> storage.clear(this) }
@@ -106,7 +107,7 @@ open class LightManager {
     }
 
     fun createShadowMesher(light: PointLight): ShadowMesher {
-        return ShadowGreedyMesher(light.shadowBox)
+        return ShadowGreedyMesher(light.boundingBox.toBlockBox())
     }
 
     fun reload() {

@@ -60,6 +60,10 @@ open class RayPointLight(
                         true,
                         ComparisonFunc.LEQUAL
                     ),
+                    BindBufferBaseShard(
+                        { light.shadows.atlas },
+                        0
+                    ),
                     ShaderShard(
                         Vibrancy.id("block/raytraced/mesh")
                     ) { shader ->
@@ -165,12 +169,11 @@ open class RayPointLight(
     fun render(manager: LightManager, data: RenderEventData, fbo: GlFramebuffer): LightRenderResult {
         val result = LightRenderResult(
             numRendered = 1,
-            numShadows = shadows.size,
             numAsyncTasks = if (shadows.isTaskActive()) 1 else 0
         )
 
         for (pos in manager.dirtyBlocks) {
-            if (manager.getLevel().dimension() == pos.dimension && shadowBox.contains(pos.pos)) {
+            if (manager.getLevel()?.dimension() == pos.dimension && shadowBox.contains(pos.pos)) {
                 shadowsDirty = true
                 break
             }

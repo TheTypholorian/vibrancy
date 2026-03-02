@@ -5,6 +5,7 @@ import net.minecraft.core.BlockPos
 import net.minecraft.util.RandomSource
 import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
 import net.typho.vibrancy.LightManager
+import net.typho.vibrancy.Vibrancy.toBlockBox
 import net.typho.vibrancy.util.PointLight
 import org.lwjgl.opengl.GL11.*
 import java.util.*
@@ -37,7 +38,7 @@ open class AsyncBlockShadowTexture : ShadowTexture() {
             manager,
             mesher,
             light.blockPos,
-            light.shadowBox,
+            light.boundingBox.toBlockBox(),
             light.shadowPredicate!!
         )
     }
@@ -60,7 +61,7 @@ open class AsyncBlockShadowTexture : ShadowTexture() {
 
         asyncTask?.cancel(true)
         asyncTask = CompletableFuture.supplyAsync {
-            val level = manager.getLevel()
+            val level = manager.getLevel() ?: throw NullPointerException("No level?")
             val random = RandomSource.create()
 
             for (x in box.min.x..box.max.x) {
