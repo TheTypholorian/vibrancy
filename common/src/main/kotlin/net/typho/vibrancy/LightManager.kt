@@ -21,7 +21,7 @@ import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.block.BlockLightStorage
 import net.typho.vibrancy.block.BlockLightType
-import net.typho.vibrancy.shadows.BasicShadowMesher
+import net.typho.vibrancy.shadows.ShadowGreedyMesher
 import net.typho.vibrancy.shadows.ShadowMesher
 import net.typho.vibrancy.sky.SkyLightStorage
 import net.typho.vibrancy.sky.SkyLightType
@@ -106,7 +106,7 @@ open class LightManager {
     }
 
     fun createShadowMesher(light: PointLight): ShadowMesher {
-        return BasicShadowMesher()
+        return ShadowGreedyMesher(light.shadowBox)//BasicShadowMesher()
     }
 
     fun reload() {
