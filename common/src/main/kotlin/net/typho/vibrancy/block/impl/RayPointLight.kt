@@ -152,8 +152,7 @@ open class RayPointLight(
         }
 
         override fun isInLightRange(pos: BlockPos): Boolean {
-            val shadowRadius = ceil(radius).toInt()
-            return pos.distSqr(blockPos) <= shadowRadius * shadowRadius
+            return pos.distSqr(blockPos) <= radius * radius
         }
     }
 
