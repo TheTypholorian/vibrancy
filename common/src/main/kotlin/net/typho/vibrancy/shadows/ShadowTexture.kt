@@ -6,9 +6,13 @@ import net.typho.big_shot_lib.api.client.opengl.state.*
 import net.typho.big_shot_lib.api.client.opengl.util.*
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.big_shot_lib.api.util.IColor
+import net.typho.vibrancy.TextureAtlas
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.block.impl.RayPointLight
 import org.lwjgl.system.NativeResource
+import java.awt.Dimension
+import java.util.*
+import kotlin.math.abs
 
 open class ShadowTexture : NativeResource {
     companion object {
@@ -33,6 +37,10 @@ open class ShadowTexture : NativeResource {
                     { light.shadows.mesh.vbo.cast(BufferType.SHADER_STORAGE_BUFFER) },
                     0
                 ),
+                BindBufferBaseShard(
+                    { light.shadows.atlas },
+                    1
+                ),
                 FramebufferShard(
                     { light.shadows.target },
                     true,
@@ -44,7 +52,6 @@ open class ShadowTexture : NativeResource {
                     shader.setCommonUniforms(data)
                     shader.getUniform("Sampler0")?.setSampler(TextureUtil.INSTANCE.getMinecraftTexture(TextureUtil.INSTANCE.blockAtlasTexture))
 
-                    shader.getUniform("ShadowWidth")?.setValue(light.shadows.size)
                     shader.getUniform("ShadowScale")?.setValue(light.shadows.scale)
                     shader.getUniform("LightPos")?.setValue(light.absolutePos)
                     shader.getUniform("LightColor")?.setValue(light.color)
@@ -58,6 +65,12 @@ open class ShadowTexture : NativeResource {
         private set
     val scale: Int
         get() = Vibrancy.config.shadowResolution
+    val atlas by lazy {
+        GlBuffer(
+            BufferType.SHADER_STORAGE_BUFFER,
+            BufferUsage.STATIC_DRAW
+        )
+    }
     val mesh by lazy {
         Mesh(
             VERTEX_FORMAT,
@@ -89,8 +102,16 @@ open class ShadowTexture : NativeResource {
     }
 
     inner class Builder {
-        @JvmField
-        val meshBuilder = mesh.Builder()
+        private val meshBuilder = mesh.Builder()
+        private val textures = LinkedList<Dimension>()
+
+        fun accept(face: LightFace, width: Int, height: Int) {
+            face.buildGeometry(meshBuilder)
+            textures.add(Dimension(
+                (abs(face.quad.uv2.x - face.quad.uv1.x) * width * face.width).toInt(),
+                (abs(face.quad.uv4.y - face.quad.uv1.y) * height * face.height).toInt()
+            ))
+        }
 
         fun finish(sorting: VertexSorting? = null) {
             val built = meshBuilder.buildOrThrow()
@@ -100,7 +121,9 @@ open class ShadowTexture : NativeResource {
 
             size = built.drawState().vertexCount / 4
 
-            target.resize((scale * size).coerceAtLeast(1), scale.coerceAtLeast(1))
+            val result = TextureAtlas.pack(atlas, *textures.toTypedArray())
+
+            target.resize(result.width, result.height)
         }
     }
 }

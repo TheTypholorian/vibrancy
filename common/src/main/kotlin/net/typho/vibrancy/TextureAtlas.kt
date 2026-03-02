@@ -14,25 +14,56 @@ object TextureAtlas {
         )
     }
 
-    @JvmStatic
-    fun pack(vararg textures: Dimension, buffer: GlBuffer) {
-        MemoryStack.stackPush().use { stack ->
-            val array = pack(*textures)
-            buffer.upload(
-                array.fold(stack.mallocInt(array.size * 4)) { buffer, texture ->
-                    buffer.put(texture.x)
-                        .put(texture.y)
-                        .put(texture.width)
-                        .put(texture.height)
-                }
-            )
+    @JvmRecord
+    data class Result(
+        @JvmField
+        val textures: Array<Rectangle>,
+        @JvmField
+        val width: Int,
+        @JvmField
+        val height: Int
+    ) {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as Result
+
+            if (width != other.width) return false
+            if (height != other.height) return false
+            if (!textures.contentEquals(other.textures)) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = width
+            result = 31 * result + height
+            result = 31 * result + textures.contentHashCode()
+            return result
         }
     }
 
     @JvmStatic
-    fun pack(vararg textures: Dimension): Array<Rectangle> {
+    fun pack(buffer: GlBuffer, vararg textures: Dimension): Result {
+        MemoryStack.stackPush().use { stack ->
+            val result = pack(*textures)
+            buffer.upload(
+                result.textures.fold(stack.mallocInt(result.textures.size * 4)) { buffer, texture ->
+                    buffer.put(texture.x)
+                        .put(texture.y)
+                        .put(texture.width)
+                        .put(texture.height)
+                }.flip()
+            )
+            return result
+        }
+    }
+
+    @JvmStatic
+    fun pack(vararg textures: Dimension): Result {
         val max: Dimension = textures.fold(null) { accum, texture -> accum?.max(texture) ?: texture }
-            ?: return arrayOf()
+            ?: return Result(arrayOf(), 0, 0)
 
         data class Section(
             @JvmField
@@ -87,7 +118,11 @@ object TextureAtlas {
             if (texture.second.width == max.width && texture.second.height == max.height) {
                 sections.add(Section(sections.sumOf { it.trimWidth() }, mutableListOf(texture.first to Rectangle(texture.second))))
             } else {
-                val last = sections.last()
+                var last = sections.lastOrNull()
+
+                if (last == null) {
+                    last = Section(sections.sumOf { it.trimWidth() }).also(sections::add)
+                }
 
                 if (last.fit(texture.first, texture.second) == null) {
                     Section(sections.sumOf { it.trimWidth() }).also(sections::add)
@@ -98,11 +133,15 @@ object TextureAtlas {
         }
 
         val array = arrayOfNulls<Rectangle>(textures.size)
+        var width = 0
+        var height = 0
         sections.forEach { section ->
             section.textures.forEach {
                 array[it.first] = Rectangle(it.second.x + section.offsetX, it.second.y, it.second.width, it.second.height)
+                width = width.coerceAtLeast(it.second.x + section.offsetX + it.second.width)
+                height = height.coerceAtLeast(it.second.y + it.second.height)
             }
         }
-        return array.map { it!! }.toTypedArray()
+        return Result(array.map { it!! }.toTypedArray(), width, height)
     }
 }

@@ -2,14 +2,17 @@
 
 #include "vibrancy:include/rays"
 #include "vibrancy:include/fragment"
+#include "vibrancy:include/sprite"
 
 layout(std430, binding = 0) buffer QuadBuffer {
     Quad quads[];
 };
+layout(std430, binding = 1) buffer SpriteBuffer {
+    Sprite sprites[];
+};
 
 uniform sampler2D Sampler0;
 
-uniform int ShadowWidth;
 uniform int ShadowScale;
 uniform vec3 LightPos;
 uniform vec3 LightColor;
@@ -42,14 +45,32 @@ vec4 test(Quad q, Check check) {
     return sampleQuad(Sampler0, check.pos, check.dir, check.len, 1e-3, q, dist);
 }
 
+bool findSprite(ivec2 spriteCoords, out uint index, out Sprite sprite) {
+    for (uint i = 0u; i < sprites.length(); i++) {
+        Sprite check = sprites[i];
+
+        if (spriteContains(check, spriteCoords)) {
+            index = i;
+            sprite = check;
+            return true;
+        }
+    }
+
+    return false;
+}
+
 void main() {
-    uint index = uint(floor(texCoord0.x * ShadowWidth));
+    ivec2 spriteCoords = ivec2(gl_FragCoord.xy);//ivec2(texCoord0 * textureSize(Sampler0, 0)); // TODO make not suck
+    uint index;
+    Sprite sprite;
+
+    if (!findSprite(spriteCoords, index, sprite)) {
+        discard;
+    }
+
     Quad self = quads[index];
-    vec2 mappedUV = vec2((texCoord0.x - float(index) / ShadowWidth) * ShadowWidth, texCoord0.y);
-
-    mappedUV *= clamp(vec2(ShadowScale) / (vec2(self.uv2.x - self.uv1.x, self.uv4.y - self.uv1.y) * textureSize(Sampler0, 0)), 0, 1);
-
-    float step = 1.0 / (ShadowScale * 3);
+    vec2 mappedUV = interpolateSprite(sprite, spriteCoords); // TODO antialiasing no work
+    float step = 0;//1.0 / (ShadowScale * 3);
     Check checkA = check(self, mappedUV);
     Check checkB = check(self, mappedUV + vec2(step, 0));
     Check checkC = check(self, mappedUV + vec2(-step, 0));

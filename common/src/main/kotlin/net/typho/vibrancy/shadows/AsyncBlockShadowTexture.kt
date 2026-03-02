@@ -4,8 +4,10 @@ import com.mojang.blaze3d.vertex.VertexSorting
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.util.RandomSource
+import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.util.PointLight
+import org.lwjgl.opengl.GL11.*
 import java.util.*
 import java.util.concurrent.CompletableFuture
 
@@ -18,15 +20,22 @@ open class AsyncBlockShadowTexture : ShadowTexture() {
         asyncTask?.let { task ->
             if (task.isDone) {
                 val builder = Builder()
-                val consumer = builder.meshBuilder
+                val atlas = TextureUtil.INSTANCE.getMinecraftTexture(TextureUtil.INSTANCE.blockAtlasTexture)
+
+                atlas.bind()
+
+                val width = glGetTexLevelParameteri(atlas.type.glId, 0, GL_TEXTURE_WIDTH)
+                val height = glGetTexLevelParameteri(atlas.type.glId, 0, GL_TEXTURE_HEIGHT)
+
+                atlas.unbind()
 
                 for (face in task.get()) {
-                    face.buildGeometry(consumer)
+                    builder.accept(face, width, height)
                 }
 
                 builder.finish(sorting)
 
-                asyncTask = null
+                //asyncTask = null
                 return true
             }
         }
