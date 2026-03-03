@@ -37,6 +37,10 @@ interface ShadowMesher {
             predicate: ShadowPredicate,
             out: Consumer<LightFace>
         ) {
+            if (state.isAir) {
+                return
+            }
+
             MeshUtil.INSTANCE.getBlockQuads(state, level, pos) { dir, quads ->
                 if (predicate.shouldCastFace(dir, state, level, pos)) {
                     quads.forEach { out.accept(LightFace(pos, it.offset(Vec3.atLowerCornerOf(pos).toVector3f()), 1, 1)) }

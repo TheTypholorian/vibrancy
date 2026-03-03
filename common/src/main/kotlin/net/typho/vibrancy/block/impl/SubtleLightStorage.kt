@@ -34,7 +34,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
     @JvmField
     val dirty = HashSet<ChunkPos>()
     @JvmField
-    val tasks = HashMap<ChunkPos, CompletableFuture<Runnable?>>()
+    val tasks = LinkedList<CompletableFuture<Runnable?>>()
 
     override fun createChunk(pos: ChunkPos) = Chunk(pos)
 
@@ -61,7 +61,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
     fun checkDirty(
         manager: LightManager
     ) {
-        tasks.values.removeIf { task ->
+        tasks.removeIf { task ->
             if (task.isDone) {
                 task.get()?.run()
                 return@removeIf true
@@ -83,8 +83,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
 
             atlas.unbind()
 
-            tasks.put(
-                pos,
+            tasks.add(
                 CompletableFuture.supplyAsync {
                     level.getChunk(pos.x, pos.z)
                         .findBlocks({ BlockLightRegistry.has(it.block) }) { pos, state ->
@@ -103,7 +102,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                     val ssboBuffer = MemoryUtil.memAllocFloat(8 * newChunk.size)
 
                     for (light in newChunk.map.values) {
-                        blocks.addAll(light.boundingBox.toBlockBox())
+                        blocks.addAll(light.boundingBox.toBlockBox().map { BlockPos(it) })
 
                         val color = light.color
                         val pos = light.absolutePos
@@ -163,13 +162,13 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                         chunks.put(pos, newChunk)?.free()
                     }
                 }
-            )?.cancel(true)
+            )
         }
 
         dirty.clear()
     }
 
-    class Chunk(
+    inner class Chunk(
         @JvmField
         val pos: ChunkPos,
         @JvmField
@@ -200,6 +199,16 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
             info: SubtleLightInfo
         ): SubtleLight {
             return SubtleLight(info, state, pos)
+        }
+
+        override fun addLight(manager: LightManager, state: BlockState, pos: BlockPos, info: SubtleLightInfo) {
+            super.addLight(manager, state, pos, info)
+            dirty.add(ChunkPos(pos))
+        }
+
+        override fun removeLight(manager: LightManager, pos: BlockPos) {
+            super.removeLight(manager, pos)
+            dirty.add(ChunkPos(pos))
         }
 
         override fun reload(manager: LightManager) {
