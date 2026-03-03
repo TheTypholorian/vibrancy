@@ -2,6 +2,10 @@
 
 #include "vibrancy:include/light_blit"
 
+layout(std140, binding = 2) buffer ShadowQuadBuffer {
+    Quad shadowQuads[];
+};
+
 uniform sampler2D Sampler0;
 
 uniform vec3 LightPos;

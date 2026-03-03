@@ -1,7 +1,7 @@
 {
   "sources": {
     "vertex": "big_shot_lib:blit",
-    "fragment": "vibrancy:post"
+    "fragment": "vibrancy:block/subtle/blit"
   },
   "format": "POSITION_TEX",
   "disabledDynamicBuffers": [

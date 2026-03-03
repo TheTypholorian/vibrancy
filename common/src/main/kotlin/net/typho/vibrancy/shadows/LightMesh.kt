@@ -77,18 +77,22 @@ open class LightMesh : NativeResource {
         1,
         1
     )
+    @JvmField
+    protected var empty = true
 
     fun draw(fbo: GlFramebuffer, data: RenderEventData, sampler0: GlTexture) {
-        val settings = renderSettings(fbo, this, data, sampler0)
+        if (!empty) {
+            val settings = renderSettings(fbo, this, data, sampler0)
 
-        GlFlag.POLYGON_OFFSET_FILL.stack.push(true) // TODO polygon offset shard
-        glPolygonOffset(-1f, -1f)
+            GlFlag.POLYGON_OFFSET_FILL.stack.push(true) // TODO polygon offset shard
+            glPolygonOffset(-1f, -1f)
 
-        settings.bind()
-        mesh.draw()
-        settings.unbind()
+            settings.bind()
+            mesh.draw()
+            settings.unbind()
 
-        GlFlag.POLYGON_OFFSET_FILL.stack.pop()
+            GlFlag.POLYGON_OFFSET_FILL.stack.pop()
+        }
     }
 
     fun build(
@@ -98,6 +102,7 @@ open class LightMesh : NativeResource {
     ): Runnable {
         val textures = LinkedList<Dimension>()
         val lightBuilder = mesh.Builder()
+        var empty = true
 
         for (face in lightFaces) {
             face.buildGeometry(lightBuilder)
@@ -105,15 +110,20 @@ open class LightMesh : NativeResource {
                 (abs(face.quad.uv1.x - face.quad.uv3.x) * atlasWidth * face.width).toInt(),
                 (abs(face.quad.uv1.y - face.quad.uv3.y) * atlasHeight * face.height).toInt()
             ))
+            empty = false
         }
 
         val result = TextureAtlas.pack(*textures.toTypedArray())
 
         return Runnable {
-            lightBuilder.end()
+            this.empty = empty
 
-            target.resize(result.width.coerceAtLeast(1), result.height.coerceAtLeast(1))
-            TextureAtlas.store(result, atlas)
+            if (!empty) {
+                lightBuilder.end()
+
+                target.resize(result.width.coerceAtLeast(1), result.height.coerceAtLeast(1))
+                TextureAtlas.store(result, atlas)
+            }
         }
     }
 

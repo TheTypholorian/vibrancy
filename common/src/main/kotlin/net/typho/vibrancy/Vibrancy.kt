@@ -11,19 +11,19 @@ import net.minecraft.core.BlockPos
 import net.minecraft.network.chat.CommonComponents
 import net.minecraft.network.chat.Component
 import net.minecraft.world.phys.AABB
-import net.typho.big_shot_lib.api.client.opengl.buffers.ClearBit
 import net.typho.big_shot_lib.api.client.opengl.buffers.GlFramebuffer
-import net.typho.big_shot_lib.api.client.opengl.buffers.NeoFramebuffer
-import net.typho.big_shot_lib.api.client.opengl.buffers.NeoTexture2D
+import net.typho.big_shot_lib.api.client.opengl.util.MeshUtil
 import net.typho.big_shot_lib.api.client.opengl.util.OpenGL
-import net.typho.big_shot_lib.api.client.opengl.util.TextureFormat
 import net.typho.big_shot_lib.api.client.util.BigShotClientEntrypoint
 import net.typho.big_shot_lib.api.client.util.DebugScreenFactory
 import net.typho.big_shot_lib.api.client.util.KeyMappingFactory
 import net.typho.big_shot_lib.api.client.util.ResourceListenerFactory
 import net.typho.big_shot_lib.api.client.util.events.ClientEventFactory
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
-import net.typho.big_shot_lib.api.util.*
+import net.typho.big_shot_lib.api.util.BigShotCommonEntrypoint
+import net.typho.big_shot_lib.api.util.RegistrationFactory
+import net.typho.big_shot_lib.api.util.RegistryFactory
+import net.typho.big_shot_lib.api.util.WrapperUtil
 import net.typho.big_shot_lib.api.util.events.CommonEventFactory
 import net.typho.big_shot_lib.api.util.resources.ResourceIdentifier
 import net.typho.vibrancy.block.BlockLightInfoLoader
@@ -46,14 +46,6 @@ object Vibrancy {
         get() = AutoConfig.getConfigHolder(VibrancyConfig::class.java).config
     @JvmField
     val lightManager = LightManager()
-    val worldPosFbo by lazy {
-        NeoFramebuffer(
-            listOf(NeoTexture2D(TextureFormat.RGB32F)),
-            null,
-            GlFramebuffer.MAIN.width.coerceAtLeast(1),
-            GlFramebuffer.MAIN.height.coerceAtLeast(1)
-        )
-    }
     var reloadShadowsKey: KeyMapping? = null
     var toggleRaytracedLightsKey: KeyMapping? = null
     var toggleSubtleLightsKey: KeyMapping? = null
@@ -81,26 +73,8 @@ object Vibrancy {
 
     @JvmStatic
     fun render(data: RenderEventData) {
-        worldPosFbo.bind()
-        worldPosFbo.viewport()
-        worldPosFbo.clear(ClearBit.Color(IColor.FULL_OFF))
-
-        lightManager.blitWorldPos(data)
-
-        worldPosFbo.unbind()
-
-        //outputFbo.bind()
-        //outputFbo.viewport()
-        //outputFbo.clear(ClearBit.Color(IColor.FULL_OFF))
-
+        MeshUtil.INSTANCE // TODO
         lightManager.render(data, GlFramebuffer.MAIN) // outputFbo
-
-        //outputFbo.unbind()
-
-        //GlFramebuffer.MAIN.bind(false)
-        //GlFramebuffer.MAIN.viewport() // TODO
-
-        //lightManager.blitOutput(data, outputFbo.colorAttachments[0] as GlTexture)
     }
 
     @JvmStatic
@@ -161,10 +135,6 @@ object Vibrancy {
 
         override fun registerEvents(factory: ClientEventFactory) {
             factory.onLevelRenderEnd(Vibrancy::render)
-            factory.onWindowResized { width, height ->
-                //outputFbo.resize(width, height)
-                worldPosFbo.resize(width, height)
-            }
             factory.onLevelChanged { old, new ->
                 lightManager.clear()
 

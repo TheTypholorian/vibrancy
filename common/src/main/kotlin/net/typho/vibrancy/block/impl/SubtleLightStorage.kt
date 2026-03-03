@@ -1,20 +1,33 @@
 package net.typho.vibrancy.block.impl
 
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
+import net.minecraft.util.RandomSource
 import net.minecraft.world.level.ChunkPos
+import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.phys.AABB
-import net.typho.big_shot_lib.api.client.opengl.buffers.*
-import net.typho.big_shot_lib.api.client.opengl.util.GlShapeType
+import net.typho.big_shot_lib.api.client.opengl.buffers.BufferType
+import net.typho.big_shot_lib.api.client.opengl.buffers.BufferUsage
+import net.typho.big_shot_lib.api.client.opengl.buffers.GlBuffer
+import net.typho.big_shot_lib.api.client.opengl.buffers.GlFramebuffer
+import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.LightRenderResult
+import net.typho.vibrancy.Vibrancy.toBlockBox
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.block.ChunkedBlockLightStorage
 import net.typho.vibrancy.block.HashMapBlockLightStorage
+import net.typho.vibrancy.shadows.BasicShadowMesher
+import net.typho.vibrancy.shadows.LightFace
+import net.typho.vibrancy.shadows.LightMesh
+import net.typho.vibrancy.shadows.ShadowPredicate
+import org.lwjgl.opengl.GL11.*
 import org.lwjgl.system.MemoryUtil
 import org.lwjgl.system.NativeResource
+import java.util.*
 import java.util.concurrent.CompletableFuture
 
 class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLightStorage.Chunk>(SubtleLightType) {
@@ -61,6 +74,14 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
 
         for (pos in dirty) {
             val newChunk = createChunk(pos)
+            val atlas = TextureUtil.INSTANCE.getMinecraftTexture(TextureUtil.INSTANCE.blockAtlasTexture)
+
+            atlas.bind()
+
+            val width = glGetTexLevelParameteri(atlas.type.glId, 0, GL_TEXTURE_WIDTH)
+            val height = glGetTexLevelParameteri(atlas.type.glId, 0, GL_TEXTURE_HEIGHT)
+
+            atlas.unbind()
 
             tasks.put(
                 pos,
@@ -78,11 +99,11 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                         return@supplyAsync null
                     }
 
-                    val builder = newChunk.mesh.Builder()
+                    val blocks = HashSet<BlockPos>()
                     val ssboBuffer = MemoryUtil.memAllocFloat(8 * newChunk.size)
 
                     for (light in newChunk.map.values) {
-                        builder.cube(light.boundingBox)
+                        blocks.addAll(light.boundingBox.toBlockBox())
 
                         val color = light.color
                         val pos = light.absolutePos
@@ -91,11 +112,52 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                         ssboBuffer.put(pos.x).put(pos.y).put(pos.z).put(0f)
                     }
 
+                    val mesher = BasicShadowMesher()
+                    val predicate = object : ShadowPredicate {
+                        override fun shouldCastBlock(
+                            state: BlockState,
+                            level: Level,
+                            pos: BlockPos
+                        ): Boolean {
+                            return true
+                        }
+
+                        override fun shouldCastFace(
+                            face: Direction?,
+                            state: BlockState,
+                            level: Level,
+                            pos: BlockPos
+                        ): Boolean {
+                            return true
+                        }
+
+                        override fun isInLightRange(pos: BlockPos): Boolean {
+                            return true
+                        }
+
+                        override fun isInShadowRange(pos: BlockPos): Boolean {
+                            return false
+                        }
+                    }
+
+                    for (pos in blocks) {
+                        mesher.submit(
+                            manager,
+                            level.getBlockState(pos),
+                            level,
+                            pos,
+                            RandomSource.create(),
+                            predicate
+                        )
+                    }
+
+                    val faces = LinkedList<LightFace>()
+                    mesher.finish(manager, predicate, level, {}, faces::add)
+                    val task = newChunk.mesh.build(faces, width, height)
+
                     return@supplyAsync Runnable {
-                        builder.end()
-
+                        task.run()
                         newChunk.ssbo.upload(ssboBuffer.flip())
-
                         MemoryUtil.memFree(ssboBuffer)
 
                         chunks.put(pos, newChunk)?.free()
@@ -111,21 +173,19 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
         @JvmField
         val pos: ChunkPos,
         @JvmField
-        val mesh: Mesh = Mesh(NeoVertexFormat.POSITION, GlShapeType.QUADS, BufferUsage.STATIC_DRAW),
+        val mesh: LightMesh = LightMesh(),
         @JvmField
         val ssbo: GlBuffer = GlBuffer(BufferType.SHADER_STORAGE_BUFFER, BufferUsage.STATIC_DRAW)
     ) : HashMapBlockLightStorage<SubtleLightInfo, SubtleLight>(SubtleLightType), NativeResource {
         val box: AABB?
             get() = map.values.fold(null) { box, light -> if (box == null) light.boundingBox else box.minmax(light.boundingBox) }
 
-        fun render(data: RenderEventData): LightRenderResult {
+        fun render(fbo: GlFramebuffer, data: RenderEventData): LightRenderResult {
             if (
                 size > 0
                 && box?.let { data.frustum.testAab(it.minPosition.toVector3f(), it.maxPosition.toVector3f()) } ?: true
             ) {
-                ssbo.bindBase(0)
-
-                mesh.draw()
+                mesh.draw(fbo, data, TextureUtil.INSTANCE.getMinecraftTexture(TextureUtil.INSTANCE.blockAtlasTexture))
 
                 return LightRenderResult(numRendered = size)
             } else {

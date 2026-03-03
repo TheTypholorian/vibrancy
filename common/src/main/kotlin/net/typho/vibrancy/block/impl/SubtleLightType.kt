@@ -1,8 +1,9 @@
 package net.typho.vibrancy.block.impl
 
 import net.minecraft.world.level.block.state.StateDefinition
+import net.typho.big_shot_lib.api.client.opengl.buffers.BufferType
+import net.typho.big_shot_lib.api.client.opengl.buffers.ClearBit
 import net.typho.big_shot_lib.api.client.opengl.buffers.GlFramebuffer
-import net.typho.big_shot_lib.api.client.opengl.buffers.GlTexture
 import net.typho.big_shot_lib.api.client.opengl.state.*
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.big_shot_lib.api.util.IColor
@@ -10,37 +11,41 @@ import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.LightRenderResult
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.block.BlockLightType
-import org.joml.Matrix4f
 
 object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
     @JvmStatic
-    fun renderSettings(fbo: GlFramebuffer, data: RenderEventData) = RenderSettings(
-        Vibrancy.id("subtle_light"),
+    fun meshBlitSettings(data: RenderEventData, chunk: SubtleLightStorage.Chunk) = RenderSettings(
+        Vibrancy.id("block/subtle/blit"),
         listOf(
-            CullShard(true, CullFace.FRONT),
-            BlendShard(
-                true,
-                IColor.FULL_ON,
-                BlendEquation.ADD,
-                BlendFunction.Basic(BlendFactor.ONE, BlendFactor.ONE)
+            DisableFlagsShard(listOf(
+                GlFlag.DEPTH_TEST,
+                GlFlag.CULL_FACE,
+                GlFlag.BLEND
+            )),
+            BindBufferBaseShard(
+                { chunk.mesh.mesh.vbo.cast(BufferType.SHADER_STORAGE_BUFFER) },
+                0
+            ),
+            BindBufferBaseShard(
+                { chunk.mesh.atlas },
+                1
+            ),
+            BindBufferBaseShard(
+                { chunk.mesh.atlas },
+                2
             ),
             FramebufferShard(
-                { fbo },
-                true
+                { chunk.mesh.target },
+                true,
+                ClearBit.Color(IColor.FULL_OFF)
             ),
             ShaderShard(
-                Vibrancy.id("block/subtle/box")
+                Vibrancy.id("block/subtle/blit")
             ) { shader ->
                 shader.setCommonUniforms(data)
 
-                shader.getUniform("IProjMat")?.setValue(Matrix4f(data.inverseProjMat))
-                shader.getUniform("IModelMat")?.setValue(Matrix4f(data.inverseModelViewMat))
-
-                shader.getUniform("CameraPos")?.setValue(data.camera.pos)
                 shader.getUniform("LightRadius")?.setValue(4f)
                 shader.getUniform("LightBrightness")?.setValue(Vibrancy.config.blockLights.subtle.brightness)
-
-                shader.getUniform("VibrancyWorldPosSampler")?.setSampler(Vibrancy.worldPosFbo.colorAttachments[0] as GlTexture)
             }
         )
     )
@@ -59,10 +64,6 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
         if (Vibrancy.config.blockLights.subtle.enabled) {
             lights.checkDirty(manager)
 
-            val renderSettings = renderSettings(fbo, data)
-
-            renderSettings.bind()
-
             val meshes = lights.chunks.values.sortedBy { manager.getSortingOrder(data, it.pos) }
 
             for (mesh in meshes) {
@@ -70,10 +71,8 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
                     break
                 }
 
-                result.add(mesh.render(data))
+                result.add(mesh.render(fbo, data))
             }
-
-            renderSettings.unbind()
         }
 
         return result

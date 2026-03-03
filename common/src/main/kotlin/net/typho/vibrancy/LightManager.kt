@@ -10,13 +10,6 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
 import net.typho.big_shot_lib.api.client.opengl.buffers.GlFramebuffer
-import net.typho.big_shot_lib.api.client.opengl.buffers.GlTexture
-import net.typho.big_shot_lib.api.client.opengl.state.DisableFlagsShard
-import net.typho.big_shot_lib.api.client.opengl.state.GlFlag
-import net.typho.big_shot_lib.api.client.opengl.state.RenderSettings
-import net.typho.big_shot_lib.api.client.opengl.state.ShaderShard
-import net.typho.big_shot_lib.api.client.opengl.util.FogUtil
-import net.typho.big_shot_lib.api.client.opengl.util.MeshUtil
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.vibrancy.Vibrancy.toBlockBox
 import net.typho.vibrancy.block.BlockLightRegistry
@@ -27,67 +20,11 @@ import net.typho.vibrancy.shadows.ShadowMesher
 import net.typho.vibrancy.sky.SkyLightStorage
 import net.typho.vibrancy.sky.SkyLightType
 import net.typho.vibrancy.util.PointLight
-import org.joml.Matrix4f
 import org.joml.Vector2f
 import java.util.*
 import java.util.function.Consumer
 
 open class LightManager {
-    companion object {
-        @JvmStatic
-        fun blitWorldPosSettings(data: RenderEventData) = RenderSettings(
-            Vibrancy.id("light_manager/blit_world_pos"),
-            listOf(
-                DisableFlagsShard(listOf(
-                    GlFlag.CULL_FACE,
-                    GlFlag.DEPTH_TEST,
-                    GlFlag.BLEND
-                )),
-                ShaderShard(
-                    Vibrancy.id("world_pos")
-                ) { shader ->
-                    shader.setCommonUniforms(data)
-
-                    shader.getUniform("DiffuseDepthSampler")?.setSampler(GlFramebuffer.MAIN.depthAttachment!! as GlTexture)
-
-                    shader.getUniform("IProjMat")?.setValue(Matrix4f(data.inverseProjMat))
-                    shader.getUniform("IModelMat")?.setValue(Matrix4f(data.inverseModelViewMat))
-
-                    shader.getUniform("CameraPos")?.setValue(data.camera.pos)
-                }
-            )
-        )
-
-        @JvmStatic
-        fun blitOutputSettings(data: RenderEventData, output: GlTexture) = RenderSettings(
-            Vibrancy.id("light_manager/blit_output"),
-            listOf(
-                DisableFlagsShard(listOf(
-                    GlFlag.CULL_FACE,
-                    GlFlag.DEPTH_TEST,
-                    GlFlag.BLEND
-                )),
-                ShaderShard(
-                    Vibrancy.id("post")
-                ) { shader ->
-                    shader.setCommonUniforms(data)
-
-                    shader.getUniform("DiffuseSampler0")?.setSampler(GlFramebuffer.MAIN.colorAttachments[0] as GlTexture)
-                    shader.getUniform("VibrancyWorldPosSampler")?.setSampler(Vibrancy.worldPosFbo.colorAttachments[0] as GlTexture)
-                    shader.getUniform("VibrancyOutputSampler")?.setSampler(output)
-
-                    shader.getUniform("IProjMat")?.setValue(Matrix4f(data.inverseProjMat))
-                    shader.getUniform("IModelMat")?.setValue(Matrix4f(data.inverseModelViewMat))
-
-                    shader.getUniform("CameraPos")?.setValue(data.camera.pos)
-                    shader.getUniform("LightBrightnessLimit")?.setValue(Vibrancy.config.lightBrightnessLimit)
-
-                    FogUtil.INSTANCE.upload(shader)
-                }
-            )
-        )
-    }
-
     @JvmField
     val dirtyBlocks = LinkedList<GlobalPos>()
     @JvmField
@@ -185,22 +122,6 @@ open class LightManager {
         skyRenderResult = skyLight?.let { castAndRender(data, fbo, it.first, it.second) }
 
         dirtyBlocks.clear()
-    }
-
-    fun blitWorldPos(data: RenderEventData) {
-        val blitWorldPosSettings = blitWorldPosSettings(data)
-
-        blitWorldPosSettings.bind()
-        MeshUtil.SCREEN_MESH.draw()
-        blitWorldPosSettings.unbind()
-    }
-
-    fun blitOutput(data: RenderEventData, output: GlTexture) {
-        val blitOutputSettings = blitOutputSettings(data, output)
-
-        blitOutputSettings.bind()
-        MeshUtil.SCREEN_MESH.draw()
-        blitOutputSettings.unbind()
     }
 
     fun getDebugOutput(out: Consumer<String>) {

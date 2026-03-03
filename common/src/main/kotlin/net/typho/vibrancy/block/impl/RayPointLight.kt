@@ -46,15 +46,15 @@ open class RayPointLight(
                     GlFlag.BLEND
                 )),
                 BindBufferBaseShard(
-                    { light.shadows.shadowMesh.vbo.cast(BufferType.SHADER_STORAGE_BUFFER) },
+                    { light.shadows.lightMesh.mesh.vbo.cast(BufferType.SHADER_STORAGE_BUFFER) },
                     0
                 ),
                 BindBufferBaseShard(
-                    { light.shadows.lightMesh.mesh.vbo.cast(BufferType.SHADER_STORAGE_BUFFER) },
+                    { light.shadows.lightMesh.atlas },
                     1
                 ),
                 BindBufferBaseShard(
-                    { light.shadows.lightMesh.atlas },
+                    { light.shadows.shadowMesh.vbo.cast(BufferType.SHADER_STORAGE_BUFFER) },
                     2
                 ),
                 FramebufferShard(
