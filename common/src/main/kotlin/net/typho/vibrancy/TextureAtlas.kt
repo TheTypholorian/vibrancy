@@ -1,7 +1,7 @@
 package net.typho.vibrancy
 
 import net.typho.big_shot_lib.api.client.opengl.buffers.GlBuffer
-import org.lwjgl.system.MemoryStack
+import org.lwjgl.system.MemoryUtil
 import java.awt.Dimension
 import java.awt.Rectangle
 import java.util.*
@@ -46,16 +46,18 @@ object TextureAtlas {
 
     @JvmStatic
     fun store(result: Result, buffer: GlBuffer) {
-        MemoryStack.stackPush().use { stack ->
-            buffer.upload(
-                result.textures.fold(stack.mallocInt(result.textures.size * 4)) { buffer, texture ->
-                    buffer.put(texture.x)
-                        .put(texture.y)
-                        .put(texture.width)
-                        .put(texture.height)
-                }.flip()
-            )
-        }
+        val ints = MemoryUtil.memAllocInt(result.textures.size * 4)
+
+        buffer.upload(
+            result.textures.fold(ints) { buffer, texture ->
+                buffer.put(texture.x)
+                    .put(texture.y)
+                    .put(texture.width)
+                    .put(texture.height)
+            }.flip()
+        )
+
+        MemoryUtil.memFree(ints)
     }
 
     @JvmStatic

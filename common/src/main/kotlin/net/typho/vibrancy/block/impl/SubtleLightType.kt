@@ -62,7 +62,7 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
         val result = LightRenderResult(numRendered = 0)
 
         if (Vibrancy.config.blockLights.subtle.enabled) {
-            lights.checkDirty(manager)
+            lights.checkDirty(manager, data)
 
             val meshes = lights.chunks.values.sortedBy { manager.getSortingOrder(data, it.pos) }
 

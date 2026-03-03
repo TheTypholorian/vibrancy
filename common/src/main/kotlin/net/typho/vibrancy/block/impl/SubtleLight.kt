@@ -26,9 +26,9 @@ open class SubtleLight(
         get() {
             return AABB.ofSize(
                 Vec3(absolutePos.x.toDouble(), absolutePos.y.toDouble(), absolutePos.z.toDouble()),
-                8.0,
-                8.0,
-                8.0
+                4.0,
+                4.0,
+                4.0
             )
         }
 }

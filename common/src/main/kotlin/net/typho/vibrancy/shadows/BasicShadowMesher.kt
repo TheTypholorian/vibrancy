@@ -1,5 +1,6 @@
 package net.typho.vibrancy.shadows
 
+import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
 import net.minecraft.util.RandomSource
 import net.minecraft.world.level.Level
@@ -33,6 +34,24 @@ open class BasicShadowMesher : ShadowMesher {
                     if (light) {
                         lightFaces.add(face)
                     }
+                }
+
+                val consumer = LightFace.Consumer(pos)
+
+                Minecraft.getInstance().blockRenderer.renderLiquid(
+                    pos,
+                    level,
+                    consumer.toMojang(),
+                    state,
+                    level.getFluidState(pos)
+                )
+
+                if (shadow) {
+                    shadowFaces.addAll(consumer.end())
+                }
+
+                if (light) {
+                    lightFaces.addAll(consumer.end())
                 }
             }
         }

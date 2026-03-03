@@ -137,13 +137,17 @@ open class RayPointLight(
                 return true
             }
 
+            val sideState = level.getBlockState(sidePos)
+
+            if (BlockUtil.INSTANCE.isSolidRender(state, pos, level) && BlockUtil.INSTANCE.isSolidRender(sideState, sidePos, level)) {
+                return false
+            }
+
             if (face.step().dot(blockPos.center.subtract(pos.center).toVector3f()) <= 0) {
                 return false
             }
 
-            val sideState = level.getBlockState(sidePos)
-
-            return !(BlockUtil.INSTANCE.isSolidRender(state, pos, level) && BlockUtil.INSTANCE.isSolidRender(sideState, sidePos, level))
+            return true
         }
 
         override fun isInShadowRange(pos: BlockPos): Boolean {

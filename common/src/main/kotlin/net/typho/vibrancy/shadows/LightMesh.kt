@@ -5,6 +5,7 @@ import net.typho.big_shot_lib.api.client.opengl.state.*
 import net.typho.big_shot_lib.api.client.opengl.util.GlShapeType
 import net.typho.big_shot_lib.api.client.opengl.util.TextureFormat
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
+import net.typho.big_shot_lib.api.util.IColor
 import net.typho.vibrancy.TextureAtlas
 import net.typho.vibrancy.Vibrancy
 import org.lwjgl.opengl.GL11.glPolygonOffset
@@ -31,6 +32,15 @@ open class LightMesh : NativeResource {
                     FramebufferShard(
                         { fbo },
                         true
+                    ),
+                    BlendShard(
+                        true,
+                        IColor.FULL_ON,
+                        BlendEquation.ADD,
+                        BlendFunction.Basic(
+                            BlendFactor.SRC_ALPHA,
+                            BlendFactor.ONE
+                        )
                     ),
                     CullShard(
                         true,
@@ -69,7 +79,7 @@ open class LightMesh : NativeResource {
         BufferUsage.STATIC_DRAW
     )
     val texture = NeoTexture2D(
-        TextureFormat.RGB16F
+        TextureFormat.RGB8
     )
     val target = NeoFramebuffer(
         listOf(texture),
