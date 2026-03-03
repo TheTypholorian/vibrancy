@@ -5,6 +5,8 @@ import org.lwjgl.system.MemoryUtil
 import java.awt.Dimension
 import java.awt.Rectangle
 import java.util.*
+import kotlin.math.ceil
+import kotlin.math.sqrt
 
 object TextureAtlas {
     private fun Dimension.max(other: Dimension): Dimension {
@@ -67,14 +69,8 @@ object TextureAtlas {
 
         data class Section(
             @JvmField
-            val offsetX: Int,
-            @JvmField
             val textures: MutableList<Pair<Int, Rectangle>> = LinkedList()
         ) {
-            fun trimWidth(): Int {
-                return this.textures.maxOfOrNull { it.second.x + it.second.width } ?: 0
-            }
-
             fun fit(id: Int, texture: Dimension): Rectangle? {
                 var x = 0
 
@@ -116,16 +112,16 @@ object TextureAtlas {
             val texture = pool.removeLast()
 
             if (texture.second.width == max.width && texture.second.height == max.height) {
-                sections.add(Section(sections.sumOf { it.trimWidth() }, mutableListOf(texture.first to Rectangle(texture.second))))
+                sections.add(Section(mutableListOf(texture.first to Rectangle(texture.second))))
             } else {
                 var last = sections.lastOrNull()
 
                 if (last == null) {
-                    last = Section(sections.sumOf { it.trimWidth() }).also(sections::add)
+                    last = Section().also(sections::add)
                 }
 
                 if (last.fit(texture.first, texture.second) == null) {
-                    Section(sections.sumOf { it.trimWidth() }).also(sections::add)
+                    Section().also(sections::add)
                         .fit(texture.first, texture.second)
                         ?: throw IllegalStateException()
                 }
@@ -133,15 +129,25 @@ object TextureAtlas {
         }
 
         val array = arrayOfNulls<Rectangle>(textures.size)
-        var width = 0
-        var height = 0
-        sections.forEach { section ->
-            section.textures.forEach {
-                array[it.first] = Rectangle(it.second.x + section.offsetX, it.second.y, it.second.width, it.second.height)
-                width = width.coerceAtLeast(it.second.x + section.offsetX + it.second.width)
-                height = height.coerceAtLeast(it.second.y + it.second.height)
+
+        val numSectionsX = ceil(sqrt(array.size.toFloat())).toInt()
+        val numSectionsY = ceil(array.size.toFloat() / numSectionsX).toInt()
+        var index = 0
+
+        repeat(numSectionsX) { x ->
+            repeat(numSectionsY) { y ->
+                val i = index++
+
+                if (i < sections.size) {
+                    val section = sections[i]
+
+                    section.textures.forEach {
+                        array[it.first] = Rectangle(it.second.x + x * max.width, it.second.y + y * max.height, it.second.width, it.second.height)
+                    }
+                }
             }
         }
-        return Result(array.map { it!! }.toTypedArray(), width, height)
+
+        return Result(array.map { it!! }.toTypedArray(), numSectionsX * max.width, numSectionsY * max.height)
     }
 }

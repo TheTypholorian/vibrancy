@@ -11,7 +11,7 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
         state: BlockState,
         pos: BlockPos,
         info: RayPointLightInfo
-    ) = RayPointLight(info, state, pos)
+    ) = if (info.enabled.apply(state)) RayPointLight(info, state, pos) else null
 
     override fun reload(manager: LightManager) {
         map.values.forEach { it.reload(manager) }

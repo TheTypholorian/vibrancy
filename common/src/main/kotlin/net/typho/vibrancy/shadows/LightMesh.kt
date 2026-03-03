@@ -91,8 +91,8 @@ open class LightMesh : NativeResource {
         1,
         1
     )
-    @JvmField
-    protected var empty = true
+    var empty = true
+        protected set
 
     fun draw(fbo: GlFramebuffer, data: RenderEventData, sampler0: GlTexture) {
         if (!empty) {
@@ -144,7 +144,7 @@ open class LightMesh : NativeResource {
     override fun free() {
         atlas.free()
         mesh.free()
-        texture.free()
         target.free()
+        texture.free()
     }
 }

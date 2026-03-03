@@ -188,10 +188,12 @@ open class RayPointLight(
         }
 
         if (shadows.checkIfFinished()) { // VertexSorting.byDistance(absolutePos)
-            val blitSettings = meshBlitSettings(data, this)
-            blitSettings.bind()
-            MeshUtil.SCREEN_MESH.draw()
-            blitSettings.unbind()
+            if (!shadows.lightMesh.empty) {
+                val blitSettings = meshBlitSettings(data, this)
+                blitSettings.bind()
+                MeshUtil.SCREEN_MESH.draw()
+                blitSettings.unbind()
+            }
         }
 
         shadows.lightMesh.draw(fbo, data, TextureUtil.INSTANCE.getMinecraftTexture(TextureUtil.INSTANCE.blockAtlasTexture))
