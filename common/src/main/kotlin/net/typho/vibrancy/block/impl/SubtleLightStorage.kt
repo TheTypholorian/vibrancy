@@ -115,13 +115,15 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                         val ssboBuffer = MemoryUtil.memAllocFloat(8 * newChunk.size)
 
                         for (light in newChunk.map.values) {
-                            blocks.addAll(light.boundingBox.toBlockBox().map { BlockPos(it) })
+                            if (light.shouldRender(newChunk)) {
+                                blocks.addAll(light.boundingBox.toBlockBox().map { BlockPos(it) })
 
-                            val color = light.color
-                            val pos = light.absolutePos
+                                val color = light.color
+                                val pos = light.absolutePos
 
-                            ssboBuffer.put(color.x).put(color.y).put(color.z).put(0f)
-                            ssboBuffer.put(pos.x).put(pos.y).put(pos.z).put(0f)
+                                ssboBuffer.put(color.x).put(color.y).put(color.z).put(0f)
+                                ssboBuffer.put(pos.x).put(pos.y).put(pos.z).put(0f)
+                            }
                         }
 
                         val mesher = BasicShadowMesher()
@@ -156,12 +158,12 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                                     return false
                                 }
 
-                                if (
-                                    newChunk.map.keys.filter { it.distSqr(pos) <= 2 }
-                                        .none { face.step().dot(it.center.subtract(pos.center).toVector3f()) > 0 }
-                                ) {
-                                    return false
-                                }
+                                //if (
+                                //    newChunk.map.keys.filter { it.distSqr(pos) <= 4 }
+                                //        .none { face.step().dot(it.center.subtract(pos.center).toVector3f()) > 0 }
+                                //) {
+                                //    return false
+                                //}
 
                                 return true
                             }

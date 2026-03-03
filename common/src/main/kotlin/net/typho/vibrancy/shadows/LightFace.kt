@@ -69,10 +69,10 @@ data class LightFace(
             val quad = start()
 
             when (vertex) {
-                0 -> quad.v1.set(x, y, z).add(pos?.let { Vector3f(it.x.toFloat(), it.y.toFloat(), it.z.toFloat()) })
-                1 -> quad.v2.set(x, y, z).add(pos?.let { Vector3f(it.x.toFloat(), it.y.toFloat(), it.z.toFloat()) })
-                2 -> quad.v3.set(x, y, z).add(pos?.let { Vector3f(it.x.toFloat(), it.y.toFloat(), it.z.toFloat()) })
-                3 -> quad.v4.set(x, y, z).add(pos?.let { Vector3f(it.x.toFloat(), it.y.toFloat(), it.z.toFloat()) })
+                0 -> quad.v1.set(x, y, z)
+                1 -> quad.v2.set(x, y, z)
+                2 -> quad.v3.set(x, y, z)
+                3 -> quad.v4.set(x, y, z)
             }
 
             return this

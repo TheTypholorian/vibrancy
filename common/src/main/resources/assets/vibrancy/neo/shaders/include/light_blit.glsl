@@ -33,6 +33,6 @@ void lightBlitInit(out Quad self, out vec2 mappedUV, out vec2 antiAliasStep) {
     }
 
     self = lightQuads[index];
-    mappedUV = interpolateSprite(sprite, spriteCoords);
+    mappedUV = interpolateSprite(sprite, spriteCoords) + 1 / (vec2(sprite.width, sprite.height) * 2);
     antiAliasStep = 1 / (vec2(sprite.width, sprite.height) * 3);
 }

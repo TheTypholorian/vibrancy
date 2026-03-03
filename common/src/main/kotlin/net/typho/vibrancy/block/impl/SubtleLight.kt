@@ -1,6 +1,7 @@
 package net.typho.vibrancy.block.impl
 
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
@@ -26,9 +27,13 @@ open class SubtleLight(
         get() {
             return AABB.ofSize(
                 Vec3(absolutePos.x.toDouble(), absolutePos.y.toDouble(), absolutePos.z.toDouble()),
-                4.0,
-                4.0,
-                4.0
+                6.0,
+                6.0,
+                6.0
             )
         }
+
+    fun shouldRender(chunk: SubtleLightStorage.Chunk): Boolean {
+        return Direction.entries.any { !chunk.map.containsKey(blockPos.relative(it)) }
+    }
 }

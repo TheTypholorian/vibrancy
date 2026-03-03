@@ -69,18 +69,22 @@ open class LightMesh : NativeResource {
             )
     }
 
+    @JvmField
     val atlas = GlBuffer(
         BufferType.SHADER_STORAGE_BUFFER,
         BufferUsage.STATIC_DRAW
     )
+    @JvmField
     val mesh = Mesh(
         VERTEX_FORMAT,
         GlShapeType.QUADS,
         BufferUsage.STATIC_DRAW
     )
+    @JvmField
     val texture = NeoTexture2D(
-        TextureFormat.RGB8
+        TextureFormat.R11F_G11F_B10F
     )
+    @JvmField
     val target = NeoFramebuffer(
         listOf(texture),
         null,

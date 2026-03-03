@@ -1,6 +1,5 @@
 package net.typho.vibrancy.shadows
 
-import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
 import net.minecraft.util.RandomSource
 import net.minecraft.world.level.Level
@@ -36,6 +35,7 @@ open class BasicShadowMesher : ShadowMesher {
                     }
                 }
 
+                /*
                 val consumer = LightFace.Consumer(pos)
 
                 Minecraft.getInstance().blockRenderer.renderLiquid(
@@ -53,6 +53,7 @@ open class BasicShadowMesher : ShadowMesher {
                 if (light) {
                     lightFaces.addAll(consumer.end())
                 }
+                 */
             }
         }
     }
