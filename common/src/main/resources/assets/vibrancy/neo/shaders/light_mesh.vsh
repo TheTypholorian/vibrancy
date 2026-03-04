@@ -16,6 +16,7 @@ in vec4 Color;
 out vec2 texCoord0;
 out vec2 texCoord1;
 out vec4 vertexColor;
+out vec3 vertexPosition;
 
 void main() {
     gl_Position = ProjMat * ModelViewMat * vec4(Position, 1);
@@ -28,4 +29,5 @@ void main() {
     else if (offset == 2) texCoord1 = vec2(sprite.x + sprite.width, sprite.y + sprite.height);
     else texCoord1 = vec2(sprite.x, sprite.y + sprite.height);
     vertexColor = Color;
+    vertexPosition = Position;
 }

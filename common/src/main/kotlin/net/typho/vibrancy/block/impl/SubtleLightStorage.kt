@@ -1,5 +1,6 @@
 package net.typho.vibrancy.block.impl
 
+import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.util.RandomSource
@@ -90,14 +91,25 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
 
                 tasks.add(
                     CompletableFuture.supplyAsync {
-                        level.getChunk(pos.x, pos.z)
-                            .findBlocks({ BlockLightRegistry.has(it.block) }) { pos, state ->
-                                val actualPos = BlockPos(pos)
+                        val chunk = level.getChunk(pos.x, pos.z)
+                        val box = BlockBox(
+                            BlockPos(pos.minBlockX - 1, chunk.minBuildHeight, pos.minBlockZ - 1),
+                            BlockPos(pos.maxBlockX + 1, chunk.maxBuildHeight, pos.maxBlockZ + 1),
+                        )
 
-                                BlockLightRegistry.get(state.block, SubtleLightType)?.let { info ->
-                                    newChunk.map[actualPos] = newChunk.createLight(manager, state, actualPos, info)
+                        for (x in pos.x - 1..pos.x + 1) {
+                            for (z in pos.z - 1..pos.z + 1) {
+                                level.getChunk(x, z).findBlocks({ BlockLightRegistry.has(it.block) }) { pos, state ->
+                                    val actualPos = BlockPos(pos)
+
+                                    if (box.contains(actualPos)) {
+                                        BlockLightRegistry.get(state.block, SubtleLightType)?.let { info ->
+                                            newChunk.map[actualPos] = newChunk.createLight(manager, state, actualPos, info)
+                                        }
+                                    }
                                 }
                             }
+                        }
 
                         if (newChunk.map.isEmpty()) {
                             return@supplyAsync null
@@ -108,7 +120,14 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
 
                         for (light in newChunk.map.values) {
                             if (light.shouldRender(newChunk)) {
-                                blocks.addAll(light.boundingBox.toBlockBox().map { BlockPos(it) })
+                                blocks.addAll(
+                                    light.boundingBox.toBlockBox()
+                                        .map { BlockPos(it) }
+                                        .filter {
+                                            it.x >= pos.minBlockX && it.x <= pos.maxBlockX &&
+                                                    it.z >= pos.minBlockZ && it.z <= pos.maxBlockZ
+                                        }
+                                )
 
                                 val color = light.color
                                 val pos = light.absolutePos

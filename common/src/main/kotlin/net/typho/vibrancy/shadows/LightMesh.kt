@@ -3,6 +3,7 @@ package net.typho.vibrancy.shadows
 import net.minecraft.world.level.Level
 import net.typho.big_shot_lib.api.client.opengl.buffers.*
 import net.typho.big_shot_lib.api.client.opengl.state.*
+import net.typho.big_shot_lib.api.client.opengl.util.FogUtil
 import net.typho.big_shot_lib.api.client.opengl.util.GlShapeType
 import net.typho.big_shot_lib.api.client.opengl.util.TextureFormat
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
@@ -71,6 +72,7 @@ open class LightMesh : NativeResource {
 
                         shader.getUniform("Sampler0")?.setSampler(sampler0)
                         shader.getUniform("Sampler1")?.setSampler(mesh.texture)
+                        FogUtil.INSTANCE.upload(shader)
                     }
                 )
             )
