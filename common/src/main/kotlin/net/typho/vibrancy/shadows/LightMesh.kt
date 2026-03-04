@@ -9,7 +9,6 @@ import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.big_shot_lib.api.util.IColor
 import net.typho.vibrancy.TextureAtlas
 import net.typho.vibrancy.Vibrancy
-import org.lwjgl.opengl.GL11.glPolygonOffset
 import org.lwjgl.system.NativeResource
 import java.awt.Dimension
 import java.util.*
@@ -54,6 +53,12 @@ open class LightMesh : NativeResource {
                     DepthTestShard(
                         true,
                         ComparisonFunc.LEQUAL
+                    ),
+                    PolygonOffsetShard(
+                        PolygonOffset(
+                            -1f,
+                            -1f,
+                        )
                     ),
                     BindBufferBaseShard(
                         { mesh.atlas },
@@ -100,14 +105,9 @@ open class LightMesh : NativeResource {
         if (!empty) {
             val settings = renderSettings(fbo, this, data, sampler0)
 
-            GlFlag.POLYGON_OFFSET_FILL.stack.push(true) // TODO polygon offset shard
-            glPolygonOffset(-1f, -1f)
-
             settings.bind()
             mesh.draw()
             settings.unbind()
-
-            GlFlag.POLYGON_OFFSET_FILL.stack.pop()
         }
     }
 

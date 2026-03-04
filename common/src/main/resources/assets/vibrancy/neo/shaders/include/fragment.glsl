@@ -36,9 +36,18 @@ vec4 samplePointLight(sampler2D normalSampler, vec2 uv, vec3 lightPos, vec3 frag
     );
 }
 
-vec4 samplePointLight(vec2 screenSize, vec3 lightPos, vec3 fragPos, float radius, vec3 lightColor) {
+vec4 samplePointLight(vec3 lightPos, vec3 fragPos, float radius, vec3 lightColor) {
     return vec4(
         attenuateNoCusp(distance(lightPos, fragPos), radius) *
+        lightColor,
+        1
+    );
+}
+
+vec4 sampleCubeLight(vec3 lightPos, vec3 fragPos, float startRadius, float endRadius, vec3 lightColor) {
+    float dist = max(abs(lightPos.x - fragPos.x), max(abs(lightPos.y - fragPos.y), abs(lightPos.z - fragPos.z)));
+    return vec4(
+        clamp((endRadius - dist) / (endRadius - startRadius), 0, 1) *
         lightColor,
         1
     );

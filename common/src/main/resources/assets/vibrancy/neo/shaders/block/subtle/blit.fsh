@@ -11,7 +11,6 @@ layout(std430, binding = 2) buffer LightBuffer {
     Light lights[];
 };
 
-uniform float LightRadius;
 uniform float LightBrightness;
 uniform vec2 ScreenSize;
 
@@ -33,6 +32,6 @@ void main() {
     for (uint i = 0u; i < lights.length(); i++) {
         Light light = lights[i];
 
-        fragColor += samplePointLight(ScreenSize, light.pos, pos, LightRadius, light.color * LightBrightness);
+        fragColor = max(fragColor, sampleCubeLight(light.pos, pos, 0.5, 1, light.color * LightBrightness));
     }
 }

@@ -12,7 +12,6 @@ import net.minecraft.network.chat.CommonComponents
 import net.minecraft.network.chat.Component
 import net.minecraft.world.phys.AABB
 import net.typho.big_shot_lib.api.client.opengl.buffers.GlFramebuffer
-import net.typho.big_shot_lib.api.client.opengl.util.MeshUtil
 import net.typho.big_shot_lib.api.client.opengl.util.OpenGL
 import net.typho.big_shot_lib.api.client.util.BigShotClientEntrypoint
 import net.typho.big_shot_lib.api.client.util.DebugScreenFactory
@@ -73,8 +72,7 @@ object Vibrancy {
 
     @JvmStatic
     fun render(data: RenderEventData) {
-        MeshUtil.INSTANCE // TODO
-        lightManager.render(data, GlFramebuffer.MAIN) // outputFbo
+        lightManager.render(data, GlFramebuffer.MAIN)
     }
 
     @JvmStatic

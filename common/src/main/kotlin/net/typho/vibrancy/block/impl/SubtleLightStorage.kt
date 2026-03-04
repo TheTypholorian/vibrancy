@@ -26,7 +26,6 @@ import net.typho.vibrancy.shadows.BasicShadowMesher
 import net.typho.vibrancy.shadows.LightFace
 import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.shadows.ShadowPredicate
-import org.lwjgl.opengl.GL11.*
 import org.lwjgl.system.MemoryUtil
 import org.lwjgl.system.NativeResource
 import java.util.*
@@ -87,14 +86,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
         synchronized(dirty) {
             for (pos in dirty) {
                 val newChunk = createChunk(pos)
-                val atlas = TextureUtil.INSTANCE.getMinecraftTexture(TextureUtil.INSTANCE.blockAtlasTexture)
-
-                atlas.bind()
-
-                val width = glGetTexLevelParameteri(atlas.type.glId, 0, GL_TEXTURE_WIDTH)
-                val height = glGetTexLevelParameteri(atlas.type.glId, 0, GL_TEXTURE_HEIGHT)
-
-                atlas.unbind()
+                val atlas = TextureUtil.INSTANCE.getTextureAtlasDimensions(TextureUtil.INSTANCE.blockAtlasId)
 
                 tasks.add(
                     CompletableFuture.supplyAsync {
@@ -190,7 +182,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
 
                         val faces = LinkedList<LightFace>()
                         mesher.finish(manager, predicate, level, {}, faces::add)
-                        val task = newChunk.mesh.build(level, faces, width, height)
+                        val task = newChunk.mesh.build(level, faces, atlas.width, atlas.height)
 
                         return@supplyAsync Consumer { data ->
                             task.run()
@@ -228,7 +220,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                 size > 0
                 //&& box?.let { data.frustum.testAab(it.minPosition.toVector3f(), it.maxPosition.toVector3f()) } ?: true
             ) {
-                mesh.draw(fbo, data, TextureUtil.INSTANCE.getMinecraftTexture(TextureUtil.INSTANCE.blockAtlasTexture))
+                mesh.draw(fbo, data, TextureUtil.INSTANCE.blockAtlas)
 
                 return LightRenderResult(numRendered = size)
             } else {

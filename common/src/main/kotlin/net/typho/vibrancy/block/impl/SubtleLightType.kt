@@ -44,7 +44,6 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
             ) { shader ->
                 shader.setCommonUniforms(data)
 
-                shader.getUniform("LightRadius")?.setValue(4f)
                 shader.getUniform("LightBrightness")?.setValue(Vibrancy.config.blockLights.subtle.brightness)
             }
         )

@@ -66,7 +66,7 @@ open class RayPointLight(
                     Vibrancy.id("block/raytraced/blit")
                 ) { shader ->
                     shader.setCommonUniforms(data)
-                    shader.getUniform("Sampler0")?.setSampler(TextureUtil.INSTANCE.getMinecraftTexture(TextureUtil.INSTANCE.blockAtlasTexture))
+                    shader.getUniform("Sampler0")?.setSampler(TextureUtil.INSTANCE.blockAtlas)
 
                     shader.getUniform("LightPos")?.setValue(light.absolutePos)
                     shader.getUniform("LightColor")?.setValue(light.color)
@@ -196,7 +196,7 @@ open class RayPointLight(
             }
         }
 
-        shadows.lightMesh.draw(fbo, data, TextureUtil.INSTANCE.getMinecraftTexture(TextureUtil.INSTANCE.blockAtlasTexture))
+        shadows.lightMesh.draw(fbo, data, TextureUtil.INSTANCE.blockAtlas)
 
         return result
     }

@@ -1,8 +1,6 @@
 package net.typho.vibrancy.shadows
 
 import net.minecraft.client.Minecraft
-import net.minecraft.client.renderer.ItemBlockRenderTypes
-import net.minecraft.client.renderer.RenderType
 import net.minecraft.client.renderer.block.model.BakedQuad
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
@@ -12,6 +10,8 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.Vec3
 import net.typho.big_shot_lib.api.client.opengl.util.TexturedQuad
+import net.typho.big_shot_lib.api.client.util.BlockRenderSettings
+import net.typho.big_shot_lib.api.client.util.BlockRenderSettingsUtil
 import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.big_shot_lib.api.util.WrapperUtil
 import net.typho.vibrancy.LightManager
@@ -36,7 +36,7 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
         state: BlockState,
         level: Level,
         pos: BlockPos
-    ) = BlockUtil.INSTANCE.isSolidRender(state, pos, level)
+    ) = BlockUtil.INSTANCE.isSolidRender(state, pos, level) && BlockRenderSettingsUtil.INSTANCE.getBlockSettings(state) == BlockRenderSettings.SOLID
 
     @Suppress("DEPRECATION")
     override fun submit(
@@ -53,7 +53,7 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
             }
 
             if (shouldGreedyMesh(state, level, pos)) {
-                val voxel = Voxel(pos, ItemBlockRenderTypes.getChunkRenderType(state) == RenderType.solid())
+                val voxel = Voxel(pos)
                 val model = Minecraft.getInstance().blockRenderer.getBlockModel(state)
 
                 for (direction in Direction.entries) {
@@ -124,7 +124,7 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
         }
 
         fun mesh(voxel: Voxel?, direction: Direction, axis: Direction.Axis) {
-            if (voxel != null && voxel.solid) {
+            if (voxel != null) {
                 val quad = voxel.quads[direction.ordinal]
 
                 if (quad == null) {
@@ -317,7 +317,7 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
         lightFaces.forEach(lightOut)
     }
 
-    class Voxel(val pos: BlockPos, val solid: Boolean) {
+    class Voxel(val pos: BlockPos) {
         val quads = arrayOfNulls<BakedQuad?>(Direction.entries.size)
     }
 
@@ -383,6 +383,7 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
                     texture.uv1,
                     texture.uv2,
                     texture.uv3,
+                    -1
                 ),
                 width,
                 height

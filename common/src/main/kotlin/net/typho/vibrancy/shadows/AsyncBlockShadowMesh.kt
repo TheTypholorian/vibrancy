@@ -7,7 +7,6 @@ import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy.toBlockBox
 import net.typho.vibrancy.util.PointLight
-import org.lwjgl.opengl.GL11.*
 import java.util.*
 import java.util.concurrent.CompletableFuture
 
@@ -50,14 +49,7 @@ open class AsyncBlockShadowMesh : ShadowMesh() {
         box: BlockBox,
         predicate: ShadowPredicate
     ) {
-        val atlas = TextureUtil.INSTANCE.getMinecraftTexture(TextureUtil.INSTANCE.blockAtlasTexture)
-
-        atlas.bind()
-
-        val width = glGetTexLevelParameteri(atlas.type.glId, 0, GL_TEXTURE_WIDTH)
-        val height = glGetTexLevelParameteri(atlas.type.glId, 0, GL_TEXTURE_HEIGHT)
-
-        atlas.unbind()
+        val atlas = TextureUtil.INSTANCE.getTextureAtlasDimensions(TextureUtil.INSTANCE.blockAtlasId)
 
         asyncTask?.cancel(true)
         asyncTask = CompletableFuture.supplyAsync {
@@ -87,7 +79,7 @@ open class AsyncBlockShadowMesh : ShadowMesh() {
             val lightFaces = LinkedList<LightFace>()
             mesher.finish(manager, predicate, level, shadowFaces::add, lightFaces::add)
 
-            return@supplyAsync build(level, shadowFaces, lightFaces, width, height)
+            return@supplyAsync build(level, shadowFaces, lightFaces, atlas.width, atlas.height)
         }
     }
 }
