@@ -126,8 +126,8 @@ open class LightMesh : NativeResource {
         for (face in lightFaces) {
             face.buildGeometry(lightBuilder, level)
             textures.add(Dimension(
-                (abs(face.quad.uv1.x - face.quad.uv3.x) * atlasWidth * face.width).toInt(),
-                (abs(face.quad.uv1.y - face.quad.uv3.y) * atlasHeight * face.height).toInt()
+                (abs(face.quad.uv1.y - face.quad.uv3.y) * atlasHeight * face.height).toInt(),
+                (abs(face.quad.uv1.x - face.quad.uv3.x) * atlasWidth * face.width).toInt()
             ))
             empty = false
         }

@@ -9,6 +9,22 @@ import kotlin.math.ceil
 import kotlin.math.sqrt
 
 object TextureAtlas {
+    @JvmStatic
+    fun main(args: Array<String>) {
+        println(pack(
+            Dimension(16, 16),
+            Dimension(3, 16),
+            Dimension(3, 8),
+            Dimension(2, 8),
+            Dimension(16, 8),
+            Dimension(16, 4),
+            Dimension(16, 4),
+        ))
+        println(Rectangle(0, 0, 16, 16).intersects(Rectangle(0, 17, 16, 16)))
+        println(Rectangle(0, 0, 16, 16).intersects(Rectangle(0, 16, 16, 16)))
+        println(Rectangle(0, 0, 16, 16).intersects(Rectangle(0, 15, 16, 16)))
+    }
+
     private fun Dimension.max(other: Dimension): Dimension {
         return Dimension(
             width.coerceAtLeast(other.width),
@@ -130,8 +146,8 @@ object TextureAtlas {
 
         val array = arrayOfNulls<Rectangle>(textures.size)
 
-        val numSectionsX = ceil(sqrt(array.size.toFloat())).toInt()
-        val numSectionsY = ceil(array.size.toFloat() / numSectionsX).toInt()
+        val numSectionsX = ceil(sqrt(sections.size.toFloat())).toInt()
+        val numSectionsY = ceil(sections.size.toFloat() / numSectionsX).toInt()
         var index = 0
 
         repeat(numSectionsX) { x ->
@@ -143,6 +159,16 @@ object TextureAtlas {
 
                     section.textures.forEach {
                         array[it.first] = Rectangle(it.second.x + x * max.width, it.second.y + y * max.height, it.second.width, it.second.height)
+                    }
+                }
+            }
+        }
+
+        for (a in array) {
+            for (b in array) {
+                if (a !== b) {
+                    if (a!!.intersects(b!!)) {
+                        throw IllegalStateException("$a $b")
                     }
                 }
             }

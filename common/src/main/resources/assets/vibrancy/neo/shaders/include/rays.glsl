@@ -37,9 +37,9 @@ bool raycastQuad(vec3 origin, vec3 dir, float len, float margin, Quad q, out vec
     float a = inv11 * d1p + inv12 * d2p;
     float b = inv12 * d1p + inv22 * d2p;
 
-    if (a < -margin || b < -margin || a > (1 + margin) || b > (1 + margin)) return false;
+    if (a < 0 || b < 0 || a > 1 || b > 1) return false;
 
-    uv = clamp(vec2(a, b), 0, 1);
+    uv = vec2(a, b);
 
     return true;
 }

@@ -7,13 +7,6 @@ import me.shedaniel.autoconfig.annotation.ConfigEntry
 @Config(name = Vibrancy.MOD_ID)
 class VibrancyConfig : ConfigData {
     @JvmField
-    @ConfigEntry.Gui.Tooltip
-    var lightBrightnessLimit = 1f
-    @JvmField
-    @ConfigEntry.Gui.Tooltip(count = 2)
-    var shadowResolution: Int = 16
-
-    @JvmField
     @ConfigEntry.Gui.CollapsibleObject
     var blockLights = BlockLightsSection()
 

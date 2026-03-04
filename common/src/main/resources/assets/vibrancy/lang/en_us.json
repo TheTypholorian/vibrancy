@@ -1,12 +1,6 @@
 {
   "text.autoconfig.vibrancy.title": "Vibrancy Config",
 
-  "text.autoconfig.vibrancy.option.lightBrightnessLimit": "Light Brightness Limit",
-  "text.autoconfig.vibrancy.option.lightBrightnessLimit.@Tooltip": "The maximum multiplier that Vibrancy lights can reach in a pixel.",
-  "text.autoconfig.vibrancy.option.shadowResolution": "Resolution",
-  "text.autoconfig.vibrancy.option.shadowResolution.@Tooltip[0]": "The resolution that shadows are calculated at.",
-  "text.autoconfig.vibrancy.option.shadowResolution.@Tooltip[1]": "Set this to the scale of your resource pack (ex. 8x, 16x, 32x)",
-
   "text.autoconfig.vibrancy.option.blockLights": "Block Lights",
 
   "text.autoconfig.vibrancy.option.blockLights.raytraced": "Raytraced",

@@ -11,6 +11,7 @@ uniform sampler2D Sampler0;
 uniform vec3 LightPos;
 uniform vec3 LightColor;
 uniform float LightRadius;
+uniform float LightBrightness;
 uniform vec2 ScreenSize;
 
 in vec2 texCoord0;
@@ -52,7 +53,7 @@ void main() {
     Ray rayD = check(self, mappedUV + vec2(0, step.y));
     Ray rayE = check(self, mappedUV + vec2(0, -step.y));
 
-    fragColor = samplePointLight(LightPos, rayA.pos, LightRadius, LightColor);
+    fragColor = samplePointLight(LightPos, rayA.pos, LightRadius, LightColor * LightBrightness);
 
     for (uint i = 0u; i < shadowQuads.length(); i++) {
         Quad q = shadowQuads[i];
