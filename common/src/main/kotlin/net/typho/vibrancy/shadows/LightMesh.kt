@@ -137,7 +137,9 @@ open class LightMesh : NativeResource {
         return Runnable {
             this.empty = empty
 
-            if (!empty) {
+            if (empty) {
+                lightBuilder.buffer.close()
+            } else {
                 lightBuilder.end()
 
                 target.resize(result.width.coerceAtLeast(1), result.height.coerceAtLeast(1))

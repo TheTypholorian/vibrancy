@@ -170,7 +170,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                                     return true
                                 }
 
-                                return Block.shouldRenderFace(
+                                return Block.shouldRenderFace( // TODO
                                     state,
                                     level,
                                     pos,
@@ -247,7 +247,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
         fun render(fbo: GlFramebuffer, data: RenderEventData): LightRenderResult {
             if (
                 size > 0
-                //&& box?.let { data.frustum.testAab(it.minPosition.toVector3f(), it.maxPosition.toVector3f()) } ?: true
+                && box?.let { data.frustum.testAab(it.minPosition.toVector3f(), it.maxPosition.toVector3f()) } ?: true
             ) {
                 mesh.draw(fbo, data, TextureUtil.INSTANCE.blockAtlas)
 
@@ -266,18 +266,24 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
             return SubtleLight(info, state, pos)
         }
 
+        private fun markDirty() {
+            synchronized(dirty) {
+                for (x in pos.x - 1..pos.x + 1) {
+                    for (z in pos.z - 1..pos.z + 1) {
+                        dirty.add(ChunkPos(x, z))
+                    }
+                }
+            }
+        }
+
         override fun addLight(manager: LightManager, state: BlockState, pos: BlockPos, info: SubtleLightInfo) {
             super.addLight(manager, state, pos, info)
-            synchronized(dirty) {
-                dirty.add(ChunkPos(pos))
-            }
+            markDirty()
         }
 
         override fun removeLight(manager: LightManager, pos: BlockPos) {
             super.removeLight(manager, pos)
-            synchronized(dirty) {
-                dirty.add(ChunkPos(pos))
-            }
+            markDirty()
         }
 
         override fun reload(manager: LightManager) {

@@ -35,7 +35,12 @@ open class ShadowMesh : NativeResource {
         val light = lightMesh.build(level, lightFaces, atlasWidth, atlasHeight)
 
         return Runnable {
-            shadowBuilder.end()
+            if (shadowFaces.isEmpty()) {
+                shadowBuilder.buffer.close()
+            } else {
+                shadowBuilder.end()
+            }
+
             light.run()
         }
     }
