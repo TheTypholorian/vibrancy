@@ -13,12 +13,12 @@ import net.minecraft.network.chat.Component
 import net.minecraft.world.phys.AABB
 import net.typho.big_shot_lib.api.client.opengl.buffers.GlFramebuffer
 import net.typho.big_shot_lib.api.client.opengl.util.OpenGL
-import net.typho.big_shot_lib.api.client.util.BigShotClientEntrypoint
-import net.typho.big_shot_lib.api.client.util.DebugScreenFactory
-import net.typho.big_shot_lib.api.client.util.KeyMappingFactory
-import net.typho.big_shot_lib.api.client.util.ResourceListenerFactory
+import net.typho.big_shot_lib.api.client.util.*
 import net.typho.big_shot_lib.api.client.util.events.ClientEventFactory
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
+import net.typho.big_shot_lib.api.client.util.panoramas.PanoramaPriority
+import net.typho.big_shot_lib.api.client.util.panoramas.PanoramaSet
+import net.typho.big_shot_lib.api.client.util.panoramas.PanoramaTexture
 import net.typho.big_shot_lib.api.util.BigShotCommonEntrypoint
 import net.typho.big_shot_lib.api.util.RegistrationFactory
 import net.typho.big_shot_lib.api.util.RegistryFactory
@@ -45,8 +45,11 @@ object Vibrancy {
         get() = AutoConfig.getConfigHolder(VibrancyConfig::class.java).config
     @JvmField
     val lightManager = LightManager()
+    @JvmField
     var reloadShadowsKey: KeyMapping? = null
+    @JvmField
     var toggleRaytracedLightsKey: KeyMapping? = null
+    @JvmField
     var toggleSubtleLightsKey: KeyMapping? = null
 
     init {
@@ -212,6 +215,17 @@ object Vibrancy {
                 out.accept(ChatFormatting.UNDERLINE.toString() + MOD_NAME)
                 lightManager.getDebugOutput(out)
             }
+        }
+
+        override fun registerPanoramas(factory: PanoramaFactory) {
+            factory.register(PanoramaSet(
+                id("panoramas"),
+                PanoramaPriority.SHADER_PACK,
+                listOf(
+                    PanoramaTexture(id("textures/gui/title/background/lab")),
+                    PanoramaTexture(id("textures/gui/title/background/trial_chamber")),
+                )
+            ))
         }
     }
 }
