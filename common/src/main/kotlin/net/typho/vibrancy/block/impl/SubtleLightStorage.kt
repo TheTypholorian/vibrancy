@@ -6,6 +6,7 @@ import net.minecraft.core.Direction
 import net.minecraft.util.RandomSource
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.level.material.FluidState
@@ -17,7 +18,6 @@ import net.typho.big_shot_lib.api.client.opengl.buffers.GlFramebuffer
 import net.typho.big_shot_lib.api.client.opengl.util.MeshUtil
 import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
-import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.LightRenderResult
 import net.typho.vibrancy.Vibrancy.toBlockBox
@@ -112,6 +112,10 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                             }
                         }
 
+                        newChunk.box = newChunk.map.values.fold(null) { box, light ->
+                            if (box == null) light.boundingBox else box.minmax(light.boundingBox)
+                        }
+
                         if (newChunk.map.isEmpty()) {
                             return@supplyAsync null
                         }
@@ -166,17 +170,17 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                                     return true
                                 }
 
-                                val sidePos = pos.relative(face)
+                                return Block.shouldRenderFace(
+                                    state,
+                                    level,
+                                    pos,
+                                    face,
+                                    pos.relative(face)
+                                )
 
-                                if (newChunk.map.containsKey(pos) || newChunk.map.containsKey(sidePos)) {
-                                    return true
-                                }
-
-                                val sideState = level.getBlockState(sidePos)
-
-                                if (BlockUtil.INSTANCE.isSolidRender(state, pos, level) && BlockUtil.INSTANCE.isSolidRender(sideState, sidePos, level)) {
-                                    return false
-                                }
+                                //if (BlockUtil.INSTANCE.isSolidRender(state, pos, level) && BlockUtil.INSTANCE.isSolidRender(sideState, sidePos, level)) {
+                                //    return false
+                                //}
 
                                 //if (
                                 //    newChunk.map.keys.filter { it.distSqr(pos) <= 4 }
@@ -184,8 +188,6 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                                 //) {
                                 //    return false
                                 //}
-
-                                return true
                             }
 
                             override fun isInLightRange(pos: BlockPos): Boolean {
@@ -239,8 +241,8 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
         @JvmField
         val ssbo: GlBuffer = GlBuffer(BufferType.SHADER_STORAGE_BUFFER, BufferUsage.STATIC_DRAW)
     ) : HashMapBlockLightStorage<SubtleLightInfo, SubtleLight>(SubtleLightType), NativeResource {
-        val box: AABB?
-            get() = map.values.fold(null) { box, light -> if (box == null) light.boundingBox else box.minmax(light.boundingBox) }
+        @JvmField
+        var box: AABB? = null
 
         fun render(fbo: GlFramebuffer, data: RenderEventData): LightRenderResult {
             if (

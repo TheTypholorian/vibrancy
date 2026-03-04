@@ -32,6 +32,6 @@ void main() {
     for (uint i = 0u; i < lights.length(); i++) {
         Light light = lights[i];
 
-        fragColor = max(fragColor, sampleCubeLight(light.pos, pos, 0.5, 1, light.color * LightBrightness));
+        fragColor = max(fragColor, sampleCubeLight(light.pos, pos, 0.5, 1.5, light.color * LightBrightness));
     }
 }

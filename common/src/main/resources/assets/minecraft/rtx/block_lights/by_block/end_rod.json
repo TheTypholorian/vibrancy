@@ -1,6 +1,5 @@
 {
-  "type": "vibrancy:raytraced_point",
+  "type": "vibrancy:subtle",
   "color": [ 0.96, 0.88, 0.8 ],
-  "brightness": 0.4,
-  "radius": 16
+  "brightness": 0.4
 }
