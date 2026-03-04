@@ -8,6 +8,7 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
+import net.minecraft.world.level.material.FluidState
 import net.minecraft.world.phys.AABB
 import net.typho.big_shot_lib.api.client.opengl.buffers.BufferType
 import net.typho.big_shot_lib.api.client.opengl.buffers.BufferUsage
@@ -140,7 +141,15 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                         val mesher = BasicShadowMesher()
                         val predicate = object : ShadowPredicate {
                             override fun shouldCastBlock(
-                                state: BlockState,
+                                block: BlockState,
+                                level: Level,
+                                pos: BlockPos
+                            ): Boolean {
+                                return true
+                            }
+
+                            override fun shouldCastFluid(
+                                fluid: FluidState,
                                 level: Level,
                                 pos: BlockPos
                             ): Boolean {
@@ -191,7 +200,6 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                         for (pos in blocks) {
                             mesher.submit(
                                 manager,
-                                level.getBlockState(pos),
                                 level,
                                 pos,
                                 RandomSource.create(),

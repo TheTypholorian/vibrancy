@@ -38,27 +38,27 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
         pos: BlockPos
     ) = BlockUtil.INSTANCE.isSolidRender(state, pos, level) && BlockRenderSettingsUtil.INSTANCE.getBlockSettings(state) == BlockRenderSettings.SOLID
 
-    @Suppress("DEPRECATION")
     override fun submit(
         manager: LightManager,
-        state: BlockState,
         level: Level,
         pos: BlockPos,
         random: RandomSource,
         predicate: ShadowPredicate
     ) {
-        if (predicate.shouldCastBlock(state, level, pos)) {
+        val block = level.getBlockState(pos)
+
+        if (predicate.shouldCastBlock(block, level, pos)) {
             if (predicate.isInLightRange(pos)) {
-                ShadowMesher.collectLightFaces(manager, state, level, pos, predicate, lightFaces::add)
+                ShadowMesher.collectLightFaces(manager, block, level, pos, predicate, lightFaces::add)
             }
 
-            if (shouldGreedyMesh(state, level, pos)) {
+            if (shouldGreedyMesh(block, level, pos)) {
                 val voxel = Voxel(pos)
-                val model = Minecraft.getInstance().blockRenderer.getBlockModel(state)
+                val model = Minecraft.getInstance().blockRenderer.getBlockModel(block) // TODO
 
                 for (direction in Direction.entries) {
                     if (predicate.shouldCastFace(direction, level.getBlockState(voxel.pos), level, voxel.pos)) {
-                        val quads = model.getQuads(state, direction, random)
+                        val quads = model.getQuads(block, direction, random)
 
                         if (quads.isNotEmpty()) {
                             voxel.quads[direction.ordinal] = quads.first()
@@ -69,7 +69,7 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
                 grid[pos.x - box.min.x][pos.y - box.min.y][pos.z - box.min.z] = voxel
                 allVoxels.add(voxel)
             } else if (predicate.isInShadowRange(pos)) {
-                ShadowMesher.collectLightFaces(manager, state, level, pos, predicate, nonGreedy::add)
+                ShadowMesher.collectLightFaces(manager, block, level, pos, predicate, nonGreedy::add)
             }
         }
     }

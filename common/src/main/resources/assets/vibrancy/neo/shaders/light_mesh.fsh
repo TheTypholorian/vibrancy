@@ -14,5 +14,5 @@ in vec3 vertexPosition;
 out vec4 fragColor;
 
 void main() {
-    fragColor = bigShotFog(texture(Sampler0, texCoord0) * texelFetch(Sampler1, ivec2(texCoord1), 0) * vertexColor, vertexPosition - CameraPos);
+    fragColor = texture(Sampler0, texCoord0) * texelFetch(Sampler1, ivec2(texCoord1), 0) * vertexColor;//, vertexPosition - CameraPos);
 }

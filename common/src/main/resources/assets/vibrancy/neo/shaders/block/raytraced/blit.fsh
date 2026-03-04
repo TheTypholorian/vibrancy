@@ -53,7 +53,7 @@ void main() {
     Ray rayD = check(self, mappedUV + vec2(0, step.y));
     Ray rayE = check(self, mappedUV + vec2(0, -step.y));
 
-    fragColor = samplePointLight(LightPos, rayA.pos, LightRadius, LightColor * LightBrightness);
+    fragColor = samplePointLight(LightPos, rayA.pos, LightRadius, LightColor);
 
     for (uint i = 0u; i < shadowQuads.length(); i++) {
         Quad q = shadowQuads[i];

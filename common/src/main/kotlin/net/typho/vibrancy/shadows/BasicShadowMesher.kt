@@ -1,9 +1,9 @@
 package net.typho.vibrancy.shadows
 
+import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
 import net.minecraft.util.RandomSource
 import net.minecraft.world.level.Level
-import net.minecraft.world.level.block.state.BlockState
 import net.typho.vibrancy.LightManager
 import java.util.*
 import java.util.function.Consumer
@@ -14,18 +14,19 @@ open class BasicShadowMesher : ShadowMesher {
 
     override fun submit(
         manager: LightManager,
-        state: BlockState,
         level: Level,
         pos: BlockPos,
         random: RandomSource,
         predicate: ShadowPredicate
     ) {
-        if (predicate.shouldCastBlock(state, level, pos)) {
+        val block = level.getBlockState(pos)
+
+        if (predicate.shouldCastBlock(block, level, pos)) {
             val shadow = predicate.isInShadowRange(pos)
             val light = predicate.isInLightRange(pos)
 
             if (shadow || light) {
-                ShadowMesher.collectLightFaces(manager, state, level, pos, predicate) { face ->
+                ShadowMesher.collectLightFaces(manager, block, level, pos, predicate) { face ->
                     if (shadow) {
                         shadowFaces.add(face)
                     }
@@ -34,16 +35,24 @@ open class BasicShadowMesher : ShadowMesher {
                         lightFaces.add(face)
                     }
                 }
+            }
+        }
 
-                /*
+        val fluid = level.getFluidState(pos)
+
+        if (predicate.shouldCastFluid(fluid, level, pos)) {
+            val shadow = predicate.isInShadowRange(pos)
+            val light = predicate.isInLightRange(pos)
+
+            if (shadow || light) {
                 val consumer = LightFace.Consumer(pos)
 
                 Minecraft.getInstance().blockRenderer.renderLiquid(
                     pos,
                     level,
                     consumer.toMojang(),
-                    state,
-                    level.getFluidState(pos)
+                    block,
+                    fluid
                 )
 
                 if (shadow) {
@@ -53,7 +62,6 @@ open class BasicShadowMesher : ShadowMesher {
                 if (light) {
                     lightFaces.addAll(consumer.end())
                 }
-                 */
             }
         }
     }

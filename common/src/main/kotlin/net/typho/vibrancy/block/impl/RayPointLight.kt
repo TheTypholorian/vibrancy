@@ -5,6 +5,7 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.material.FluidState
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import net.typho.big_shot_lib.api.client.opengl.buffers.*
@@ -115,11 +116,19 @@ open class RayPointLight(
         }
     override val shadowPredicate = object : ShadowPredicate {
         override fun shouldCastBlock(
-            state: BlockState,
+            block: BlockState,
             level: Level,
             pos: BlockPos
         ): Boolean {
-            return pos != blockPos && (BlockUtil.INSTANCE.isSolidRender(state, pos, level) || !BlockLightRegistry.has(state.block))
+            return pos != blockPos && (BlockUtil.INSTANCE.isSolidRender(block, pos, level) || !BlockLightRegistry.has(block.block))
+        }
+
+        override fun shouldCastFluid(
+            fluid: FluidState,
+            level: Level,
+            pos: BlockPos
+        ): Boolean {
+            return !BlockLightRegistry.has(level.getBlockState(pos).block)
         }
 
         override fun shouldCastFace(

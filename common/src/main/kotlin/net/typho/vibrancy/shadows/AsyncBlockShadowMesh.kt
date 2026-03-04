@@ -64,7 +64,6 @@ open class AsyncBlockShadowMesh : ShadowMesh() {
                         if (pos != origin) {
                             mesher.submit(
                                 manager,
-                                level.getBlockState(pos),
                                 level,
                                 pos,
                                 random,

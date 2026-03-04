@@ -12,7 +12,6 @@ import java.util.function.Consumer
 interface ShadowMesher {
     fun submit(
         manager: LightManager,
-        state: BlockState,
         level: Level,
         pos: BlockPos,
         random: RandomSource,
