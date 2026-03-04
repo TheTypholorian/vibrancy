@@ -1,5 +1,6 @@
 package net.typho.vibrancy.shadows
 
+import net.minecraft.world.level.Level
 import net.typho.big_shot_lib.api.client.opengl.buffers.*
 import net.typho.big_shot_lib.api.client.opengl.state.*
 import net.typho.big_shot_lib.api.client.opengl.util.GlShapeType
@@ -19,9 +20,10 @@ open class LightMesh : NativeResource {
         @JvmField
         val VERTEX_FORMAT = NeoVertexFormat.builder()
             .add("Position", NeoVertexFormat.Element.POSITION)
-            .padding(Float.SIZE_BYTES)
+            .padding(4)
             .add("UV0", NeoVertexFormat.Element.TEXTURE_UV)
-            .padding(2 * Float.SIZE_BYTES)
+            .add("Color", NeoVertexFormat.Element.COLOR)
+            .padding(4)
             .build()
 
         @JvmStatic
@@ -110,6 +112,7 @@ open class LightMesh : NativeResource {
     }
 
     fun build(
+        level: Level?,
         lightFaces: List<LightFace>,
         atlasWidth: Int,
         atlasHeight: Int
@@ -119,7 +122,7 @@ open class LightMesh : NativeResource {
         var empty = true
 
         for (face in lightFaces) {
-            face.buildGeometry(lightBuilder)
+            face.buildGeometry(lightBuilder, level)
             textures.add(Dimension(
                 (abs(face.quad.uv1.x - face.quad.uv3.x) * atlasWidth * face.width).toInt(),
                 (abs(face.quad.uv1.y - face.quad.uv3.y) * atlasHeight * face.height).toInt()

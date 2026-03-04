@@ -2,7 +2,7 @@
 
 #include "vibrancy:include/light_blit"
 
-layout(std140, binding = 2) buffer ShadowQuadBuffer {
+layout(std430, binding = 2) buffer ShadowQuadBuffer {
     Quad shadowQuads[];
 };
 

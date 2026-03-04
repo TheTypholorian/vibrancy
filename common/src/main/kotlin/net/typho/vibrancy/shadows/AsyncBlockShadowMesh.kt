@@ -87,7 +87,7 @@ open class AsyncBlockShadowMesh : ShadowMesh() {
             val lightFaces = LinkedList<LightFace>()
             mesher.finish(manager, predicate, level, shadowFaces::add, lightFaces::add)
 
-            return@supplyAsync build(shadowFaces, lightFaces, width, height)
+            return@supplyAsync build(level, shadowFaces, lightFaces, width, height)
         }
     }
 }

@@ -2,10 +2,10 @@
 #include "vibrancy:include/fragment"
 #include "vibrancy:include/sprite"
 
-layout(std140, binding = 0) buffer LightQuadBuffer {
+layout(std430, binding = 0) buffer LightQuadBuffer {
     Quad lightQuads[];
 };
-layout(std140, binding = 1) buffer SpriteBuffer {
+layout(std430, binding = 1) buffer SpriteBuffer {
     Sprite sprites[];
 };
 

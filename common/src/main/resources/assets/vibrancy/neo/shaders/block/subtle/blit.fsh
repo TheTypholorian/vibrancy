@@ -7,7 +7,7 @@ struct Light {
     vec3 pos;
 };
 
-layout(std140, binding = 2) buffer LightBuffer {
+layout(std430, binding = 2) buffer LightBuffer {
     Light lights[];
 };
 

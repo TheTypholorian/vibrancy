@@ -202,7 +202,7 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
                 }
 
                 val doubleGreedy = LinkedList(listOf(entry1.value))
-                var pos = entry1.value.blockPos!!
+                var pos = entry1.value.blockPos
 
                 while (true) {//doubleGreedy.size < Vibrancy.config.forNerds.maxGreedyMeshSectionWidth.get()) {
                     pos = pos.relative(sideAxis, 1)
@@ -226,7 +226,7 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
                     doubleGreedy.add(other)
                 }
 
-                pos = entry1.value.blockPos!!
+                pos = entry1.value.blockPos
 
                 while (true) {//doubleGreedy.size < Vibrancy.config.forNerds.maxGreedyMeshSectionWidth.get()) {
                     pos = pos.relative(sideAxis, -1)
@@ -255,14 +255,14 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
                     extraGreedy.add(
                         if (entry.key.axis == Direction.Axis.Y) {
                             entry.key.createFace(
-                                doubleGreedy.first().blockPos!!,
+                                doubleGreedy.first().blockPos,
                                 TextureCoordinates(entry1.value.quad),
                                 width = doubleGreedy.size,
                                 height = entry1.value.height
                             )
                         } else {
                             entry.key.createFace(
-                                doubleGreedy.first().blockPos!!,
+                                doubleGreedy.first().blockPos,
                                 TextureCoordinates(entry1.value.quad),
                                 width = entry1.value.width,
                                 height = doubleGreedy.size

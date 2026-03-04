@@ -190,7 +190,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
 
                         val faces = LinkedList<LightFace>()
                         mesher.finish(manager, predicate, level, {}, faces::add)
-                        val task = newChunk.mesh.build(faces, width, height)
+                        val task = newChunk.mesh.build(level, faces, width, height)
 
                         return@supplyAsync Consumer { data ->
                             task.run()

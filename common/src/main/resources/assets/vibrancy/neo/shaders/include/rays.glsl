@@ -1,8 +1,8 @@
 struct Quad {
-    vec3 v1; vec2 uv1;
-    vec3 v2; vec2 uv2;
-    vec3 v3; vec2 uv3;
-    vec3 v4; vec2 uv4;
+    vec3 v1; vec2 uv1; uint color1;
+    vec3 v2; vec2 uv2; uint color2;
+    vec3 v3; vec2 uv3; uint color3;
+    vec3 v4; vec2 uv4; uint color4;
 };
 
 bool raycastQuad(vec3 origin, vec3 dir, float len, float margin, Quad q, out vec2 uv, out float tt) {
@@ -49,7 +49,8 @@ vec4 sampleQuad(sampler2D AtlasSampler, vec3 origin, vec3 dir, float len, float 
 
     if (raycastQuad(origin, dir, len, margin, q, uv, dist)) {
         vec2 texUv = mix(mix(q.uv1, q.uv2, uv.x), mix(q.uv4, q.uv3, uv.x), uv.y);
-        vec4 pixel = texelFetch(AtlasSampler, ivec2(texUv * textureSize(AtlasSampler, 0)), 0);
+        vec4 color = mix(mix(unpackUnorm4x8(q.color1), unpackUnorm4x8(q.color2), uv.x), mix(unpackUnorm4x8(q.color4), unpackUnorm4x8(q.color3), uv.x), uv.y);
+        vec4 pixel = texelFetch(AtlasSampler, ivec2(texUv * textureSize(AtlasSampler, 0)), 0) * color;
 
         if (pixel.a == 0) {
             return vec4(1);
@@ -71,6 +72,7 @@ vec3 interpolateQuadPos(Quad q, vec2 uv) {
     return mix(a, b, uv.y);
 }
 
+/*
 struct Triangle {
     vec3 v1; vec2 uv1;
     vec3 v2; vec2 uv2;
@@ -112,3 +114,4 @@ bool sampleTriangle(sampler2D AtlasSampler, vec3 origin, vec3 dir, float len, fl
         return true;
     }
 }
+*/
