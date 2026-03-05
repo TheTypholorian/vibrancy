@@ -4,7 +4,9 @@
   "package": "net.typho.vibrancy.mixin",
   "refmap": "${mod_id}.refmap.json",
   "compatibilityLevel": "JAVA_21",
-  "mixins": [],
+  "mixins": [
+    "GlShapeTypeMixin"
+  ],
   "client": [],
   "injectors": {
     "defaultRequire": 1

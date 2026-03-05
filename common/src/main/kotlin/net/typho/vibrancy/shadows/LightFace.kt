@@ -4,18 +4,15 @@ import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
 import net.minecraft.world.level.Level
 import net.typho.big_shot_lib.api.client.opengl.buffers.NeoVertexConsumer
-import net.typho.big_shot_lib.api.client.opengl.util.TexturedQuad
+import net.typho.big_shot_lib.api.client.util.quads.NeoBakedQuad
 import net.typho.big_shot_lib.api.util.IColor
-import org.joml.Vector2f
-import org.joml.Vector3f
-import java.util.*
 
 @JvmRecord
 data class LightFace(
     @JvmField
     val blockPos: BlockPos,
     @JvmField
-    val quad: TexturedQuad,
+    val quad: NeoBakedQuad,
     @JvmField
     val width: Int,
     @JvmField
@@ -26,12 +23,10 @@ data class LightFace(
             IColor.RGBA(Minecraft.getInstance().blockColors.getColor(it.getBlockState(blockPos), level, blockPos, 0))
         } ?: IColor.FULL_ON
 
-        consumer.vertex(quad.v1).textureUV(quad.uv1).color(tintColor)
-        consumer.vertex(quad.v2).textureUV(quad.uv2).color(tintColor)
-        consumer.vertex(quad.v3).textureUV(quad.uv3).color(tintColor)
-        consumer.vertex(quad.v4).textureUV(quad.uv4).color(tintColor)
+        quad.withVertices { index, vertex -> vertex.withColor { tintColor } }.put(consumer)
     }
 
+    /*
     open class Consumer(
         @JvmField
         val pos: BlockPos
@@ -39,11 +34,11 @@ data class LightFace(
         @JvmField
         protected val faces = LinkedList<LightFace>()
         @JvmField
-        protected var currentQuad: TexturedQuad? = null
+        protected var currentQuad: NeoBakedQuad? = null
         @JvmField
         protected var vertex: Int = 0
 
-        protected fun start(): TexturedQuad {
+        protected fun start(): NeoBakedQuad {
             if (currentQuad == null) {
                 val quad = TexturedQuad(
                     Vector3f(),
@@ -139,4 +134,5 @@ data class LightFace(
             return this
         }
     }
+     */
 }

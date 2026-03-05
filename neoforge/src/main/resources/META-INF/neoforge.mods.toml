@@ -31,7 +31,7 @@ side = "BOTH"
 [[dependencies."${mod_id}"]]
 modId = "big_shot_api"
 type="required"
-versionRange = "${big_shot_version_range}"
+versionRange = "[${big_shot_version},)"
 ordering = "BEFORE"
 side = "BOTH"
 [[dependencies."${mod_id}"]]

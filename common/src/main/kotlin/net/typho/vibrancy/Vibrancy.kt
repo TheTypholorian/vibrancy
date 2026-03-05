@@ -8,6 +8,7 @@ import net.minecraft.client.KeyMapping
 import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
 import net.minecraft.network.chat.CommonComponents
 import net.minecraft.network.chat.Component
 import net.minecraft.world.phys.AABB
@@ -86,6 +87,16 @@ object Vibrancy {
         BlockPos.containing(minPosition),
         BlockPos.containing(maxPosition)
     )
+
+    @JvmStatic
+    fun Direction.isPointingTowards(from: BlockPos, to: BlockPos): Boolean = when (this) {
+        Direction.DOWN -> to.y < from.y
+        Direction.UP -> to.y > from.y
+        Direction.NORTH -> to.z < from.z
+        Direction.SOUTH -> to.z > from.z
+        Direction.WEST -> to.x < from.x
+        Direction.EAST -> to.x < from.x
+    }
 
     class Entrypoint : BigShotCommonEntrypoint, BigShotClientEntrypoint {
         override fun registerRegistries(factory: RegistryFactory) {

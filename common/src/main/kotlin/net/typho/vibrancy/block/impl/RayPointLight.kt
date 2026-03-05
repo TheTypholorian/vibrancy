@@ -4,7 +4,6 @@ import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.world.level.Level
-import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.material.FluidState
 import net.minecraft.world.phys.AABB
@@ -15,10 +14,12 @@ import net.typho.big_shot_lib.api.client.opengl.util.GlShapeType
 import net.typho.big_shot_lib.api.client.opengl.util.MeshUtil
 import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
+import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.big_shot_lib.api.util.IColor
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.LightRenderResult
 import net.typho.vibrancy.Vibrancy
+import net.typho.vibrancy.Vibrancy.isPointingTowards
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.shadows.AsyncBlockShadowMesh
 import net.typho.vibrancy.shadows.ShadowPredicate
@@ -120,7 +121,7 @@ open class RayPointLight(
             level: Level,
             pos: BlockPos
         ): Boolean {
-            return pos != blockPos && !BlockLightRegistry.has(block.block)
+            return pos == blockPos || !BlockLightRegistry.has(block.block)
         }
 
         override fun shouldCastFluid(
@@ -137,7 +138,7 @@ open class RayPointLight(
             level: Level,
             pos: BlockPos
         ): Boolean {
-            if (face == null) {
+            if (face == null || pos == blockPos) {
                 return true
             }
 
@@ -147,19 +148,20 @@ open class RayPointLight(
                 return true
             }
 
-            if (
-                !Block.shouldRenderFace( // TODO
-                    state,
-                    level,
-                    pos,
-                    face,
-                    sidePos
-                )
-            ) {
+            if (!face.isPointingTowards(pos, blockPos)) {
                 return false
             }
 
-            if (face.step().dot(blockPos.center.subtract(pos.center).toVector3f()) <= 0) {
+            if (
+                BlockUtil.INSTANCE.isSolidRender(state, pos, level) && BlockUtil.INSTANCE.isSolidRender(level.getBlockState(sidePos), sidePos, level)
+                //!Block.shouldRenderFace( // TODO
+                //    state,
+                //    level,
+                //    pos,
+                //    face,
+                //    sidePos
+                //)
+            ) {
                 return false
             }
 

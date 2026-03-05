@@ -7,12 +7,10 @@ import net.minecraft.util.RandomSource
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.Vec3
-import net.typho.big_shot_lib.api.client.opengl.util.TexturedQuad
 import net.typho.big_shot_lib.api.client.util.BlockRenderSettings
-import net.typho.big_shot_lib.api.client.util.BlockRenderSettingsUtil
+import net.typho.big_shot_lib.api.client.util.quads.NeoBakedQuad
 import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.vibrancy.LightManager
-import net.typho.vibrancy.util.TextureCoordinates
 import org.joml.Vector3f
 import java.util.*
 import java.util.function.Consumer
@@ -32,7 +30,7 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
         state: BlockState,
         level: Level,
         pos: BlockPos
-    ) = BlockUtil.INSTANCE.isSolidRender(state, pos, level) && BlockRenderSettingsUtil.INSTANCE.getBlockSettings(state) == BlockRenderSettings.SOLID
+    ) = BlockUtil.INSTANCE.isSolidRender(state, pos, level) && BlockUtil.INSTANCE.getBlockRenderSettings(state) == BlockRenderSettings.SOLID
 
     override fun submit(
         manager: LightManager,
@@ -80,18 +78,13 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
     ) {
         var start: BlockPos? = null
         var length = 0
-        var texture: TextureCoordinates? = null
+        var texture: NeoBakedQuad? = null
         val currentVoxels = ArrayList<Voxel>()
 
-        fun start(pos: BlockPos, quad: TexturedQuad) {
+        fun start(pos: BlockPos, quad: NeoBakedQuad) {
             start = pos
             length = 1
-            texture = TextureCoordinates(
-                quad.uv1,
-                quad.uv2,
-                quad.uv3,
-                quad.uv4,
-            )
+            texture = quad
             currentVoxels.clear()
         }
 
@@ -217,7 +210,7 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
         @JvmField
         val pos: BlockPos,
         @JvmField
-        val quads: Array<TexturedQuad?> = arrayOfNulls<TexturedQuad?>(Direction.entries.size)
+        val quads: Array<NeoBakedQuad?> = arrayOfNulls<NeoBakedQuad?>(Direction.entries.size)
     ) {
         override fun equals(other: Any?): Boolean {
             if (this === other) return true
@@ -242,7 +235,7 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
         @JvmStatic
         fun Direction.createFace(
             pos: BlockPos,
-            texture: TextureCoordinates,
+            quad: NeoBakedQuad,
             width: Int = 1,
             height: Int = 1
         ): LightFace {
@@ -291,17 +284,7 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
 
             return LightFace(
                 pos,
-                TexturedQuad(
-                    vertices[0],
-                    vertices[1],
-                    vertices[2],
-                    vertices[3],
-                    texture.uv0,
-                    texture.uv1,
-                    texture.uv2,
-                    texture.uv3,
-                    -1
-                ),
+                quad.withVertices { index, vertex -> vertex.withPosition { vertices[index] } },
                 width,
                 height
             )

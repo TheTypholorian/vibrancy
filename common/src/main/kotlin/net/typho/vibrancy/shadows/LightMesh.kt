@@ -14,8 +14,6 @@ import net.typho.vibrancy.Vibrancy
 import org.lwjgl.system.NativeResource
 import java.awt.Dimension
 import java.util.*
-import kotlin.math.abs
-import kotlin.math.ceil
 
 open class LightMesh : NativeResource {
     companion object {
@@ -117,9 +115,7 @@ open class LightMesh : NativeResource {
 
     fun build(
         level: Level?,
-        lightFaces: List<LightFace>,
-        atlasWidth: Int,
-        atlasHeight: Int
+        lightFaces: List<LightFace>
     ): Runnable {
         val textures = LinkedList<Dimension>()
         val lightBuilder = mesh.Builder(ByteBufferBuilder(lightFaces.size * 4 * VERTEX_FORMAT.vertexSizeBytes))
@@ -128,8 +124,8 @@ open class LightMesh : NativeResource {
         for (face in lightFaces) {
             face.buildGeometry(lightBuilder, level)
             textures.add(Dimension(
-                ceil(abs(face.quad.uv1.y - face.quad.uv3.y) * atlasHeight * face.height).toInt(),
-                ceil(abs(face.quad.uv1.x - face.quad.uv3.x) * atlasWidth * face.width).toInt()
+                face.quad.sprite.height,
+                face.quad.sprite.width
             ))
             empty = false
         }

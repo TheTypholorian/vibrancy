@@ -44,7 +44,21 @@ interface ShadowMesher {
 
             MeshUtil.INSTANCE.getBlockQuads(state, level, pos) { dir, quads ->
                 if (predicate.shouldCastFace(dir, state, level, pos)) {
-                    quads.forEach { out.accept(dir, LightFace(pos, it.offset(Vec3.atLowerCornerOf(pos).toVector3f()), 1, 1)) }
+                    quads.forEach {
+                        out.accept(
+                            dir,
+                            LightFace(
+                                pos,
+                                it.withVertices { index, vertex ->
+                                    vertex.withPosition { v ->
+                                        Vec3.atLowerCornerOf(pos).toVector3f().add(v)
+                                    }
+                                },
+                                1,
+                                1
+                            )
+                        )
+                    }
                 }
             }
         }

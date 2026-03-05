@@ -1,6 +1,5 @@
 package net.typho.vibrancy.shadows
 
-import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
 import net.minecraft.util.RandomSource
 import net.minecraft.world.level.Level
@@ -38,6 +37,7 @@ open class BasicShadowMesher : ShadowMesher {
             }
         }
 
+        /*
         val fluid = level.getFluidState(pos)
 
         if (predicate.shouldCastFluid(fluid, level, pos)) {
@@ -64,6 +64,7 @@ open class BasicShadowMesher : ShadowMesher {
                 }
             }
         }
+         */
     }
 
     override fun finish(

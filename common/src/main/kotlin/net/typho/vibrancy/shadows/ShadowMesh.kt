@@ -23,9 +23,7 @@ open class ShadowMesh : NativeResource {
     fun build(
         level: Level?,
         shadowFaces: List<LightFace>,
-        lightFaces: List<LightFace>,
-        atlasWidth: Int,
-        atlasHeight: Int
+        lightFaces: List<LightFace>
     ): Runnable {
         val shadowBuilder = shadowMesh.Builder(ByteBufferBuilder(shadowFaces.size * 4 * LightMesh.VERTEX_FORMAT.vertexSizeBytes))
 
@@ -33,7 +31,7 @@ open class ShadowMesh : NativeResource {
             face.buildGeometry(shadowBuilder, if (face.width == 1 && face.height == 1) level else null)
         }
 
-        val light = lightMesh.build(level, lightFaces, atlasWidth, atlasHeight)
+        val light = lightMesh.build(level, lightFaces)
 
         return Runnable {
             if (shadowFaces.isEmpty()) {

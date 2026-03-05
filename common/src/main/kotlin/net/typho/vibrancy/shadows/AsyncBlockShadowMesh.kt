@@ -3,7 +3,6 @@ package net.typho.vibrancy.shadows
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.util.RandomSource
-import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy.toBlockBox
 import net.typho.vibrancy.util.PointLight
@@ -49,8 +48,6 @@ open class AsyncBlockShadowMesh : ShadowMesh() {
         box: BlockBox,
         predicate: ShadowPredicate
     ) {
-        val atlas = TextureUtil.INSTANCE.getTextureAtlasDimensions(TextureUtil.INSTANCE.blockAtlasId)
-
         asyncTask?.cancel(true)
         asyncTask = CompletableFuture.supplyAsync {
             val level = manager.getLevel() ?: throw NullPointerException("No level?")
@@ -88,7 +85,7 @@ open class AsyncBlockShadowMesh : ShadowMesh() {
 
             val finish = System.currentTimeMillis()
 
-            val task = build(level, shadowFaces, lightFaces, atlas.width, atlas.height)
+            val task = build(level, shadowFaces, lightFaces)
 
             val finishB = System.currentTimeMillis() - finish
 

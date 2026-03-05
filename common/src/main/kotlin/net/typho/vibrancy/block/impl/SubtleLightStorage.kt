@@ -88,7 +88,6 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
         synchronized(dirty) {
             for (pos in dirty) {
                 val newChunk = createChunk(pos)
-                val atlas = TextureUtil.INSTANCE.getTextureAtlasDimensions(TextureUtil.INSTANCE.blockAtlasId)
 
                 tasks.add(
                     CompletableFuture.supplyAsync {
@@ -211,7 +210,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
 
                         val faces = LinkedList<LightFace>()
                         mesher.finish(manager, predicate, level, {}, faces::add)
-                        val task = newChunk.mesh.build(level, faces, atlas.width, atlas.height)
+                        val task = newChunk.mesh.build(level, faces)
 
                         return@supplyAsync Consumer { data ->
                             task.run()
