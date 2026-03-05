@@ -46,7 +46,7 @@ class FloodFillMesher(
                                 state,
                                 level,
                                 pos,
-                                { true }//{ predicate.shouldCastFace(it, level, pos) }
+                                { predicate.shouldCastFace(it, level, pos) }
                             ) { dir, face ->
                                 if (shadow) {
                                     shadowOut.accept(face)
