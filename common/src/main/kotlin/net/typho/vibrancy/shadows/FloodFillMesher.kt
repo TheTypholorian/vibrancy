@@ -1,23 +1,19 @@
 package net.typho.vibrancy.shadows
 
-import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
-import net.minecraft.util.RandomSource
 import net.minecraft.world.level.Level
+import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.vibrancy.LightManager
 import java.util.function.Consumer
 
 class FloodFillMesher(
-    @JvmField
-    val box: BlockBox,
     @JvmField
     val pos: BlockPos
 ) : ShadowMesher {
     override fun submit(
         manager: LightManager,
         level: Level,
-        random: RandomSource,
         predicate: ShadowPredicate,
         shadowOut: Consumer<LightFace>,
         lightOut: Consumer<LightFace>
@@ -33,17 +29,25 @@ class FloodFillMesher(
             for (direction in Direction.entries) {
                 val pos = cursor.relative(direction)
 
-                if (box.contains(pos) && checked.add(pos)) {
-                    val state = level.getBlockState(pos)
+                if (checked.add(pos) && predicate.shouldCastBlock(level, pos)) {
+                    val shadow = predicate.isInShadowRange(pos)
+                    val light = predicate.isInLightRange(pos)
 
-                    if (state.isAir) {
-                        cursors.add(pos)
-                    } else {
-                        val shadow = predicate.isInShadowRange(pos)
-                        val light = predicate.isInLightRange(pos)
+                    if (shadow || light) {
+                        val state = level.getBlockState(pos)
 
-                        if (shadow || light) {
-                            ShadowMesher.collectLightFaces(manager, state, level, pos, predicate) { dir, face ->
+                        if (!BlockUtil.INSTANCE.isSolidRender(state, pos, level)) {
+                            cursors.add(pos)
+                        }
+
+                        if (!state.isAir) {
+                            ShadowMesher.collectLightFaces(
+                                manager,
+                                state,
+                                level,
+                                pos,
+                                { true }//{ predicate.shouldCastFace(it, level, pos) }
+                            ) { dir, face ->
                                 if (shadow) {
                                     shadowOut.accept(face)
                                 }

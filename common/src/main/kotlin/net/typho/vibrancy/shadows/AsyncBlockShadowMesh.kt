@@ -2,7 +2,6 @@ package net.typho.vibrancy.shadows
 
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
-import net.minecraft.util.RandomSource
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy.toBlockBox
 import net.typho.vibrancy.util.PointLight
@@ -51,35 +50,14 @@ open class AsyncBlockShadowMesh : ShadowMesh() {
         asyncTask?.cancel(true)
         asyncTask = CompletableFuture.supplyAsync {
             val level = manager.getLevel() ?: throw NullPointerException("No level?")
-            val random = RandomSource.create()
 
             val start = System.currentTimeMillis()
 
-            mesher.submit()
-
-            for (x in box.min.x..box.max.x) {
-                for (y in box.min.y..box.max.y) {
-                    for (z in box.min.z..box.max.z) {
-                        val pos = BlockPos(x, y, z)
-
-                        if (pos != origin) {
-                            mesher.submit(
-                                manager,
-                                level,
-                                pos,
-                                random,
-                                predicate
-                            )
-                        }
-                    }
-                }
-            }
-
-            val startB = System.currentTimeMillis() - start
-
             val shadowFaces = LinkedList<LightFace>()
             val lightFaces = LinkedList<LightFace>()
-            mesher.finish(manager, predicate, level, shadowFaces::add, lightFaces::add)
+            mesher.submit(manager, level, predicate, shadowFaces::add, lightFaces::add)
+
+            val startB = System.currentTimeMillis() - start
 
             val finish = System.currentTimeMillis()
 

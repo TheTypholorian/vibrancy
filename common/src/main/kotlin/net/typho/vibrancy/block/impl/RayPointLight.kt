@@ -5,7 +5,6 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
-import net.minecraft.world.level.material.FluidState
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import net.typho.big_shot_lib.api.client.opengl.buffers.*
@@ -117,15 +116,13 @@ open class RayPointLight(
         }
     override val shadowPredicate = object : ShadowPredicate {
         override fun shouldCastBlock(
-            block: BlockState,
             level: Level,
             pos: BlockPos
         ): Boolean {
-            return pos == blockPos || !BlockLightRegistry.has(block.block)
+            return shadowBox.contains(pos) && (pos == blockPos || !BlockLightRegistry.has(level.getBlockState(pos).block))
         }
 
         override fun shouldCastFluid(
-            fluid: FluidState,
             level: Level,
             pos: BlockPos
         ): Boolean {
@@ -134,7 +131,6 @@ open class RayPointLight(
 
         override fun shouldCastFace(
             face: Direction?,
-            state: BlockState,
             level: Level,
             pos: BlockPos
         ): Boolean {
@@ -153,7 +149,7 @@ open class RayPointLight(
             }
 
             if (
-                BlockUtil.INSTANCE.isSolidRender(state, pos, level) && BlockUtil.INSTANCE.isSolidRender(level.getBlockState(sidePos), sidePos, level)
+                BlockUtil.INSTANCE.isSolidRender(level.getBlockState(pos), pos, level) && BlockUtil.INSTANCE.isSolidRender(level.getBlockState(sidePos), sidePos, level)
                 //!Block.shouldRenderFace( // TODO
                 //    state,
                 //    level,
@@ -169,6 +165,10 @@ open class RayPointLight(
         }
 
         override fun isInShadowRange(pos: BlockPos): Boolean {
+            if (pos == blockPos) {
+                return false
+            }
+
             val shadowRadius = ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.shadowRadius.toFloat())).toInt()
             return pos.distSqr(blockPos) <= shadowRadius * shadowRadius
         }

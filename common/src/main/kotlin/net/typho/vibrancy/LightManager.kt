@@ -11,7 +11,6 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
 import net.typho.big_shot_lib.api.client.opengl.buffers.GlFramebuffer
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
-import net.typho.vibrancy.Vibrancy.toBlockBox
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.block.BlockLightStorage
 import net.typho.vibrancy.block.BlockLightType
@@ -44,7 +43,7 @@ open class LightManager {
     }
 
     fun createShadowMesher(light: PointLight): ShadowMesher {
-        return FloodFillMesher(light.boundingBox.toBlockBox(), light.blockPos!!)
+        return FloodFillMesher(light.blockPos!!)
     }
 
     fun reload() {

@@ -2,7 +2,6 @@ package net.typho.vibrancy.shadows
 
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
-import net.minecraft.util.RandomSource
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.Vec3
@@ -15,7 +14,6 @@ interface ShadowMesher {
     fun submit(
         manager: LightManager,
         level: Level,
-        random: RandomSource,
         predicate: ShadowPredicate,
         shadowOut: Consumer<LightFace>,
         lightOut: Consumer<LightFace>
@@ -28,7 +26,7 @@ interface ShadowMesher {
             state: BlockState,
             level: Level,
             pos: BlockPos,
-            predicate: ShadowPredicate,
+            predicate: (face: Direction?) -> Boolean,
             out: BiConsumer<Direction?, LightFace>
         ) {
             if (state.isAir) {
@@ -36,7 +34,7 @@ interface ShadowMesher {
             }
 
             MeshUtil.INSTANCE.getBlockQuads(state, level, pos) { dir, quads ->
-                if (predicate.shouldCastFace(dir, state, level, pos)) {
+                if (predicate(dir)) {
                     quads.forEach {
                         out.accept(
                             dir,

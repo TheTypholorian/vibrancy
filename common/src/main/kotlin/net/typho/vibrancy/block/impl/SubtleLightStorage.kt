@@ -3,13 +3,11 @@ package net.typho.vibrancy.block.impl
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
-import net.minecraft.util.RandomSource
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
-import net.minecraft.world.level.material.FluidState
 import net.minecraft.world.phys.AABB
 import net.typho.big_shot_lib.api.client.opengl.buffers.BufferType
 import net.typho.big_shot_lib.api.client.opengl.buffers.BufferUsage
@@ -24,6 +22,7 @@ import net.typho.vibrancy.Vibrancy.toBlockBox
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.block.ChunkedBlockLightStorage
 import net.typho.vibrancy.block.HashMapBlockLightStorage
+import net.typho.vibrancy.shadows.BasicMesher
 import net.typho.vibrancy.shadows.LightFace
 import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.shadows.ShadowPredicate
@@ -142,10 +141,8 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                             }
                         }
 
-                        val mesher = BasicShadowMesher()
                         val predicate = object : ShadowPredicate {
                             override fun shouldCastBlock(
-                                block: BlockState,
                                 level: Level,
                                 pos: BlockPos
                             ): Boolean {
@@ -153,7 +150,6 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                             }
 
                             override fun shouldCastFluid(
-                                fluid: FluidState,
                                 level: Level,
                                 pos: BlockPos
                             ): Boolean {
@@ -162,7 +158,6 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
 
                             override fun shouldCastFace(
                                 face: Direction?,
-                                state: BlockState,
                                 level: Level,
                                 pos: BlockPos
                             ): Boolean {
@@ -171,7 +166,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                                 }
 
                                 return Block.shouldRenderFace( // TODO
-                                    state,
+                                    level.getBlockState(pos),
                                     level,
                                     pos,
                                     face,
@@ -197,18 +192,8 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                             }
                         }
 
-                        for (pos in blocks) {
-                            mesher.submit(
-                                manager,
-                                level,
-                                pos,
-                                RandomSource.create(),
-                                predicate
-                            )
-                        }
-
                         val faces = LinkedList<LightFace>()
-                        mesher.finish(manager, predicate, level, {}, faces::add)
+                        BasicMesher(blocks).submit(manager, level, predicate, {}, faces::add)
                         val task = newChunk.mesh.build(level, faces)
 
                         return@supplyAsync Consumer { data ->
