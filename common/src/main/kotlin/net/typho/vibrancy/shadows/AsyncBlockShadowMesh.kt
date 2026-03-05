@@ -55,6 +55,8 @@ open class AsyncBlockShadowMesh : ShadowMesh() {
 
             val start = System.currentTimeMillis()
 
+            mesher.submit()
+
             for (x in box.min.x..box.max.x) {
                 for (y in box.min.y..box.max.y) {
                     for (z in box.min.z..box.max.z) {
@@ -75,13 +77,9 @@ open class AsyncBlockShadowMesh : ShadowMesh() {
 
             val startB = System.currentTimeMillis() - start
 
-            val mesh = System.currentTimeMillis()
-
             val shadowFaces = LinkedList<LightFace>()
             val lightFaces = LinkedList<LightFace>()
             mesher.finish(manager, predicate, level, shadowFaces::add, lightFaces::add)
-
-            val meshB = System.currentTimeMillis() - mesh
 
             val finish = System.currentTimeMillis()
 
@@ -89,7 +87,7 @@ open class AsyncBlockShadowMesh : ShadowMesh() {
 
             val finishB = System.currentTimeMillis() - finish
 
-            println("async task $startB $meshB $finishB")
+            println("async task $startB $finishB")
 
             return@supplyAsync task
         }

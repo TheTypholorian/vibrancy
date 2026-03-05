@@ -15,15 +15,8 @@ interface ShadowMesher {
     fun submit(
         manager: LightManager,
         level: Level,
-        pos: BlockPos,
         random: RandomSource,
-        predicate: ShadowPredicate
-    )
-
-    fun finish(
-        manager: LightManager,
         predicate: ShadowPredicate,
-        level: Level,
         shadowOut: Consumer<LightFace>,
         lightOut: Consumer<LightFace>
     )

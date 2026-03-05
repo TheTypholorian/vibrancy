@@ -15,7 +15,7 @@ import net.typho.vibrancy.Vibrancy.toBlockBox
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.block.BlockLightStorage
 import net.typho.vibrancy.block.BlockLightType
-import net.typho.vibrancy.shadows.ShadowGreedyMesher
+import net.typho.vibrancy.shadows.FloodFillMesher
 import net.typho.vibrancy.shadows.ShadowMesher
 import net.typho.vibrancy.sky.SkyLightStorage
 import net.typho.vibrancy.sky.SkyLightType
@@ -44,7 +44,7 @@ open class LightManager {
     }
 
     fun createShadowMesher(light: PointLight): ShadowMesher {
-        return ShadowGreedyMesher(light.boundingBox.toBlockBox())
+        return FloodFillMesher(light.boundingBox.toBlockBox(), light.blockPos!!)
     }
 
     fun reload() {
