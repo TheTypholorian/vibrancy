@@ -95,7 +95,7 @@ object Vibrancy {
         Direction.NORTH -> to.z < from.z
         Direction.SOUTH -> to.z > from.z
         Direction.WEST -> to.x < from.x
-        Direction.EAST -> to.x < from.x
+        Direction.EAST -> to.x > from.x
     }
 
     class Entrypoint : BigShotCommonEntrypoint, BigShotClientEntrypoint {
