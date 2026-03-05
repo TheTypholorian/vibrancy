@@ -12,7 +12,6 @@ import net.minecraft.core.Direction
 import net.minecraft.network.chat.CommonComponents
 import net.minecraft.network.chat.Component
 import net.minecraft.world.phys.AABB
-import net.typho.big_shot_lib.api.client.opengl.buffers.GlFramebuffer
 import net.typho.big_shot_lib.api.client.opengl.util.OpenGL
 import net.typho.big_shot_lib.api.client.util.*
 import net.typho.big_shot_lib.api.client.util.events.ClientEventFactory
@@ -76,7 +75,7 @@ object Vibrancy {
 
     @JvmStatic
     fun render(data: RenderEventData) {
-        lightManager.render(data, GlFramebuffer.MAIN) // WrapperUtil.INSTANCE.wrap()
+        lightManager.render(data, data.target) // WrapperUtil.INSTANCE.wrap()
     }
 
     @JvmStatic
@@ -234,7 +233,8 @@ object Vibrancy {
                 PanoramaPriority.SHADER_PACK,
                 listOf(
                     PanoramaTexture(id("textures/gui/title/background/lab")),
-                    //PanoramaTexture(id("textures/gui/title/background/trial_chamber")),
+                    PanoramaTexture(id("textures/gui/title/background/trial_chamber")),
+                    PanoramaTexture(id("textures/gui/title/background/glow_berries")),
                 )
             ))
         }

@@ -12,7 +12,6 @@ uniform vec3 LightPos;
 uniform vec3 LightColor;
 uniform float LightRadius;
 uniform float LightBrightness;
-uniform vec2 ScreenSize;
 
 in vec2 texCoord0;
 

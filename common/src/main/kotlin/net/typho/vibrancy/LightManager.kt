@@ -29,7 +29,7 @@ open class LightManager {
     @JvmField
     val blockLights = HashMap<BlockLightType<*, *>, BlockLightStorage<*>>()
     @JvmField
-    protected var blockRenderResults = HashMap<BlockLightType<*, *>, LightRenderResult>()
+    var blockRenderResults = HashMap<BlockLightType<*, *>, LightRenderResult>()
     @JvmField
     var skyLight: Pair<SkyLightType<*, *>, SkyLightStorage<*>>? = null
     @JvmField

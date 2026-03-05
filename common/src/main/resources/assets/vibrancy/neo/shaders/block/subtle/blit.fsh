@@ -12,7 +12,6 @@ layout(std430, binding = 2) buffer LightBuffer {
 };
 
 uniform float LightBrightness;
-uniform vec2 ScreenSize;
 
 in vec2 texCoord0;
 

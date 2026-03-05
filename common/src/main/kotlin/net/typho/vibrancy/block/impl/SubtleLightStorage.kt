@@ -2,10 +2,7 @@ package net.typho.vibrancy.block.impl
 
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
-import net.minecraft.core.Direction
 import net.minecraft.world.level.ChunkPos
-import net.minecraft.world.level.Level
-import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
 import net.minecraft.world.phys.AABB
@@ -25,7 +22,6 @@ import net.typho.vibrancy.block.HashMapBlockLightStorage
 import net.typho.vibrancy.shadows.BasicMesher
 import net.typho.vibrancy.shadows.LightFace
 import net.typho.vibrancy.shadows.LightMesh
-import net.typho.vibrancy.shadows.ShadowPredicate
 import org.lwjgl.system.MemoryUtil
 import org.lwjgl.system.NativeResource
 import java.util.*
@@ -141,59 +137,8 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                             }
                         }
 
-                        val predicate = object : ShadowPredicate {
-                            override fun shouldCastBlock(
-                                level: Level,
-                                pos: BlockPos
-                            ): Boolean {
-                                return true
-                            }
-
-                            override fun shouldCastFluid(
-                                level: Level,
-                                pos: BlockPos
-                            ): Boolean {
-                                return true
-                            }
-
-                            override fun shouldCastFace(
-                                face: Direction?,
-                                level: Level,
-                                pos: BlockPos
-                            ): Boolean {
-                                if (face == null) {
-                                    return true
-                                }
-
-                                return Block.shouldRenderFace( // TODO
-                                    level.getBlockState(pos),
-                                    level,
-                                    pos,
-                                    face,
-                                    pos.relative(face)
-                                )
-
-                                //return !(BlockUtil.INSTANCE.isSolidRender(state, pos, level) && BlockUtil.INSTANCE.isSolidRender(level.getBlockState(pos.relative(face)), pos.relative(face), level))
-
-                                //if (
-                                //    newChunk.map.keys.filter { it.distSqr(pos) <= 4 }
-                                //        .none { face.step().dot(it.center.subtract(pos.center).toVector3f()) > 0 }
-                                //) {
-                                //    return false
-                                //}
-                            }
-
-                            override fun isInLightRange(pos: BlockPos): Boolean {
-                                return true
-                            }
-
-                            override fun isInShadowRange(pos: BlockPos): Boolean {
-                                return false
-                            }
-                        }
-
                         val faces = LinkedList<LightFace>()
-                        BasicMesher(blocks).submit(manager, level, predicate, {}, faces::add)
+                        BasicMesher(blocks).submit(manager, level, SubtleLight.SHADOW_PREDICATE, {}, faces::add)
                         val task = newChunk.mesh.build(level, faces)
 
                         return@supplyAsync Consumer { data ->

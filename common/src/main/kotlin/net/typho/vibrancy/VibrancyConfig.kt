@@ -27,7 +27,7 @@ class VibrancyConfig : ConfigData {
             @JvmField
             @ConfigEntry.Gui.Tooltip
             @ConfigEntry.BoundedDiscrete(min = 1, max = 16)
-            var shadowRadius: Int = 6
+            var shadowRadius: Int = 8
         }
 
         @JvmField
