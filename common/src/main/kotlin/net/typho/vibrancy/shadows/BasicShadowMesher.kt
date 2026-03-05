@@ -26,7 +26,7 @@ open class BasicShadowMesher : ShadowMesher {
             val light = predicate.isInLightRange(pos)
 
             if (shadow || light) {
-                ShadowMesher.collectLightFaces(manager, block, level, pos, predicate) { face ->
+                ShadowMesher.collectLightFaces(manager, block, level, pos, predicate) { dir, face ->
                     if (shadow) {
                         shadowFaces.add(face)
                     }

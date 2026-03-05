@@ -21,15 +21,15 @@ data class LightFace(
     @JvmField
     val height: Int
 ) {
-    fun buildGeometry(consumer: NeoVertexConsumer, level: Level?, offset: Vector3f = Vector3f()) {
+    fun buildGeometry(consumer: NeoVertexConsumer, level: Level?) {
         val tintColor = level?.let {
             IColor.RGBA(Minecraft.getInstance().blockColors.getColor(it.getBlockState(blockPos), level, blockPos, 0))
         } ?: IColor.FULL_ON
 
-        consumer.vertex(quad.v1.add(offset, Vector3f())).textureUV(quad.uv1).color(tintColor)
-        consumer.vertex(quad.v2.add(offset, Vector3f())).textureUV(quad.uv2).color(tintColor)
-        consumer.vertex(quad.v3.add(offset, Vector3f())).textureUV(quad.uv3).color(tintColor)
-        consumer.vertex(quad.v4.add(offset, Vector3f())).textureUV(quad.uv4).color(tintColor)
+        consumer.vertex(quad.v1).textureUV(quad.uv1).color(tintColor)
+        consumer.vertex(quad.v2).textureUV(quad.uv2).color(tintColor)
+        consumer.vertex(quad.v3).textureUV(quad.uv3).color(tintColor)
+        consumer.vertex(quad.v4).textureUV(quad.uv4).color(tintColor)
     }
 
     open class Consumer(

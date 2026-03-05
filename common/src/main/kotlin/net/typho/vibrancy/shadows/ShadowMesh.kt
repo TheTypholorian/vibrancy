@@ -1,5 +1,6 @@
 package net.typho.vibrancy.shadows
 
+import com.mojang.blaze3d.vertex.ByteBufferBuilder
 import net.minecraft.world.level.Level
 import net.typho.big_shot_lib.api.client.opengl.buffers.BufferUsage
 import net.typho.big_shot_lib.api.client.opengl.buffers.Mesh
@@ -26,7 +27,7 @@ open class ShadowMesh : NativeResource {
         atlasWidth: Int,
         atlasHeight: Int
     ): Runnable {
-        val shadowBuilder = shadowMesh.Builder()
+        val shadowBuilder = shadowMesh.Builder(ByteBufferBuilder(shadowFaces.size * 4 * LightMesh.VERTEX_FORMAT.vertexSizeBytes))
 
         for (face in shadowFaces) {
             face.buildGeometry(shadowBuilder, if (face.width == 1 && face.height == 1) level else null)

@@ -105,7 +105,9 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
 
                                     if (box.contains(actualPos)) {
                                         BlockLightRegistry.get(state.block, SubtleLightType)?.let { info ->
-                                            newChunk.map[actualPos] = newChunk.createLight(manager, state, actualPos, info)
+                                            if (info.enabled.apply(state)) {
+                                                newChunk.map[actualPos] = newChunk.createLight(manager, state, actualPos, info)
+                                            }
                                         }
                                     }
                                 }
@@ -178,9 +180,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                                     pos.relative(face)
                                 )
 
-                                //if (BlockUtil.INSTANCE.isSolidRender(state, pos, level) && BlockUtil.INSTANCE.isSolidRender(sideState, sidePos, level)) {
-                                //    return false
-                                //}
+                                //return !(BlockUtil.INSTANCE.isSolidRender(state, pos, level) && BlockUtil.INSTANCE.isSolidRender(level.getBlockState(pos.relative(face)), pos.relative(face), level))
 
                                 //if (
                                 //    newChunk.map.keys.filter { it.distSqr(pos) <= 4 }

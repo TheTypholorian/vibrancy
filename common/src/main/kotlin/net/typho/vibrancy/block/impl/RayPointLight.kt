@@ -4,6 +4,7 @@ import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.material.FluidState
 import net.minecraft.world.phys.AABB
@@ -14,7 +15,6 @@ import net.typho.big_shot_lib.api.client.opengl.util.GlShapeType
 import net.typho.big_shot_lib.api.client.opengl.util.MeshUtil
 import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
-import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.big_shot_lib.api.util.IColor
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.LightRenderResult
@@ -120,7 +120,7 @@ open class RayPointLight(
             level: Level,
             pos: BlockPos
         ): Boolean {
-            return pos != blockPos && (BlockUtil.INSTANCE.isSolidRender(block, pos, level) || !BlockLightRegistry.has(block.block))
+            return pos != blockPos && !BlockLightRegistry.has(block.block)
         }
 
         override fun shouldCastFluid(
@@ -147,9 +147,15 @@ open class RayPointLight(
                 return true
             }
 
-            val sideState = level.getBlockState(sidePos)
-
-            if (BlockUtil.INSTANCE.isSolidRender(state, pos, level) && BlockUtil.INSTANCE.isSolidRender(sideState, sidePos, level)) {
+            if (
+                !Block.shouldRenderFace( // TODO
+                    state,
+                    level,
+                    pos,
+                    face,
+                    sidePos
+                )
+            ) {
                 return false
             }
 
@@ -171,7 +177,7 @@ open class RayPointLight(
     }
 
     fun reload(manager: LightManager) {
-        shadows.rebuildAsync(manager, manager.createShadowMesher(this), this)
+        shadowsDirty = true
     }
 
     override fun free() {

@@ -4,27 +4,10 @@ import net.typho.big_shot_lib.api.client.opengl.buffers.GlBuffer
 import org.lwjgl.system.MemoryUtil
 import java.awt.Dimension
 import java.awt.Rectangle
-import java.util.*
 import kotlin.math.ceil
 import kotlin.math.sqrt
 
 object TextureAtlas {
-    @JvmStatic
-    fun main(args: Array<String>) {
-        println(pack(
-            Dimension(16, 16),
-            Dimension(3, 16),
-            Dimension(3, 8),
-            Dimension(2, 8),
-            Dimension(16, 8),
-            Dimension(16, 4),
-            Dimension(16, 4),
-        ))
-        println(Rectangle(0, 0, 16, 16).intersects(Rectangle(0, 17, 16, 16)))
-        println(Rectangle(0, 0, 16, 16).intersects(Rectangle(0, 16, 16, 16)))
-        println(Rectangle(0, 0, 16, 16).intersects(Rectangle(0, 15, 16, 16)))
-    }
-
     private fun Dimension.max(other: Dimension): Dimension {
         return Dimension(
             width.coerceAtLeast(other.width),
@@ -85,7 +68,7 @@ object TextureAtlas {
 
         data class Section(
             @JvmField
-            val textures: MutableList<Pair<Int, Rectangle>> = LinkedList()
+            val textures: MutableList<Pair<Int, Rectangle>> = ArrayList()
         ) {
             fun fit(id: Int, texture: Dimension): Rectangle? {
                 var x = 0
@@ -120,9 +103,9 @@ object TextureAtlas {
         }
 
         val pool = textures.mapIndexed { index, dimension -> index to dimension }
-            .sortedWith(Comparator.comparingInt { it.second.width * it.second.height })
+            //.sortedWith(Comparator.comparingInt { it.second.width * it.second.height })
             .toMutableList()
-        val sections = LinkedList<Section>()
+        val sections = ArrayList<Section>()
 
         while (pool.isNotEmpty()) {
             val texture = pool.removeLast()
@@ -159,16 +142,6 @@ object TextureAtlas {
 
                     section.textures.forEach {
                         array[it.first] = Rectangle(it.second.x + x * max.width, it.second.y + y * max.height, it.second.width, it.second.height)
-                    }
-                }
-            }
-        }
-
-        for (a in array) {
-            for (b in array) {
-                if (a !== b) {
-                    if (a!!.intersects(b!!)) {
-                        throw IllegalStateException("$a $b")
                     }
                 }
             }

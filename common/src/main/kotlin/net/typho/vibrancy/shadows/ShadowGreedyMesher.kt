@@ -1,7 +1,5 @@
 package net.typho.vibrancy.shadows
 
-import net.minecraft.client.Minecraft
-import net.minecraft.client.renderer.block.model.BakedQuad
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -13,7 +11,6 @@ import net.typho.big_shot_lib.api.client.opengl.util.TexturedQuad
 import net.typho.big_shot_lib.api.client.util.BlockRenderSettings
 import net.typho.big_shot_lib.api.client.util.BlockRenderSettingsUtil
 import net.typho.big_shot_lib.api.util.BlockUtil
-import net.typho.big_shot_lib.api.util.WrapperUtil
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.util.TextureCoordinates
 import org.joml.Vector3f
@@ -21,16 +18,15 @@ import java.util.*
 import java.util.function.Consumer
 
 open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
-    val grid: Array<Array<Array<Voxel?>>> = Array(box.max.x - box.min.x + 1) { x ->
-        Array(box.max.y - box.min.y + 1) { y ->
-            Array(box.max.z - box.min.z + 1) { z ->
+    val grid: Array<Array<Array<Voxel?>>> = Array(box.sizeX()) {
+        Array(box.sizeY()) {
+            Array(box.sizeZ()) {
                 null
             }
         }
     }
-    val allVoxels = LinkedList<Voxel>()
-    val nonGreedy = LinkedList<LightFace>()
-    val lightFaces = LinkedList<LightFace>()
+    val nonGreedy = ArrayList<LightFace>()
+    val lightFaces = ArrayList<LightFace>()
 
     fun shouldGreedyMesh(
         state: BlockState,
@@ -48,29 +44,30 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
         val block = level.getBlockState(pos)
 
         if (predicate.shouldCastBlock(block, level, pos)) {
-            if (predicate.isInLightRange(pos)) {
-                ShadowMesher.collectLightFaces(manager, block, level, pos, predicate, lightFaces::add)
-            }
+            val greedy = shouldGreedyMesh(block, level, pos)
+            val light = predicate.isInLightRange(pos)
+            val shadow = predicate.isInShadowRange(pos)
+            val voxel = if (greedy) Voxel(pos) else null
 
-            if (shouldGreedyMesh(block, level, pos)) {
-                val voxel = Voxel(pos)
-                val model = Minecraft.getInstance().blockRenderer.getBlockModel(block) // TODO
+            if (light || shadow || greedy) {
+                ShadowMesher.collectLightFaces(manager, block, level, pos, predicate) { dir, face ->
+                    if (light) {
+                        lightFaces.add(face)
+                    }
 
-                for (direction in Direction.entries) {
-                    if (predicate.shouldCastFace(direction, level.getBlockState(voxel.pos), level, voxel.pos)) {
-                        val quads = model.getQuads(block, direction, random)
-
-                        if (quads.isNotEmpty()) {
-                            voxel.quads[direction.ordinal] = quads.first()
+                    if (voxel != null && dir != null) {
+                        if (voxel.quads[dir.ordinal] == null) {
+                            voxel.quads[dir.ordinal] = face.quad
+                        } else {
+                            nonGreedy.add(face)
                         }
+                    } else if (shadow) {
+                        nonGreedy.add(face)
                     }
                 }
-
-                grid[pos.x - box.min.x][pos.y - box.min.y][pos.z - box.min.z] = voxel
-                allVoxels.add(voxel)
-            } else if (predicate.isInShadowRange(pos)) {
-                ShadowMesher.collectLightFaces(manager, block, level, pos, predicate, nonGreedy::add)
             }
+
+            grid[pos.x - box.min.x][pos.y - box.min.y][pos.z - box.min.z] = voxel
         }
     }
 
@@ -84,19 +81,23 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
         var start: BlockPos? = null
         var length = 0
         var texture: TextureCoordinates? = null
-        val faces = HashMap<Direction, MutableMap<BlockPos, LightFace>>()
-        val currentVoxels = LinkedList<Voxel>()
+        val currentVoxels = ArrayList<Voxel>()
 
-        fun start(pos: BlockPos, quad: BakedQuad) {
+        fun start(pos: BlockPos, quad: TexturedQuad) {
             start = pos
             length = 1
-            texture = TextureCoordinates(quad.sprite)
+            texture = TextureCoordinates(
+                quad.uv1,
+                quad.uv2,
+                quad.uv3,
+                quad.uv4,
+            )
             currentVoxels.clear()
         }
 
         fun end(direction: Direction, axis: Direction.Axis) {
             if (length > 1) {
-                faces.computeIfAbsent(direction) { HashMap() }[start!!] =
+                shadowOut.accept(
                     if (axis != Direction.Axis.X && (axis == Direction.Axis.Y || direction.axis == Direction.Axis.Y)) {
                         direction.createFace(
                             start!!,
@@ -110,6 +111,7 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
                             width = length
                         )
                     }
+                )
 
                 for (voxel in currentVoxels) {
                     voxel.quads[direction.ordinal] = null
@@ -137,10 +139,6 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
                     }
 
                     currentVoxels.add(voxel)
-
-                    //if (length >= Vibrancy.config.forNerds.maxGreedyMeshSectionWidth.get()) {
-                    //    end(direction, axis)
-                    //}
                 }
             } else {
                 end(direction, axis)
@@ -189,125 +187,22 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
             }
         }
 
-        //if (Vibrancy.config.forNerds.useExtraGreedyMeshing.get()) {
-        val extraGreedy = LinkedList<LightFace>()
-        val removed = LinkedList<LightFace>()
-
-        for (entry in faces) {
-            val sideAxis = if (entry.key.axis == Direction.Axis.Y) Direction.Axis.X else Direction.Axis.Y
-
-            entry.value.entries.forEach { entry1 ->
-                if (removed.contains(entry1.value)) {
-                    return@forEach
-                }
-
-                val doubleGreedy = LinkedList(listOf(entry1.value))
-                var pos = entry1.value.blockPos
-
-                while (true) {//doubleGreedy.size < Vibrancy.config.forNerds.maxGreedyMeshSectionWidth.get()) {
-                    pos = pos.relative(sideAxis, 1)
-
-                    val other = entry.value[pos] ?: break
-
-                    if (removed.contains(other)) {
-                        break
-                    }
-
-                    if (entry.key.axis == Direction.Axis.Y) {
-                        if (other.height != entry1.value.height) {
-                            break
-                        }
-                    } else {
-                        if (other.width != entry1.value.width) {
-                            break
-                        }
-                    }
-
-                    doubleGreedy.add(other)
-                }
-
-                pos = entry1.value.blockPos
-
-                while (true) {//doubleGreedy.size < Vibrancy.config.forNerds.maxGreedyMeshSectionWidth.get()) {
-                    pos = pos.relative(sideAxis, -1)
-
-                    val other = entry.value[pos] ?: break
-
-                    if (removed.contains(other)) {
-                        break
-                    }
-
-                    if (entry.key.axis == Direction.Axis.Y) {
-                        if (other.height != entry1.value.height) {
-                            break
-                        }
-                    } else {
-                        if (other.width != entry1.value.width) {
-                            break
-                        }
-                    }
-
-                    doubleGreedy.addFirst(other)
-                }
-
-                if (doubleGreedy.size > 1) {
-                    removed.addAll(doubleGreedy)
-                    extraGreedy.add(
-                        if (entry.key.axis == Direction.Axis.Y) {
-                            entry.key.createFace(
-                                doubleGreedy.first().blockPos,
-                                TextureCoordinates(entry1.value.quad),
-                                width = doubleGreedy.size,
-                                height = entry1.value.height
-                            )
-                        } else {
-                            entry.key.createFace(
-                                doubleGreedy.first().blockPos,
-                                TextureCoordinates(entry1.value.quad),
-                                width = entry1.value.width,
-                                height = doubleGreedy.size
-                            )
-                        }
-                    )
-                }
-            }
-        }
-
-        extraGreedy.forEach(shadowOut)
-
-        for (map in faces.values) {
-            for (face in map.values) {
-                if (!removed.contains(face)) {
-                    shadowOut.accept(face)
-                }
-            }
-        }
-        //} else {
-        //    for (map in faces.values) {
-        //        for (face in map.values) {
-        //            out.accept(face)
-        //        }
-        //    }
-        //}
-
-        for (voxel in allVoxels) {
-            if (predicate.isInShadowRange(voxel.pos)) {
-                for (direction in Direction.entries) {
-                    voxel.quads[direction.ordinal]?.let { quad ->
-                        shadowOut.accept(
-                            LightFace(
-                                voxel.pos,
-                                WrapperUtil.INSTANCE.wrap(quad).offset(
-                                    Vector3f(
-                                        voxel.pos.x.toFloat(),
-                                        voxel.pos.y.toFloat(),
-                                        voxel.pos.z.toFloat(),
+        for (arrays in grid) {
+            for (voxels in arrays) {
+                for (voxel in voxels) {
+                    if (voxel != null && predicate.isInShadowRange(voxel.pos)) {
+                        for (direction in Direction.entries) {
+                            voxel.quads[direction.ordinal]?.let { quad ->
+                                shadowOut.accept(
+                                    LightFace(
+                                        voxel.pos,
+                                        quad,
+                                        1,
+                                        1
                                     )
-                                ),
-                                1,
-                                1
-                            )
-                        )
+                                )
+                            }
+                        }
                     }
                 }
             }
@@ -317,8 +212,30 @@ open class ShadowGreedyMesher(val box: BlockBox) : ShadowMesher {
         lightFaces.forEach(lightOut)
     }
 
-    class Voxel(val pos: BlockPos) {
-        val quads = arrayOfNulls<BakedQuad?>(Direction.entries.size)
+    @JvmRecord
+    data class Voxel(
+        @JvmField
+        val pos: BlockPos,
+        @JvmField
+        val quads: Array<TexturedQuad?> = arrayOfNulls<TexturedQuad?>(Direction.entries.size)
+    ) {
+        override fun equals(other: Any?): Boolean {
+            if (this === other) return true
+            if (javaClass != other?.javaClass) return false
+
+            other as Voxel
+
+            if (pos != other.pos) return false
+            if (!quads.contentEquals(other.quads)) return false
+
+            return true
+        }
+
+        override fun hashCode(): Int {
+            var result = pos.hashCode()
+            result = 31 * result + quads.contentHashCode()
+            return result
+        }
     }
 
     companion object {

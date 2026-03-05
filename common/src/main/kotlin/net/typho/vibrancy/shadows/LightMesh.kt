@@ -1,5 +1,6 @@
 package net.typho.vibrancy.shadows
 
+import com.mojang.blaze3d.vertex.ByteBufferBuilder
 import net.minecraft.world.level.Level
 import net.typho.big_shot_lib.api.client.opengl.buffers.*
 import net.typho.big_shot_lib.api.client.opengl.state.*
@@ -14,6 +15,7 @@ import org.lwjgl.system.NativeResource
 import java.awt.Dimension
 import java.util.*
 import kotlin.math.abs
+import kotlin.math.ceil
 
 open class LightMesh : NativeResource {
     companion object {
@@ -120,14 +122,14 @@ open class LightMesh : NativeResource {
         atlasHeight: Int
     ): Runnable {
         val textures = LinkedList<Dimension>()
-        val lightBuilder = mesh.Builder()
+        val lightBuilder = mesh.Builder(ByteBufferBuilder(lightFaces.size * 4 * VERTEX_FORMAT.vertexSizeBytes))
         var empty = true
 
         for (face in lightFaces) {
             face.buildGeometry(lightBuilder, level)
             textures.add(Dimension(
-                (abs(face.quad.uv1.y - face.quad.uv3.y) * atlasHeight * face.height).toInt(),
-                (abs(face.quad.uv1.x - face.quad.uv3.x) * atlasWidth * face.width).toInt()
+                ceil(abs(face.quad.uv1.y - face.quad.uv3.y) * atlasHeight * face.height).toInt(),
+                ceil(abs(face.quad.uv1.x - face.quad.uv3.x) * atlasWidth * face.width).toInt()
             ))
             empty = false
         }
