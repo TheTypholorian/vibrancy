@@ -58,7 +58,7 @@ open class LightMesh : NativeResource {
                     PolygonOffsetShard(
                         PolygonOffset(
                             -1f,
-                            -1f,
+                            -2f,
                         )
                     ),
                     BindBufferBaseShard(

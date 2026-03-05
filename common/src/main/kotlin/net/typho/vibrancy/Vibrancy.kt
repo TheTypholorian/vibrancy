@@ -76,7 +76,7 @@ object Vibrancy {
 
     @JvmStatic
     fun render(data: RenderEventData) {
-        lightManager.render(data, GlFramebuffer.MAIN)
+        lightManager.render(data, GlFramebuffer.MAIN) // WrapperUtil.INSTANCE.wrap()
     }
 
     @JvmStatic
@@ -234,7 +234,7 @@ object Vibrancy {
                 PanoramaPriority.SHADER_PACK,
                 listOf(
                     PanoramaTexture(id("textures/gui/title/background/lab")),
-                    PanoramaTexture(id("textures/gui/title/background/trial_chamber")),
+                    //PanoramaTexture(id("textures/gui/title/background/trial_chamber")),
                 )
             ))
         }
