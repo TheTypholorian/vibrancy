@@ -23,7 +23,7 @@ bool findSprite(ivec2 spriteCoords, out uint index, out Sprite sprite) {
     return false;
 }
 
-void lightBlitInit(out Quad self, out vec2 mappedUV, out vec2 antiAliasStep) {
+void lightBlitInit(out Quad self, out vec2 mappedUV) {
     ivec2 spriteCoords = ivec2(gl_FragCoord.xy);
     uint index;
     Sprite sprite;
@@ -34,5 +34,4 @@ void lightBlitInit(out Quad self, out vec2 mappedUV, out vec2 antiAliasStep) {
 
     self = lightQuads[index];
     mappedUV = interpolateSprite(sprite, spriteCoords) + 1 / (vec2(sprite.width, sprite.height) * 2);
-    antiAliasStep = 1 / (vec2(sprite.width, sprite.height) * 3);
 }

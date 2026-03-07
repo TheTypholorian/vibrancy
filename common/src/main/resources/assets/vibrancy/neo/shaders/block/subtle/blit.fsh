@@ -20,9 +20,8 @@ out vec4 fragColor;
 void main() {
     Quad self;
     vec2 mappedUV;
-    vec2 step;
 
-    lightBlitInit(self, mappedUV, step);
+    lightBlitInit(self, mappedUV);
 
     vec3 pos = interpolateQuadPos(self, mappedUV);
 

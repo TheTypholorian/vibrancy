@@ -24,14 +24,8 @@ open class SubtleLight(
         val SHADOW_PREDICATE = object : ShadowPredicate {
             override fun shouldCastBlock(
                 level: Level,
-                pos: BlockPos
-            ): Boolean {
-                return true
-            }
-
-            override fun shouldCastFluid(
-                level: Level,
-                pos: BlockPos
+                pos: BlockPos,
+                state: BlockState
             ): Boolean {
                 return true
             }
@@ -39,13 +33,14 @@ open class SubtleLight(
             override fun shouldCastFace(
                 face: Direction?,
                 level: Level,
-                pos: BlockPos
+                pos: BlockPos,
+                state: BlockState
             ): Boolean {
                 if (face == null) {
                     return true
                 }
 
-                return BlockUtil.INSTANCE.shouldRenderFace(level, pos, face)
+                return BlockUtil.INSTANCE.shouldRenderFace(level, pos, face, state)
             }
 
             override fun isInLightRange(pos: BlockPos): Boolean {
@@ -70,9 +65,9 @@ open class SubtleLight(
         get() {
             return AABB.ofSize(
                 Vec3(absolutePos.x.toDouble(), absolutePos.y.toDouble(), absolutePos.z.toDouble()),
-                2.0,
-                2.0,
-                2.0
+                3.0,
+                3.0,
+                3.0
             )
         }
     override val shadowBox: BlockBox

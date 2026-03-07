@@ -7,7 +7,7 @@ import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.LightRenderResult
 
-interface BlockLightType<I, S : BlockLightStorage<I>> {
+interface BlockLightType<I : BlockLightInfo, S : BlockLightStorage<I>> {
     fun createStorage(manager: LightManager): S
 
     fun infoCodec(stateDefinition: StateDefinition<*, *>): MapCodec<I>

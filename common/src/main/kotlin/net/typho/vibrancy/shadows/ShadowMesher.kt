@@ -29,26 +29,24 @@ interface ShadowMesher {
             predicate: (face: Direction?) -> Boolean,
             out: BiConsumer<Direction?, LightFace>
         ) {
-            if (state.isAir) {
-                return
-            }
-
-            MeshUtil.INSTANCE.getBlockQuads(state, level, pos) { dir, quads ->
-                if (predicate(dir)) {
-                    quads.forEach {
-                        out.accept(
-                            dir,
-                            LightFace(
-                                pos,
-                                it.withVertices { index, vertex ->
-                                    vertex.withPosition { v ->
-                                        Vec3.atLowerCornerOf(pos).toVector3f().add(v)
-                                    }
-                                },
-                                1,
-                                1
+            if (!state.isAir) {
+                MeshUtil.INSTANCE.getBlockQuads(state, level, pos) { dir, quads ->
+                    if (predicate(dir)) {
+                        quads.forEach {
+                            out.accept(
+                                dir,
+                                LightFace(
+                                    pos,
+                                    it.withVertices { index, vertex ->
+                                        vertex.withPosition { v ->
+                                            Vec3.atLowerCornerOf(pos).toVector3f().add(v)
+                                        }
+                                    },
+                                    1,
+                                    1
+                                )
                             )
-                        )
+                        }
                     }
                 }
             }

@@ -232,9 +232,9 @@ object Vibrancy {
                 id("panoramas"),
                 PanoramaPriority.SHADER_PACK,
                 listOf(
-                    PanoramaTexture(id("textures/gui/title/background/lab")),
+                    PanoramaTexture(id("textures/gui/title/background/ancient_city")),
                     PanoramaTexture(id("textures/gui/title/background/trial_chamber")),
-                    PanoramaTexture(id("textures/gui/title/background/glow_berries")),
+                    PanoramaTexture(id("textures/gui/title/background/lush_cave"))
                 )
             ))
         }

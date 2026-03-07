@@ -3,8 +3,10 @@ package net.typho.vibrancy.shadows
 import com.mojang.blaze3d.vertex.ByteBufferBuilder
 import net.minecraft.world.level.Level
 import net.typho.big_shot_lib.api.client.opengl.buffers.*
+import net.typho.big_shot_lib.api.client.opengl.shaders.GlShader
 import net.typho.big_shot_lib.api.client.opengl.state.*
 import net.typho.big_shot_lib.api.client.opengl.util.FogUtil
+import net.typho.big_shot_lib.api.client.opengl.util.GlResourcePool
 import net.typho.big_shot_lib.api.client.opengl.util.GlShapeType
 import net.typho.big_shot_lib.api.client.opengl.util.TextureFormat
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
@@ -14,6 +16,8 @@ import net.typho.vibrancy.Vibrancy
 import org.lwjgl.system.NativeResource
 import java.awt.Dimension
 import java.util.*
+import kotlin.math.abs
+import kotlin.math.ceil
 
 open class LightMesh : NativeResource {
     companion object {
@@ -25,9 +29,16 @@ open class LightMesh : NativeResource {
             .add("Color", NeoVertexFormat.Element.COLOR)
             .padding(4)
             .build()
+        @JvmField
+        val pool = GlResourcePool(
+            { LightMesh() },
+            512,
+            { LightMesh() },
+            true
+        )
 
         @JvmStatic
-        fun renderSettings(fbo: GlFramebuffer, mesh: LightMesh, data: RenderEventData, sampler0: GlTexture) =
+        fun renderSettings(fbo: GlFramebuffer, data: RenderEventData, sampler0: GlTexture) =
             RenderSettings(
                 Vibrancy.id("light_mesh"),
                 listOf(
@@ -61,17 +72,12 @@ open class LightMesh : NativeResource {
                             -2f,
                         )
                     ),
-                    BindBufferBaseShard(
-                        { mesh.atlas },
-                        0
-                    ),
                     ShaderShard(
                         Vibrancy.id("light_mesh")
                     ) { shader ->
                         shader.setCommonUniforms(data)
 
                         shader.getUniform("Sampler0")?.setSampler(sampler0)
-                        shader.getUniform("Sampler1")?.setSampler(mesh.texture)
                         FogUtil.INSTANCE.upload(shader)
                     }
                 )
@@ -103,13 +109,11 @@ open class LightMesh : NativeResource {
     var empty = true
         protected set
 
-    fun draw(fbo: GlFramebuffer, data: RenderEventData, sampler0: GlTexture) {
+    fun draw(shader: GlShader) {
         if (!empty) {
-            val settings = renderSettings(fbo, this, data, sampler0)
-
-            settings.bind()
+            atlas.bindBase(0)
+            shader.getUniform("Sampler1")?.setSampler(texture)
             mesh.draw()
-            settings.unbind()
         }
     }
 
@@ -124,8 +128,8 @@ open class LightMesh : NativeResource {
         for (face in lightFaces) {
             face.buildGeometry(lightBuilder, level)
             textures.add(Dimension(
-                face.quad.sprite.height,
-                face.quad.sprite.width
+                ceil(abs(face.quad.vertices[0].textureUV!!.y() - face.quad.vertices[2].textureUV!!.y()) * face.quad.sprite.atlas.height * face.height).toInt(),
+                ceil(abs(face.quad.vertices[0].textureUV!!.x() - face.quad.vertices[2].textureUV!!.x()) * face.quad.sprite.atlas.width * face.width).toInt()
             ))
             empty = false
         }

@@ -4,13 +4,16 @@ import net.minecraft.world.level.block.state.StateDefinition
 import net.typho.big_shot_lib.api.client.opengl.buffers.BufferType
 import net.typho.big_shot_lib.api.client.opengl.buffers.ClearBit
 import net.typho.big_shot_lib.api.client.opengl.buffers.GlFramebuffer
+import net.typho.big_shot_lib.api.client.opengl.shaders.NeoShaderRegistry
 import net.typho.big_shot_lib.api.client.opengl.state.*
+import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.big_shot_lib.api.util.IColor
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.LightRenderResult
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.block.BlockLightType
+import net.typho.vibrancy.shadows.LightMesh
 
 object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
     @JvmStatic
@@ -23,11 +26,11 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
                 GlFlag.BLEND
             )),
             BindBufferBaseShard(
-                { chunk.mesh.mesh.vbo.cast(BufferType.SHADER_STORAGE_BUFFER) },
+                { chunk.mesh.value!!.mesh.vbo.cast(BufferType.SHADER_STORAGE_BUFFER) },
                 0
             ),
             BindBufferBaseShard(
-                { chunk.mesh.atlas },
+                { chunk.mesh.value!!.atlas },
                 1
             ),
             BindBufferBaseShard(
@@ -35,7 +38,7 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
                 2
             ),
             FramebufferShard(
-                { chunk.mesh.target },
+                { chunk.mesh.value!!.target },
                 true,
                 ClearBit.Color(IColor.FULL_OFF)
             ),
@@ -63,15 +66,20 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
         if (Vibrancy.config.blockLights.subtle.enabled) {
             lights.checkDirty(manager, data)
 
-            val meshes = lights.chunks.values.sortedBy { manager.getSortingOrder(data, it.pos) }
+            val settings = LightMesh.renderSettings(fbo, data, TextureUtil.INSTANCE.blockAtlas)
+            val shader = NeoShaderRegistry.get(Vibrancy.id("light_mesh"))!! // TODO
 
-            for (mesh in meshes) {
-                if ((result.numRendered ?: 0) + mesh.size > Vibrancy.config.blockLights.subtle.maxRendered) {
-                    break
+            settings.bind()
+
+            lights.chunks.values
+                .filter {
+                    manager.inRenderDistance(data, it.pos, Vibrancy.config.blockLights.subtle.renderDistance)
+                }
+                .forEach {
+                    result.add(it.render(data, shader))
                 }
 
-                result.add(mesh.render(fbo, data))
-            }
+            settings.unbind()
         }
 
         return result

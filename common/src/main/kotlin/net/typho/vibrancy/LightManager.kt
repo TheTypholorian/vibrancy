@@ -11,6 +11,7 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
 import net.typho.big_shot_lib.api.client.opengl.buffers.GlFramebuffer
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
+import net.typho.vibrancy.block.BlockLightInfo
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.block.BlockLightStorage
 import net.typho.vibrancy.block.BlockLightType
@@ -48,7 +49,7 @@ open class LightManager {
 
     fun reload() {
         for (light in blockLights.values) {
-            light.reload(this)
+            light.reload(this, null)
         }
 
         skyLight?.second?.reload(this)
@@ -61,13 +62,14 @@ open class LightManager {
     }
 
     @Suppress("UNCHECKED_CAST")
-    protected fun <I> addBlockLight(
+    protected fun <I : BlockLightInfo> addBlockLight(
         pos: BlockPos,
+        level: Level,
         state: BlockState,
         type: BlockLightType<I, *>,
         info: Any
     ) {
-        (blockLights[type] as BlockLightStorage<I>).addLight(this, state, pos, info as I)
+        (blockLights[type] as BlockLightStorage<I>).addLight(this, level, state, pos, info as I)
     }
 
     fun blockChanged(
@@ -79,9 +81,9 @@ open class LightManager {
         ensureStorageInitialized()
 
         for (entry in blockLights) {
-            entry.value.removeLight(this, pos)
+            entry.value.removeLight(this, level, pos)
 
-            BlockLightRegistry.get(new.block, entry.key)?.let { addBlockLight(pos, new, entry.key, it) }
+            BlockLightRegistry.get(new.block, entry.key)?.let { addBlockLight(pos, level, new, entry.key, it) }
         }
 
         dirtyBlocks.add(GlobalPos(level.dimension(), pos))
@@ -92,6 +94,14 @@ open class LightManager {
 
         blockLights.values.forEach { storage -> storage.loadChunk(this, chunk) }
         skyLight?.second?.loadChunk(this, chunk)
+
+        for (light in blockLights.values) {
+            for (x in chunk.pos.x - 1..chunk.pos.x + 1) {
+                for (z in chunk.pos.z - 1..chunk.pos.z + 1) {
+                    light.reload(this, ChunkPos(x, z))
+                }
+            }
+        }
     }
 
     fun deloadChunk(chunk: LevelChunk) {
@@ -99,6 +109,14 @@ open class LightManager {
 
         blockLights.values.forEach { storage -> storage.deloadChunk(this, chunk) }
         skyLight?.second?.deloadChunk(this, chunk)
+
+        for (light in blockLights.values) {
+            for (x in chunk.pos.x - 1..chunk.pos.x + 1) {
+                for (z in chunk.pos.z - 1..chunk.pos.z + 1) {
+                    light.reload(this, ChunkPos(x, z))
+                }
+            }
+        }
     }
 
     @Suppress("UNCHECKED_CAST")

@@ -42,15 +42,14 @@ vec4 test(Quad q, Ray check) {
 void main() {
     Quad self;
     vec2 mappedUV;
-    vec2 step;
 
-    lightBlitInit(self, mappedUV, step);
+    lightBlitInit(self, mappedUV);
 
     Ray rayA = check(self, mappedUV);
-    Ray rayB = check(self, mappedUV + vec2(step.x, 0));
-    Ray rayC = check(self, mappedUV + vec2(-step.x, 0));
-    Ray rayD = check(self, mappedUV + vec2(0, step.y));
-    Ray rayE = check(self, mappedUV + vec2(0, -step.y));
+    //Ray rayB = check(self, mappedUV + vec2(step.x, 0));
+    //Ray rayC = check(self, mappedUV + vec2(-step.x, 0));
+    //Ray rayD = check(self, mappedUV + vec2(0, step.y));
+    //Ray rayE = check(self, mappedUV + vec2(0, -step.y));
 
     fragColor = samplePointLight(LightPos, rayA.pos, LightRadius, LightColor);
 
@@ -58,11 +57,11 @@ void main() {
         Quad q = shadowQuads[i];
 
         vec4 a = test(q, rayA);
-        vec4 b = test(q, rayB);
-        vec4 c = test(q, rayC);
-        vec4 d = test(q, rayD);
-        vec4 e = test(q, rayE);
+        //vec4 b = test(q, rayB);
+        //vec4 c = test(q, rayC);
+        //vec4 d = test(q, rayD);
+        //vec4 e = test(q, rayE);
 
-        fragColor *= (a + b + c + d + e) / 5;
+        fragColor *= a;// (a + b + c + d + e) / 5;
     }
 }

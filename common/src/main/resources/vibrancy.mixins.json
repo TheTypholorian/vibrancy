@@ -4,13 +4,8 @@
   "package": "net.typho.vibrancy.mixin",
   "refmap": "${mod_id}.refmap.json",
   "compatibilityLevel": "JAVA_21",
-  "mixins": [
-    "GlShapeTypeMixin"
-  ],
-  "client": [
-    "CubeMapMixin",
-    "MinecraftMixin"
-  ],
+  "mixins": [],
+  "client": [],
   "injectors": {
     "defaultRequire": 1
   }

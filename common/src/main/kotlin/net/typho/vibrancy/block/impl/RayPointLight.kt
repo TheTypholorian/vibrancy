@@ -8,6 +8,7 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import net.typho.big_shot_lib.api.client.opengl.buffers.*
+import net.typho.big_shot_lib.api.client.opengl.shaders.GlShader
 import net.typho.big_shot_lib.api.client.opengl.state.*
 import net.typho.big_shot_lib.api.client.opengl.util.GlShapeType
 import net.typho.big_shot_lib.api.client.opengl.util.MeshUtil
@@ -19,10 +20,11 @@ import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.LightRenderResult
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.Vibrancy.isPointingTowards
-import net.typho.vibrancy.block.BlockLightRegistry
+import net.typho.vibrancy.Vibrancy.toBlockBox
 import net.typho.vibrancy.shadows.AsyncBlockShadowMesh
 import net.typho.vibrancy.shadows.ShadowPredicate
 import net.typho.vibrancy.util.PointLight
+import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.lwjgl.system.NativeResource
 import kotlin.math.ceil
@@ -47,11 +49,11 @@ open class RayPointLight(
                     GlFlag.BLEND
                 )),
                 BindBufferBaseShard(
-                    { light.shadows.lightMesh.mesh.vbo.cast(BufferType.SHADER_STORAGE_BUFFER) },
+                    { light.shadows.lightMesh.value!!.mesh.vbo.cast(BufferType.SHADER_STORAGE_BUFFER) },
                     0
                 ),
                 BindBufferBaseShard(
-                    { light.shadows.lightMesh.atlas },
+                    { light.shadows.lightMesh.value!!.atlas },
                     1
                 ),
                 BindBufferBaseShard(
@@ -59,7 +61,7 @@ open class RayPointLight(
                     2
                 ),
                 FramebufferShard(
-                    { light.shadows.lightMesh.target },
+                    { light.shadows.lightMesh.value!!.target },
                     true,
                     ClearBit.Color(IColor.FULL_OFF)
                 ),
@@ -67,6 +69,8 @@ open class RayPointLight(
                     Vibrancy.id("block/raytraced/blit")
                 ) { shader ->
                     shader.setCommonUniforms(data)
+                    shader.getUniform("ProjMat")?.setValue(Matrix4f(data.projMat))
+                    shader.getUniform("ModelViewMat")?.setValue(Matrix4f(data.modelViewMat))
                     shader.getUniform("Sampler0")?.setSampler(TextureUtil.INSTANCE.blockAtlas)
 
                     shader.getUniform("LightPos")?.setValue(light.absolutePos)
@@ -117,22 +121,17 @@ open class RayPointLight(
     override val shadowPredicate = object : ShadowPredicate {
         override fun shouldCastBlock(
             level: Level,
-            pos: BlockPos
+            pos: BlockPos,
+            state: BlockState
         ): Boolean {
-            return shadowBox.contains(pos) && (pos == blockPos || !BlockLightRegistry.has(level.getBlockState(pos).block))
-        }
-
-        override fun shouldCastFluid(
-            level: Level,
-            pos: BlockPos
-        ): Boolean {
-            return !BlockLightRegistry.has(level.getBlockState(pos).block)
+            return boundingBox.toBlockBox().contains(pos)
         }
 
         override fun shouldCastFace(
             face: Direction?,
             level: Level,
-            pos: BlockPos
+            pos: BlockPos,
+            state: BlockState
         ): Boolean {
             if (face == null || pos == blockPos) {
                 return true
@@ -149,14 +148,12 @@ open class RayPointLight(
             }
 
             if (
-                BlockUtil.INSTANCE.isSolidRender(level.getBlockState(pos), pos, level) && BlockUtil.INSTANCE.isSolidRender(level.getBlockState(sidePos), sidePos, level)
-                //!Block.shouldRenderFace( // TODO
-                //    state,
-                //    level,
-                //    pos,
-                //    face,
-                //    sidePos
-                //)
+                !BlockUtil.INSTANCE.shouldRenderFace(
+                    level,
+                    pos,
+                    face,
+                    state
+                )
             ) {
                 return false
             }
@@ -174,11 +171,12 @@ open class RayPointLight(
         }
 
         override fun isInLightRange(pos: BlockPos): Boolean {
-            return pos.distSqr(blockPos) <= radius * radius
+            val lightRadius = ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.lightRadius.toFloat())).toInt()
+            return pos.distSqr(blockPos) <= lightRadius * lightRadius
         }
     }
 
-    fun reload(manager: LightManager) {
+    fun reload() {
         shadowsDirty = true
     }
 
@@ -187,14 +185,9 @@ open class RayPointLight(
         boxBuffer.free()
     }
 
-    fun render(manager: LightManager, data: RenderEventData, fbo: GlFramebuffer): LightRenderResult {
-        val result = LightRenderResult(
-            numRendered = 1,
-            numAsyncTasks = if (shadows.isTaskActive()) 1 else 0
-        )
-
+    fun update(manager: LightManager, data: RenderEventData) {
         for (pos in manager.dirtyBlocks) {
-            if (manager.getLevel()?.dimension() == pos.dimension && shadowBox.contains(pos.pos)) {
+            if (data.level.dimension() == pos.dimension && boundingBox.toBlockBox().contains(pos.pos)) {
                 shadowsDirty = true
                 break
             }
@@ -206,15 +199,23 @@ open class RayPointLight(
         }
 
         if (shadows.checkIfFinished()) { // VertexSorting.byDistance(absolutePos)
-            if (!shadows.lightMesh.empty) {
+            if (!shadows.lightMesh.value!!.empty) {
                 val blitSettings = meshBlitSettings(data, this)
                 blitSettings.bind()
                 MeshUtil.SCREEN_MESH.draw()
                 blitSettings.unbind()
+                data.target.viewport() // TODO
             }
         }
+    }
 
-        shadows.lightMesh.draw(fbo, data, TextureUtil.INSTANCE.blockAtlas)
+    fun render(shader: GlShader): LightRenderResult {
+        val result = LightRenderResult(
+            numRendered = 1,
+            numAsyncTasks = if (shadows.isTaskActive()) 1 else 0
+        )
+
+        shadows.lightMesh.value!!.draw(shader)
 
         return result
     }

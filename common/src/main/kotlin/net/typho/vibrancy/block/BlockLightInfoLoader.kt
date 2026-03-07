@@ -51,9 +51,7 @@ object BlockLightInfoLoader : NeoResourceManagerReloadListener {
 
         for (entry in tagIdConverter.listMatchingResources(manager)) {
             entry.value.openAsReader().use { jsonReader ->
-                val blockKey = tagIdConverter.fileToId(entry.key)
-
-                blocks.getTag(NeoTagKey(ResourceIdentifier("blocks"), blockKey))?.let { tag ->
+                blocks.getTag(NeoTagKey(blocks.key().location, tagIdConverter.fileToId(entry.key)))?.let { tag ->
                     val json = JsonParser.parseReader(jsonReader)
 
                     tag.forEach { block ->

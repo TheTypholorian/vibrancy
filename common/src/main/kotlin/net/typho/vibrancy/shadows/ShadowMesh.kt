@@ -13,11 +13,11 @@ open class ShadowMesh : NativeResource {
         GlShapeType.QUADS,
         BufferUsage.STATIC_DRAW
     )
-    val lightMesh = LightMesh()
+    val lightMesh = LightMesh.pool.poll()
 
     override fun free() {
         shadowMesh.free()
-        lightMesh.free()
+        lightMesh.release()
     }
 
     fun build(
@@ -31,7 +31,7 @@ open class ShadowMesh : NativeResource {
             face.buildGeometry(shadowBuilder, if (face.width == 1 && face.height == 1) level else null)
         }
 
-        val light = lightMesh.build(level, lightFaces)
+        val light = lightMesh.value!!.build(level, lightFaces)
 
         return Runnable {
             if (shadowFaces.isEmpty()) {

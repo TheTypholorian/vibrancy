@@ -24,29 +24,29 @@ class FloodFillMesher(
         cursors.add(pos)
 
         while (cursors.isNotEmpty()) {
-            val cursor = cursors.removeFirst()
+            val cursor = cursors.removeLast()
 
             for (direction in Direction.entries) {
                 val pos = cursor.relative(direction)
 
-                if (checked.add(pos) && predicate.shouldCastBlock(level, pos)) {
-                    val shadow = predicate.isInShadowRange(pos)
-                    val light = predicate.isInLightRange(pos)
+                if (checked.add(pos)) {
+                    val state = level.getBlockState(pos)
 
-                    if (shadow || light) {
-                        val state = level.getBlockState(pos)
+                    if (predicate.shouldCastBlock(level, pos, state)) {
+                        val shadow = predicate.isInShadowRange(pos)
+                        val light = predicate.isInLightRange(pos)
 
-                        if (!BlockUtil.INSTANCE.isSolidRender(state, pos, level)) {
-                            cursors.add(pos)
-                        }
+                        if (shadow || light) {
+                            if (!BlockUtil.INSTANCE.isSolidRender(state, pos, level)) {
+                                cursors.add(pos)
+                            }
 
-                        if (!state.isAir) {
                             ShadowMesher.collectLightFaces(
                                 manager,
                                 state,
                                 level,
                                 pos,
-                                { predicate.shouldCastFace(it, level, pos) }
+                                { predicate.shouldCastFace(it, level, pos, state) }
                             ) { dir, face ->
                                 if (shadow) {
                                     shadowOut.accept(face)

@@ -1,9 +1,6 @@
 package net.typho.vibrancy.shadows
 
-import net.minecraft.core.BlockBox
-import net.minecraft.core.BlockPos
 import net.typho.vibrancy.LightManager
-import net.typho.vibrancy.Vibrancy.toBlockBox
 import net.typho.vibrancy.util.PointLight
 import java.util.*
 import java.util.concurrent.CompletableFuture
@@ -34,8 +31,6 @@ open class AsyncBlockShadowMesh : ShadowMesh() {
         rebuildAsync(
             manager,
             mesher,
-            light.blockPos,
-            light.boundingBox.toBlockBox(),
             light.shadowPredicate!!
         )
     }
@@ -43,8 +38,6 @@ open class AsyncBlockShadowMesh : ShadowMesh() {
     fun rebuildAsync(
         manager: LightManager,
         mesher: ShadowMesher,
-        origin: BlockPos?,
-        box: BlockBox,
         predicate: ShadowPredicate
     ) {
         asyncTask?.cancel(true)

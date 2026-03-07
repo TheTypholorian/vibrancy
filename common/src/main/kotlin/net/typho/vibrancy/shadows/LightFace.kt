@@ -20,7 +20,7 @@ data class LightFace(
 ) {
     fun buildGeometry(consumer: NeoVertexConsumer, level: Level?) {
         val tintColor = level?.let {
-            IColor.RGBA(Minecraft.getInstance().blockColors.getColor(it.getBlockState(blockPos), level, blockPos, 0))
+            IColor.RGB(Minecraft.getInstance().blockColors.getColor(it.getBlockState(blockPos), level, blockPos, quad.tintIndex ?: -1))
         } ?: IColor.FULL_ON
 
         quad.withVertices { index, vertex -> vertex.withColor { tintColor } }.put(consumer)
@@ -34,23 +34,22 @@ data class LightFace(
         @JvmField
         protected val faces = LinkedList<LightFace>()
         @JvmField
-        protected var currentQuad: NeoBakedQuad? = null
+        protected var currentQuad: Array<NeoVertexData>? = null
         @JvmField
         protected var vertex: Int = 0
 
-        protected fun start(): NeoBakedQuad {
+        protected fun start(): Array<NeoVertexData> {
             if (currentQuad == null) {
-                val quad = TexturedQuad(
-                    Vector3f(),
-                    Vector3f(),
-                    Vector3f(),
-                    Vector3f(),
-                    Vector2f(),
-                    Vector2f(),
-                    Vector2f(),
-                    Vector2f(),
-                    -1
-                )
+                val quad = Array<NeoVertexData>(4) {
+                    BasicVertexData(
+                        Vector3f(),
+                        null,
+                        Vector2f(),
+                        null,
+                        null,
+                        null
+                    )
+                }
                 currentQuad = quad
                 return quad
             } else {
@@ -76,12 +75,7 @@ data class LightFace(
         ): NeoVertexConsumer {
             val quad = start()
 
-            when (vertex) {
-                0 -> quad.v1.set(x, y, z)
-                1 -> quad.v2.set(x, y, z)
-                2 -> quad.v3.set(x, y, z)
-                3 -> quad.v4.set(x, y, z)
-            }
+            quad[vertex] = quad[vertex].withPosition { Vector3f(x, y, z) }
 
             return this
         }
@@ -101,14 +95,7 @@ data class LightFace(
         ): NeoVertexConsumer {
             val quad = start()
             val vertex = vertex++
-
-            when (vertex) {
-                0 -> quad.uv1.set(u, v)
-                1 -> quad.uv2.set(u, v)
-                2 -> quad.uv3.set(u, v)
-                3 -> quad.uv4.set(u, v)
-            }
-
+            quad[vertex] = quad[vertex].withTextureUV { Vector2f(u, v) }
             return this
         }
 

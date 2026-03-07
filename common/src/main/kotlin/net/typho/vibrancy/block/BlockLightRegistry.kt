@@ -2,6 +2,7 @@ package net.typho.vibrancy.block
 
 import net.minecraft.core.Registry
 import net.minecraft.world.level.block.Block
+import net.minecraft.world.level.block.state.BlockState
 import net.typho.big_shot_lib.api.util.NeoRegistry
 import net.typho.big_shot_lib.api.util.RegistrationFactory
 import net.typho.big_shot_lib.api.util.resources.NeoResourceKey
@@ -17,13 +18,16 @@ object BlockLightRegistry {
     var registry: NeoRegistry<BlockLightType<*, *>>? = null
 
     @JvmField
-    val blockMap = HashMap<Block, Any>()
+    val blockMap = HashMap<Block, BlockLightInfo>()
 
     @JvmStatic
-    fun <I> get(block: Block, type: BlockLightType<I, *>): I? = type.castInfo(blockMap[block])
+    fun <I : BlockLightInfo> get(block: Block, type: BlockLightType<I, *>): I? = type.castInfo(blockMap[block])
 
     @JvmStatic
     fun has(block: Block): Boolean = blockMap.containsKey(block)
+
+    @JvmStatic
+    fun has(state: BlockState): Boolean = blockMap[state.block]?.enabled?.apply(state) ?: false
 
     @JvmStatic
     fun registerBuiltins(factory: RegistrationFactory) {

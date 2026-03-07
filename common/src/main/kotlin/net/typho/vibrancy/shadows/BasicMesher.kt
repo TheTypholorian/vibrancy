@@ -21,12 +21,14 @@ class BasicMesher(
             val light = predicate.isInLightRange(pos)
 
             if (shadow || light) {
+                val state = level.getBlockState(pos)
+
                 ShadowMesher.collectLightFaces(
                     manager,
-                    level.getBlockState(pos),
+                    state,
                     level,
                     pos,
-                    { predicate.shouldCastFace(it, level, pos) }
+                    { predicate.shouldCastFace(it, level, pos, state) }
                 ) { dir, face ->
                     if (shadow) {
                         shadowOut.accept(face)

@@ -23,11 +23,15 @@ class VibrancyConfig : ConfigData {
             var maxRendered: Int = 400
             @JvmField
             @ConfigEntry.Gui.Tooltip(count = 2)
-            var brightness: Float = 1.25f
+            var brightness: Float = 1.5f
             @JvmField
             @ConfigEntry.Gui.Tooltip
             @ConfigEntry.BoundedDiscrete(min = 1, max = 16)
-            var shadowRadius: Int = 8
+            var lightRadius: Int = 12
+            @JvmField
+            @ConfigEntry.Gui.Tooltip
+            @ConfigEntry.BoundedDiscrete(min = 1, max = 16)
+            var shadowRadius: Int = 6
         }
 
         @JvmField
@@ -38,11 +42,10 @@ class VibrancyConfig : ConfigData {
             @JvmField
             var enabled = true
             @JvmField
-            @ConfigEntry.Gui.Tooltip
-            var maxRendered: Int = 200_000 // 50_000 to inf + 50_000
+            var renderDistance: Int = 6 // 50_000 to inf + 50_000
             @JvmField
             @ConfigEntry.Gui.Tooltip(count = 2)
-            var brightness = 1.25f // 0.25 to 2.5 + 0.25 (%)
+            var brightness = 2f // 0.25 to 2.5 + 0.25 (%)
         }
     }
 }
