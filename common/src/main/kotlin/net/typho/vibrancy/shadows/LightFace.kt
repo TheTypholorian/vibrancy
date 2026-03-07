@@ -19,9 +19,11 @@ data class LightFace(
     val height: Int
 ) {
     fun buildGeometry(consumer: NeoVertexConsumer, level: Level?) {
-        val tintColor = level?.let {
-            IColor.RGB(Minecraft.getInstance().blockColors.getColor(it.getBlockState(blockPos), level, blockPos, quad.tintIndex ?: -1))
-        } ?: IColor.FULL_ON
+        val tintColor = if (level != null && quad.tintIndex != null) {
+            IColor.RGB(Minecraft.getInstance().blockColors.getColor(level.getBlockState(blockPos), level, blockPos, quad.tintIndex!!))
+        } else {
+            IColor.FULL_ON
+        }
 
         quad.withVertices { index, vertex -> vertex.withColor { tintColor } }.put(consumer)
     }
