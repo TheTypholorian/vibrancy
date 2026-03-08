@@ -1,6 +1,5 @@
-
 {
-  "text.autoconfig.vibrancy.title": "Налаштування Vibrancy ",
+  "text.autoconfig.vibrancy.title": "Налаштування Vibrancy",
 
   "text.autoconfig.vibrancy.option.blockLights": "Світло блоків",
 
@@ -9,7 +8,7 @@
   "text.autoconfig.vibrancy.option.blockLights.raytraced.maxRendered": "Максимально промальовано",
   "text.autoconfig.vibrancy.option.blockLights.raytraced.maxRendered.@Tooltip": "Макисмально кількість блоків світла, що будуть промальовані, найближче світло має пріоритет.",
   "text.autoconfig.vibrancy.option.blockLights.raytraced.brightness": "Яскравість",
-  "text.autoconfig.vibrancy.option.blockLights.raytraced.brightness.@Tooltip[0]": "Лінійний множник для яскравості всіх блоків світла.",
+  "text.autoconfig.vibrancy.option.blockLights.raytraced.brightness.@Tooltip[0]": "Лінійний множник для яскравости всіх блоків світла.",
   "text.autoconfig.vibrancy.option.blockLights.raytraced.brightness.@Tooltip[1]": "Не впливає на їхній радіус.",
   "text.autoconfig.vibrancy.option.blockLights.raytraced.lightRadius": "Радіус світла",
   "text.autoconfig.vibrancy.option.blockLights.raytraced.lightRadius.@Tooltip": "Максимальний радіус (у блоках) від кожного блока світла, до якого буде застосовано світло.",
@@ -18,9 +17,9 @@
 
   "text.autoconfig.vibrancy.option.blockLights.subtle": "Тонкість",
   "text.autoconfig.vibrancy.option.blockLights.subtle.enabled": "Увімкнено",
-  "text.autoconfig.vibrancy.option.blockLights.subtle.renderDistance": "Відстань промальовування",
+  "text.autoconfig.vibrancy.option.blockLights.subtle.renderDistance": "Дальність промальовування",
   "text.autoconfig.vibrancy.option.blockLights.subtle.brightness": "Яскравість",
-  "text.autoconfig.vibrancy.option.blockLights.subtle.brightness.@Tooltip[0]": "Лінійний множник для яскравості всіх блоків світла.",
+  "text.autoconfig.vibrancy.option.blockLights.subtle.brightness.@Tooltip[0]": "Лінійний множник для яскравости всіх блоків світла.",
   "text.autoconfig.vibrancy.option.blockLights.subtle.brightness.@Tooltip[1]": "Не впливає на їхній радіус.",
 
   "key.category.vibrancy.keys": "Vibrancy",
