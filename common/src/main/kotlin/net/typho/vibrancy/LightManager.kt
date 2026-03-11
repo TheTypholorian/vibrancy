@@ -15,11 +15,8 @@ import net.typho.vibrancy.block.BlockLightInfo
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.block.BlockLightStorage
 import net.typho.vibrancy.block.BlockLightType
-import net.typho.vibrancy.shadows.FloodFillMesher
-import net.typho.vibrancy.shadows.ShadowMesher
 import net.typho.vibrancy.sky.SkyLightStorage
 import net.typho.vibrancy.sky.SkyLightType
-import net.typho.vibrancy.util.PointLight
 import org.joml.Vector2f
 import java.util.*
 import java.util.function.Consumer
@@ -41,10 +38,6 @@ open class LightManager {
     fun clear() {
         blockLights.values.forEach { storage -> storage.clear(this) }
         skyLight?.second?.clear(this)
-    }
-
-    fun createShadowMesher(light: PointLight): ShadowMesher {
-        return FloodFillMesher(light.blockPos!!)
     }
 
     fun reload() {

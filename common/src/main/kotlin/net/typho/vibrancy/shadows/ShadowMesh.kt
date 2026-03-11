@@ -34,13 +34,19 @@ open class ShadowMesh : NativeResource {
         val light = lightMesh.value!!.build(level, lightFaces)
 
         return Runnable {
+            //val shadow = Stopwatch()
+
             if (shadowFaces.isEmpty()) {
                 shadowBuilder.buffer.close()
             } else {
                 shadowBuilder.end()
             }
 
+            //shadow.stop()
+            //val lightT = Stopwatch()
+
             light.run()
+            //println("$shadow ${lightT.stop()}")
         }
     }
 }

@@ -16,6 +16,7 @@ import net.typho.big_shot_lib.api.client.opengl.util.MeshUtil
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.LightRenderResult
+import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.block.ChunkedBlockLightStorage
 import net.typho.vibrancy.block.HashMapBlockLightStorage
@@ -108,55 +109,59 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
             for (pos in dirty) {
                 val chunk = getOrCreateChunk(manager, data.level, pos)
 
-                tasks.add(
-                    CompletableFuture.supplyAsync {
-                        chunk.box = chunk.map.values.fold(null) { box, light ->
-                            if (box == null) light.boundingBox else box.minmax(light.boundingBox)
-                        }
+                fun impl(): Consumer<RenderEventData>? {
+                    chunk.box = chunk.map.values.fold(null) { box, light ->
+                        if (box == null) light.boundingBox else box.minmax(light.boundingBox)
+                    }
 
-                        if (chunk.map.isEmpty()) {
-                            return@supplyAsync null
-                        }
+                    if (chunk.map.isEmpty()) {
+                        return null
+                    }
 
-                        val blocks = HashSet<BlockPos>()
-                        val ssboBuffer = MemoryUtil.memAllocFloat(8 * chunk.size)
+                    val blocks = HashSet<BlockPos>()
+                    val ssboBuffer = MemoryUtil.memAllocFloat(8 * chunk.size)
 
-                        for (light in chunk.map.values) {
-                            if (light.shouldRender(chunk)) {
-                                blocks.addAll(
-                                    light.shadowBox
-                                        .map { BlockPos(it) }
-                                        .filter {
-                                            it.x >= pos.minBlockX && it.x <= pos.maxBlockX &&
-                                                    it.z >= pos.minBlockZ && it.z <= pos.maxBlockZ
-                                        }
-                                )
+                    for (light in chunk.map.values) {
+                        if (light.shouldRender(chunk)) {
+                            blocks.addAll(
+                                light.shadowBox
+                                    .map { BlockPos(it) }
+                                    .filter {
+                                        it.x >= pos.minBlockX && it.x <= pos.maxBlockX &&
+                                                it.z >= pos.minBlockZ && it.z <= pos.maxBlockZ
+                                    }
+                            )
 
-                                val color = light.color
-                                val pos = light.absolutePos
+                            val color = light.color
+                            val pos = light.absolutePos
 
-                                ssboBuffer.put(color.x).put(color.y).put(color.z).put(0f)
-                                ssboBuffer.put(pos.x).put(pos.y).put(pos.z).put(0f)
-                            }
-                        }
-
-                        val faces = LinkedList<LightFace>()
-                        BasicMesher(blocks).submit(manager, data.level, SubtleLight.SHADOW_PREDICATE, {}, faces::add)
-                        val task = chunk.mesh.value!!.build(data.level, faces)
-
-                        return@supplyAsync Consumer { data ->
-                            task.run()
-                            chunk.ssbo.upload(ssboBuffer.flip())
-                            MemoryUtil.memFree(ssboBuffer)
-
-                            val blitSettings = SubtleLightType.meshBlitSettings(data, chunk)
-                            blitSettings.bind()
-                            MeshUtil.SCREEN_MESH.draw()
-                            blitSettings.unbind()
-                            data.target.viewport() // TODO
+                            ssboBuffer.put(color.x).put(color.y).put(color.z).put(0f)
+                            ssboBuffer.put(pos.x).put(pos.y).put(pos.z).put(0f)
                         }
                     }
-                )
+
+                    val faces = LinkedList<LightFace>()
+                    BasicMesher(blocks).submit(manager, data.level, SubtleLight.SHADOW_PREDICATE, {}, faces::add)
+                    val task = chunk.mesh.value!!.build(data.level, faces)
+
+                    return Consumer { data ->
+                        task.run()
+                        chunk.ssbo.upload(ssboBuffer.flip())
+                        MemoryUtil.memFree(ssboBuffer)
+
+                        val blitSettings = SubtleLightType.meshBlitSettings(data, chunk)
+                        blitSettings.bind()
+                        MeshUtil.SCREEN_MESH.draw()
+                        blitSettings.unbind()
+                        data.target.viewport() // TODO
+                    }
+                }
+
+                if (Vibrancy.config.useMultithreading) {
+                    tasks.add(CompletableFuture.supplyAsync(::impl))
+                } else {
+                    impl()?.accept(data)
+                }
             }
 
             dirty.clear()

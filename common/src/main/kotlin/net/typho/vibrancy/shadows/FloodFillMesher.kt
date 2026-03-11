@@ -9,8 +9,38 @@ import java.util.function.Consumer
 
 class FloodFillMesher(
     @JvmField
-    val pos: BlockPos
+    val pos: BlockPos,
+    @JvmField
+    val cursors: MutableList<BlockPos> = arrayListOf(pos),
+    @JvmField
+    val checked: MutableSet<BlockPos> = hashSetOf(),
+    @JvmField
+    val faces: MutableList<LightFace> = arrayListOf()
 ) : ShadowMesher {
+    fun markAllDirty() {
+        cursors.clear()
+        cursors.add(pos)
+        checked.clear()
+        faces.clear()
+    }
+
+    fun markDirty(pos: BlockPos) {
+        cursors.add(pos)
+
+        val remove = setOf(
+            pos,
+            pos.above(),
+            pos.below(),
+            pos.north(),
+            pos.south(),
+            pos.west(),
+            pos.east()
+        )
+
+        checked.removeAll(remove)
+        faces.removeIf { remove.contains(it.blockPos) }
+    }
+
     override fun submit(
         manager: LightManager,
         level: Level,
@@ -18,11 +48,6 @@ class FloodFillMesher(
         shadowOut: Consumer<LightFace>,
         lightOut: Consumer<LightFace>
     ) {
-        val cursors = ArrayList<BlockPos>()
-        val checked = HashSet<BlockPos>()
-
-        cursors.add(pos)
-
         while (cursors.isNotEmpty()) {
             val cursor = cursors.removeLast()
 
@@ -32,34 +57,29 @@ class FloodFillMesher(
                 if (checked.add(pos)) {
                     val state = level.getBlockState(pos)
 
-                    if (predicate.shouldCastBlock(level, pos, state)) {
-                        val shadow = predicate.isInShadowRange(pos)
-                        val light = predicate.isInLightRange(pos)
-
-                        if (shadow || light) {
-                            if (!BlockUtil.INSTANCE.isSolidRender(state, pos, level)) {
-                                cursors.add(pos)
-                            }
-
-                            ShadowMesher.collectLightFaces(
-                                manager,
-                                state,
-                                level,
-                                pos,
-                                { predicate.shouldCastFace(it, level, pos, state) }
-                            ) { dir, face ->
-                                if (shadow) {
-                                    shadowOut.accept(face)
-                                }
-
-                                if (light) {
-                                    lightOut.accept(face)
-                                }
-                            }
+                    if (predicate.shouldCastBlock(level, pos, state) && predicate.isInLightRange(pos)) {
+                        if (!BlockUtil.INSTANCE.isSolidRender(state, pos, level)) {
+                            cursors.add(pos)
                         }
+
+                        ShadowMesher.collectLightFaces(
+                            manager,
+                            state,
+                            level,
+                            pos,
+                            { predicate.shouldCastFace(it, level, pos, state) }
+                        ) { dir, face -> faces.add(face) }
                     }
                 }
             }
+        }
+
+        faces.forEach {
+            if (predicate.isInShadowRange(it.blockPos)) {
+                shadowOut.accept(it)
+            }
+
+            lightOut.accept(it)
         }
     }
 }

@@ -2,13 +2,11 @@ package net.typho.vibrancy.block.impl
 
 import net.minecraft.world.level.block.state.StateDefinition
 import net.typho.big_shot_lib.api.client.opengl.buffers.BufferType
-import net.typho.big_shot_lib.api.client.opengl.buffers.ClearBit
 import net.typho.big_shot_lib.api.client.opengl.buffers.GlFramebuffer
 import net.typho.big_shot_lib.api.client.opengl.shaders.NeoShaderRegistry
 import net.typho.big_shot_lib.api.client.opengl.state.*
 import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
-import net.typho.big_shot_lib.api.util.IColor
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.LightRenderResult
 import net.typho.vibrancy.Vibrancy
@@ -39,8 +37,7 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
             ),
             FramebufferShard(
                 { chunk.mesh.value!!.target },
-                true,
-                ClearBit.Color(IColor.FULL_OFF)
+                true
             ),
             ShaderShard(
                 Vibrancy.id("block/subtle/blit")

@@ -5,10 +5,7 @@ import net.minecraft.world.level.Level
 import net.typho.big_shot_lib.api.client.opengl.buffers.*
 import net.typho.big_shot_lib.api.client.opengl.shaders.GlShader
 import net.typho.big_shot_lib.api.client.opengl.state.*
-import net.typho.big_shot_lib.api.client.opengl.util.FogUtil
-import net.typho.big_shot_lib.api.client.opengl.util.GlResourcePool
-import net.typho.big_shot_lib.api.client.opengl.util.GlShapeType
-import net.typho.big_shot_lib.api.client.opengl.util.TextureFormat
+import net.typho.big_shot_lib.api.client.opengl.util.*
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.big_shot_lib.api.util.IColor
 import net.typho.vibrancy.TextureAtlas
@@ -124,12 +121,13 @@ open class LightMesh : NativeResource {
         val textures = LinkedList<Dimension>()
         val lightBuilder = mesh.Builder(ByteBufferBuilder(lightFaces.size * 4 * VERTEX_FORMAT.vertexSizeBytes))
         var empty = true
+        val blockAtlas = TextureUtil.INSTANCE.blockAtlas
 
         for (face in lightFaces) {
             face.buildGeometry(lightBuilder, level)
             textures.add(Dimension(
-                ceil(abs(face.quad.vertices[0].textureUV!!.y() - face.quad.vertices[2].textureUV!!.y()) * face.quad.sprite.atlas.height * face.height).toInt(),
-                ceil(abs(face.quad.vertices[0].textureUV!!.x() - face.quad.vertices[2].textureUV!!.x()) * face.quad.sprite.atlas.width * face.width).toInt()
+                ceil(abs(face.quad.vertices[0].textureUV!!.y() - face.quad.vertices[2].textureUV!!.y()) * blockAtlas.height * face.height).toInt(),
+                ceil(abs(face.quad.vertices[0].textureUV!!.x() - face.quad.vertices[2].textureUV!!.x()) * blockAtlas.width * face.width).toInt()
             ))
             empty = false
         }

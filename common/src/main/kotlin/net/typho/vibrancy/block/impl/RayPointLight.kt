@@ -7,7 +7,10 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
-import net.typho.big_shot_lib.api.client.opengl.buffers.*
+import net.typho.big_shot_lib.api.client.opengl.buffers.BufferType
+import net.typho.big_shot_lib.api.client.opengl.buffers.BufferUsage
+import net.typho.big_shot_lib.api.client.opengl.buffers.Mesh
+import net.typho.big_shot_lib.api.client.opengl.buffers.NeoVertexFormat
 import net.typho.big_shot_lib.api.client.opengl.shaders.GlShader
 import net.typho.big_shot_lib.api.client.opengl.state.*
 import net.typho.big_shot_lib.api.client.opengl.util.GlShapeType
@@ -15,13 +18,13 @@ import net.typho.big_shot_lib.api.client.opengl.util.MeshUtil
 import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.big_shot_lib.api.util.BlockUtil
-import net.typho.big_shot_lib.api.util.IColor
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.LightRenderResult
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.Vibrancy.isPointingTowards
 import net.typho.vibrancy.Vibrancy.toBlockBox
 import net.typho.vibrancy.shadows.AsyncBlockShadowMesh
+import net.typho.vibrancy.shadows.FloodFillMesher
 import net.typho.vibrancy.shadows.ShadowPredicate
 import net.typho.vibrancy.util.PointLight
 import org.joml.Matrix4f
@@ -62,8 +65,7 @@ open class RayPointLight(
                 ),
                 FramebufferShard(
                     { light.shadows.lightMesh.value!!.target },
-                    true,
-                    ClearBit.Color(IColor.FULL_OFF)
+                    true
                 ),
                 ShaderShard(
                     Vibrancy.id("block/raytraced/blit")
@@ -82,7 +84,13 @@ open class RayPointLight(
         )
     }
 
-    val shadows = AsyncBlockShadowMesh()
+    val shadows: AsyncBlockShadowMesh<FloodFillMesher> = AsyncBlockShadowMesh(FloodFillMesher(blockPos)) { data ->
+        val blitSettings = meshBlitSettings(data, this)
+        blitSettings.bind()
+        MeshUtil.SCREEN_MESH.draw()
+        blitSettings.unbind()
+        data.target.viewport() // TODO
+    }
     val boxBuffer by lazy {
         val mesh = Mesh(
             NeoVertexFormat.POSITION,
@@ -177,6 +185,9 @@ open class RayPointLight(
     }
 
     fun reload() {
+        synchronized(shadows.mesher) {
+            shadows.mesher.markAllDirty()
+        }
         shadowsDirty = true
     }
 
@@ -188,25 +199,20 @@ open class RayPointLight(
     fun update(manager: LightManager, data: RenderEventData) {
         for (pos in manager.dirtyBlocks) {
             if (data.level.dimension() == pos.dimension && boundingBox.toBlockBox().contains(pos.pos)) {
+                synchronized(shadows.mesher) {
+                    shadows.mesher.markDirty(pos.pos)
+                }
                 shadowsDirty = true
                 break
             }
         }
 
         if (shadowsDirty) {
-            shadows.rebuildAsync(manager, manager.createShadowMesher(this), this)
+            shadows.rebuildAsync(manager, data, shadowPredicate)
             shadowsDirty = false
         }
 
-        if (shadows.checkIfFinished()) { // VertexSorting.byDistance(absolutePos)
-            if (!shadows.lightMesh.value!!.empty) {
-                val blitSettings = meshBlitSettings(data, this)
-                blitSettings.bind()
-                MeshUtil.SCREEN_MESH.draw()
-                blitSettings.unbind()
-                data.target.viewport() // TODO
-            }
-        }
+        shadows.checkIfFinished(data)
     }
 
     fun render(shader: GlShader): LightRenderResult {

@@ -1,6 +1,8 @@
 {
   "text.autoconfig.vibrancy.title": "Vibrancy Config",
 
+  "text.autoconfig.vibrancy.option.useMultithreading": "Use Multithreading",
+
   "text.autoconfig.vibrancy.option.blockLights": "Block Lights",
 
   "text.autoconfig.vibrancy.option.blockLights.raytraced": "Raytraced",
