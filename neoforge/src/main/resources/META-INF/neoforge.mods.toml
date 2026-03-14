@@ -1,7 +1,7 @@
 modLoader = "kotlinforforge" #mandatory
 loaderVersion = "${kff_version_range}" #mandatory
 license = "${license}" # Review your options at https://choosealicense.com/.
-#issueTrackerURL="https://change.me.to.your.issue.tracker.example.invalid/" #optional
+issueTrackerURL="https://github.com/TheTypholorian/vibrancy/issues/" #optional
 [[mods]] #mandatory
 modId = "${mod_id}" #mandatory
 version = "${version}" #mandatory
