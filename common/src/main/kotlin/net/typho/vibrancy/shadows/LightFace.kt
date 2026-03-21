@@ -4,8 +4,13 @@ import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
 import net.minecraft.world.level.Level
 import net.typho.big_shot_lib.api.client.opengl.buffers.NeoVertexConsumer
+import net.typho.big_shot_lib.api.client.util.quads.NeoAtlas
 import net.typho.big_shot_lib.api.client.util.quads.NeoBakedQuad
 import net.typho.big_shot_lib.api.util.IColor
+import org.joml.Vector3f
+import kotlin.math.abs
+import kotlin.math.ceil
+import kotlin.math.min
 
 @JvmRecord
 data class LightFace(
@@ -18,6 +23,17 @@ data class LightFace(
     @JvmField
     val height: Int
 ) {
+    constructor(
+        blockPos: BlockPos,
+        quad: NeoBakedQuad,
+        atlas: NeoAtlas
+    ) : this(
+        blockPos,
+        quad,
+        ceil(abs(quad.vertices[0].textureUV!!.y() - quad.vertices[2].textureUV!!.y()) * atlas.height).toInt(),
+        ceil(abs(quad.vertices[0].textureUV!!.x() - quad.vertices[2].textureUV!!.x()) * atlas.width).toInt()
+    )
+
     fun buildGeometry(consumer: NeoVertexConsumer, level: Level?) {
         val tintColor = if (level != null && quad.tintIndex != null) {
             IColor.RGB(Minecraft.getInstance().blockColors.getColor(level.getBlockState(blockPos), level, blockPos, quad.tintIndex!!))
@@ -26,6 +42,50 @@ data class LightFace(
         }
 
         quad.withVertices { index, vertex -> vertex.withColor { tintColor } }.put(consumer)
+    }
+
+    fun split(maxSize: Int): Array<LightFace> {
+        if (width <= maxSize && height <= maxSize) {
+            return arrayOf(this)
+        } else {
+            val numX = ceil(width.toFloat() / maxSize).toInt()
+            val numY = ceil(height.toFloat() / maxSize).toInt()
+            val scaleX = maxSize.toFloat() / width
+            val scaleY = maxSize.toFloat() / height
+            return Array(numX * numY) { index ->
+                val x = index % numX
+                val y = (index - x) / numY
+
+                val minX = scaleX * x
+                val minY = scaleY * y
+                val maxX = min(1f, scaleX * (x + 1))
+                val maxY = min(1f, scaleY * (y + 1))
+
+                return@Array LightFace(
+                    blockPos,
+                    quad.withVertices { index, vertex ->
+                        val fx = when (index) {
+                            0, 3 -> minX
+                            else -> maxX
+                        }
+                        val fy = when (index) {
+                            0, 1 -> minY
+                            else -> maxY
+                        }
+                        return@withVertices vertex.withPosition {
+                            quad.v0.pos.lerp(quad.v1.pos, fx, Vector3f())
+                                .lerp(
+                                    quad.v3.pos.lerp(quad.v2.pos, fx, Vector3f()),
+                                    fy,
+                                    Vector3f()
+                                )
+                        }
+                    },
+                    width.coerceAtMost(maxSize),
+                    height.coerceAtMost(maxSize)
+                )
+            }
+        }
     }
 
     /*

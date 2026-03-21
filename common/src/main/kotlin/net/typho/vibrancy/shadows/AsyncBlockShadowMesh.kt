@@ -1,5 +1,6 @@
 package net.typho.vibrancy.shadows
 
+import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
@@ -39,7 +40,7 @@ open class AsyncBlockShadowMesh<M : ShadowMesher>(
         val shadowFaces = LinkedList<LightFace>()
         val lightFaces = LinkedList<LightFace>()
         synchronized(mesher) {
-            mesher.submit(manager, level, predicate, shadowFaces::add, lightFaces::add)
+            mesher.submit(manager, level, predicate, TextureUtil.INSTANCE.blockAtlas, shadowFaces::add, lightFaces::add)
         }
 
         return build(level, shadowFaces, lightFaces)

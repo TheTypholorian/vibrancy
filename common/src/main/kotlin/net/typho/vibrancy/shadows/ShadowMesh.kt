@@ -28,7 +28,7 @@ open class ShadowMesh : NativeResource {
         val shadowBuilder = shadowMesh.Builder(ByteBufferBuilder(shadowFaces.size * 4 * LightMesh.VERTEX_FORMAT.vertexSizeBytes))
 
         for (face in shadowFaces) {
-            face.buildGeometry(shadowBuilder, if (face.width == 1 && face.height == 1) level else null)
+            face.buildGeometry(shadowBuilder, level)
         }
 
         val light = lightMesh.value!!.build(level, lightFaces)

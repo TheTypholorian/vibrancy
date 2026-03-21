@@ -6,6 +6,7 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.Vec3
 import net.typho.big_shot_lib.api.client.opengl.util.MeshUtil
+import net.typho.big_shot_lib.api.client.util.quads.NeoAtlas
 import net.typho.vibrancy.LightManager
 import java.util.function.BiConsumer
 import java.util.function.Consumer
@@ -15,8 +16,10 @@ interface ShadowMesher {
         manager: LightManager,
         level: Level,
         predicate: ShadowPredicate,
+        atlas: NeoAtlas,
         shadowOut: Consumer<LightFace>,
-        lightOut: Consumer<LightFace>
+        lightOut: Consumer<LightFace>,
+        splitLargeLightFaces: Boolean = true
     )
 
     companion object {
@@ -26,6 +29,7 @@ interface ShadowMesher {
             state: BlockState,
             level: Level,
             pos: BlockPos,
+            atlas: NeoAtlas,
             predicate: (face: Direction?) -> Boolean,
             out: BiConsumer<Direction?, LightFace>
         ) {
@@ -42,8 +46,7 @@ interface ShadowMesher {
                                             Vec3.atLowerCornerOf(pos).toVector3f().add(v)
                                         }
                                     },
-                                    1,
-                                    1
+                                    atlas
                                 )
                             )
                         }

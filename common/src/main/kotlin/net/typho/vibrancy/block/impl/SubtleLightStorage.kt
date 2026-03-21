@@ -13,6 +13,7 @@ import net.typho.big_shot_lib.api.client.opengl.buffers.GlBuffer
 import net.typho.big_shot_lib.api.client.opengl.shaders.GlShader
 import net.typho.big_shot_lib.api.client.opengl.util.GlResourcePool
 import net.typho.big_shot_lib.api.client.opengl.util.MeshUtil
+import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.LightRenderResult
@@ -121,7 +122,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                     val blocks = HashSet<BlockPos>()
                     val ssboBuffer = MemoryUtil.memAllocFloat(8 * chunk.size)
 
-                    for (light in chunk.map.values) {
+                    for (light in chunk.map.values) { // TODO fix concurrent mod except
                         if (light.shouldRender(chunk)) {
                             blocks.addAll(
                                 light.shadowBox
@@ -141,7 +142,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                     }
 
                     val faces = LinkedList<LightFace>()
-                    BasicMesher(blocks).submit(manager, data.level, SubtleLight.SHADOW_PREDICATE, {}, faces::add)
+                    BasicMesher(blocks).submit(manager, data.level, SubtleLight.SHADOW_PREDICATE, TextureUtil.INSTANCE.blockAtlas, {}, faces::add)
                     val task = chunk.mesh.value!!.build(data.level, faces)
 
                     return Consumer { data ->

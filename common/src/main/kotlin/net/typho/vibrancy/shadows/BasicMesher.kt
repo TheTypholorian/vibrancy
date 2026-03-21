@@ -2,6 +2,7 @@ package net.typho.vibrancy.shadows
 
 import net.minecraft.core.BlockPos
 import net.minecraft.world.level.Level
+import net.typho.big_shot_lib.api.client.util.quads.NeoAtlas
 import net.typho.vibrancy.LightManager
 import java.util.function.Consumer
 
@@ -13,8 +14,10 @@ class BasicMesher(
         manager: LightManager,
         level: Level,
         predicate: ShadowPredicate,
+        atlas: NeoAtlas,
         shadowOut: Consumer<LightFace>,
-        lightOut: Consumer<LightFace>
+        lightOut: Consumer<LightFace>,
+        splitLargeLightFaces: Boolean
     ) {
         for (pos in blocks) {
             val shadow = predicate.isInShadowRange(pos)
@@ -28,6 +31,7 @@ class BasicMesher(
                     state,
                     level,
                     pos,
+                    atlas,
                     { predicate.shouldCastFace(it, level, pos, state) }
                 ) { dir, face ->
                     if (shadow) {
@@ -35,7 +39,11 @@ class BasicMesher(
                     }
 
                     if (light) {
-                        lightOut.accept(face)
+                        if (splitLargeLightFaces) {
+                            face.split(16).forEach(lightOut::accept)
+                        } else {
+                            lightOut.accept(face)
+                        }
                     }
                 }
             }

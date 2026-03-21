@@ -3,6 +3,7 @@ package net.typho.vibrancy.shadows
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.world.level.Level
+import net.typho.big_shot_lib.api.client.util.quads.NeoAtlas
 import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.vibrancy.LightManager
 import java.util.function.Consumer
@@ -45,8 +46,10 @@ class FloodFillMesher(
         manager: LightManager,
         level: Level,
         predicate: ShadowPredicate,
+        atlas: NeoAtlas,
         shadowOut: Consumer<LightFace>,
-        lightOut: Consumer<LightFace>
+        lightOut: Consumer<LightFace>,
+        splitLargeLightFaces: Boolean
     ) {
         while (cursors.isNotEmpty()) {
             val cursor = cursors.removeLast()
@@ -67,6 +70,7 @@ class FloodFillMesher(
                             state,
                             level,
                             pos,
+                            atlas,
                             { predicate.shouldCastFace(it, level, pos, state) }
                         ) { dir, face -> faces.add(face) }
                     }
@@ -74,12 +78,17 @@ class FloodFillMesher(
             }
         }
 
+        faces.sortBy { it.blockPos.distSqr(pos) }
         faces.forEach {
             if (predicate.isInShadowRange(it.blockPos)) {
                 shadowOut.accept(it)
             }
 
-            lightOut.accept(it)
+            if (splitLargeLightFaces) {
+                it.split(16).forEach(lightOut::accept)
+            } else {
+                lightOut.accept(it)
+            }
         }
     }
 }
