@@ -1,11 +1,7 @@
 {
   "sources": {
-    "vertex": "big_shot_lib:blit",
+    "vertex": "vibrancy:light_blit",
     "fragment": "vibrancy:block/raytraced/blit"
   },
-  "format": "POSITION_TEX",
-  "disabledDynamicBuffers": [
-    "big_shot_lib:dynamic_buffer/normals",
-    "big_shot_lib:dynamic_buffer/albedo"
-  ]
+  "format": "POSITION_TEX"
 }

@@ -1,27 +1,29 @@
 #version 430
 
-#include "vibrancy:include/light_blit"
+#include "vibrancy:include/fragment"
+#include "vibrancy:include/rays"
 
 struct Light {
     vec3 color;
     vec3 pos;
 };
 
-layout(std430, binding = 2) buffer LightBuffer {
+layout(std430, binding = 0) buffer LightQuadBuffer {
+    Quad lightQuads[];
+};
+layout(std430, binding = 1) buffer LightBuffer {
     Light lights[];
 };
 
 uniform float LightBrightness;
 
-in vec2 texCoord0;
+in vec3 vertexPos;
 
 out vec4 fragColor;
 
 void main() {
-    Quad self;
-    vec2 mappedUV;
-
-    lightBlitInit(self, mappedUV);
+    /*
+    Quad self = lightQuads[index];
 
     vec3 pos = interpolateQuadPos(self, mappedUV);
 
@@ -32,4 +34,5 @@ void main() {
 
         fragColor = max(fragColor, sampleCubeLight(light.pos, pos, 0.5, 1.5, light.color * LightBrightness));
     }
+    */
 }

@@ -12,6 +12,9 @@ import net.minecraft.core.Direction
 import net.minecraft.network.chat.CommonComponents
 import net.minecraft.network.chat.Component
 import net.minecraft.world.phys.AABB
+import net.typho.big_shot_lib.api.client.opengl.buffers.BufferUsage
+import net.typho.big_shot_lib.api.client.opengl.buffers.Mesh
+import net.typho.big_shot_lib.api.client.opengl.util.GlShapeType
 import net.typho.big_shot_lib.api.client.opengl.util.OpenGL
 import net.typho.big_shot_lib.api.client.util.*
 import net.typho.big_shot_lib.api.client.util.events.ClientEventFactory
@@ -27,6 +30,7 @@ import net.typho.big_shot_lib.api.util.events.CommonEventFactory
 import net.typho.big_shot_lib.api.util.resources.ResourceIdentifier
 import net.typho.vibrancy.block.BlockLightInfoLoader
 import net.typho.vibrancy.block.BlockLightRegistry
+import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.sky.SkyLightInfo
 import net.typho.vibrancy.sky.SkyLightRegistry
 import net.typho.vibrancy.sky.SkyLightStorage
@@ -51,6 +55,13 @@ object Vibrancy {
     var toggleRaytracedLightsKey: KeyMapping? = null
     @JvmField
     var toggleSubtleLightsKey: KeyMapping? = null
+    val shadowBlitMesh by lazy {
+        Mesh(
+            LightMesh.BLIT_VERTEX_FORMAT,
+            GlShapeType.QUADS,
+            BufferUsage.STREAM_DRAW
+        )
+    }
 
     init {
         val holder = AutoConfig.register(
@@ -97,6 +108,16 @@ object Vibrancy {
         Direction.EAST -> to.x > from.x
     }
 
+    @JvmStatic
+    fun Direction.isPointingTowardsInclusive(from: BlockPos, to: BlockPos): Boolean = when (this) {
+        Direction.DOWN -> to.y <= from.y
+        Direction.UP -> to.y >= from.y
+        Direction.NORTH -> to.z <= from.z
+        Direction.SOUTH -> to.z >= from.z
+        Direction.WEST -> to.x <= from.x
+        Direction.EAST -> to.x >= from.x
+    }
+
     class Entrypoint : BigShotCommonEntrypoint, BigShotClientEntrypoint {
         override fun registerRegistries(factory: RegistryFactory) {
             BlockLightRegistry.registry = factory.create(
@@ -113,6 +134,8 @@ object Vibrancy {
         override fun registerEvents(factory: CommonEventFactory) {
             factory.onBlockChanged { level, pos, old, new ->
                 if (level.isClientSide()) {
+                    val pos = BlockPos(pos) // TODO
+                    println(pos)
                     OpenGL.INSTANCE.recordRenderCall {
                         lightManager.blockChanged(level, pos, old, new)
                     }

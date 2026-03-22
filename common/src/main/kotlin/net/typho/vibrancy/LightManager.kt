@@ -4,7 +4,6 @@ import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
-import net.minecraft.core.GlobalPos
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
@@ -23,7 +22,7 @@ import java.util.function.Consumer
 
 open class LightManager {
     @JvmField
-    val dirtyBlocks = LinkedList<GlobalPos>()
+    val dirtyBlocks = LinkedList<BlockPos>()
     @JvmField
     val blockLights = HashMap<BlockLightType<*, *>, BlockLightStorage<*>>()
     @JvmField
@@ -79,7 +78,7 @@ open class LightManager {
             BlockLightRegistry.get(new.block, entry.key)?.let { addBlockLight(pos, level, new, entry.key, it) }
         }
 
-        dirtyBlocks.add(GlobalPos(level.dimension(), pos))
+        dirtyBlocks.add(pos)
     }
 
     fun loadChunk(chunk: LevelChunk) {

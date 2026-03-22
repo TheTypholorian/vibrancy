@@ -15,17 +15,20 @@ import net.typho.vibrancy.TextureAtlas
 import net.typho.vibrancy.Vibrancy
 import org.lwjgl.system.NativeResource
 import java.awt.Dimension
-import java.util.*
 
 open class LightMesh : NativeResource {
     companion object {
         @JvmField
         val VERTEX_FORMAT = NeoVertexFormat.builder()
             .add("Position", NeoVertexFormat.Element.POSITION)
-            .padding(4)
             .add("UV0", NeoVertexFormat.Element.TEXTURE_UV)
+            .add("UV1", NeoVertexFormat.Element.OVERLAY_UV)
             .add("Color", NeoVertexFormat.Element.COLOR)
-            .padding(4)
+            .build()
+        @JvmField
+        val BLIT_VERTEX_FORMAT = NeoVertexFormat.builder()
+            .add("Position", NeoVertexFormat.Element.POSITION)
+            .add("UV0", NeoVertexFormat.Element.TEXTURE_UV)
             .build()
         @JvmField
         val pool = GlResourcePool(
@@ -67,7 +70,7 @@ open class LightMesh : NativeResource {
                     PolygonOffsetShard(
                         PolygonOffset(
                             -1f,
-                            -2f,
+                            -4f,
                         )
                     ),
                     ShaderShard(
@@ -82,11 +85,6 @@ open class LightMesh : NativeResource {
             )
     }
 
-    @JvmField
-    val atlas = GlBuffer(
-        BufferType.SHADER_STORAGE_BUFFER,
-        BufferUsage.STATIC_DRAW
-    )
     @JvmField
     val mesh = Mesh(
         VERTEX_FORMAT,
@@ -109,7 +107,6 @@ open class LightMesh : NativeResource {
 
     fun draw(shader: GlShader) {
         if (!empty) {
-            atlas.bindBase(0)
             shader.getUniform("Sampler1")?.setSampler(texture)
             mesh.draw()
         }
@@ -118,21 +115,18 @@ open class LightMesh : NativeResource {
     fun build(
         level: Level?,
         lightFaces: List<LightFace>
-    ): Runnable {
-        val textures = LinkedList<Dimension>()
-        val lightBuilder = mesh.Builder(ByteBufferBuilder(lightFaces.size * 4 * VERTEX_FORMAT.vertexSizeBytes))
-        var empty = true
-
-        for (face in lightFaces) {
-            face.buildGeometry(lightBuilder, level)
-            textures.add(Dimension(face.width, face.height))
-            empty = false
+    ): () -> TextureAtlas.Result {
+        val textures = Array(lightFaces.size) {
+            val face = lightFaces[it]
+            Dimension(face.width, face.height)
         }
+        val lightBuilder = mesh.Builder(ByteBufferBuilder(lightFaces.size * 4 * VERTEX_FORMAT.vertexSizeBytes))
+        val result = TextureAtlas.pack(*textures)
 
-        val result = TextureAtlas.pack(*textures.toTypedArray())
+        lightFaces.forEachIndexed { index, face -> face.buildGeometry(lightBuilder, result.textures[index], level) }
 
-        return Runnable {
-            this.empty = empty
+        return {
+            empty = lightFaces.isEmpty()
 
             if (empty) {
                 lightBuilder.buffer.close()
@@ -140,13 +134,13 @@ open class LightMesh : NativeResource {
                 lightBuilder.end()
 
                 target.resize(result.width.coerceAtLeast(1), result.height.coerceAtLeast(1))
-                TextureAtlas.store(result, atlas)
             }
+
+            result
         }
     }
 
     override fun free() {
-        atlas.free()
         mesh.free()
         target.free()
         texture.free()

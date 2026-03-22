@@ -7,9 +7,10 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
 import net.typho.vibrancy.LightManager
 import org.lwjgl.system.NativeResource
+import java.util.concurrent.ConcurrentHashMap
 
 abstract class HashMapBlockLightStorage<I : BlockLightInfo, L>(val type: BlockLightType<I, *>) : BlockLightStorage<I> {
-    var map = HashMap<BlockPos, L>()
+    var map = ConcurrentHashMap<BlockPos, L & Any>()
     override val size: Int
         get() = map.size
 

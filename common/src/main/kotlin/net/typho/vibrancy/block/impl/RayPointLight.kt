@@ -1,5 +1,6 @@
 package net.typho.vibrancy.block.impl
 
+import com.mojang.blaze3d.vertex.ByteBufferBuilder
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -14,7 +15,6 @@ import net.typho.big_shot_lib.api.client.opengl.buffers.NeoVertexFormat
 import net.typho.big_shot_lib.api.client.opengl.shaders.GlShader
 import net.typho.big_shot_lib.api.client.opengl.state.*
 import net.typho.big_shot_lib.api.client.opengl.util.GlShapeType
-import net.typho.big_shot_lib.api.client.opengl.util.MeshUtil
 import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.big_shot_lib.api.util.BlockUtil
@@ -25,6 +25,7 @@ import net.typho.vibrancy.Vibrancy.isPointingTowards
 import net.typho.vibrancy.Vibrancy.toBlockBox
 import net.typho.vibrancy.shadows.AsyncBlockShadowMesh
 import net.typho.vibrancy.shadows.FloodFillMesher
+import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.shadows.ShadowPredicate
 import net.typho.vibrancy.util.PointLight
 import org.joml.Matrix4f
@@ -52,16 +53,8 @@ open class RayPointLight(
                     GlFlag.BLEND
                 )),
                 BindBufferBaseShard(
-                    { light.shadows.lightMesh.value!!.mesh.vbo.cast(BufferType.SHADER_STORAGE_BUFFER) },
-                    0
-                ),
-                BindBufferBaseShard(
-                    { light.shadows.lightMesh.value!!.atlas },
-                    1
-                ),
-                BindBufferBaseShard(
                     { light.shadows.shadowMesh.vbo.cast(BufferType.SHADER_STORAGE_BUFFER) },
-                    2
+                    0
                 ),
                 FramebufferShard(
                     { light.shadows.lightMesh.value!!.target },
@@ -84,10 +77,43 @@ open class RayPointLight(
         )
     }
 
-    val shadows: AsyncBlockShadowMesh<FloodFillMesher> = AsyncBlockShadowMesh(FloodFillMesher(blockPos)) { data ->
+    val shadows: AsyncBlockShadowMesh<FloodFillMesher> = AsyncBlockShadowMesh(FloodFillMesher(blockPos)) { info, data ->
         val blitSettings = meshBlitSettings(data, this)
         blitSettings.bind()
-        MeshUtil.SCREEN_MESH.draw()
+
+        val mesh = Vibrancy.shadowBlitMesh
+        mesh.bind()
+
+        val builder = mesh.Builder(ByteBufferBuilder(info.lightFaces.size * 4 * LightMesh.BLIT_VERTEX_FORMAT.vertexSizeBytes))
+
+        info.lightFaces.forEachIndexed { index, face ->
+            val texture = info.atlasResult.textures[index]
+            builder.vertex(face.quad.v0.pos)
+                .textureUV(
+                    texture.x.toFloat() / info.atlasResult.width,
+                    texture.y.toFloat() / info.atlasResult.height
+                )
+            builder.vertex(face.quad.v1.pos)
+                .textureUV(
+                    (texture.x.toFloat() + texture.width) / info.atlasResult.width,
+                    texture.y.toFloat() / info.atlasResult.height
+                )
+            builder.vertex(face.quad.v2.pos)
+                .textureUV(
+                    (texture.x.toFloat() + texture.width) / info.atlasResult.width,
+                    (texture.y.toFloat() + texture.height) / info.atlasResult.height
+                )
+            builder.vertex(face.quad.v3.pos)
+                .textureUV(
+                    texture.x.toFloat() / info.atlasResult.width,
+                    (texture.y.toFloat() + texture.height) / info.atlasResult.height
+                )
+        }
+
+        builder.end()
+        mesh.draw()
+
+        mesh.unbind()
         blitSettings.unbind()
         data.target.viewport() // TODO
     }
@@ -198,9 +224,9 @@ open class RayPointLight(
 
     fun update(manager: LightManager, data: RenderEventData) {
         for (pos in manager.dirtyBlocks) {
-            if (data.level.dimension() == pos.dimension && boundingBox.toBlockBox().contains(pos.pos)) {
+            if (boundingBox.toBlockBox().contains(pos)) {
                 synchronized(shadows.mesher) {
-                    shadows.mesher.markDirty(pos.pos)
+                    shadows.mesher.markDirty(pos)
                 }
                 shadowsDirty = true
                 break

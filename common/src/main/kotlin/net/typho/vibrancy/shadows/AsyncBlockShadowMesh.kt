@@ -3,25 +3,28 @@ package net.typho.vibrancy.shadows
 import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.vibrancy.LightManager
+import net.typho.vibrancy.TextureAtlas
 import net.typho.vibrancy.Vibrancy
-import java.util.*
 import java.util.concurrent.CompletableFuture
 
 open class AsyncBlockShadowMesh<M : ShadowMesher>(
     @JvmField
     val mesher: M,
     @JvmField
-    val blit: (data: RenderEventData) -> Unit
+    val blit: (info: BlitInfo, data: RenderEventData) -> Unit
 ) : ShadowMesh() {
-    protected var asyncTask: CompletableFuture<Runnable>? = null
+    protected var asyncTask: CompletableFuture<() -> BlitInfo>? = null
 
     fun isTaskActive() = asyncTask?.let { task -> !task.isDone } ?: false
 
     fun checkIfFinished(data: RenderEventData): Boolean {
         asyncTask?.let { task ->
             if (task.isDone) {
-                task.get().run()
-                blit(data)
+                val info = task.get()()
+
+                if (!lightMesh.value!!.empty) {
+                    blit(info, data)
+                }
 
                 asyncTask = null
                 return true
@@ -34,16 +37,23 @@ open class AsyncBlockShadowMesh<M : ShadowMesher>(
     protected fun rebuildAsyncImpl(
         manager: LightManager,
         predicate: ShadowPredicate
-    ): Runnable {
+    ): () -> BlitInfo {
         val level = manager.getLevel() ?: throw NullPointerException("No level?")
 
-        val shadowFaces = LinkedList<LightFace>()
-        val lightFaces = LinkedList<LightFace>()
+        val shadowFaces = arrayListOf<LightFace>()
+        val lightFaces = arrayListOf<LightFace>()
         synchronized(mesher) {
             mesher.submit(manager, level, predicate, TextureUtil.INSTANCE.blockAtlas, shadowFaces::add, lightFaces::add)
         }
 
-        return build(level, shadowFaces, lightFaces)
+        val built = build(level, shadowFaces, lightFaces)
+
+        return {
+            BlitInfo(
+                built(),
+                lightFaces
+            )
+        }
     }
 
     fun rebuildAsync(
@@ -55,8 +65,18 @@ open class AsyncBlockShadowMesh<M : ShadowMesher>(
             asyncTask?.cancel(true)
             asyncTask = CompletableFuture.supplyAsync { rebuildAsyncImpl(manager, predicate) }
         } else {
-            rebuildAsyncImpl(manager, predicate).run()
-            blit(data)
+            val info = rebuildAsyncImpl(manager, predicate)()
+
+            if (!lightMesh.value!!.empty) {
+                blit(info, data)
+            }
         }
     }
+
+    data class BlitInfo(
+        @JvmField
+        val atlasResult: TextureAtlas.Result,
+        @JvmField
+        val lightFaces: List<LightFace>
+    )
 }

@@ -28,12 +28,8 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
                 0
             ),
             BindBufferBaseShard(
-                { chunk.mesh.value!!.atlas },
-                1
-            ),
-            BindBufferBaseShard(
                 { chunk.ssbo },
-                2
+                1
             ),
             FramebufferShard(
                 { chunk.mesh.value!!.target },

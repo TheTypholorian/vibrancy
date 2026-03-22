@@ -3,16 +3,18 @@ package net.typho.vibrancy.shadows
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.state.BlockState
 import net.typho.big_shot_lib.api.client.util.quads.NeoAtlas
 import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.vibrancy.LightManager
+import net.typho.vibrancy.Vibrancy.isPointingTowardsInclusive
 import java.util.function.Consumer
 
 class FloodFillMesher(
     @JvmField
     val pos: BlockPos,
     @JvmField
-    val cursors: MutableList<BlockPos> = arrayListOf(pos),
+    val cursors: MutableSet<BlockPos> = hashSetOf(pos),
     @JvmField
     val checked: MutableSet<BlockPos> = hashSetOf(),
     @JvmField
@@ -51,34 +53,40 @@ class FloodFillMesher(
         lightOut: Consumer<LightFace>,
         splitLargeLightFaces: Boolean
     ) {
+        fun collect(pos: BlockPos, state: BlockState) {
+            ShadowMesher.collectLightFaces(
+                manager,
+                state,
+                level,
+                pos,
+                atlas,
+                { predicate.shouldCastFace(it, level, pos, state) }
+            ) { dir, face -> faces.add(face) }
+        }
+
         while (cursors.isNotEmpty()) {
-            val cursor = cursors.removeLast()
+            val cursor = cursors.first()
+            cursors.remove(cursor)
+
+            collect(cursor, level.getBlockState(cursor))
 
             for (direction in Direction.entries) {
                 val pos = cursor.relative(direction)
 
-                if (checked.add(pos)) {
+                if (direction.isPointingTowardsInclusive(this.pos, cursor) && checked.add(pos)) {
                     val state = level.getBlockState(pos)
 
                     if (predicate.shouldCastBlock(level, pos, state) && predicate.isInLightRange(pos)) {
-                        if (!BlockUtil.INSTANCE.isSolidRender(state, pos, level)) {
+                        if (BlockUtil.INSTANCE.isSolidRender(state, pos, level)) {
+                            collect(pos, state)
+                        } else {
                             cursors.add(pos)
                         }
-
-                        ShadowMesher.collectLightFaces(
-                            manager,
-                            state,
-                            level,
-                            pos,
-                            atlas,
-                            { predicate.shouldCastFace(it, level, pos, state) }
-                        ) { dir, face -> faces.add(face) }
                     }
                 }
             }
         }
 
-        faces.sortBy { it.blockPos.distSqr(pos) }
         faces.forEach {
             if (predicate.isInShadowRange(it.blockPos)) {
                 shadowOut.accept(it)

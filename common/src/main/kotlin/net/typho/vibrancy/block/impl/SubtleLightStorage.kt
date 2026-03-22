@@ -146,7 +146,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                     val task = chunk.mesh.value!!.build(data.level, faces)
 
                     return Consumer { data ->
-                        task.run()
+                        task() // TODO
                         chunk.ssbo.upload(ssboBuffer.flip())
                         MemoryUtil.memFree(ssboBuffer)
 

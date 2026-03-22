@@ -1,8 +1,9 @@
 #version 430
 
-#include "vibrancy:include/light_blit"
+#include "vibrancy:include/fragment"
+#include "vibrancy:include/rays"
 
-layout(std430, binding = 2) buffer ShadowQuadBuffer {
+layout(std430, binding = 0) buffer ShadowQuadBuffer {
     Quad shadowQuads[];
 };
 
@@ -13,7 +14,7 @@ uniform vec3 LightColor;
 uniform float LightRadius;
 uniform float LightBrightness;
 
-in vec2 texCoord0;
+in vec3 vertexPos;
 
 out vec4 fragColor;
 
@@ -23,16 +24,6 @@ struct Ray {
     float len;
 };
 
-Ray check(Quad self, vec2 mappedUV) {
-    vec3 pos = interpolateQuadPos(self, mappedUV);
-
-    vec3 delta = LightPos - pos;
-    vec3 dir = normalize(delta);
-    float len = length(delta);
-
-    return Ray(pos, dir, len);
-}
-
 vec4 test(Quad q, Ray check) {
     float dist;
 
@@ -40,28 +31,17 @@ vec4 test(Quad q, Ray check) {
 }
 
 void main() {
-    Quad self;
-    vec2 mappedUV;
+    //vec2 step = 1 / (vec2(sprite.width, sprite.height) * 3);
 
-    lightBlitInit(self, mappedUV);
+    vec3 delta = LightPos - vertexPos;
+    vec3 dir = normalize(delta);
+    float len = length(delta);
 
-    Ray rayA = check(self, mappedUV);
-    //Ray rayB = check(self, mappedUV + vec2(step.x, 0));
-    //Ray rayC = check(self, mappedUV + vec2(-step.x, 0));
-    //Ray rayD = check(self, mappedUV + vec2(0, step.y));
-    //Ray rayE = check(self, mappedUV + vec2(0, -step.y));
+    Ray ray = Ray(vertexPos, dir, len);
 
-    fragColor = samplePointLight(LightPos, rayA.pos, LightRadius, LightColor);
+    fragColor = samplePointLight(LightPos, vertexPos, LightRadius, LightColor);
 
     for (uint i = 0u; i < shadowQuads.length(); i++) {
-        Quad q = shadowQuads[i];
-
-        vec4 a = test(q, rayA);
-        //vec4 b = test(q, rayB);
-        //vec4 c = test(q, rayC);
-        //vec4 d = test(q, rayD);
-        //vec4 e = test(q, rayE);
-
-        fragColor *= a;// (a + b + c + d + e) / 5;
+        fragColor *= test(shadowQuads[i], ray);
     }
 }

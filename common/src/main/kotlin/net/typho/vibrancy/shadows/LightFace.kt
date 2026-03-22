@@ -7,7 +7,9 @@ import net.typho.big_shot_lib.api.client.opengl.buffers.NeoVertexConsumer
 import net.typho.big_shot_lib.api.client.util.quads.NeoAtlas
 import net.typho.big_shot_lib.api.client.util.quads.NeoBakedQuad
 import net.typho.big_shot_lib.api.util.IColor
+import org.joml.Vector2i
 import org.joml.Vector3f
+import java.awt.Rectangle
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.min
@@ -34,14 +36,25 @@ data class LightFace(
         ceil(abs(quad.vertices[0].textureUV!!.x() - quad.vertices[2].textureUV!!.x()) * atlas.width).toInt()
     )
 
-    fun buildGeometry(consumer: NeoVertexConsumer, level: Level?) {
+    fun buildGeometry(consumer: NeoVertexConsumer, lightSprite: Rectangle?, level: Level?) {
         val tintColor = if (level != null && quad.tintIndex != null) {
             IColor.RGB(Minecraft.getInstance().blockColors.getColor(level.getBlockState(blockPos), level, blockPos, quad.tintIndex!!))
         } else {
             IColor.FULL_ON
         }
 
-        quad.withVertices { index, vertex -> vertex.withColor { tintColor } }.put(consumer)
+        quad.withVertices { index, vertex ->
+            var vertex = vertex.withColor { tintColor }
+
+            lightSprite?.let { sprite -> vertex = vertex.withOverlayUV { when (index) {
+                0 -> Vector2i(sprite.x, sprite.y)
+                1 -> Vector2i(sprite.x + sprite.width, sprite.y)
+                2 -> Vector2i(sprite.x + sprite.width, sprite.y + sprite.height)
+                else -> Vector2i(sprite.x, sprite.y + sprite.height)
+            } } }
+
+            vertex
+        }.put(consumer)
     }
 
     fun split(maxSize: Int): Array<LightFace> {
