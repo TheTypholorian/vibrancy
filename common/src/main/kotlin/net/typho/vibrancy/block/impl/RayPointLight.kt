@@ -1,6 +1,5 @@
 package net.typho.vibrancy.block.impl
 
-import com.mojang.blaze3d.vertex.ByteBufferBuilder
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -80,40 +79,7 @@ open class RayPointLight(
     val shadows: AsyncBlockShadowMesh<FloodFillMesher> = AsyncBlockShadowMesh(FloodFillMesher(blockPos)) { info, data ->
         val blitSettings = meshBlitSettings(data, this)
         blitSettings.bind()
-
-        val mesh = Vibrancy.shadowBlitMesh
-        mesh.bind()
-
-        val builder = mesh.Builder(ByteBufferBuilder(info.lightFaces.size * 4 * LightMesh.BLIT_VERTEX_FORMAT.vertexSizeBytes))
-
-        info.lightFaces.forEachIndexed { index, face ->
-            val texture = info.atlasResult.textures[index]
-            builder.vertex(face.quad.v0.pos)
-                .textureUV(
-                    texture.x.toFloat() / info.atlasResult.width,
-                    texture.y.toFloat() / info.atlasResult.height
-                )
-            builder.vertex(face.quad.v1.pos)
-                .textureUV(
-                    (texture.x.toFloat() + texture.width) / info.atlasResult.width,
-                    texture.y.toFloat() / info.atlasResult.height
-                )
-            builder.vertex(face.quad.v2.pos)
-                .textureUV(
-                    (texture.x.toFloat() + texture.width) / info.atlasResult.width,
-                    (texture.y.toFloat() + texture.height) / info.atlasResult.height
-                )
-            builder.vertex(face.quad.v3.pos)
-                .textureUV(
-                    texture.x.toFloat() / info.atlasResult.width,
-                    (texture.y.toFloat() + texture.height) / info.atlasResult.height
-                )
-        }
-
-        builder.end()
-        mesh.draw()
-
-        mesh.unbind()
+        LightMesh.blitLight(info)
         blitSettings.unbind()
         data.target.viewport() // TODO
     }

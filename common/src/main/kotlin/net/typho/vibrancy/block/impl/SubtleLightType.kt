@@ -1,7 +1,6 @@
 package net.typho.vibrancy.block.impl
 
 import net.minecraft.world.level.block.state.StateDefinition
-import net.typho.big_shot_lib.api.client.opengl.buffers.BufferType
 import net.typho.big_shot_lib.api.client.opengl.buffers.GlFramebuffer
 import net.typho.big_shot_lib.api.client.opengl.shaders.NeoShaderRegistry
 import net.typho.big_shot_lib.api.client.opengl.state.*
@@ -24,12 +23,8 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
                 GlFlag.BLEND
             )),
             BindBufferBaseShard(
-                { chunk.mesh.value!!.mesh.vbo.cast(BufferType.SHADER_STORAGE_BUFFER) },
-                0
-            ),
-            BindBufferBaseShard(
                 { chunk.ssbo },
-                1
+                0
             ),
             FramebufferShard(
                 { chunk.mesh.value!!.target },

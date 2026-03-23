@@ -12,7 +12,6 @@ import net.typho.big_shot_lib.api.client.opengl.buffers.BufferUsage
 import net.typho.big_shot_lib.api.client.opengl.buffers.GlBuffer
 import net.typho.big_shot_lib.api.client.opengl.shaders.GlShader
 import net.typho.big_shot_lib.api.client.opengl.util.GlResourcePool
-import net.typho.big_shot_lib.api.client.opengl.util.MeshUtil
 import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.vibrancy.LightManager
@@ -47,9 +46,9 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
         for (x in pos.x - 1..pos.x + 1) {
             for (z in pos.z - 1..pos.z + 1) {
                 level.getChunk(x, z).findBlocks(BlockLightRegistry::has) { pos, state ->
-                    val actualPos = BlockPos(pos)
+                    val pos = BlockPos(pos)
 
-                    if (box.contains(actualPos)) {
+                    if (box.contains(pos)) {
                         BlockLightRegistry.get(state.block, SubtleLightType)?.let { info ->
                             chunk.rawAddLight(manager, level, state, pos, info)
                         }
@@ -122,7 +121,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                     val blocks = HashSet<BlockPos>()
                     val ssboBuffer = MemoryUtil.memAllocFloat(8 * chunk.size)
 
-                    for (light in chunk.map.values) { // TODO fix concurrent mod except
+                    for (light in chunk.map.values) {
                         if (light.shouldRender(chunk)) {
                             blocks.addAll(
                                 light.shadowBox
@@ -146,14 +145,17 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                     val task = chunk.mesh.value!!.build(data.level, faces)
 
                     return Consumer { data ->
-                        task() // TODO
+                        val atlasResult = task()
                         chunk.ssbo.upload(ssboBuffer.flip())
                         MemoryUtil.memFree(ssboBuffer)
 
-                        val blitSettings = SubtleLightType.meshBlitSettings(data, chunk)
-                        blitSettings.bind()
-                        MeshUtil.SCREEN_MESH.draw()
-                        blitSettings.unbind()
+                        if (faces.isNotEmpty()) {
+                            val blitSettings = SubtleLightType.meshBlitSettings(data, chunk)
+                            blitSettings.bind()
+                            LightMesh.blitLight(LightMesh.LightBlitInfo(atlasResult, faces))
+                            blitSettings.unbind()
+                        }
+
                         data.target.viewport() // TODO
                     }
                 }

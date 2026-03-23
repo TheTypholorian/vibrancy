@@ -83,7 +83,58 @@ open class LightMesh : NativeResource {
                     }
                 )
             )
+
+        private val lightBlitMesh by lazy {
+            Mesh(
+                BLIT_VERTEX_FORMAT,
+                GlShapeType.QUADS,
+                BufferUsage.STREAM_DRAW
+            )
+        }
+
+        @JvmStatic
+        fun blitLight(info: LightBlitInfo) {
+            lightBlitMesh.bind()
+
+            val builder = lightBlitMesh.Builder(ByteBufferBuilder(info.lightFaces.size * 4 * BLIT_VERTEX_FORMAT.vertexSizeBytes))
+
+            info.lightFaces.forEachIndexed { index, face ->
+                val texture = info.atlasResult.textures[index]
+                builder.vertex(face.quad.v0.pos)
+                    .textureUV(
+                        texture.x.toFloat() / info.atlasResult.width,
+                        texture.y.toFloat() / info.atlasResult.height
+                    )
+                builder.vertex(face.quad.v1.pos)
+                    .textureUV(
+                        (texture.x.toFloat() + texture.width) / info.atlasResult.width,
+                        texture.y.toFloat() / info.atlasResult.height
+                    )
+                builder.vertex(face.quad.v2.pos)
+                    .textureUV(
+                        (texture.x.toFloat() + texture.width) / info.atlasResult.width,
+                        (texture.y.toFloat() + texture.height) / info.atlasResult.height
+                    )
+                builder.vertex(face.quad.v3.pos)
+                    .textureUV(
+                        texture.x.toFloat() / info.atlasResult.width,
+                        (texture.y.toFloat() + texture.height) / info.atlasResult.height
+                    )
+            }
+
+            builder.end()
+            lightBlitMesh.draw()
+
+            lightBlitMesh.unbind()
+        }
     }
+
+    data class LightBlitInfo(
+        @JvmField
+        val atlasResult: TextureAtlas.Result,
+        @JvmField
+        val lightFaces: List<LightFace>
+    )
 
     @JvmField
     val mesh = Mesh(

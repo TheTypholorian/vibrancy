@@ -3,7 +3,6 @@ package net.typho.vibrancy.shadows
 import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.vibrancy.LightManager
-import net.typho.vibrancy.TextureAtlas
 import net.typho.vibrancy.Vibrancy
 import java.util.concurrent.CompletableFuture
 
@@ -11,9 +10,9 @@ open class AsyncBlockShadowMesh<M : ShadowMesher>(
     @JvmField
     val mesher: M,
     @JvmField
-    val blit: (info: BlitInfo, data: RenderEventData) -> Unit
+    val blit: (info: LightMesh.LightBlitInfo, data: RenderEventData) -> Unit
 ) : ShadowMesh() {
-    protected var asyncTask: CompletableFuture<() -> BlitInfo>? = null
+    protected var asyncTask: CompletableFuture<() -> LightMesh.LightBlitInfo>? = null
 
     fun isTaskActive() = asyncTask?.let { task -> !task.isDone } ?: false
 
@@ -37,7 +36,7 @@ open class AsyncBlockShadowMesh<M : ShadowMesher>(
     protected fun rebuildAsyncImpl(
         manager: LightManager,
         predicate: ShadowPredicate
-    ): () -> BlitInfo {
+    ): () -> LightMesh.LightBlitInfo {
         val level = manager.getLevel() ?: throw NullPointerException("No level?")
 
         val shadowFaces = arrayListOf<LightFace>()
@@ -49,7 +48,7 @@ open class AsyncBlockShadowMesh<M : ShadowMesher>(
         val built = build(level, shadowFaces, lightFaces)
 
         return {
-            BlitInfo(
+            LightMesh.LightBlitInfo(
                 built(),
                 lightFaces
             )
@@ -72,11 +71,4 @@ open class AsyncBlockShadowMesh<M : ShadowMesher>(
             }
         }
     }
-
-    data class BlitInfo(
-        @JvmField
-        val atlasResult: TextureAtlas.Result,
-        @JvmField
-        val lightFaces: List<LightFace>
-    )
 }
