@@ -28,8 +28,6 @@ class FloodFillMesher(
     }
 
     fun markDirty(pos: BlockPos) {
-        cursors.add(pos)
-
         val remove = setOf(
             pos,
             pos.above(),
@@ -40,7 +38,8 @@ class FloodFillMesher(
             pos.east()
         )
 
-        checked.removeAll(remove)
+        checked.addAll(remove)
+        cursors.addAll(remove)
         faces.removeIf { remove.contains(it.blockPos) }
     }
 
