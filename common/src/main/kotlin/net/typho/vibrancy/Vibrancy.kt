@@ -11,6 +11,7 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.network.chat.CommonComponents
 import net.minecraft.network.chat.Component
+import net.minecraft.world.level.block.Block
 import net.minecraft.world.phys.AABB
 import net.typho.big_shot_lib.api.client.opengl.util.OpenGL
 import net.typho.big_shot_lib.api.client.util.*
@@ -24,6 +25,7 @@ import net.typho.big_shot_lib.api.util.RegistrationFactory
 import net.typho.big_shot_lib.api.util.RegistryFactory
 import net.typho.big_shot_lib.api.util.WrapperUtil
 import net.typho.big_shot_lib.api.util.events.CommonEventFactory
+import net.typho.big_shot_lib.api.util.resources.NeoTagKey
 import net.typho.big_shot_lib.api.util.resources.ResourceIdentifier
 import net.typho.vibrancy.block.BlockLightInfoLoader
 import net.typho.vibrancy.block.BlockLightRegistry
@@ -51,6 +53,8 @@ object Vibrancy {
     var toggleRaytracedLightsKey: KeyMapping? = null
     @JvmField
     var toggleSubtleLightsKey: KeyMapping? = null
+    @JvmField
+    val noShadowsTag = WrapperUtil.INSTANCE.unwrap(NeoTagKey<Block>(ResourceIdentifier("minecraft", "block"), id("no_shadows")))
 
     init {
         val holder = AutoConfig.register(

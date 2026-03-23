@@ -7,6 +7,7 @@ import net.minecraft.world.level.block.state.BlockState
 import net.typho.big_shot_lib.api.client.util.quads.NeoAtlas
 import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.vibrancy.LightManager
+import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.Vibrancy.isPointingTowardsInclusive
 import java.util.function.Consumer
 
@@ -87,7 +88,7 @@ class FloodFillMesher(
         }
 
         faces.forEach {
-            if (predicate.isInShadowRange(it.blockPos)) {
+            if (predicate.isInShadowRange(it.blockPos) && !level.getBlockState(it.blockPos).`is`(Vibrancy.noShadowsTag)) {
                 shadowOut.accept(it)
             }
 

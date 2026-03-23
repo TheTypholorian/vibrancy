@@ -1,18 +1,22 @@
 package net.typho.vibrancy
 
+import me.shedaniel.autoconfig.AutoConfig
 import net.neoforged.api.distmarker.Dist
 import net.neoforged.bus.api.IEventBus
 import net.neoforged.fml.ModContainer
 import net.neoforged.fml.ModLoadingException
 import net.neoforged.fml.ModLoadingIssue
 import net.neoforged.fml.common.Mod
+import net.neoforged.neoforge.client.gui.IConfigScreenFactory
 import net.typho.big_shot_lib.api.client.opengl.util.OpenGL
 import org.lwjgl.opengl.GL
 import org.lwjgl.system.Platform
 
 @Mod(value = Vibrancy.MOD_ID, dist = [Dist.CLIENT])
-class VibrancyOpenGLChecker(eventBus: IEventBus, modContainer: ModContainer) {
+class VibrancyNeoForge(eventBus: IEventBus, modContainer: ModContainer) {
     init {
+        modContainer.registerExtensionPoint(IConfigScreenFactory::class.java, IConfigScreenFactory { container, modListScreen -> AutoConfig.getConfigScreen(VibrancyConfig::class.java, modListScreen).get() })
+
         OpenGL.INSTANCE.recordRenderCall {
             if (!GL.getCapabilities().GL_ARB_shader_storage_buffer_object) {
                 throw ModLoadingException(
