@@ -17,13 +17,13 @@ object SkyLightInfoLoader : NeoResourceManagerReloadListener {
     @JvmStatic
     fun load(key: ResourceIdentifier, json: JsonElement, file: ResourceIdentifier) {
         val typeKey = ResourceIdentifier.CODEC.decode(JsonOps.INSTANCE, json.asJsonObject.get("type"))
-            .getOrThrow { JsonParseException("Error while parsing block light info $file: $it") }
+            .getOrThrow { JsonParseException("Error while parsing sky light info $file: $it") }
             .first
-        val codec = (SkyLightRegistry.registry!!.get(typeKey) ?: throw JsonParseException("No block light type $typeKey"))
+        val codec = (SkyLightRegistry.registry!!.get(typeKey) ?: throw JsonParseException("No sky light type $typeKey"))
                 .infoCodec
         SkyLightRegistry.dimensionMap[key] = codec.codec()
             .parse(JsonOps.INSTANCE, json)
-            .getOrThrow { message -> JsonParseException("Error parsing block light info for $key: $message") }
+            .getOrThrow { message -> JsonParseException("Error parsing sky light info for $key: $message") }
     }
 
     override fun onResourceManagerReload(manager: NeoResourceManager) {
@@ -35,6 +35,6 @@ object SkyLightInfoLoader : NeoResourceManagerReloadListener {
             }
         }
 
-        Vibrancy.LOGGER.info("Loaded ${SkyLightRegistry.dimensionMap.size} block lights")
+        Vibrancy.LOGGER.info("Loaded ${SkyLightRegistry.dimensionMap.size} sky lights")
     }
 }

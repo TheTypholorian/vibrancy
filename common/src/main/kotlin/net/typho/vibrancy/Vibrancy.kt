@@ -30,6 +30,7 @@ import net.typho.big_shot_lib.api.util.resources.ResourceIdentifier
 import net.typho.vibrancy.block.BlockLightInfoLoader
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.sky.SkyLightInfo
+import net.typho.vibrancy.sky.SkyLightInfoLoader
 import net.typho.vibrancy.sky.SkyLightRegistry
 import net.typho.vibrancy.sky.SkyLightStorage
 import org.lwjgl.glfw.GLFW
@@ -118,10 +119,16 @@ object Vibrancy {
                 Lifecycle.stable(),
                 false
             )
+            SkyLightRegistry.registry = factory.create(
+                SkyLightRegistry.registryKey.location,
+                Lifecycle.stable(),
+                false
+            )
         }
 
         override fun registerContent(factory: RegistrationFactory) {
             BlockLightRegistry.registerBuiltins(factory)
+            SkyLightRegistry.registerBuiltins(factory)
         }
 
         override fun registerEvents(factory: CommonEventFactory) {
@@ -150,6 +157,7 @@ object Vibrancy {
 
         override fun registerReloadListeners(factory: ResourceListenerFactory) {
             factory.register(id("block_lights"), BlockLightInfoLoader)
+            factory.register(id("block_lights"), SkyLightInfoLoader)
         }
 
         override fun registerKeyMappings(factory: KeyMappingFactory) {
@@ -168,7 +176,9 @@ object Vibrancy {
                     (lightManager.skyLight?.second as? NativeResource)?.free()
                     lightManager.skyLight = null
                 } else {
-                    BlockLightInfoLoader.onResourceManagerReload(WrapperUtil.INSTANCE.wrap(Minecraft.getInstance().resourceManager))
+                    val resourceManager = WrapperUtil.INSTANCE.wrap(Minecraft.getInstance().resourceManager)
+                    BlockLightInfoLoader.onResourceManagerReload(resourceManager)
+                    SkyLightInfoLoader.onResourceManagerReload(resourceManager)
 
                     SkyLightRegistry.get(new)?.let { info ->
                         if (lightManager.skyLight?.first != info.type) {
