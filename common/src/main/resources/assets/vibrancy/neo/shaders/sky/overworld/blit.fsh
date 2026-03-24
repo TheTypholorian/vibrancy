@@ -11,6 +11,7 @@ uniform sampler2D Sampler0;
 
 //uniform vec3 LightPos;
 uniform vec3 LightColor;
+uniform vec3 LightDirection;
 //uniform float LightRadius;
 //uniform float LightBrightness;
 
@@ -33,10 +34,9 @@ vec4 test(Quad q, Ray check) {
 void main() {
     //vec2 step = 1 / (vec2(sprite.width, sprite.height) * 3);
 
-    vec3 dir = normalize(vec3(0.5, 0.5, 0.5));
-    float len = 10.0;
+    float len = 10.0; // TODO
 
-    Ray ray = Ray(vertexPos, dir, len);
+    Ray ray = Ray(vertexPos, LightDirection, len);
 
     fragColor = vec4(LightColor, 1);
 

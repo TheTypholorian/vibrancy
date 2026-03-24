@@ -12,6 +12,7 @@ import net.typho.big_shot_lib.api.client.opengl.state.*
 import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.big_shot_lib.api.util.BlockUtil
+import net.typho.big_shot_lib.api.util.IColor
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.LightRenderResult
 import net.typho.vibrancy.Vibrancy
@@ -24,11 +25,13 @@ import net.typho.vibrancy.sky.SkyLightStorage
 import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.lwjgl.system.NativeResource
+import kotlin.math.cos
+import kotlin.math.sin
 
 class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, OverworldSkyLightStorage.Chunk>(OverworldSkyLightType) {
     companion object {
         @JvmStatic
-        fun meshBlitSettings(data: RenderEventData, chunk: Chunk, info: OverworldSkyLightInfo) = RenderSettings(
+        fun meshBlitSettings(data: RenderEventData, storage: OverworldSkyLightStorage, chunk: Chunk) = RenderSettings(
             Vibrancy.id("sky/overworld/blit"),
             listOf(
                 DisableFlagsShard(listOf(
@@ -52,8 +55,9 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                     shader.getUniform("ModelViewMat")?.setValue(Matrix4f(data.modelViewMat))
                     shader.getUniform("Sampler0")?.setSampler(TextureUtil.INSTANCE.blockAtlas)
 
-                    shader.getUniform("LightColor")?.setValue(Vector3f(info.sunColor)) // TODO
-                    //shader.getUniform("LightBrightness")?.setValue(Vibrancy.config.blockLights.raytraced.brightness)
+                    shader.getUniform("LightColor")?.setValue(storage.getLightColor(data.level))
+                    shader.getUniform("LightDirection")?.setValue(storage.getLightDirection(data.level))
+                    //shader.getUniform("LightBrightness")?.setValue(Vibrancy.config.blockLights.raytraced.brightness) // TODO
                 }
             )
         )
@@ -61,6 +65,28 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
     var lightInfo: OverworldSkyLightInfo? = null
         private set
+
+    fun getLightDirection(level: Level): Vector3f {
+        val sunAngle = level.getSunAngle(0f)
+        var x = -sin(sunAngle)
+        var y = cos(sunAngle)
+
+        if (y < 0) {
+            x = -x
+            y = -y
+        }
+
+        return Vector3f(x, y, 0f)
+    }
+
+    fun getLightColor(level: Level): IColor {
+        val y = cos(level.getSunAngle(0f))
+        return if (y > 0) {
+            IColor.RGBF(lightInfo!!.sunColor.mul(y, Vector3f()))
+        } else {
+            IColor.RGBF(lightInfo!!.moonColor.mul(-y, Vector3f()))
+        }
+    }
 
     override fun createChunk(
         manager: LightManager,
@@ -99,7 +125,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                 )
             }
 
-            val blitSettings = meshBlitSettings(data, this, lightInfo!!)
+            val blitSettings = meshBlitSettings(data, this@OverworldSkyLightStorage, this)
             blitSettings.bind()
             LightMesh.blitLight(blitInfo!!)
             blitSettings.unbind()

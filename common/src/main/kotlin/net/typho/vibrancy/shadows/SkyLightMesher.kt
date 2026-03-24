@@ -6,7 +6,6 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.Heightmap
 import net.typho.big_shot_lib.api.client.util.quads.NeoAtlas
-import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 import java.util.function.Consumer
@@ -48,7 +47,8 @@ class SkyLightMesher(
                     val pos = BlockPos(x + pos.minBlockX, y, z + pos.minBlockZ)
                     val state = chunk.getBlockState(pos)
 
-                    if (!BlockUtil.INSTANCE.isSolidRender(state, pos, level) && predicate.shouldCastBlock(level, pos, state)) {
+                    // !BlockUtil.INSTANCE.isSolidRender(state, pos, level) &&
+                    if (predicate.shouldCastBlock(level, pos, state)) {
                         collect(pos, state)
                     }
 
