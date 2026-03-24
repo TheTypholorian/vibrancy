@@ -24,11 +24,12 @@ abstract class ChunkedSkyLightStorage<I : SkyLightInfo, C : SkyLightStorage<I>>(
         manager: LightManager,
         chunk: LevelChunk
     ) {
-        getOrCreateChunk(manager, chunk.level!!, chunk.pos).deloadChunk(manager, chunk)
+        chunks.remove(chunk.pos)?.deloadChunk(manager, chunk)
     }
 
     override fun clear(manager: LightManager) {
         chunks.values.forEach { it.clear(manager) }
+        chunks.clear()
     }
 
     override fun reload(manager: LightManager) {
