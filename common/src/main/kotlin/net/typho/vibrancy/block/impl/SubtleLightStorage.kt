@@ -36,28 +36,49 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
     val tasks = LinkedList<CompletableFuture<Consumer<RenderEventData>?>>()
 
     override fun createChunk(manager: LightManager, level: Level, pos: ChunkPos): Chunk {
-        val chunk = Chunk(pos)
+        return Chunk(pos).also { it.scan(level, manager) }
+    }
 
-        val box = BlockBox(
-            BlockPos(pos.minBlockX - 1, level.minBuildHeight, pos.minBlockZ - 1),
-            BlockPos(pos.maxBlockX + 1, level.maxBuildHeight, pos.maxBlockZ + 1),
+    override fun addLight(
+        manager: LightManager,
+        level: Level,
+        state: BlockState,
+        pos: BlockPos,
+        info: SubtleLightInfo
+    ) {
+        val chunks = hashSetOf(
+            ChunkPos(pos),
+            ChunkPos(pos.north()),
+            ChunkPos(pos.south()),
+            ChunkPos(pos.east()),
+            ChunkPos(pos.west()),
+            ChunkPos(pos.north().east()),
+            ChunkPos(pos.south().west()),
+            ChunkPos(pos.east().south()),
+            ChunkPos(pos.west().north())
         )
 
-        for (x in pos.x - 1..pos.x + 1) {
-            for (z in pos.z - 1..pos.z + 1) {
-                level.getChunk(x, z).findBlocks(BlockLightRegistry::has) { pos, state ->
-                    val pos = BlockPos(pos)
+        chunks.forEach { getOrCreateChunk(manager, level, it).addLight(manager, level, state, pos, info) }
+    }
 
-                    if (box.contains(pos)) {
-                        BlockLightRegistry.get(state.block, SubtleLightType)?.let { info ->
-                            chunk.rawAddLight(manager, level, state, pos, info)
-                        }
-                    }
-                }
-            }
-        }
+    override fun removeLight(
+        manager: LightManager,
+        level: Level,
+        pos: BlockPos,
+    ): Boolean {
+        val chunks = hashSetOf(
+            ChunkPos(pos),
+            ChunkPos(pos.north()),
+            ChunkPos(pos.south()),
+            ChunkPos(pos.east()),
+            ChunkPos(pos.west()),
+            ChunkPos(pos.north().east()),
+            ChunkPos(pos.south().west()),
+            ChunkPos(pos.east().south()),
+            ChunkPos(pos.west().north())
+        )
 
-        return chunk
+        return chunks.fold(false) { accum, chunkPos -> accum or getOrCreateChunk(manager, level, chunkPos).removeLight(manager, level, pos) }
     }
 
     override fun clear(manager: LightManager) {
@@ -121,7 +142,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                     val blocks = HashSet<BlockPos>()
                     val ssboBuffer = MemoryUtil.memAllocFloat(8 * chunk.size)
 
-                    for (light in chunk.map.values) {
+                    chunk.map.values.forEach { light ->
                         if (light.shouldRender(chunk)) {
                             blocks.addAll(
                                 light.shadowBox
@@ -182,6 +203,29 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
         @JvmField
         var box: AABB? = null
 
+        fun scan(level: Level, manager: LightManager) {
+            map.clear()
+
+            val box = BlockBox(
+                BlockPos(pos.minBlockX - 1, level.minBuildHeight, pos.minBlockZ - 1),
+                BlockPos(pos.maxBlockX + 1, level.maxBuildHeight, pos.maxBlockZ + 1),
+            )
+
+            for (x in pos.x - 1..pos.x + 1) {
+                for (z in pos.z - 1..pos.z + 1) {
+                    level.getChunk(x, z).findBlocks(BlockLightRegistry::has) { pos, state ->
+                        val pos = BlockPos(pos)
+
+                        if (box.contains(pos)) {
+                            BlockLightRegistry.get(state.block, SubtleLightType)?.let { info ->
+                                rawAddLight(manager, level, state, pos, info)
+                            }
+                        }
+                    }
+                }
+            }
+        }
+
         fun render(data: RenderEventData, shader: GlShader): LightRenderResult {
             if (
                 size > 0
@@ -212,6 +256,10 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
             }
         }
 
+        override fun loadChunk(manager: LightManager, chunk: LevelChunk) {
+            scan(chunk.level!!, manager)
+        }
+
         internal fun rawAddLight(
             manager: LightManager,
             level: Level,
@@ -230,12 +278,12 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
             info: SubtleLightInfo
         ) {
             super.addLight(manager, level, state, pos, info)
-            markDirty()
+            dirty.add(this.pos)
         }
 
         override fun removeLight(manager: LightManager, level: Level, pos: BlockPos): Boolean {
             if (super.removeLight(manager, level, pos)) {
-                markDirty()
+                dirty.add(this.pos)
                 return true
             } else {
                 return false
