@@ -1,0 +1,7 @@
+{
+  "sources": {
+    "vertex": "vibrancy:light_blit",
+    "fragment": "vibrancy:sky/overworld/blit"
+  },
+  "format": "POSITION_TEX"
+}

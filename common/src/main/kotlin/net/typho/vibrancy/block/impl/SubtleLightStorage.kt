@@ -194,14 +194,14 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
 
     inner class Chunk(
         @JvmField
-        val pos: ChunkPos,
-        @JvmField
-        val mesh: GlResourcePool<LightMesh>.Handle = LightMesh.pool.poll(),
-        @JvmField
-        val ssbo: GlBuffer = GlBuffer(BufferType.SHADER_STORAGE_BUFFER, BufferUsage.STATIC_DRAW)
+        val pos: ChunkPos
     ) : HashMapBlockLightStorage<SubtleLightInfo, SubtleLight>(SubtleLightType), NativeResource {
         @JvmField
         var box: AABB? = null
+        @JvmField
+        val mesh: GlResourcePool<LightMesh>.Handle = LightMesh.pool.poll()
+        @JvmField
+        val ssbo: GlBuffer = GlBuffer(BufferType.SHADER_STORAGE_BUFFER, BufferUsage.STATIC_DRAW)
 
         fun scan(level: Level, manager: LightManager) {
             map.clear()

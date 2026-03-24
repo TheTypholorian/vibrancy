@@ -1,9 +1,13 @@
 package net.typho.vibrancy.sky.impl
 
 import net.typho.big_shot_lib.api.client.opengl.buffers.GlFramebuffer
+import net.typho.big_shot_lib.api.client.opengl.shaders.NeoShaderRegistry
+import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.LightRenderResult
+import net.typho.vibrancy.Vibrancy
+import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.sky.SkyLightInfo
 import net.typho.vibrancy.sky.SkyLightType
 
@@ -22,6 +26,11 @@ object OverworldSkyLightType : SkyLightType<OverworldSkyLightInfo, OverworldSkyL
         lights: OverworldSkyLightStorage,
         fbo: GlFramebuffer
     ): LightRenderResult {
-        TODO("Not yet implemented")
+        val settings = LightMesh.renderSettings(fbo, data, TextureUtil.INSTANCE.blockAtlas)
+        val shader = NeoShaderRegistry.get(Vibrancy.id("light_mesh"))!! // TODO
+        settings.bind()
+        val result = lights.chunks.values.fold(LightRenderResult()) { result, chunk -> result.also { it.add(chunk.render(manager, data, shader)) } }
+        settings.unbind()
+        return result
     }
 }
