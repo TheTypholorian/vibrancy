@@ -175,7 +175,7 @@ open class LightMesh : NativeResource {
         val lightBuilder = mesh.Builder(ByteBufferBuilder(lightFaces.size * 4 * VERTEX_FORMAT.vertexSizeBytes))
         val result = TextureAtlas.pack(*textures)
 
-        lightFaces.forEachIndexed { index, face -> face.buildGeometry(lightBuilder, result.textures[index], level) }
+        lightFaces.forEachIndexed { index, face -> face.buildGeometry(lightBuilder, result.textures[index], level, null) }
 
         return {
             empty = lightFaces.isEmpty()

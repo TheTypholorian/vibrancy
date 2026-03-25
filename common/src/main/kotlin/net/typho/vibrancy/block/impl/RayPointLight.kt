@@ -7,7 +7,6 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
-import net.typho.big_shot_lib.api.client.opengl.buffers.BufferType
 import net.typho.big_shot_lib.api.client.opengl.buffers.BufferUsage
 import net.typho.big_shot_lib.api.client.opengl.buffers.Mesh
 import net.typho.big_shot_lib.api.client.opengl.buffers.NeoVertexFormat
@@ -51,7 +50,7 @@ open class RayPointLight(
                     GlFlag.BLEND
                 )),
                 BindBufferBaseShard(
-                    { light.shadows.shadowMesh.vbo.cast(BufferType.SHADER_STORAGE_BUFFER) },
+                    { light.shadows.shadowBuffer },
                     0
                 ),
                 FramebufferShard(

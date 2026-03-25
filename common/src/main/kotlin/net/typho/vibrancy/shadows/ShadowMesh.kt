@@ -1,35 +1,20 @@
 package net.typho.vibrancy.shadows
 
-import com.mojang.blaze3d.vertex.ByteBufferBuilder
 import net.minecraft.world.level.Level
+import net.typho.big_shot_lib.api.client.opengl.buffers.BufferType
 import net.typho.big_shot_lib.api.client.opengl.buffers.BufferUsage
-import net.typho.big_shot_lib.api.client.opengl.buffers.Mesh
-import net.typho.big_shot_lib.api.client.opengl.buffers.NeoVertexFormat
-import net.typho.big_shot_lib.api.client.opengl.util.GlShapeType
+import net.typho.big_shot_lib.api.client.opengl.buffers.GlBuffer
 import net.typho.vibrancy.TextureAtlas
+import org.lwjgl.system.MemoryUtil
 import org.lwjgl.system.NativeResource
 
 open class ShadowMesh : NativeResource {
-    companion object {
-        @JvmField
-        val VERTEX_FORMAT = NeoVertexFormat.builder()
-            .add("Position", NeoVertexFormat.Element.POSITION)
-            .padding(4)
-            .add("UV0", NeoVertexFormat.Element.TEXTURE_UV)
-            .add("Color", NeoVertexFormat.Element.COLOR)
-            .padding(4)
-            .build()
-    }
-
-    val shadowMesh = Mesh(
-        VERTEX_FORMAT,
-        GlShapeType.QUADS,
-        BufferUsage.STATIC_DRAW
-    )
+    @JvmField
+    val shadowBuffer = GlBuffer(BufferType.SHADER_STORAGE_BUFFER, BufferUsage.STATIC_DRAW)
+    @JvmField
     val lightMesh = LightMesh.pool.poll()
 
     override fun free() {
-        shadowMesh.free()
         lightMesh.release()
     }
 
@@ -38,20 +23,17 @@ open class ShadowMesh : NativeResource {
         shadowFaces: List<LightFace>,
         lightFaces: List<LightFace>
     ): () -> TextureAtlas.Result {
-        val shadowBuilder = shadowMesh.Builder(ByteBufferBuilder(shadowFaces.size * 4 * VERTEX_FORMAT.vertexSizeBytes))
+        val buffer = MemoryUtil.memAlloc(LightFace.UNPACKED_BYTE_SIZE * shadowFaces.size)
 
         for (face in shadowFaces) {
-            face.buildGeometry(shadowBuilder, null, level)
+            face.buildGeometry(null, null, level, buffer)
         }
 
         val light = lightMesh.value!!.build(level, lightFaces)
 
         return {
-            if (shadowFaces.isEmpty()) {
-                shadowBuilder.buffer.close()
-            } else {
-                shadowBuilder.end()
-            }
+            shadowBuffer.upload(buffer.flip())
+            MemoryUtil.memFree(buffer)
 
             light()
         }

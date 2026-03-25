@@ -8,7 +8,6 @@ import net.minecraft.world.level.LightLayer
 import net.minecraft.world.level.block.LeavesBlock
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
-import net.typho.big_shot_lib.api.client.opengl.buffers.BufferType
 import net.typho.big_shot_lib.api.client.opengl.buffers.BufferUsage
 import net.typho.big_shot_lib.api.client.opengl.buffers.ClearBit
 import net.typho.big_shot_lib.api.client.opengl.buffers.Mesh
@@ -73,7 +72,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
             Vibrancy.id("sky/overworld/blit_chunk"),
             listOf(
                 BindBufferBaseShard(
-                    { chunk.mesh.shadowMesh.vbo.cast(BufferType.SHADER_STORAGE_BUFFER) },
+                    { chunk.mesh.shadowBuffer },
                     0
                 ),
                 FramebufferShard(

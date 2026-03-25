@@ -10,6 +10,7 @@ import net.typho.big_shot_lib.api.util.IColor
 import org.joml.Vector2i
 import org.joml.Vector3f
 import java.awt.Rectangle
+import java.nio.ByteBuffer
 import kotlin.math.abs
 import kotlin.math.ceil
 import kotlin.math.min
@@ -25,6 +26,10 @@ data class LightFace(
     @JvmField
     val height: Int
 ) {
+    companion object {
+        const val UNPACKED_BYTE_SIZE = 32 * 4
+    }
+
     constructor(
         blockPos: BlockPos,
         quad: NeoBakedQuad,
@@ -36,14 +41,14 @@ data class LightFace(
         ceil(abs(quad.vertices[0].textureUV!!.x() - quad.vertices[2].textureUV!!.x()) * atlas.width).toInt()
     )
 
-    fun buildGeometry(consumer: NeoVertexConsumer, lightSprite: Rectangle?, level: Level?) {
+    fun buildGeometry(consumer: NeoVertexConsumer?, lightSprite: Rectangle?, level: Level?, ssboBuffer: ByteBuffer?) {
         val tintColor = if (level != null && quad.tintIndex != null) {
             IColor.RGB(Minecraft.getInstance().blockColors.getColor(level.getBlockState(blockPos), level, blockPos, quad.tintIndex!!))
         } else {
             IColor.FULL_ON
         }
 
-        quad.withVertices { index, vertex ->
+        val quad = quad.withVertices { index, vertex ->
             var vertex = vertex.withColor { tintColor }
 
             lightSprite?.let { sprite -> vertex = vertex.withOverlayUV { when (index) {
@@ -54,7 +59,22 @@ data class LightFace(
             } } }
 
             vertex
-        }.put(consumer)
+        }
+
+        if (consumer != null) {
+            quad.put(consumer)
+        }
+
+        if (ssboBuffer != null) {
+            for (vertex in quad.vertices) {
+                ssboBuffer.putFloat(vertex.pos.x()).putFloat(vertex.pos.y()).putFloat(vertex.pos.z()).putFloat(0f)
+                val uv = vertex.textureUV!!
+                ssboBuffer.putFloat(uv.x()).putFloat(uv.y())
+                val color = vertex.color!!
+                ssboBuffer.putInt(color.toRGBA())
+                ssboBuffer.putInt(0)
+            }
+        }
     }
 
     fun split(maxSize: Int): Array<LightFace> {
