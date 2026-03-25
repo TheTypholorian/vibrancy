@@ -15,7 +15,6 @@ import net.typho.big_shot_lib.api.client.opengl.util.GlResourcePool
 import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.vibrancy.LightManager
-import net.typho.vibrancy.LightRenderResult
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.block.ChunkedBlockLightStorage
@@ -226,16 +225,14 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
             }
         }
 
-        fun render(data: RenderEventData, shader: GlShader): LightRenderResult {
+        fun render(data: RenderEventData, shader: GlShader, debugOut: (key: String, value: Int) -> Unit) {
             if (
                 size > 0
                 && box?.let { data.frustum.testAab(it.minPosition.toVector3f(), it.maxPosition.toVector3f()) } ?: true
             ) {
                 mesh.value!!.draw(shader)
-
-                return LightRenderResult(numRendered = size)
-            } else {
-                return LightRenderResult()
+                debugOut("lightsRendered", size)
+                debugOut("chunksRendered", 1)
             }
         }
 

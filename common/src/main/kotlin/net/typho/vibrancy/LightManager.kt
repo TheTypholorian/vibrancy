@@ -10,10 +10,12 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
 import net.typho.big_shot_lib.api.client.opengl.buffers.GlFramebuffer
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
+import net.typho.big_shot_lib.api.util.resources.NeoResourceKey
 import net.typho.vibrancy.block.BlockLightInfo
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.block.BlockLightStorage
 import net.typho.vibrancy.block.BlockLightType
+import net.typho.vibrancy.sky.SkyLightRegistry
 import net.typho.vibrancy.sky.SkyLightStorage
 import net.typho.vibrancy.sky.SkyLightType
 import org.joml.Vector2f
@@ -26,11 +28,9 @@ open class LightManager {
     @JvmField
     val blockLights = HashMap<BlockLightType<*, *>, BlockLightStorage<*>>()
     @JvmField
-    var blockRenderResults = HashMap<BlockLightType<*, *>, LightRenderResult>()
-    @JvmField
     var skyLight: Pair<SkyLightType<*, *>, SkyLightStorage<*>>? = null
     @JvmField
-    var skyRenderResult: LightRenderResult? = null
+    protected val debugInfo = HashMap<NeoResourceKey<*>, HashMap<String, Int>>()
 
     fun getLevel(): ClientLevel? = Minecraft.getInstance().level
 
@@ -111,34 +111,46 @@ open class LightManager {
         }
     }
 
-    @Suppress("UNCHECKED_CAST")
-    protected fun <S : BlockLightStorage<*>> castAndRender(data: RenderEventData, fbo: GlFramebuffer, type: BlockLightType<*, S>, storage: BlockLightStorage<*>): LightRenderResult {
-        return type.render(this, data, storage as S, fbo)
+    protected fun getDebugOutput(key: NeoResourceKey<*>): (String, Int) -> Unit {
+        val debugMap = debugInfo.computeIfAbsent(key) { HashMap() }
+        return { key, value -> debugMap.compute(key) { k, v -> if (v == null) value else v + value } }
     }
 
     @Suppress("UNCHECKED_CAST")
-    protected fun <S : SkyLightStorage<*>> castAndRender(data: RenderEventData, fbo: GlFramebuffer, type: SkyLightType<*, S>, storage: SkyLightStorage<*>): LightRenderResult {
-        return type.render(this, data, storage as S, fbo)
+    protected fun <S : BlockLightStorage<*>> castAndRender(data: RenderEventData, fbo: GlFramebuffer, type: BlockLightType<*, S>, storage: BlockLightStorage<*>) {
+        type.render(this, data, storage as S, fbo, getDebugOutput(BlockLightRegistry.registry!!.getKey(type)))
+    }
+
+    @Suppress("UNCHECKED_CAST")
+    protected fun <S : SkyLightStorage<*>> castAndRender(data: RenderEventData, fbo: GlFramebuffer, type: SkyLightType<*, S>, storage: SkyLightStorage<*>) {
+        type.render(this, data, storage as S, fbo, getDebugOutput(SkyLightRegistry.registry!!.getKey(type)))
     }
 
     fun render(data: RenderEventData, fbo: GlFramebuffer) {
-        blockRenderResults.clear()
+        debugInfo.clear()
 
         for (entry in blockLights) {
-            blockRenderResults[entry.key] = castAndRender(data, fbo, entry.key, entry.value)
+            castAndRender(data, fbo, entry.key, entry.value)
         }
 
-        skyRenderResult = skyLight?.let { castAndRender(data, fbo, it.first, it.second) }
+        skyLight?.let { castAndRender(data, fbo, it.first, it.second) }
 
         dirtyBlocks.clear()
     }
 
     fun getDebugOutput(out: Consumer<String>) {
         for (entry in blockLights) {
-            out.accept(ChatFormatting.UNDERLINE.toString() + BlockLightRegistry.registry!!.getKey(entry.key).location.toString())
-            out.accept("${entry.value.size} lights in world")
+            val key = BlockLightRegistry.registry!!.getKey(entry.key)
+            out.accept(ChatFormatting.UNDERLINE.toString() + key.location.toString())
+            out.accept("lightsInWorld: ${entry.value.size}")
 
-            blockRenderResults[entry.key]?.accept(out)
+            debugInfo[key]?.forEach { (key, value) -> out.accept("$key: $value") }
+        }
+
+        skyLight?.let {
+            val key = SkyLightRegistry.registry!!.getKey(it.first)
+            out.accept(ChatFormatting.UNDERLINE.toString() + "Sky Light: " + key.location.toString())
+            debugInfo[key]?.forEach { (key, value) -> out.accept("$key: $value") }
         }
     }
 

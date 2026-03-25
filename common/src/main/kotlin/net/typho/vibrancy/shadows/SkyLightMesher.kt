@@ -3,6 +3,7 @@ package net.typho.vibrancy.shadows
 import net.minecraft.core.BlockPos
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.LeavesBlock
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.Heightmap
 import net.typho.big_shot_lib.api.client.util.quads.NeoAtlas
@@ -47,12 +48,11 @@ class SkyLightMesher(
                     val pos = BlockPos(x + pos.minBlockX, y, z + pos.minBlockZ)
                     val state = chunk.getBlockState(pos)
 
-                    // !BlockUtil.INSTANCE.isSolidRender(state, pos, level) &&
                     if (predicate.shouldCastBlock(level, pos, state)) {
                         collect(pos, state)
                     }
 
-                    if (!state.propagatesSkylightDown(level, pos)) {
+                    if (!state.propagatesSkylightDown(level, pos) && state.block !is LeavesBlock) {
                         break
                     }
 
@@ -87,7 +87,8 @@ class SkyLightMesher(
          */
 
         faces.forEach {
-            if (predicate.isInShadowRange(it.blockPos) && !level.getBlockState(it.blockPos).`is`(Vibrancy.noShadowsTag)) {
+            val state = level.getBlockState(it.blockPos)
+            if (predicate.isInShadowRange(it.blockPos) && /*!BlockUtil.INSTANCE.isSolidRender(state, it.blockPos, level) &&*/ !state.`is`(Vibrancy.noShadowsTag)) {
                 shadowOut.accept(it)
             }
 

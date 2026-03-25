@@ -7,17 +7,20 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
 import net.typho.big_shot_lib.api.client.opengl.buffers.BufferType
+import net.typho.big_shot_lib.api.client.opengl.buffers.BufferUsage
+import net.typho.big_shot_lib.api.client.opengl.buffers.Mesh
 import net.typho.big_shot_lib.api.client.opengl.shaders.GlShader
 import net.typho.big_shot_lib.api.client.opengl.state.*
+import net.typho.big_shot_lib.api.client.opengl.util.GlShapeType
 import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.big_shot_lib.api.util.IColor
 import net.typho.vibrancy.LightManager
-import net.typho.vibrancy.LightRenderResult
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.shadows.AsyncBlockShadowMesh
 import net.typho.vibrancy.shadows.LightMesh
+import net.typho.vibrancy.shadows.LightMesh.Companion.BLIT_VERTEX_FORMAT
 import net.typho.vibrancy.shadows.ShadowPredicate
 import net.typho.vibrancy.shadows.SkyLightMesher
 import net.typho.vibrancy.sky.ChunkedSkyLightStorage
@@ -31,7 +34,7 @@ import kotlin.math.sin
 class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, OverworldSkyLightStorage.Chunk>(OverworldSkyLightType) {
     companion object {
         @JvmStatic
-        fun meshBlitSettings(data: RenderEventData, storage: OverworldSkyLightStorage, chunk: Chunk) = RenderSettings(
+        fun meshBlitSettings(data: RenderEventData, storage: OverworldSkyLightStorage) = RenderSettings(
             Vibrancy.id("sky/overworld/blit"),
             listOf(
                 DisableFlagsShard(listOf(
@@ -39,14 +42,6 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                     GlFlag.CULL_FACE,
                     GlFlag.BLEND
                 )),
-                BindBufferBaseShard(
-                    { chunk.mesh.shadowMesh.vbo.cast(BufferType.SHADER_STORAGE_BUFFER) },
-                    0
-                ),
-                FramebufferShard(
-                    { chunk.mesh.lightMesh.value!!.target },
-                    true
-                ),
                 ShaderShard(
                     Vibrancy.id("sky/overworld/blit")
                 ) { shader ->
@@ -59,6 +54,21 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                     shader.getUniform("LightDirection")?.setValue(storage.getLightDirection(data.level))
                     //shader.getUniform("LightBrightness")?.setValue(Vibrancy.config.blockLights.raytraced.brightness) // TODO
                 }
+            )
+        )
+
+        @JvmStatic
+        fun chunkMeshBlitSettings(chunk: Chunk) = RenderSettings(
+            Vibrancy.id("sky/overworld/blit_chunk"),
+            listOf(
+                BindBufferBaseShard(
+                    { chunk.mesh.shadowMesh.vbo.cast(BufferType.SHADER_STORAGE_BUFFER) },
+                    0
+                ),
+                FramebufferShard(
+                    { chunk.mesh.lightMesh.value!!.target },
+                    true
+                )
             )
         )
     }
@@ -105,12 +115,19 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
         @JvmField
         val pos: ChunkPos
     ) : SkyLightStorage<OverworldSkyLightInfo>, NativeResource, ShadowPredicate {
-        private var blitInfo: LightMesh.LightBlitInfo? = null
         private var shadowsDirty = true
         @JvmField
-        val mesh: AsyncBlockShadowMesh<*> = AsyncBlockShadowMesh(SkyLightMesher(pos)) { info, data -> blitInfo = info }
+        val mesh: AsyncBlockShadowMesh<*> = AsyncBlockShadowMesh(SkyLightMesher(pos)) { info, data ->
+            LightMesh.initBlitMesh(blitMesh, info)
+        }
+        @JvmField
+        val blitMesh = Mesh(
+            BLIT_VERTEX_FORMAT,
+            GlShapeType.QUADS,
+            BufferUsage.STREAM_DRAW
+        )
 
-        fun render(manager: LightManager, data: RenderEventData, shader: GlShader): LightRenderResult {
+        fun updateShadows(manager: LightManager, data: RenderEventData, debugOut: (key: String, value: Int) -> Unit) {
             if (shadowsDirty) {
                 mesh.rebuildAsync(manager, data, this)
                 shadowsDirty = false
@@ -118,25 +135,21 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
             mesh.checkIfFinished(data)
 
-            if (blitInfo == null || lightInfo == null) {
-                return LightRenderResult(
-                    0,
-                    if (mesh.isTaskActive()) 1 else 0
-                )
+            if (mesh.isTaskActive()) {
+                debugOut("asyncTasks", 1)
             }
 
-            val blitSettings = meshBlitSettings(data, this@OverworldSkyLightStorage, this)
+            val blitSettings = chunkMeshBlitSettings(this)
             blitSettings.bind()
-            LightMesh.blitLight(blitInfo!!)
+            blitMesh.draw()
             blitSettings.unbind()
-            data.target.viewport()
+        }
 
-            mesh.lightMesh.value!!.draw(shader)
-
-            return LightRenderResult(
-                1,
-                if (mesh.isTaskActive()) 1 else 0
-            )
+        fun render(shader: GlShader, debugOut: (key: String, value: Int) -> Unit) {
+            if (lightInfo != null) {
+                mesh.lightMesh.value!!.draw(shader)
+                debugOut("chunksRendered", 1)
+            }
         }
 
         override fun shouldCastBlock(

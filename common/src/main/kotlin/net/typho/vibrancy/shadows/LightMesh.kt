@@ -93,10 +93,8 @@ open class LightMesh : NativeResource {
         }
 
         @JvmStatic
-        fun blitLight(info: LightBlitInfo) {
-            lightBlitMesh.bind()
-
-            val builder = lightBlitMesh.Builder(ByteBufferBuilder(info.lightFaces.size * 4 * BLIT_VERTEX_FORMAT.vertexSizeBytes))
+        fun initBlitMesh(mesh: Mesh, info: LightBlitInfo) {
+            val builder = mesh.Builder(ByteBufferBuilder(info.lightFaces.size * 4 * BLIT_VERTEX_FORMAT.vertexSizeBytes))
 
             info.lightFaces.forEachIndexed { index, face ->
                 val texture = info.atlasResult.textures[index]
@@ -123,9 +121,12 @@ open class LightMesh : NativeResource {
             }
 
             builder.end()
-            lightBlitMesh.draw()
+        }
 
-            lightBlitMesh.unbind()
+        @JvmStatic
+        fun blitLight(info: LightBlitInfo) {
+            initBlitMesh(lightBlitMesh, info)
+            lightBlitMesh.draw()
         }
     }
 

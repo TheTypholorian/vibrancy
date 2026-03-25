@@ -5,7 +5,6 @@ import net.minecraft.world.level.block.state.StateDefinition
 import net.typho.big_shot_lib.api.client.opengl.buffers.GlFramebuffer
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.vibrancy.LightManager
-import net.typho.vibrancy.LightRenderResult
 
 interface BlockLightType<I : BlockLightInfo, S : BlockLightStorage<I>> {
     fun createStorage(manager: LightManager): S
@@ -18,6 +17,7 @@ interface BlockLightType<I : BlockLightInfo, S : BlockLightStorage<I>> {
         manager: LightManager,
         data: RenderEventData,
         lights: S,
-        fbo: GlFramebuffer
-    ): LightRenderResult
+        fbo: GlFramebuffer,
+        debugOut: (key: String, value: Int) -> Unit
+    )
 }

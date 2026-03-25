@@ -18,7 +18,6 @@ import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.vibrancy.LightManager
-import net.typho.vibrancy.LightRenderResult
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.Vibrancy.isPointingTowards
 import net.typho.vibrancy.Vibrancy.toBlockBox
@@ -207,14 +206,13 @@ open class RayPointLight(
         shadows.checkIfFinished(data)
     }
 
-    fun render(shader: GlShader): LightRenderResult {
-        val result = LightRenderResult(
-            numRendered = 1,
-            numAsyncTasks = if (shadows.isTaskActive()) 1 else 0
-        )
+    fun render(shader: GlShader, debugOut: (key: String, value: Int) -> Unit) {
+        debugOut("lightsRendered", 1)
+
+        if (shadows.isTaskActive()) {
+            debugOut("numAsyncTasks", 1)
+        }
 
         shadows.lightMesh.value!!.draw(shader)
-
-        return result
     }
 }

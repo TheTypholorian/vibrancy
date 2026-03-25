@@ -6,7 +6,6 @@ import net.typho.big_shot_lib.api.client.opengl.shaders.NeoShaderRegistry
 import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.vibrancy.LightManager
-import net.typho.vibrancy.LightRenderResult
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.block.BlockLightType
 import net.typho.vibrancy.block.HashMapBlockLightStorage
@@ -25,10 +24,9 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
         manager: LightManager,
         data: RenderEventData,
         lights: HashMapBlockLightStorage<RayPointLightInfo, RayPointLight>,
-        fbo: GlFramebuffer
-    ): LightRenderResult {
-        val result = LightRenderResult()
-
+        fbo: GlFramebuffer,
+        debugOut: (String, Int) -> Unit
+    ) {
         if (Vibrancy.config.blockLights.raytraced.enabled) {
             val settings = LightMesh.renderSettings(fbo, data, TextureUtil.INSTANCE.blockAtlas)
             val shader = NeoShaderRegistry.get(Vibrancy.id("light_mesh"))!! // TODO
@@ -46,11 +44,9 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                 }
                 .sortedBy { light -> manager.getSortingOrder(data, light.blockPos) }
                 .take(Vibrancy.config.blockLights.raytraced.maxRendered)
-                .forEach { light -> result.add(light.render(shader)) }
+                .forEach { light -> light.render(shader, debugOut) }
 
             settings.unbind()
         }
-
-        return result
     }
 }

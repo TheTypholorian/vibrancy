@@ -7,7 +7,6 @@ import net.typho.big_shot_lib.api.client.opengl.state.*
 import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.vibrancy.LightManager
-import net.typho.vibrancy.LightRenderResult
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.block.BlockLightType
 import net.typho.vibrancy.shadows.LightMesh
@@ -48,9 +47,13 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
 
     override fun createStorage(manager: LightManager) = SubtleLightStorage()
 
-    override fun render(manager: LightManager, data: RenderEventData, lights: SubtleLightStorage, fbo: GlFramebuffer): LightRenderResult {
-        val result = LightRenderResult(numRendered = 0)
-
+    override fun render(
+        manager: LightManager,
+        data: RenderEventData,
+        lights: SubtleLightStorage,
+        fbo: GlFramebuffer,
+        debugOut: (String, Int) -> Unit
+    ) {
         if (Vibrancy.config.blockLights.subtle.enabled) {
             lights.checkDirty(manager, data)
 
@@ -64,12 +67,10 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
                     manager.inRenderDistance(data, it.pos, Vibrancy.config.blockLights.subtle.renderDistance)
                 }
                 .forEach {
-                    result.add(it.render(data, shader))
+                    it.render(data, shader, debugOut)
                 }
 
             settings.unbind()
         }
-
-        return result
     }
 }
