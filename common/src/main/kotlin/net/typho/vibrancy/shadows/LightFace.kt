@@ -7,7 +7,6 @@ import net.typho.big_shot_lib.api.client.opengl.buffers.NeoVertexConsumer
 import net.typho.big_shot_lib.api.client.util.quads.NeoAtlas
 import net.typho.big_shot_lib.api.client.util.quads.NeoBakedQuad
 import net.typho.big_shot_lib.api.util.IColor
-import net.typho.big_shot_lib.api.util.buffers.BufferUtil.putVec3f
 import org.joml.Vector2i
 import org.joml.Vector3f
 import java.awt.Rectangle
@@ -28,7 +27,7 @@ data class LightFace(
     val height: Int
 ) {
     companion object {
-        const val UNPACKED_BYTE_SIZE = 32 * 4 + 64
+        const val UNPACKED_BYTE_SIZE = 32 * 4
     }
 
     constructor(
@@ -75,27 +74,6 @@ data class LightFace(
                 ssboBuffer.putInt(color.toRGBA())
                 ssboBuffer.putInt(0)
             }
-
-            val normal = Vector3f(quad.v1.pos).sub(quad.v0.pos).cross(Vector3f(quad.v3.pos).sub(quad.v0.pos)).normalize()
-            ssboBuffer.putVec3f(normal, false)
-            ssboBuffer.putFloat(normal.dot(quad.v0.pos))
-
-            val e1 = Vector3f(quad.v1.pos).sub(quad.v0.pos)
-            val e2 = Vector3f(quad.v3.pos).sub(quad.v0.pos)
-
-            ssboBuffer.putVec3f(e1, true)
-            ssboBuffer.putVec3f(e2, true)
-
-            val d11 = e1.dot(e1)
-            val d12 = e1.dot(e2)
-            val d22 = e2.dot(e2)
-            val invDet = 1f / (d11 * d22 - d12 * d12)
-
-            val inv11 = d22 * invDet
-            val inv12 = -d12 * invDet
-            val inv22 = d11 * invDet
-
-            ssboBuffer.putFloat(inv11).putFloat(inv12).putFloat(inv12).putFloat(inv22)
         }
     }
 

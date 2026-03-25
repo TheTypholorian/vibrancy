@@ -3,31 +3,39 @@ struct Quad {
     vec3 v2; vec2 uv2; uint color2;
     vec3 v3; vec2 uv3; uint color3;
     vec3 v4; vec2 uv4; uint color4;
-
-    vec3 normal; float d;
-
-    vec3 e1; float _p5;
-    vec3 e2; float _p6;
-
-    float inv11; float inv12;
-    float inv21; float inv22;
 };
 
 bool raycastQuad(vec3 origin, vec3 dir, float len, float margin, Quad q, out vec2 uv, out float tt) {
-    float denom = dot(dir, q.normal);
+    vec3 normal = normalize(cross(q.v2 - q.v1, q.v4 - q.v1));
+
+    float denom = dot(dir, normal);
     if (denom <= 0.0) return false;
 
-    tt = (q.d - dot(origin, q.normal)) / denom;
+    float d = dot(normal, q.v1);
+
+    tt = (d - dot(origin, normal)) / denom;
     if (tt < margin || tt > len - margin) return false;
 
     vec3 p = origin + tt * dir;
     vec3 vp = p - q.v1;
 
-    float d1p = dot(q.e1, vp);
-    float d2p = dot(q.e2, vp);
+    vec3 diagonal1 = q.v2 - q.v1;
+    vec3 diagonal2 = q.v4 - q.v1;
 
-    float a = q.inv11 * d1p + q.inv12 * d2p;
-    float b = q.inv21 * d1p + q.inv22 * d2p;
+    float d1p = dot(diagonal1, vp);
+    float d2p = dot(diagonal2, vp);
+
+    float d11 = dot(diagonal1, diagonal1);
+    float d12 = dot(diagonal1, diagonal2);
+    float d22 = dot(diagonal2, diagonal2);
+    float invDet = 1 / (d11 * d22 - d12 * d12);
+
+    float inv11 = d22 * invDet;
+    float inv12 = -d12 * invDet;
+    float inv22 = d11 * invDet;
+
+    float a = inv11 * d1p + inv12 * d2p;
+    float b = inv12 * d1p + inv22 * d2p;
 
     if (a < 0 || b < 0 || a > 1 || b > 1) return false;
 

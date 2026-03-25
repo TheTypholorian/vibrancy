@@ -30,7 +30,7 @@ object OverworldSkyLightType : SkyLightType<OverworldSkyLightInfo, OverworldSkyL
     ) {
         val time = System.currentTimeMillis()
 
-        if (time - lastBlit >= 250) { // TODO
+        if (time - lastBlit >= 100) { // TODO
             lastBlit = time
             val blitSettings = OverworldSkyLightStorage.meshBlitSettings(data, lights)
             blitSettings.bind()
