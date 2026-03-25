@@ -4,6 +4,7 @@
 
 uniform sampler2D Sampler0;
 uniform sampler2D Sampler1;
+uniform sampler2D Sampler2;
 uniform vec3 CameraPos;
 uniform vec3 LightPos;
 uniform float LightRadius;
@@ -23,9 +24,9 @@ void main() {
     vec3 outputNormal = normalize(CameraPos - vertexPosition);
     vec3 reflectedNormal = 2 * dot(inputNormal, vertexNormal) * vertexNormal - inputNormal;
     float multiplier = clamp(dot(outputNormal, reflectedNormal), 0, 1);
-    multiplier = multiplier * multiplier * multiplier * 3;
+    multiplier = multiplier * multiplier * multiplier * 2.5;
 
-    lightColor.rgb *= 0.75 + multiplier;
+    lightColor.rgb *= 1 + multiplier * texelFetch(Sampler2, ivec2(texCoord0 * textureSize(Sampler2, 0)), 0).r;
 
     fragColor = texelFetch(Sampler0, ivec2(texCoord0 * textureSize(Sampler0, 0)), 0) * lightColor * vertexColor;//, vertexPosition - CameraPos);
 }

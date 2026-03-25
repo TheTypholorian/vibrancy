@@ -10,6 +10,7 @@ import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.block.BlockLightType
 import net.typho.vibrancy.shadows.LightMesh
+import net.typho.vibrancy.util.ReflectionAtlases
 
 object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
     @JvmStatic
@@ -57,7 +58,7 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
         if (Vibrancy.config.blockLights.subtle.enabled) {
             lights.checkDirty(manager, data)
 
-            val settings = LightMesh.renderSettings(fbo, data, TextureUtil.INSTANCE.blockAtlas)
+            val settings = LightMesh.renderSettings(fbo, data, TextureUtil.INSTANCE.blockAtlas, ReflectionAtlases[TextureUtil.INSTANCE.blockAtlas.location])
             val shader = NeoShaderRegistry.get(Vibrancy.id("light_mesh"))!! // TODO
 
             settings.bind()

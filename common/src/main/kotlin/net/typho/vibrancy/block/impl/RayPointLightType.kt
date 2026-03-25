@@ -10,6 +10,7 @@ import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.block.BlockLightType
 import net.typho.vibrancy.block.HashMapBlockLightStorage
 import net.typho.vibrancy.shadows.LightMesh
+import net.typho.vibrancy.util.ReflectionAtlases
 
 object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightStorage<RayPointLightInfo, RayPointLight>> {
     override fun infoCodec(stateDefinition: StateDefinition<*, *>) = RayPointLightInfo.codec(stateDefinition)
@@ -28,7 +29,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
         debugOut: (String, Int) -> Unit
     ) {
         if (Vibrancy.config.blockLights.raytraced.enabled) {
-            val settings = LightMesh.renderSettings(fbo, data, TextureUtil.INSTANCE.blockAtlas)
+            val settings = LightMesh.renderSettings(fbo, data, TextureUtil.INSTANCE.blockAtlas, ReflectionAtlases[TextureUtil.INSTANCE.blockAtlas.location])
             val shader = NeoShaderRegistry.get(Vibrancy.id("light_mesh"))!! // TODO
 
             settings.bind()

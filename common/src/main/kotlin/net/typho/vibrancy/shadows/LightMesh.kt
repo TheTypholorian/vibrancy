@@ -40,7 +40,7 @@ open class LightMesh : NativeResource {
         )
 
         @JvmStatic
-        fun renderSettings(fbo: GlFramebuffer, data: RenderEventData, sampler0: GlTexture) =
+        fun renderSettings(fbo: GlFramebuffer, data: RenderEventData, sampler0: GlTexture, sampler2: GlTexture) =
             RenderSettings(
                 Vibrancy.id("light_mesh"),
                 listOf(
@@ -80,6 +80,7 @@ open class LightMesh : NativeResource {
                         shader.setCommonUniforms(data)
                         shader.getUniform("CameraPos")?.setValue(data.camera.pos)
                         shader.getUniform("Sampler0")?.setSampler(sampler0)
+                        shader.getUniform("Sampler2")?.setSampler(sampler2)
                         FogUtil.INSTANCE.upload(shader)
                     }
                 )
