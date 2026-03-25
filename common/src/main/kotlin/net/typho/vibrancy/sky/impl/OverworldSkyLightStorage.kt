@@ -5,6 +5,7 @@ import net.minecraft.core.Direction
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.LightLayer
+import net.minecraft.world.level.block.LeavesBlock
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
 import net.typho.big_shot_lib.api.client.opengl.buffers.BufferType
@@ -200,6 +201,10 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                 return false
             }
 
+            if (state.block is LeavesBlock && level.getBlockState(pos.relative(face)).block is LeavesBlock) {
+                return false
+            }
+
             return BlockUtil.INSTANCE.shouldRenderFace(
                 level,
                 pos,
@@ -216,11 +221,19 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
             return true
         }
 
+        fun markNeighborsDirty() {
+            chunks[ChunkPos(pos.x + 1, pos.z)]?.shadowsDirty = true
+            chunks[ChunkPos(pos.x - 1, pos.z)]?.shadowsDirty = true
+            chunks[ChunkPos(pos.x, pos.z + 1)]?.shadowsDirty = true
+            chunks[ChunkPos(pos.x, pos.z - 1)]?.shadowsDirty = true
+        }
+
         override fun load(
             manager: LightManager,
             info: OverworldSkyLightInfo
         ) {
             shadowsDirty = true
+            markNeighborsDirty()
         }
 
         override fun reload(manager: LightManager) {
@@ -232,6 +245,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
             chunk: LevelChunk
         ) {
             shadowsDirty = true
+            markNeighborsDirty()
         }
 
         override fun deloadChunk(

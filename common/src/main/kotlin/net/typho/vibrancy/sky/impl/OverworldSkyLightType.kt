@@ -19,6 +19,8 @@ object OverworldSkyLightType : SkyLightType<OverworldSkyLightInfo, OverworldSkyL
         return info as? OverworldSkyLightInfo
     }
 
+    var lastBlit: Long = 0
+
     override fun render(
         manager: LightManager,
         data: RenderEventData,
@@ -26,10 +28,15 @@ object OverworldSkyLightType : SkyLightType<OverworldSkyLightInfo, OverworldSkyL
         fbo: GlFramebuffer,
         debugOut: (String, Int) -> Unit
     ) {
-        val blitSettings = OverworldSkyLightStorage.meshBlitSettings(data, lights)
-        blitSettings.bind()
-        lights.chunks.values.forEach { it.updateShadows(manager, data, debugOut) }
-        blitSettings.unbind()
+        val time = System.currentTimeMillis()
+
+        if (time - lastBlit >= 100) { // TODO
+            lastBlit = time
+            val blitSettings = OverworldSkyLightStorage.meshBlitSettings(data, lights)
+            blitSettings.bind()
+            lights.chunks.values.forEach { it.updateShadows(manager, data, debugOut) }
+            blitSettings.unbind()
+        }
 
         val settings = LightMesh.renderSettings(fbo, data, TextureUtil.INSTANCE.blockAtlas)
         val shader = NeoShaderRegistry.get(Vibrancy.id("light_mesh"))!! // TODO

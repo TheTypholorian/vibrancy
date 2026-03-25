@@ -3,6 +3,7 @@ package net.typho.vibrancy.shadows
 import net.minecraft.core.BlockPos
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.LeavesBlock
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.Heightmap
 import net.typho.big_shot_lib.api.client.util.quads.NeoAtlas
@@ -49,6 +50,10 @@ class SkyLightMesher(
 
                     if (predicate.shouldCastBlock(level, pos, state)) {
                         collect(pos, state)
+                    }
+
+                    if (!state.propagatesSkylightDown(level, pos) && state.block !is LeavesBlock) { // TODO
+                        break
                     }
 
                     y--
