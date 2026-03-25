@@ -1,12 +1,8 @@
 package net.typho.vibrancy.sky.impl
 
 import net.typho.big_shot_lib.api.client.opengl.buffers.GlFramebuffer
-import net.typho.big_shot_lib.api.client.opengl.shaders.NeoShaderRegistry
-import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.vibrancy.LightManager
-import net.typho.vibrancy.Vibrancy
-import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.sky.SkyLightInfo
 import net.typho.vibrancy.sky.SkyLightType
 
@@ -31,11 +27,13 @@ object OverworldSkyLightType : SkyLightType<OverworldSkyLightInfo, OverworldSkyL
         lights.chunks.values.forEach { it.updateShadows(manager, data, debugOut) }
         blitSettings.unbind()
 
+        // TODO
+        /*
         val settings = LightMesh.renderSettings(fbo, data, TextureUtil.INSTANCE.blockAtlas)
         val shader = NeoShaderRegistry.get(Vibrancy.id("light_mesh"))!! // TODO
         settings.bind()
-        val result = lights.chunks.values.forEach { it.render(shader, debugOut) }
+        lights.chunks.values.forEach { it.render(shader, debugOut) }
         settings.unbind()
-        return result
+         */
     }
 }

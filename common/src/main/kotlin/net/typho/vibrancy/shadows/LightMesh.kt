@@ -24,6 +24,7 @@ open class LightMesh : NativeResource {
             .add("UV0", NeoVertexFormat.Element.TEXTURE_UV)
             .add("UV1", NeoVertexFormat.Element.OVERLAY_UV)
             .add("Color", NeoVertexFormat.Element.COLOR)
+            .add("Normal", NeoVertexFormat.Element.NORMAL)
             .build()
         @JvmField
         val BLIT_VERTEX_FORMAT = NeoVertexFormat.builder()
@@ -77,7 +78,7 @@ open class LightMesh : NativeResource {
                         Vibrancy.id("light_mesh")
                     ) { shader ->
                         shader.setCommonUniforms(data)
-
+                        shader.getUniform("CameraPos")?.setValue(data.camera.pos)
                         shader.getUniform("Sampler0")?.setSampler(sampler0)
                         FogUtil.INSTANCE.upload(shader)
                     }

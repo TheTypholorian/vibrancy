@@ -58,6 +58,8 @@ data class LightFace(
                 else -> Vector2i(sprite.x, sprite.y + sprite.height)
             } } }
 
+            quad.direction?.let { dir -> vertex = vertex.withNormal { dir.step() } }
+
             vertex
         }
 

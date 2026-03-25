@@ -212,6 +212,9 @@ open class RayPointLight(
             debugOut("numAsyncTasks", 1)
         }
 
+        shader.getUniform("LightPos")?.setValue(absolutePos) // TODO
+        shader.getUniform("LightColor")?.setValue(color)
+        shader.getUniform("LightRadius")?.setValue(radius)
         shadows.lightMesh.value!!.draw(shader)
     }
 }
