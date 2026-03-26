@@ -8,7 +8,6 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
-import net.typho.big_shot_lib.api.client.opengl.buffers.GlFramebuffer
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.big_shot_lib.api.util.resources.NeoResourceKey
 import net.typho.vibrancy.block.BlockLightInfo
@@ -117,24 +116,24 @@ open class LightManager {
     }
 
     @Suppress("UNCHECKED_CAST")
-    protected fun <S : BlockLightStorage<*>> castAndRender(data: RenderEventData, fbo: GlFramebuffer, type: BlockLightType<*, S>, storage: BlockLightStorage<*>) {
-        type.render(this, data, storage as S, fbo, getDebugOutput(BlockLightRegistry.registry!!.getKey(type)))
+    protected fun <S : BlockLightStorage<*>> castAndRender(data: RenderEventData, type: BlockLightType<*, S>, storage: BlockLightStorage<*>) {
+        type.render(this, data, storage as S, getDebugOutput(BlockLightRegistry.registry!!.getKey(type)))
     }
 
     @Suppress("UNCHECKED_CAST")
-    protected fun <S : SkyLightStorage<*>> castAndRender(data: RenderEventData, fbo: GlFramebuffer, type: SkyLightType<*, S>, storage: SkyLightStorage<*>) {
-        type.render(this, data, storage as S, fbo, getDebugOutput(SkyLightRegistry.registry!!.getKey(type)))
+    protected fun <S : SkyLightStorage<*>> castAndRender(data: RenderEventData, type: SkyLightType<*, S>, storage: SkyLightStorage<*>) {
+        type.render(this, data, storage as S, getDebugOutput(SkyLightRegistry.registry!!.getKey(type)))
     }
 
-    fun render(data: RenderEventData, fbo: GlFramebuffer) {
+    fun render(data: RenderEventData) {
         debugInfo.clear()
 
         for (entry in blockLights) {
-            castAndRender(data, fbo, entry.key, entry.value)
+            castAndRender(data, entry.key, entry.value)
         }
 
         // TODO
-        //skyLight?.let { castAndRender(data, fbo, it.first, it.second) }
+        //skyLight?.let { castAndRender(data, it.first, it.second) }
 
         dirtyBlocks.clear()
     }

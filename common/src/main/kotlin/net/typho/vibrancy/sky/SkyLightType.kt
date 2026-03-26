@@ -1,7 +1,6 @@
 package net.typho.vibrancy.sky
 
 import com.mojang.serialization.MapCodec
-import net.typho.big_shot_lib.api.client.opengl.buffers.GlFramebuffer
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.vibrancy.LightManager
 
@@ -16,7 +15,6 @@ interface SkyLightType<I : SkyLightInfo, S : SkyLightStorage<I>> {
         manager: LightManager,
         data: RenderEventData,
         lights: S,
-        fbo: GlFramebuffer,
         debugOut: (key: String, value: Int) -> Unit
     )
 }

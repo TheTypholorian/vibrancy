@@ -1,6 +1,5 @@
 package net.typho.vibrancy.sky.impl
 
-import net.typho.big_shot_lib.api.client.opengl.buffers.GlFramebuffer
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.sky.SkyLightInfo
@@ -19,7 +18,6 @@ object OverworldSkyLightType : SkyLightType<OverworldSkyLightInfo, OverworldSkyL
         manager: LightManager,
         data: RenderEventData,
         lights: OverworldSkyLightStorage,
-        fbo: GlFramebuffer,
         debugOut: (String, Int) -> Unit
     ) {
         val blitSettings = OverworldSkyLightStorage.meshBlitSettings(data, lights)

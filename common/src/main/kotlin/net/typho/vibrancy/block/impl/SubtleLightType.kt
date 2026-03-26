@@ -1,7 +1,6 @@
 package net.typho.vibrancy.block.impl
 
 import net.minecraft.world.level.block.state.StateDefinition
-import net.typho.big_shot_lib.api.client.opengl.buffers.GlFramebuffer
 import net.typho.big_shot_lib.api.client.opengl.shaders.NeoShaderRegistry
 import net.typho.big_shot_lib.api.client.opengl.state.*
 import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
@@ -52,13 +51,12 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
         manager: LightManager,
         data: RenderEventData,
         lights: SubtleLightStorage,
-        fbo: GlFramebuffer,
         debugOut: (String, Int) -> Unit
     ) {
         if (Vibrancy.config.blockLights.subtle.enabled) {
             lights.checkDirty(manager, data)
 
-            val settings = LightMesh.renderSettings(fbo, data, TextureUtil.INSTANCE.blockAtlas, ReflectionAtlases[TextureUtil.INSTANCE.blockAtlas.location])
+            val settings = LightMesh.renderSettings(data, TextureUtil.INSTANCE.blockAtlas, ReflectionAtlases[TextureUtil.INSTANCE.blockAtlas.location])
             val shader = NeoShaderRegistry.get(Vibrancy.id("light_mesh"))!! // TODO
 
             settings.bind()

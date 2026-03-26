@@ -40,12 +40,12 @@ open class LightMesh : NativeResource {
         )
 
         @JvmStatic
-        fun renderSettings(fbo: GlFramebuffer, data: RenderEventData, sampler0: GlTexture, sampler2: GlTexture) =
+        fun renderSettings(data: RenderEventData, sampler0: GlTexture, sampler2: GlTexture) =
             RenderSettings(
                 Vibrancy.id("light_mesh"),
                 listOf(
                     FramebufferShard(
-                        { fbo },
+                        { data.target },
                         true
                     ),
                     BlendShard(
@@ -53,7 +53,7 @@ open class LightMesh : NativeResource {
                         IColor.FULL_ON,
                         BlendEquation.ADD,
                         BlendFunction.Basic(
-                            BlendFactor.SRC_ALPHA,
+                            BlendFactor.ONE,
                             BlendFactor.ONE
                         )
                     ),
@@ -62,7 +62,7 @@ open class LightMesh : NativeResource {
                         CullFace.BACK
                     ),
                     DepthMaskShard(
-                        false
+                        true
                     ),
                     DepthTestShard(
                         true,

@@ -13,17 +13,21 @@ import net.minecraft.network.chat.CommonComponents
 import net.minecraft.network.chat.Component
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.phys.AABB
+import net.typho.big_shot_lib.api.client.opengl.buffers.ClearBit
+import net.typho.big_shot_lib.api.client.opengl.buffers.GlTexture2D
+import net.typho.big_shot_lib.api.client.opengl.buffers.NeoFramebuffer
+import net.typho.big_shot_lib.api.client.opengl.buffers.NeoTexture2D
+import net.typho.big_shot_lib.api.client.opengl.state.*
+import net.typho.big_shot_lib.api.client.opengl.util.MeshUtil
 import net.typho.big_shot_lib.api.client.opengl.util.OpenGL
+import net.typho.big_shot_lib.api.client.opengl.util.TextureFormat
 import net.typho.big_shot_lib.api.client.util.*
 import net.typho.big_shot_lib.api.client.util.events.ClientEventFactory
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.big_shot_lib.api.client.util.panoramas.PanoramaPriority
 import net.typho.big_shot_lib.api.client.util.panoramas.PanoramaSet
 import net.typho.big_shot_lib.api.client.util.panoramas.PanoramaTexture
-import net.typho.big_shot_lib.api.util.BigShotCommonEntrypoint
-import net.typho.big_shot_lib.api.util.RegistrationFactory
-import net.typho.big_shot_lib.api.util.RegistryFactory
-import net.typho.big_shot_lib.api.util.WrapperUtil
+import net.typho.big_shot_lib.api.util.*
 import net.typho.big_shot_lib.api.util.events.CommonEventFactory
 import net.typho.big_shot_lib.api.util.resources.NeoTagKey
 import net.typho.big_shot_lib.api.util.resources.ResourceIdentifier
@@ -34,6 +38,9 @@ import net.typho.vibrancy.sky.SkyLightInfoLoader
 import net.typho.vibrancy.sky.SkyLightRegistry
 import net.typho.vibrancy.sky.SkyLightStorage
 import org.lwjgl.glfw.GLFW
+import org.lwjgl.opengl.GL11.GL_DEPTH_BUFFER_BIT
+import org.lwjgl.opengl.GL11.GL_NEAREST
+import org.lwjgl.opengl.GL30.*
 import org.lwjgl.system.NativeResource
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -56,6 +63,20 @@ object Vibrancy {
     var toggleSubtleLightsKey: KeyMapping? = null
     @JvmField
     val noShadowsTag = WrapperUtil.INSTANCE.unwrap(NeoTagKey<Block>(ResourceIdentifier("minecraft", "block"), id("no_shadows")))
+    val TARGET by lazy {
+        NeoTexture2D(TextureFormat.RGBA16F)
+    }
+    val TARGET_DEPTH by lazy {
+        NeoTexture2D(TextureFormat.DEPTH_COMPONENT)
+    }
+    val FRAMEBUFFER by lazy {
+        NeoFramebuffer(
+            listOf(TARGET),
+            TARGET_DEPTH,
+            1,
+            1
+        )
+    }
 
     init {
         val holder = AutoConfig.register(
@@ -80,7 +101,60 @@ object Vibrancy {
 
     @JvmStatic
     fun render(data: RenderEventData) {
-        lightManager.render(data, data.target) // WrapperUtil.INSTANCE.wrap()
+        FRAMEBUFFER.bind()
+
+        if (FRAMEBUFFER.width != data.target.width || FRAMEBUFFER.height != data.target.height) {
+            FRAMEBUFFER.resize(data.target.width, data.target.height)
+        }
+
+        FRAMEBUFFER.clear(ClearBit.Color(IColor.FULL_OFF), ClearBit.Depth(1f))
+
+        glBindFramebuffer(GL_READ_FRAMEBUFFER, Minecraft.getInstance().mainRenderTarget.frameBufferId) // TODO
+
+        glBlitFramebuffer( // TODO
+            0, 0, FRAMEBUFFER.width, FRAMEBUFFER.height,
+            0, 0, FRAMEBUFFER.width, FRAMEBUFFER.height,
+            GL_DEPTH_BUFFER_BIT, GL_NEAREST
+        )
+
+        lightManager.render(RenderEventData(
+            data.buffers,
+            data.camera,
+            data.level,
+            data.projMat,
+            data.inverseProjMat,
+            data.modelViewMat,
+            data.inverseModelViewMat,
+            data.frustum,
+            FRAMEBUFFER
+        ))
+
+        FRAMEBUFFER.unbind()
+
+        val settings = RenderSettings(
+            id("light_post"),
+            listOf(
+                DisableFlagsShard(listOf(
+                    GlFlag.BLEND,
+                    GlFlag.CULL_FACE,
+                    GlFlag.DEPTH_TEST
+                )),
+                DepthMaskShard(
+                    false
+                ),
+                FramebufferShard(
+                    { data.target },
+                    true
+                ),
+                ShaderShard(id("light_post")) { shader ->
+                    shader.getUniform("Sampler0")?.setSampler(TARGET)
+                    shader.getUniform("Sampler1")?.setSampler(data.target.colorAttachments[0] as GlTexture2D)
+                }
+            )
+        )
+        settings.bind()
+        MeshUtil.SCREEN_MESH.draw()
+        settings.unbind()
     }
 
     @JvmStatic
