@@ -229,7 +229,7 @@ object Vibrancy {
 
         override fun registerReloadListeners(factory: ResourceListenerFactory) {
             factory.register(id("block_lights"), BlockLightInfoLoader)
-            factory.register(id("block_lights"), SkyLightInfoLoader)
+            factory.register(id("sky_lights"), SkyLightInfoLoader)
         }
 
         override fun registerKeyMappings(factory: KeyMappingFactory) {
