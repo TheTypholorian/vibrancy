@@ -57,6 +57,8 @@ object TextureAtlas {
 
         return Result(
             textures.map { dimension ->
+                val rect = Rectangle(x, y, dimension.width, dimension.height)
+
                 x += max.width
 
                 if (x == width) {
@@ -64,7 +66,7 @@ object TextureAtlas {
                     y += max.height
                 }
 
-                Rectangle(x, y, dimension.width, dimension.height)
+                return@map rect
             },
             width,
             height

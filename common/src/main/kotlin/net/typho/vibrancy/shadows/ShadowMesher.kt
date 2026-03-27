@@ -19,7 +19,7 @@ interface ShadowMesher {
         atlas: NeoAtlas,
         shadowOut: Consumer<LightFace>,
         lightOut: Consumer<LightFace>,
-        splitLargeLightFaces: Boolean = true
+        splitLargeLightFaces: Boolean = false
     )
 
     companion object {
