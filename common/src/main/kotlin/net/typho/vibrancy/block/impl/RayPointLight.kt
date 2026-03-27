@@ -66,9 +66,8 @@ open class RayPointLight(
                     shader.getUniform("Sampler0")?.setSampler(TextureUtil.INSTANCE.blockAtlas)
 
                     shader.getUniform("LightPos")?.setValue(light.absolutePos)
-                    shader.getUniform("LightColor")?.setValue(light.color)
+                    shader.getUniform("LightColor")?.setValue(light.color.mul(Vibrancy.config.blockLights.raytraced.brightness, Vector3f()))
                     shader.getUniform("LightRadius")?.setValue(light.radius)
-                    shader.getUniform("LightBrightness")?.setValue(Vibrancy.config.blockLights.raytraced.brightness)
                 }
             )
         )

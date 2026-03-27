@@ -26,7 +26,7 @@ class VibrancyConfig : ConfigData {
             var maxRendered: Int = 400
             @JvmField
             @ConfigEntry.Gui.Tooltip(count = 2)
-            var brightness: Float = 1.5f
+            var brightness: Float = 0.75f
             @JvmField
             @ConfigEntry.Gui.Tooltip
             @ConfigEntry.BoundedDiscrete(min = 1, max = 16)
