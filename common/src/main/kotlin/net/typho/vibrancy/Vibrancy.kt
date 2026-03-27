@@ -33,10 +33,8 @@ import net.typho.big_shot_lib.api.util.resources.NeoTagKey
 import net.typho.big_shot_lib.api.util.resources.ResourceIdentifier
 import net.typho.vibrancy.block.BlockLightInfoLoader
 import net.typho.vibrancy.block.BlockLightRegistry
-import net.typho.vibrancy.sky.SkyLightInfo
 import net.typho.vibrancy.sky.SkyLightInfoLoader
 import net.typho.vibrancy.sky.SkyLightRegistry
-import net.typho.vibrancy.sky.SkyLightStorage
 import org.lwjgl.glfw.GLFW
 import org.lwjgl.opengl.GL11.GL_DEPTH_BUFFER_BIT
 import org.lwjgl.opengl.GL11.GL_NEAREST
@@ -254,6 +252,7 @@ object Vibrancy {
                     BlockLightInfoLoader.onResourceManagerReload(resourceManager)
                     SkyLightInfoLoader.onResourceManagerReload(resourceManager)
 
+                    /*
                     SkyLightRegistry.get(new)?.let { info ->
                         if (lightManager.skyLight?.first != info.type) {
                             (lightManager.skyLight?.second as? NativeResource)?.free()
@@ -271,6 +270,7 @@ object Vibrancy {
 
                         load(lightManager.skyLight!!.second)
                     }
+                     */
                 }
             }
             factory.onFrameStart {

@@ -132,8 +132,7 @@ open class LightManager {
             castAndRender(data, entry.key, entry.value)
         }
 
-        // TODO
-        //skyLight?.let { castAndRender(data, it.first, it.second) }
+        skyLight?.let { castAndRender(data, it.first, it.second) }
 
         dirtyBlocks.clear()
     }
