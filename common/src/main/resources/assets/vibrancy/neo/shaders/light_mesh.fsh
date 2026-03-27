@@ -15,14 +15,14 @@ in vec4 vertexColor;
 in vec3 vertexPosition;
 in vec3 vertexNormal;
 
-out vec4 fragColor;
-
-float luminance(vec3 rgb) {
-    return 0.2126 * rgb.r + 0.7152 * rgb.g + 0.0722 * rgb.b;
-}
+out vec3 fragColor;
 
 void main() {
     vec4 block = texelFetch(Sampler0, ivec2(texCoord0 * textureSize(Sampler0, 0)), 0) * vertexColor;
+
+    if (block.a == 0) {
+        discard;
+    }
 
     vec3 lightColor = texelFetch(Sampler1, ivec2(texCoord1), 0).rgb;
 
@@ -34,5 +34,5 @@ void main() {
 
     lightColor *= 1 + multiplier * texelFetch(Sampler2, ivec2(texCoord0 * textureSize(Sampler2, 0)), 0).r;
 
-    fragColor = vec4(block.rgb * lightColor, luminance(lightColor)) * block.a;//, vertexPosition - CameraPos);
+    fragColor = block.rgb * lightColor * block.a;
 }

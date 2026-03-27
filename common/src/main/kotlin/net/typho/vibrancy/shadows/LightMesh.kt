@@ -51,7 +51,7 @@ open class LightMesh : NativeResource {
                     BlendShard(
                         true,
                         IColor.FULL_ON,
-                        BlendEquation.ADD,
+                        BlendEquation.MAX,
                         BlendFunction.Basic(
                             BlendFactor.ONE,
                             BlendFactor.ONE

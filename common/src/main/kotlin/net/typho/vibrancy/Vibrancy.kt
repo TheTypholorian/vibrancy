@@ -64,7 +64,7 @@ object Vibrancy {
     @JvmField
     val noShadowsTag = WrapperUtil.INSTANCE.unwrap(NeoTagKey<Block>(ResourceIdentifier("minecraft", "block"), id("no_shadows")))
     val TARGET by lazy {
-        NeoTexture2D(TextureFormat.RGBA16F)
+        NeoTexture2D(TextureFormat.RGB16F)
     }
     val TARGET_DEPTH by lazy {
         NeoTexture2D(TextureFormat.DEPTH_COMPONENT)
