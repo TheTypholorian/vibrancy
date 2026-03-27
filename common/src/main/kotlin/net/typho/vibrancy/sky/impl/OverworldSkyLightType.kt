@@ -28,7 +28,7 @@ object OverworldSkyLightType : SkyLightType<OverworldSkyLightInfo, OverworldSkyL
         // TODO
         /*
         val settings = LightMesh.renderSettings(fbo, data, TextureUtil.INSTANCE.blockAtlas)
-        val shader = NeoShaderRegistry.get(Vibrancy.id("light_mesh"))!! // TODO
+        val shader = NeoShaderRegistry.get(Vibrancy.id("mesh"))!! // TODO
         settings.bind()
         lights.chunks.values.forEach { it.render(shader, debugOut) }
         settings.unbind()

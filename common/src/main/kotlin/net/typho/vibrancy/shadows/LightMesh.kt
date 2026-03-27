@@ -11,6 +11,7 @@ import net.typho.big_shot_lib.api.client.opengl.util.GlShapeType
 import net.typho.big_shot_lib.api.client.opengl.util.TextureFormat
 import net.typho.big_shot_lib.api.client.util.events.RenderEventData
 import net.typho.big_shot_lib.api.util.IColor
+import net.typho.big_shot_lib.api.util.resources.ResourceIdentifier
 import net.typho.vibrancy.TextureAtlas
 import net.typho.vibrancy.Vibrancy
 import org.lwjgl.system.NativeResource
@@ -40,9 +41,9 @@ open class LightMesh : NativeResource {
         )
 
         @JvmStatic
-        fun renderSettings(data: RenderEventData, sampler0: GlTexture, sampler2: GlTexture) =
+        fun renderSettings(data: RenderEventData, sampler0: GlTexture, width: Int, height: Int, shader: ResourceIdentifier) =
             RenderSettings(
-                Vibrancy.id("light_mesh"),
+                Vibrancy.id("mesh"),
                 listOf(
                     FramebufferShard(
                         { data.target },
@@ -75,12 +76,12 @@ open class LightMesh : NativeResource {
                         )
                     ),
                     ShaderShard(
-                        Vibrancy.id("light_mesh")
+                        shader
                     ) { shader ->
                         shader.setCommonUniforms(data)
                         shader.getUniform("CameraPos")?.setValue(data.camera.pos)
                         shader.getUniform("Sampler0")?.setSampler(sampler0)
-                        shader.getUniform("Sampler2")?.setSampler(sampler2)
+                        shader.getUniform("SamplerSize0")?.setValue(width, height)
                         FogUtil.INSTANCE.upload(shader)
                     }
                 )

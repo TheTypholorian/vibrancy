@@ -27,10 +27,12 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
         debugOut: (String, Int) -> Unit
     ) {
         if (Vibrancy.config.blockLights.raytraced.enabled) {
-            val settings = LightMesh.renderSettings(data, TextureUtil.INSTANCE.blockAtlas, ReflectionAtlases[TextureUtil.INSTANCE.blockAtlas.location])
-            val shader = NeoShaderRegistry.get(Vibrancy.id("light_mesh"))!! // TODO
+            val settings = LightMesh.renderSettings(data, TextureUtil.INSTANCE.blockAtlas, TextureUtil.INSTANCE.blockAtlas.width, TextureUtil.INSTANCE.blockAtlas.height, Vibrancy.id("block/raytraced/mesh"))
+            val shader = NeoShaderRegistry.get(Vibrancy.id("block/raytraced/mesh"))!! // TODO
 
             settings.bind()
+
+            shader.getUniform("ReflectionSampler0")?.setSampler(ReflectionAtlases[TextureUtil.INSTANCE.blockAtlas.location])
 
             lights.map.values.forEach { it.update(manager, data) }
 

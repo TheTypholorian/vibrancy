@@ -1,7 +1,0 @@
-{
-  "sources": {
-    "vertex": "vibrancy:light_mesh",
-    "fragment": "vibrancy:light_mesh"
-  },
-  "format": "POSITION_TEX"
-}
