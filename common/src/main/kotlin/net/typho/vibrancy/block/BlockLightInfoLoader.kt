@@ -62,5 +62,6 @@ object BlockLightInfoLoader : NeoResourceManagerReloadListener {
         }
 
         Vibrancy.LOGGER.info("Loaded ${BlockLightRegistry.blockMap.size} block lights")
+        Vibrancy.lightManager.reload()
     }
 }

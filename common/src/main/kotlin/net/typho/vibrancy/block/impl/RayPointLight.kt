@@ -20,6 +20,7 @@ import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.Vibrancy.isPointingTowards
 import net.typho.vibrancy.Vibrancy.toBlockBox
+import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.shadows.AsyncBlockShadowMesh
 import net.typho.vibrancy.shadows.FloodFillMesher
 import net.typho.vibrancy.shadows.LightMesh
@@ -121,7 +122,7 @@ open class RayPointLight(
             pos: BlockPos,
             state: BlockState
         ): Boolean {
-            return boundingBox.toBlockBox().contains(pos)
+            return boundingBox.toBlockBox().contains(pos) && !BlockLightRegistry.has(state)
         }
 
         override fun shouldCastFace(
