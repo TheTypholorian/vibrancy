@@ -67,7 +67,9 @@ class FloodFillMesher(
         while (cursors.isNotEmpty()) {
             val cursor = cursors.removeLast()
 
-            collect(cursor, level.getBlockState(cursor))
+            if (predicate.shouldCastBlock(level, pos)) {
+                collect(cursor, level.getBlockState(cursor))
+            }
 
             for (direction in Direction.entries) {
                 val pos = cursor.relative(direction)
