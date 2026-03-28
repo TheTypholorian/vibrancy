@@ -15,7 +15,7 @@ class FloodFillMesher(
     @JvmField
     val pos: BlockPos,
     @JvmField
-    val cursors: MutableSet<BlockPos> = hashSetOf(pos),
+    val cursors: MutableList<BlockPos> = arrayListOf(pos),
     @JvmField
     val checked: MutableSet<BlockPos> = hashSetOf(),
     @JvmField
@@ -65,8 +65,7 @@ class FloodFillMesher(
         }
 
         while (cursors.isNotEmpty()) {
-            val cursor = cursors.first()
-            cursors.remove(cursor)
+            val cursor = cursors.removeLast()
 
             collect(cursor, level.getBlockState(cursor))
 
