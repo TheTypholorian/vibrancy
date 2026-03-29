@@ -6,39 +6,36 @@ import me.shedaniel.autoconfig.serializer.GsonConfigSerializer
 import net.minecraft.ChatFormatting
 import net.minecraft.client.KeyMapping
 import net.minecraft.client.Minecraft
-import net.minecraft.core.BlockBox
-import net.minecraft.core.BlockPos
-import net.minecraft.core.Direction
 import net.minecraft.network.chat.CommonComponents
 import net.minecraft.network.chat.Component
 import net.minecraft.world.level.block.Block
-import net.minecraft.world.phys.AABB
-import net.typho.big_shot_lib.api.client.opengl.buffers.ClearBit
-import net.typho.big_shot_lib.api.client.opengl.buffers.GlTexture2D
-import net.typho.big_shot_lib.api.client.opengl.buffers.NeoFramebuffer
-import net.typho.big_shot_lib.api.client.opengl.buffers.NeoTexture2D
-import net.typho.big_shot_lib.api.client.opengl.state.*
-import net.typho.big_shot_lib.api.client.opengl.util.MeshUtil
-import net.typho.big_shot_lib.api.client.opengl.util.OpenGL
-import net.typho.big_shot_lib.api.client.opengl.util.TextureFormat
+import net.typho.big_shot_lib.api.client.rendering.opengl.GlQueue
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlFramebuffer
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlTexture2D
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D
+import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
+import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
+import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
+import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.util.*
-import net.typho.big_shot_lib.api.client.util.events.ClientEventFactory
-import net.typho.big_shot_lib.api.client.util.events.RenderEventData
-import net.typho.big_shot_lib.api.client.util.panoramas.PanoramaPriority
-import net.typho.big_shot_lib.api.client.util.panoramas.PanoramaSet
-import net.typho.big_shot_lib.api.client.util.panoramas.PanoramaTexture
+import net.typho.big_shot_lib.api.client.util.event.ClientEventFactory
+import net.typho.big_shot_lib.api.client.util.event.RenderEventData
+import net.typho.big_shot_lib.api.client.util.panorama.PanoramaPriority
+import net.typho.big_shot_lib.api.client.util.panorama.PanoramaSet
+import net.typho.big_shot_lib.api.client.util.panorama.PanoramaTexture
+import net.typho.big_shot_lib.api.math.NeoDirection
+import net.typho.big_shot_lib.api.math.rect.NeoRect2i
+import net.typho.big_shot_lib.api.math.vec.AbstractVec3
 import net.typho.big_shot_lib.api.util.*
-import net.typho.big_shot_lib.api.util.events.CommonEventFactory
-import net.typho.big_shot_lib.api.util.resources.NeoTagKey
-import net.typho.big_shot_lib.api.util.resources.ResourceIdentifier
+import net.typho.big_shot_lib.api.util.event.CommonEventFactory
+import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
+import net.typho.big_shot_lib.api.util.resource.NeoTagKey
 import net.typho.vibrancy.block.BlockLightInfoLoader
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.sky.SkyLightInfoLoader
 import net.typho.vibrancy.sky.SkyLightRegistry
 import org.lwjgl.glfw.GLFW
-import org.lwjgl.opengl.GL11.GL_DEPTH_BUFFER_BIT
-import org.lwjgl.opengl.GL11.GL_NEAREST
-import org.lwjgl.opengl.GL30.*
 import org.lwjgl.system.NativeResource
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
@@ -60,20 +57,25 @@ object Vibrancy {
     @JvmField
     var toggleSubtleLightsKey: KeyMapping? = null
     @JvmField
-    val noShadowsTag = WrapperUtil.INSTANCE.unwrap(NeoTagKey<Block>(ResourceIdentifier("minecraft", "block"), id("no_shadows")))
+    val noShadowsTag = WrapperUtil.INSTANCE.unwrap(
+        NeoTagKey<Block>(
+            NeoIdentifier("minecraft", "block"),
+            id("no_shadows")
+        )
+    )
     val TARGET by lazy {
-        NeoTexture2D(TextureFormat.RGB16F)
+        NeoGlTexture2D()
     }
     val TARGET_DEPTH by lazy {
-        NeoTexture2D(TextureFormat.DEPTH_COMPONENT)
+        NeoGlTexture2D()
     }
     val FRAMEBUFFER by lazy {
-        NeoFramebuffer(
-            listOf(TARGET),
-            TARGET_DEPTH,
-            1,
-            1
-        )
+        NeoGlFramebuffer().also {
+            it.bind(null).use { fbo ->
+                fbo.colorAttachments[0] = TARGET
+                fbo.depthAttachment = TARGET_DEPTH
+            }
+        }
     }
 
     init {
@@ -82,14 +84,14 @@ object Vibrancy {
             ::GsonConfigSerializer
         )
         holder.registerLoadListener { holder, config ->
-            OpenGL.INSTANCE.recordRenderCall {
+            GlQueue.INSTANCE.runOrQueue {
                 lightManager.reload()
             }
 
             return@registerLoadListener null
         }
         holder.registerSaveListener { holder, config ->
-            OpenGL.INSTANCE.recordRenderCall {
+            GlQueue.INSTANCE.runOrQueue {
                 lightManager.reload()
             }
 
@@ -99,89 +101,73 @@ object Vibrancy {
 
     @JvmStatic
     fun render(data: RenderEventData) {
-        FRAMEBUFFER.bind()
+        val targetAttachment = data.target.colorAttachments[0] as GlTexture2D
 
-        if (FRAMEBUFFER.width != data.target.width || FRAMEBUFFER.height != data.target.height) {
-            FRAMEBUFFER.resize(data.target.width, data.target.height)
+        FRAMEBUFFER.bind().use { fbo ->
+            if (TARGET.width != targetAttachment.width || TARGET.height != targetAttachment.height) {
+                TARGET.bind(GlTextureTarget.TEXTURE_2D).use {
+                    it.textureDataMutable(targetAttachment.width, targetAttachment.height, GlTextureFormat.RGB16F)
+                }
+                TARGET_DEPTH.bind(GlTextureTarget.TEXTURE_2D).use {
+                    it.textureDataMutable(targetAttachment.width, targetAttachment.height, GlTextureFormat.DEPTH_COMPONENT)
+                }
+            }
+
+            fbo.clear(GlClearBit.Color(NeoColor.FULL_OFF), GlClearBit.Depth(1f))
+            fbo.blitFrom(
+                data.target,
+                NeoRect2i(0, 0, targetAttachment.width, targetAttachment.height),
+                NeoRect2i(0, 0, targetAttachment.width, targetAttachment.height),
+                GlTextureMinFilter.NEAREST,
+                GlBufferBit.DEPTH
+            )
+
+            lightManager.render(
+                RenderEventData(
+                    data.camera,
+                    data.level,
+                    data.projMat,
+                    data.modelViewMat,
+                    data.frustum,
+                    FRAMEBUFFER
+                )
+            )
         }
 
-        FRAMEBUFFER.clear(ClearBit.Color(IColor.FULL_OFF), ClearBit.Depth(1f))
-
-        glBindFramebuffer(GL_READ_FRAMEBUFFER, Minecraft.getInstance().mainRenderTarget.frameBufferId) // TODO
-
-        glBlitFramebuffer( // TODO
-            0, 0, FRAMEBUFFER.width, FRAMEBUFFER.height,
-            0, 0, FRAMEBUFFER.width, FRAMEBUFFER.height,
-            GL_DEPTH_BUFFER_BIT, GL_NEAREST
-        )
-
-        lightManager.render(RenderEventData(
-            data.buffers,
-            data.camera,
-            data.level,
-            data.projMat,
-            data.inverseProjMat,
-            data.modelViewMat,
-            data.inverseModelViewMat,
-            data.frustum,
-            FRAMEBUFFER
-        ))
-
-        FRAMEBUFFER.unbind()
-
-        val settings = RenderSettings(
-            id("light_post"),
-            listOf(
-                DisableFlagsShard(listOf(
-                    GlFlag.BLEND,
-                    GlFlag.CULL_FACE,
-                    GlFlag.DEPTH_TEST
-                )),
-                DepthMaskShard(
-                    false
-                ),
-                FramebufferShard(
-                    { data.target },
-                    true
-                ),
-                ShaderShard(id("light_post")) { shader ->
-                    shader.getUniform("Sampler0")?.setSampler(TARGET)
-                    shader.getUniform("Sampler1")?.setSampler(data.target.colorAttachments[0] as GlTexture2D)
-                }
+        val drawState = GlDrawState.Basic(
+            shader = GlShaderShard.FromLocation(
+                id("light_post"),
+                {},
+                GlTextureBinding.FromInstance(TARGET, GlTextureTarget.TEXTURE_2D),
+                GlTextureBinding.FromInstance(targetAttachment, GlTextureTarget.TEXTURE_2D),
             )
         )
-        settings.bind()
-        MeshUtil.SCREEN_MESH.draw()
-        settings.unbind()
+        data.target.bind(NeoRect2i(0, 0, targetAttachment.width, targetAttachment.height)).use {
+            drawState.bind().use { Mesh.SCREEN_MESH.draw() }
+        }
     }
 
     @JvmStatic
-    fun id(path: String): ResourceIdentifier = ResourceIdentifier(MOD_ID, path)
+    fun id(path: String): NeoIdentifier = NeoIdentifier(MOD_ID, path)
 
     @JvmStatic
-    fun AABB.toBlockBox() = BlockBox(
-        BlockPos.containing(minPosition),
-        BlockPos.containing(maxPosition)
-    )
-
-    @JvmStatic
-    fun Direction.isPointingTowards(from: BlockPos, to: BlockPos): Boolean = when (this) {
-        Direction.DOWN -> to.y < from.y
-        Direction.UP -> to.y > from.y
-        Direction.NORTH -> to.z < from.z
-        Direction.SOUTH -> to.z > from.z
-        Direction.WEST -> to.x < from.x
-        Direction.EAST -> to.x > from.x
+    fun NeoDirection.isPointingTowards(from: AbstractVec3<Int>, to: AbstractVec3<Int>): Boolean = when (this) {
+        NeoDirection.DOWN -> to.y < from.y
+        NeoDirection.UP -> to.y > from.y
+        NeoDirection.NORTH -> to.z < from.z
+        NeoDirection.SOUTH -> to.z > from.z
+        NeoDirection.WEST -> to.x < from.x
+        NeoDirection.EAST -> to.x > from.x
     }
 
     @JvmStatic
-    fun Direction.isPointingTowardsInclusive(from: BlockPos, to: BlockPos): Boolean = when (this) {
-        Direction.DOWN -> to.y <= from.y
-        Direction.UP -> to.y >= from.y
-        Direction.NORTH -> to.z <= from.z
-        Direction.SOUTH -> to.z >= from.z
-        Direction.WEST -> to.x <= from.x
-        Direction.EAST -> to.x >= from.x
+    fun NeoDirection.isPointingTowardsInclusive(from: AbstractVec3<Int>, to: AbstractVec3<Int>): Boolean = when (this) {
+        NeoDirection.DOWN -> to.y <= from.y
+        NeoDirection.UP -> to.y >= from.y
+        NeoDirection.NORTH -> to.z <= from.z
+        NeoDirection.SOUTH -> to.z >= from.z
+        NeoDirection.WEST -> to.x <= from.x
+        NeoDirection.EAST -> to.x >= from.x
     }
 
     class Entrypoint : BigShotCommonEntrypoint, BigShotClientEntrypoint {
@@ -204,24 +190,10 @@ object Vibrancy {
         }
 
         override fun registerEvents(factory: CommonEventFactory) {
-            factory.onBlockChanged { level, pos, old, new ->
+            factory.blockChanged.add { level, pos, old, new ->
                 if (level.isClientSide()) {
-                    val pos = BlockPos(pos) // TODO
-                    OpenGL.INSTANCE.recordRenderCall {
+                    GlQueue.INSTANCE.runOrQueue {
                         lightManager.blockChanged(level, pos, old, new)
-                    }
-                }
-            }
-            factory.onChunkChanged { level, old, new ->
-                if (level?.isClientSide() == true) {
-                    OpenGL.INSTANCE.recordRenderCall {
-                        if (old != null) {
-                            lightManager.deloadChunk(old)
-                        }
-
-                        if (new != null) {
-                            lightManager.loadChunk(new)
-                        }
                     }
                 }
             }
@@ -240,8 +212,8 @@ object Vibrancy {
         }
 
         override fun registerEvents(factory: ClientEventFactory) {
-            factory.onLevelRenderEnd(Vibrancy::render)
-            factory.onLevelChanged { old, new ->
+            factory.levelRenderEnd.add(Vibrancy::render)
+            factory.levelChanged.add { old, new ->
                 lightManager.clear()
 
                 if (new == null) {
@@ -273,7 +245,7 @@ object Vibrancy {
                      */
                 }
             }
-            factory.onFrameStart {
+            factory.clientTickStart.add {
                 fun debugPrint(text: Component) {
                     Minecraft.getInstance().gui.chat.addMessage(
                         Component.empty()
@@ -317,25 +289,40 @@ object Vibrancy {
                     )
                 }
             }
+            factory.chunkChanged.add { level, old, new ->
+                if (level.isClientSide()) {
+                    GlQueue.INSTANCE.runOrQueue {
+                        if (old != null) {
+                            lightManager.deloadChunk(old)
+                        }
+
+                        if (new != null) {
+                            lightManager.loadChunk(new)
+                        }
+                    }
+                }
+            }
         }
 
         override fun registerDebugScreenInfo(factory: DebugScreenFactory) {
             factory.register(id("debug_info"), false) { out ->
-                out.accept(ChatFormatting.UNDERLINE.toString() + MOD_NAME)
+                out(ChatFormatting.UNDERLINE.toString() + MOD_NAME)
                 lightManager.getDebugOutput(out)
             }
         }
 
         override fun registerPanoramas(factory: PanoramaFactory) {
-            factory.register(PanoramaSet(
-                id("panoramas"),
-                PanoramaPriority.SHADER_PACK,
-                listOf(
-                    PanoramaTexture(id("textures/gui/title/background/ancient_city")),
-                    PanoramaTexture(id("textures/gui/title/background/trial_chamber")),
-                    PanoramaTexture(id("textures/gui/title/background/lush_cave"))
+            factory.register(
+                PanoramaSet(
+                    id("panoramas"),
+                    PanoramaPriority.SHADER_PACK,
+                    listOf(
+                        PanoramaTexture(id("textures/gui/title/background/ancient_city")),
+                        PanoramaTexture(id("textures/gui/title/background/trial_chamber")),
+                        PanoramaTexture(id("textures/gui/title/background/lush_cave"))
+                    )
                 )
-            ))
+            )
         }
     }
 }

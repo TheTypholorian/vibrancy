@@ -5,7 +5,7 @@ import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.state.BlockState
 import net.typho.big_shot_lib.api.util.NeoRegistry
 import net.typho.big_shot_lib.api.util.RegistrationFactory
-import net.typho.big_shot_lib.api.util.resources.NeoResourceKey
+import net.typho.big_shot_lib.api.util.resource.NeoResourceKey
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.block.impl.RayPointLightType
 import net.typho.vibrancy.block.impl.SubtleLightType

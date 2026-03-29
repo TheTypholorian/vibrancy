@@ -3,13 +3,15 @@ package net.typho.vibrancy
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
-import net.minecraft.core.BlockPos
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
-import net.typho.big_shot_lib.api.client.util.events.RenderEventData
-import net.typho.big_shot_lib.api.util.resources.NeoResourceKey
+import net.typho.big_shot_lib.api.client.util.event.RenderEventData
+import net.typho.big_shot_lib.api.math.vec.AbstractVec3
+import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.center
+import net.typho.big_shot_lib.api.math.vec.NeoVec2i
+import net.typho.big_shot_lib.api.util.resource.NeoResourceKey
 import net.typho.vibrancy.block.BlockLightInfo
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.block.BlockLightStorage
@@ -17,13 +19,12 @@ import net.typho.vibrancy.block.BlockLightType
 import net.typho.vibrancy.sky.SkyLightRegistry
 import net.typho.vibrancy.sky.SkyLightStorage
 import net.typho.vibrancy.sky.SkyLightType
-import org.joml.Vector2f
 import java.util.*
 import java.util.function.Consumer
 
 open class LightManager {
     @JvmField
-    val dirtyBlocks = LinkedList<BlockPos>()
+    val dirtyBlocks = LinkedList<AbstractVec3<Int>>()
     @JvmField
     val blockLights = HashMap<BlockLightType<*, *>, BlockLightStorage<*>>()
     @JvmField
@@ -54,7 +55,7 @@ open class LightManager {
 
     @Suppress("UNCHECKED_CAST")
     protected fun <I : BlockLightInfo> addBlockLight(
-        pos: BlockPos,
+        pos: AbstractVec3<Int>,
         level: Level,
         state: BlockState,
         type: BlockLightType<I, *>,
@@ -65,7 +66,7 @@ open class LightManager {
 
     fun blockChanged(
         level: Level,
-        pos: BlockPos,
+        pos: AbstractVec3<Int>,
         old: BlockState,
         new: BlockState
     ) {
@@ -157,22 +158,19 @@ open class LightManager {
         return distance.coerceAtMost(Minecraft.getInstance().options.effectiveRenderDistance)
     }
 
-    fun inRenderDistance(data: RenderEventData, pos: BlockPos, distance: Int): Boolean {
-        val d = clampToChunkRenderDistance(distance)
-        return pos.center.toVector3f().distanceSquared(data.camera.pos) <= d * d * 16 * 16
+    fun inRenderDistance(data: RenderEventData, pos: AbstractVec3<Int>, distance: Int): Boolean {
+        return pos.center.inDistance(data.camera.pos, clampToChunkRenderDistance(distance) * 16f)
     }
 
     fun inRenderDistance(data: RenderEventData, pos: ChunkPos, distance: Int): Boolean {
-        val centerChunk = Vector2f(pos.middleBlockX.toFloat(), pos.middleBlockZ.toFloat())
-        val d = clampToChunkRenderDistance(distance)
-        return centerChunk.distanceSquared(Vector2f(data.camera.pos.x, data.camera.pos.z)) <= d * d * 16 * 16
+        return data.camera.pos.xz.inDistance(pos.middleBlockX.toFloat(), pos.middleBlockZ.toFloat(), clampToChunkRenderDistance(distance) * 16f)
     }
 
-    fun getSortingOrder(data: RenderEventData, pos: BlockPos): Float {
-        return pos.center.toVector3f().distanceSquared(data.camera.pos)
+    fun getSortingOrder(data: RenderEventData, pos: AbstractVec3<Int>): Float {
+        return pos.center.distanceSquared(data.camera.pos)
     }
 
     fun getSortingOrder(data: RenderEventData, pos: ChunkPos): Float {
-        return Vector2f(pos.x.toFloat(), pos.z.toFloat()).distanceSquared(Vector2f(data.camera.pos.x / 16, data.camera.pos.z / 16))
+        return NeoVec2i(pos.x, pos.z).toFloat().distanceSquared(data.camera.pos.x / 16, data.camera.pos.z / 16)
     }
 }

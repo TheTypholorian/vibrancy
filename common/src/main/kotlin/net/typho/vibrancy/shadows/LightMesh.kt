@@ -1,21 +1,20 @@
 package net.typho.vibrancy.shadows
 
-import com.mojang.blaze3d.vertex.ByteBufferBuilder
 import net.minecraft.world.level.Level
-import net.typho.big_shot_lib.api.client.opengl.buffers.*
-import net.typho.big_shot_lib.api.client.opengl.shaders.GlShader
-import net.typho.big_shot_lib.api.client.opengl.state.*
-import net.typho.big_shot_lib.api.client.opengl.util.FogUtil
-import net.typho.big_shot_lib.api.client.opengl.util.GlResourcePool
-import net.typho.big_shot_lib.api.client.opengl.util.GlShapeType
-import net.typho.big_shot_lib.api.client.opengl.util.TextureFormat
-import net.typho.big_shot_lib.api.client.util.events.RenderEventData
-import net.typho.big_shot_lib.api.util.IColor
-import net.typho.big_shot_lib.api.util.resources.ResourceIdentifier
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlFramebuffer
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlTexture2D
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D
+import net.typho.big_shot_lib.api.client.rendering.opengl.state.*
+import net.typho.big_shot_lib.api.client.rendering.opengl.util.BlendFunction
+import net.typho.big_shot_lib.api.client.rendering.opengl.util.PolygonOffset
+import net.typho.big_shot_lib.api.client.rendering.util.Mesh
+import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
+import net.typho.big_shot_lib.api.math.vec.NeoVec2i
+import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.TextureAtlas
-import net.typho.vibrancy.Vibrancy
 import org.lwjgl.system.NativeResource
-import java.awt.Dimension
 
 open class LightMesh : NativeResource {
     companion object {
@@ -32,98 +31,61 @@ open class LightMesh : NativeResource {
             .add("Position", NeoVertexFormat.Element.POSITION)
             .add("UV0", NeoVertexFormat.Element.TEXTURE_UV)
             .build()
-        @JvmField
-        val pool = GlResourcePool(
-            { LightMesh() },
-            512,
-            { LightMesh() },
-            true
-        )
 
         @JvmStatic
-        fun renderSettings(data: RenderEventData, sampler0: GlTexture, width: Int, height: Int, shader: ResourceIdentifier) =
-            RenderSettings(
-                Vibrancy.id("mesh"),
-                listOf(
-                    FramebufferShard(
-                        { data.target },
-                        true
-                    ),
-                    BlendShard(
-                        true,
-                        IColor.FULL_ON,
-                        BlendEquation.MAX,
-                        BlendFunction.Basic(
-                            BlendFactor.ONE,
-                            BlendFactor.ONE
-                        )
-                    ),
-                    CullShard(
-                        true,
-                        CullFace.BACK
-                    ),
-                    DepthMaskShard(
-                        true
-                    ),
-                    DepthTestShard(
-                        true,
-                        ComparisonFunc.LEQUAL
-                    ),
-                    PolygonOffsetShard(
-                        PolygonOffset(
-                            -1f,
-                            -4f,
-                        )
-                    ),
-                    ShaderShard(
-                        shader
-                    ) { shader ->
-                        shader.setCommonUniforms(data)
-                        shader.getUniform("CameraPos")?.setValue(data.camera.pos)
-                        shader.getUniform("Sampler0")?.setSampler(sampler0)
-                        shader.getUniform("SamplerSize0")?.setValue(width, height)
-                        FogUtil.INSTANCE.upload(shader)
-                    }
+        fun drawState(sampler0: GlTexture2D, shader: NeoIdentifier) = GlDrawState.Basic(
+            blend = GlBlendShard.Enabled(
+                BlendFunction.Basic(
+                    GlBlendingFactor.ONE,
+                    GlBlendingFactor.ONE
+                ),
+                GlBlendEquation.MAX
+            ),
+            cull = GlCullShard.Enabled(
+                GlCullFace.BACK
+            ),
+            depth = GlDepthShard.Enabled(
+                GlAlphaFunction.LEQUAL
+            ),
+            polygonOffset = GlPolygonOffsetShard.Enabled(
+                PolygonOffset(
+                    -1f,
+                    -4f
+                )
+            ),
+            shader = GlShaderShard.FromLocation(
+                shader,
+                { },
+                GlShaderShard.FromInstance(
+                    sampler0,
+                    GlTextureTarget.TEXTURE_2D
                 )
             )
+        )
 
         private val lightBlitMesh by lazy {
             Mesh(
                 BLIT_VERTEX_FORMAT,
-                GlShapeType.QUADS,
-                BufferUsage.STREAM_DRAW
+                GlBeginMode.QUADS,
+                GlBufferUsage.STREAM_DRAW
             )
         }
 
         @JvmStatic
         fun initBlitMesh(mesh: Mesh, info: LightBlitInfo) {
-            val builder = mesh.Builder(ByteBufferBuilder(info.lightFaces.size * 4 * BLIT_VERTEX_FORMAT.vertexSizeBytes))
-
-            info.lightFaces.forEachIndexed { index, face ->
-                val texture = info.atlasResult.textures[index]
-                builder.vertex(face.quad.v0.pos)
-                    .textureUV(
-                        texture.x.toFloat() / info.atlasResult.width,
-                        texture.y.toFloat() / info.atlasResult.height
-                    )
-                builder.vertex(face.quad.v1.pos)
-                    .textureUV(
-                        (texture.x.toFloat() + texture.width) / info.atlasResult.width,
-                        texture.y.toFloat() / info.atlasResult.height
-                    )
-                builder.vertex(face.quad.v2.pos)
-                    .textureUV(
-                        (texture.x.toFloat() + texture.width) / info.atlasResult.width,
-                        (texture.y.toFloat() + texture.height) / info.atlasResult.height
-                    )
-                builder.vertex(face.quad.v3.pos)
-                    .textureUV(
-                        texture.x.toFloat() / info.atlasResult.width,
-                        (texture.y.toFloat() + texture.height) / info.atlasResult.height
-                    )
+            mesh.upload(info.lightFaces.size * 4) {
+                info.lightFaces.forEachIndexed { index, face ->
+                    val texture = info.atlasResult.textures[index]
+                    vertex(face.quad.v0.pos)
+                        .textureUV(texture.min.toFloat() / info.atlasResult.size.toFloat())
+                    vertex(face.quad.v1.pos)
+                        .textureUV(texture.maxMin.toFloat() / info.atlasResult.size.toFloat())
+                    vertex(face.quad.v2.pos)
+                        .textureUV(texture.max.toFloat() / info.atlasResult.size.toFloat())
+                    vertex(face.quad.v3.pos)
+                        .textureUV(texture.minMax.toFloat() / info.atlasResult.size.toFloat())
+                }
             }
-
-            builder.end()
         }
 
         @JvmStatic
@@ -143,26 +105,23 @@ open class LightMesh : NativeResource {
     @JvmField
     val mesh = Mesh(
         VERTEX_FORMAT,
-        GlShapeType.QUADS,
-        BufferUsage.STATIC_DRAW
+        GlBeginMode.QUADS,
+        GlBufferUsage.STATIC_DRAW
     )
     @JvmField
-    val texture = NeoTexture2D(
-        TextureFormat.R11F_G11F_B10F
-    )
+    val texture = NeoGlTexture2D()
     @JvmField
-    val target = NeoFramebuffer(
-        listOf(texture),
-        null,
-        1,
-        1
-    )
+    val target = NeoGlFramebuffer().also {
+        it.bind().use { fbo ->
+            fbo.colorAttachments[0] = texture
+        }
+    }
     var empty = true
         protected set
 
-    fun draw(shader: GlShader) {
+    fun draw(shader: GlBoundProgram) {
         if (!empty) {
-            shader.getUniform("Sampler1")?.setSampler(texture)
+            shader.setTexture(1, GlTextureBinding.FromInstance(texture, GlTextureTarget.TEXTURE_2D))
             mesh.draw()
         }
     }
@@ -173,22 +132,21 @@ open class LightMesh : NativeResource {
     ): () -> TextureAtlas.Result {
         val textures = Array(lightFaces.size) {
             val face = lightFaces[it]
-            Dimension(face.width, face.height)
+            NeoVec2i(face.width, face.height)
         }
-        val lightBuilder = mesh.Builder(ByteBufferBuilder(lightFaces.size * 4 * VERTEX_FORMAT.vertexSizeBytes))
         val result = TextureAtlas.pack(*textures)
-
-        lightFaces.forEachIndexed { index, face -> face.buildGeometry(lightBuilder, result.textures[index], level, null) }
 
         return {
             empty = lightFaces.isEmpty()
 
-            if (empty) {
-                lightBuilder.buffer.close()
-            } else {
-                lightBuilder.end()
+            mesh.upload(lightFaces.size * 4) {
+                lightFaces.forEachIndexed { index, face -> face.applyOverlay(result.textures[index]).put(this) }
+            }
 
-                target.resize(result.width.coerceAtLeast(1), result.height.coerceAtLeast(1))
+            if (!empty) {
+                texture.bind(GlTextureTarget.TEXTURE_2D).use {
+                    it.textureDataMutable(result.size.x.coerceAtLeast(1), result.size.y.coerceAtLeast(1), GlTextureFormat.RGB8)
+                }
             }
 
             result

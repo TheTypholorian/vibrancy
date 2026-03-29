@@ -1,15 +1,13 @@
 package net.typho.vibrancy.util
 
-import net.minecraft.core.BlockBox
-import net.minecraft.core.BlockPos
-import net.minecraft.world.phys.AABB
+import net.typho.big_shot_lib.api.math.rect.AbstractRect3
+import net.typho.big_shot_lib.api.math.vec.AbstractVec3
 import net.typho.vibrancy.shadows.ShadowPredicate
-import org.joml.Vector3f
 
 interface PointLight {
-    val blockPos: BlockPos?
-    val absolutePos: Vector3f
-    val boundingBox: AABB
-    val shadowBox: BlockBox
+    val pos: AbstractVec3<Int>?
+    val absolutePos: AbstractVec3<Float>
+    val boundingBox: AbstractRect3<Int>
+    val shadowBox: AbstractRect3<Int>
     val shadowPredicate: ShadowPredicate?
 }

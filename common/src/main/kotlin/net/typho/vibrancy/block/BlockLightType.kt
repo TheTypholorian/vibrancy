@@ -2,7 +2,7 @@ package net.typho.vibrancy.block
 
 import com.mojang.serialization.MapCodec
 import net.minecraft.world.level.block.state.StateDefinition
-import net.typho.big_shot_lib.api.client.util.events.RenderEventData
+import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.vibrancy.LightManager
 
 interface BlockLightType<I : BlockLightInfo, S : BlockLightStorage<I>> {

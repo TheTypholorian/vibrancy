@@ -1,9 +1,11 @@
 package net.typho.vibrancy.block.impl
 
 import net.minecraft.world.level.block.state.StateDefinition
-import net.typho.big_shot_lib.api.client.opengl.shaders.NeoShaderRegistry
-import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
-import net.typho.big_shot_lib.api.client.util.events.RenderEventData
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureTarget
+import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
+import net.typho.big_shot_lib.api.client.rendering.quad.NeoAtlas
+import net.typho.big_shot_lib.api.client.util.event.RenderEventData
+import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.toJOML
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.block.BlockLightType
@@ -27,27 +29,25 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
         debugOut: (String, Int) -> Unit
     ) {
         if (Vibrancy.config.blockLights.raytraced.enabled) {
-            val settings = LightMesh.renderSettings(data, TextureUtil.INSTANCE.blockAtlas, TextureUtil.INSTANCE.blockAtlas.width, TextureUtil.INSTANCE.blockAtlas.height, Vibrancy.id("block/raytraced/mesh"))
-            val shader = NeoShaderRegistry.get(Vibrancy.id("block/raytraced/mesh"))!! // TODO
+            LightMesh.drawState(NeoAtlas.blocks, Vibrancy.id("block/raytraced/mesh")).bind().use { settings ->
+                settings.shader.setTexture(1, GlTextureBinding.FromInstance(
+                    ReflectionAtlases[NeoAtlas.blocks.location],
+                    GlTextureTarget.TEXTURE_2D
+                ))
+                settings.shader.setUniform("CameraPos") { set(data.camera.pos) }
 
-            settings.bind()
-
-            shader.getUniform("ReflectionSampler0")?.setSampler(ReflectionAtlases[TextureUtil.INSTANCE.blockAtlas.location])
-
-            lights.map.values.forEach { it.update(manager, data) }
-
-            lights.map.values
-                .filter { light ->
-                    data.frustum.testAab(
-                        light.boundingBox.minPosition.toVector3f(),
-                        light.boundingBox.maxPosition.toVector3f()
-                    )
-                }
-                .sortedBy { light -> manager.getSortingOrder(data, light.blockPos) }
-                .take(Vibrancy.config.blockLights.raytraced.maxRendered)
-                .forEach { light -> light.render(shader, debugOut) }
-
-            settings.unbind()
+                lights.map.values.forEach { it.update(manager, data) }
+                lights.map.values
+                    .filter { light ->
+                        data.frustum.testAab(
+                            light.boundingBox.min.toFloat().toJOML(),
+                            light.boundingBox.max.toFloat().toJOML(),
+                        )
+                    }
+                    .sortedBy { light -> manager.getSortingOrder(data, light.pos) }
+                    .take(Vibrancy.config.blockLights.raytraced.maxRendered)
+                    .forEach { light -> light.render(settings.shader, debugOut) }
+            }
         }
     }
 }

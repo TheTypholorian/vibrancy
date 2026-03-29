@@ -10,7 +10,7 @@ layout(std430, binding = 0) buffer ShadowQuadBuffer {
 uniform sampler2D Sampler0;
 
 uniform vec3 LightDirection;
-uniform vec3 LightOffset;
+//uniform vec3 LightOffset;
 
 in vec3 vertexPos;
 
@@ -33,7 +33,7 @@ void main() {
 
     float len = 10.0; // TODO
 
-    Ray ray = Ray(vertexPos + LightOffset, LightDirection, len);
+    Ray ray = Ray(vertexPos, LightDirection, len);
 
     fragColor = vec4(1);
 

@@ -1,22 +1,24 @@
 package net.typho.vibrancy.block
 
-import net.minecraft.core.BlockPos
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
+import net.typho.big_shot_lib.api.math.vec.AbstractVec3
+import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.blockPos
+import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.vibrancy.LightManager
 import org.lwjgl.system.NativeResource
 import java.util.concurrent.ConcurrentHashMap
 
 abstract class HashMapBlockLightStorage<I : BlockLightInfo, L>(val type: BlockLightType<I, *>) : BlockLightStorage<I> {
-    var map = ConcurrentHashMap<BlockPos, L & Any>()
+    var map = ConcurrentHashMap<AbstractVec3<Int>, L & Any>()
     override val size: Int
         get() = map.size
 
-    abstract fun createLight(manager: LightManager, state: BlockState, pos: BlockPos, info: I): L?
+    abstract fun createLight(manager: LightManager, state: BlockState, pos: AbstractVec3<Int>, info: I): L?
 
-    override fun addLight(manager: LightManager, level: Level, state: BlockState, pos: BlockPos, info: I) {
+    override fun addLight(manager: LightManager, level: Level, state: BlockState, pos: AbstractVec3<Int>, info: I) {
         val light = createLight(manager, state, pos, info)
 
         if (light == null) {
@@ -26,7 +28,7 @@ abstract class HashMapBlockLightStorage<I : BlockLightInfo, L>(val type: BlockLi
         }
     }
 
-    override fun removeLight(manager: LightManager, level: Level, pos: BlockPos): Boolean {
+    override fun removeLight(manager: LightManager, level: Level, pos: AbstractVec3<Int>): Boolean {
         val removed = map.remove(pos)
         (removed as? NativeResource)?.free()
         return removed != null
@@ -38,7 +40,7 @@ abstract class HashMapBlockLightStorage<I : BlockLightInfo, L>(val type: BlockLi
         //println("Load chunk ${chunk.pos} for $type")
 
         chunk.findBlocks(BlockLightRegistry::has) { pos, state ->
-            val actualPos = BlockPos(pos)
+            val pos = NeoVec3i(pos)
 
             BlockLightRegistry.get(state.block, type)?.let { info ->
                 type.castInfo(info)?.let {
@@ -46,7 +48,7 @@ abstract class HashMapBlockLightStorage<I : BlockLightInfo, L>(val type: BlockLi
                         manager,
                         chunk.level!!,
                         state,
-                        actualPos,
+                        pos,
                         it
                     )
                 }
@@ -56,7 +58,7 @@ abstract class HashMapBlockLightStorage<I : BlockLightInfo, L>(val type: BlockLi
 
     override fun deloadChunk(manager: LightManager, chunk: LevelChunk) {
         map.entries.removeIf { entry ->
-            val removed = ChunkPos(entry.key) == chunk.pos
+            val removed = ChunkPos(entry.key.blockPos) == chunk.pos
 
             if (removed) {
                 (entry.value as? NativeResource)?.free()

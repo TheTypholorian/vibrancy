@@ -1,12 +1,14 @@
 package net.typho.vibrancy.shadows
 
-import net.minecraft.core.BlockPos
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.LeavesBlock
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.Heightmap
-import net.typho.big_shot_lib.api.client.util.quads.NeoAtlas
+import net.typho.big_shot_lib.api.client.rendering.quad.NeoAtlas
+import net.typho.big_shot_lib.api.math.vec.AbstractVec3
+import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.blockPos
+import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 import java.util.function.Consumer
@@ -21,12 +23,11 @@ class SkyLightMesher(
         predicate: ShadowPredicate,
         atlas: NeoAtlas,
         shadowOut: Consumer<LightFace>,
-        lightOut: Consumer<LightFace>,
-        splitLargeLightFaces: Boolean
+        lightOut: Consumer<LightFace>
     ) {
         val faces = arrayListOf<LightFace>()
 
-        fun collect(pos: BlockPos, state: BlockState) {
+        fun collect(pos: AbstractVec3<Int>, state: BlockState) {
             ShadowMesher.collectLightFaces(
                 manager,
                 state,
@@ -45,14 +46,14 @@ class SkyLightMesher(
                 var y = height
 
                 while (y > chunk.minBuildHeight) {
-                    val pos = BlockPos(x + pos.minBlockX, y, z + pos.minBlockZ)
-                    val state = chunk.getBlockState(pos)
+                    val pos = NeoVec3i(x + pos.minBlockX, y, z + pos.minBlockZ)
+                    val state = chunk.getBlockState(pos.blockPos)
 
                     if (predicate.shouldCastBlock(level, pos, state)) {
                         collect(pos, state)
                     }
 
-                    if (!state.propagatesSkylightDown(level, pos) && state.block !is LeavesBlock) { // TODO
+                    if (!state.propagatesSkylightDown(level, pos.blockPos) && state.block !is LeavesBlock) { // TODO
                         break
                     }
 
@@ -68,7 +69,7 @@ class SkyLightMesher(
 
             collect(cursor, level.getBlockState(cursor))
 
-            for (direction in Direction.entries) {
+            for (direction in NeoDirection.entries) {
                 val pos = cursor.relative(direction)
 
                 if (direction.isPointingTowardsInclusive(this.pos, cursor) && checked.add(pos)) {
@@ -87,16 +88,12 @@ class SkyLightMesher(
          */
 
         faces.forEach {
-            val state = level.getBlockState(it.blockPos)
+            val state = level.getBlockState(it.blockPos.blockPos)
             if (predicate.isInShadowRange(it.blockPos) && /*!BlockUtil.INSTANCE.isSolidRender(state, it.blockPos, level) &&*/ !state.`is`(Vibrancy.noShadowsTag)) {
                 shadowOut.accept(it)
             }
 
-            if (splitLargeLightFaces) {
-                it.split(16).forEach(lightOut::accept)
-            } else {
-                lightOut.accept(it)
-            }
+            lightOut.accept(it)
         }
     }
 }

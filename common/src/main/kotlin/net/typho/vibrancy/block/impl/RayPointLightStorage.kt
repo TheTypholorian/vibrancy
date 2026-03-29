@@ -1,8 +1,9 @@
 package net.typho.vibrancy.block.impl
 
-import net.minecraft.core.BlockPos
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.block.state.BlockState
+import net.typho.big_shot_lib.api.math.vec.AbstractVec3
+import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.blockPos
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.block.HashMapBlockLightStorage
 
@@ -10,7 +11,7 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
     override fun createLight(
         manager: LightManager,
         state: BlockState,
-        pos: BlockPos,
+        pos: AbstractVec3<Int>,
         info: RayPointLightInfo
     ) = if (info.enabled.apply(state)) RayPointLight(info, state, pos) else null
 
@@ -18,7 +19,7 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
         if (chunk == null) {
             map.values.forEach { it.reload() }
         } else {
-            map.values.filter { ChunkPos(it.blockPos) == chunk }
+            map.values.filter { ChunkPos(it.pos.blockPos) == chunk }
                 .forEach { it.reload() }
         }
     }

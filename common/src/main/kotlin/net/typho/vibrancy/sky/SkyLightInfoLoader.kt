@@ -4,10 +4,10 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonParseException
 import com.google.gson.JsonParser
 import com.mojang.serialization.JsonOps
-import net.typho.big_shot_lib.api.util.resources.NeoFileToIdConverter
-import net.typho.big_shot_lib.api.util.resources.NeoResourceManager
-import net.typho.big_shot_lib.api.util.resources.NeoResourceManagerReloadListener
-import net.typho.big_shot_lib.api.util.resources.ResourceIdentifier
+import net.typho.big_shot_lib.api.client.util.resource.NeoResourceManager
+import net.typho.big_shot_lib.api.client.util.resource.NeoResourceManagerReloadListener
+import net.typho.big_shot_lib.api.util.resource.NeoFileToIdConverter
+import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.Vibrancy
 
 object SkyLightInfoLoader : NeoResourceManagerReloadListener {
@@ -15,8 +15,8 @@ object SkyLightInfoLoader : NeoResourceManagerReloadListener {
     val idConverter = NeoFileToIdConverter.json("rtx/sky_lights")
 
     @JvmStatic
-    fun load(key: ResourceIdentifier, json: JsonElement, file: ResourceIdentifier) {
-        val typeKey = ResourceIdentifier.CODEC.decode(JsonOps.INSTANCE, json.asJsonObject.get("type"))
+    fun load(key: NeoIdentifier, json: JsonElement, file: NeoIdentifier) {
+        val typeKey = NeoIdentifier.CODEC.decode(JsonOps.INSTANCE, json.asJsonObject.get("type"))
             .getOrThrow { JsonParseException("Error while parsing sky light info $file: $it") }
             .first
         val codec = (SkyLightRegistry.registry!!.get(typeKey) ?: throw JsonParseException("No sky light type $typeKey"))

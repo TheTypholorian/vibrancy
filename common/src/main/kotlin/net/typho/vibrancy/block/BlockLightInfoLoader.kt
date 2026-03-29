@@ -7,8 +7,12 @@ import com.mojang.serialization.JsonOps
 import net.minecraft.core.registries.BuiltInRegistries
 import net.minecraft.world.level.block.Block
 import net.minecraft.world.level.block.Blocks
+import net.typho.big_shot_lib.api.client.util.resource.NeoResourceManager
+import net.typho.big_shot_lib.api.client.util.resource.NeoResourceManagerReloadListener
 import net.typho.big_shot_lib.api.util.WrapperUtil
-import net.typho.big_shot_lib.api.util.resources.*
+import net.typho.big_shot_lib.api.util.resource.NeoFileToIdConverter
+import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
+import net.typho.big_shot_lib.api.util.resource.NeoTagKey
 import net.typho.vibrancy.Vibrancy
 
 object BlockLightInfoLoader : NeoResourceManagerReloadListener {
@@ -16,11 +20,11 @@ object BlockLightInfoLoader : NeoResourceManagerReloadListener {
     val singleIdConverter = NeoFileToIdConverter.json("rtx/block_lights/by_block")
     @JvmField
     val tagIdConverter = NeoFileToIdConverter.json("rtx/block_lights/by_block_tag")
-    private val warned = HashSet<ResourceIdentifier>()
+    private val warned = HashSet<NeoIdentifier>()
 
     @JvmStatic
-    fun load(block: Block, key: ResourceIdentifier, json: JsonElement, file: ResourceIdentifier) {
-        val typeKey = ResourceIdentifier.CODEC.decode(JsonOps.INSTANCE, json.asJsonObject.get("type"))
+    fun load(block: Block, key: NeoIdentifier, json: JsonElement, file: NeoIdentifier) {
+        val typeKey = NeoIdentifier.CODEC.decode(JsonOps.INSTANCE, json.asJsonObject.get("type"))
             .getOrThrow { JsonParseException("Error while parsing block light info $file: $it") }
             .first
         val codec = (BlockLightRegistry.registry!!.get(typeKey) ?: throw JsonParseException("No block light type $typeKey"))
@@ -51,7 +55,7 @@ object BlockLightInfoLoader : NeoResourceManagerReloadListener {
 
         for (entry in tagIdConverter.listMatchingResources(manager)) {
             entry.value.openAsReader().use { jsonReader ->
-                blocks.getTag(NeoTagKey(blocks.key().location, tagIdConverter.fileToId(entry.key)))?.let { tag ->
+                blocks.getTag(NeoTagKey(blocks.key.location, tagIdConverter.fileToId(entry.key)))?.let { tag ->
                     val json = JsonParser.parseReader(jsonReader)
 
                     tag.forEach { block ->

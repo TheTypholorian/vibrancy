@@ -5,8 +5,8 @@ import net.minecraft.world.level.Level
 import net.typho.big_shot_lib.api.util.NeoRegistry
 import net.typho.big_shot_lib.api.util.RegistrationFactory
 import net.typho.big_shot_lib.api.util.WrapperUtil
-import net.typho.big_shot_lib.api.util.resources.NeoResourceKey
-import net.typho.big_shot_lib.api.util.resources.ResourceIdentifier
+import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
+import net.typho.big_shot_lib.api.util.resource.NeoResourceKey
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.sky.impl.OverworldSkyLightType
 
@@ -18,7 +18,7 @@ object SkyLightRegistry {
     var registry: NeoRegistry<SkyLightType<*, *>>? = null
 
     @JvmField
-    val dimensionMap = HashMap<ResourceIdentifier, SkyLightInfo>()
+    val dimensionMap = HashMap<NeoIdentifier, SkyLightInfo>()
 
     @JvmStatic
     fun get(level: Level): SkyLightInfo? = dimensionMap[WrapperUtil.INSTANCE.wrap(level.dimension()).location]

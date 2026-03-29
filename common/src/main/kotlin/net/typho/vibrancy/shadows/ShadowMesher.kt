@@ -1,12 +1,14 @@
 package net.typho.vibrancy.shadows
 
-import net.minecraft.core.BlockPos
-import net.minecraft.core.Direction
+import net.minecraft.client.Minecraft
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
-import net.minecraft.world.phys.Vec3
-import net.typho.big_shot_lib.api.client.opengl.util.MeshUtil
-import net.typho.big_shot_lib.api.client.util.quads.NeoAtlas
+import net.typho.big_shot_lib.api.client.rendering.quad.NeoAtlas
+import net.typho.big_shot_lib.api.math.NeoDirection
+import net.typho.big_shot_lib.api.math.vec.AbstractVec3
+import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.blockPos
+import net.typho.big_shot_lib.api.util.BlockUtil
+import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.vibrancy.LightManager
 import java.util.function.BiConsumer
 import java.util.function.Consumer
@@ -18,8 +20,7 @@ interface ShadowMesher {
         predicate: ShadowPredicate,
         atlas: NeoAtlas,
         shadowOut: Consumer<LightFace>,
-        lightOut: Consumer<LightFace>,
-        splitLargeLightFaces: Boolean = false
+        lightOut: Consumer<LightFace>
     )
 
     companion object {
@@ -28,24 +29,34 @@ interface ShadowMesher {
             manager: LightManager,
             state: BlockState,
             level: Level,
-            pos: BlockPos,
+            pos: AbstractVec3<Int>,
             atlas: NeoAtlas,
-            predicate: (face: Direction?) -> Boolean,
-            out: BiConsumer<Direction?, LightFace>
+            predicate: (face: NeoDirection?) -> Boolean,
+            out: BiConsumer<NeoDirection?, LightFace>
         ) {
             if (!state.isAir) {
-                MeshUtil.INSTANCE.getBlockQuads(state, level, pos) { dir, quads ->
+                BlockUtil.INSTANCE.getBlockQuads(state, level, pos) { dir, quads ->
                     if (predicate(dir)) {
-                        quads.forEach {
+                        quads.forEach { quad ->
+                            var quad = quad
+                            val tintColor = if (quad.tintIndex != null) NeoColor.RGB(Minecraft.getInstance().blockColors.getColor(state, level, pos.blockPos, quad.tintIndex!!)) else null
+
+                            quad = quad.withVertices { index, vertex ->
+                                var vertex = vertex.withPosition { v ->
+                                    v + pos.toFloat()
+                                }
+
+                                tintColor?.let { vertex = vertex.withColor { tintColor } }
+                                quad.direction?.let { dir -> vertex = vertex.withNormal { dir.inc.toFloat() } }
+
+                                return@withVertices vertex
+                            }
+
                             out.accept(
                                 dir,
                                 LightFace(
                                     pos,
-                                    it.withVertices { index, vertex ->
-                                        vertex.withPosition { v ->
-                                            Vec3.atLowerCornerOf(pos).toVector3f().add(v)
-                                        }
-                                    },
+                                    quad,
                                     atlas
                                 )
                             )

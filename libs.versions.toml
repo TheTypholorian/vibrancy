@@ -1,8 +1,8 @@
 [versions]
 java = "21"
-kotlin = "2.0.21"
-moddev = "1.0.21"
-loom = "1.8-SNAPSHOT"
+kotlin = "2.2.0"
+moddev = "2.0.140"
+loom = "1.15-SNAPSHOT"
 dokka = "1.9.20"
 
 minecraft = "1.21.1"
@@ -30,7 +30,7 @@ mixinExtras = "0.5.3"
 
 sodium="mc1.21.1-0.6.13-neoforge"
 
-bigShot="3.15.7"
+bigShot="4.0.1"
 
 clothConfig = "15.0.140+neoforge"
 modmenu = "11.0.3"
@@ -45,7 +45,7 @@ kff = { group = "thedarkcolour", name = "kotlinforforge-neoforge", version.ref =
 mixin = { group = "org.spongepowered", name = "mixin", version.ref = "mixin" }
 mixinExtras-common = { group = "io.github.llamalad7", name = "mixinextras-common", version.ref = "mixinExtras" }
 sodium = { group = "maven.modrinth", name = "sodium", version.ref = "sodium" }
-bigShot = { group = "net.typho", name = "big_shot_api", version.ref = "bigShot" }
+bigShot = { group = "net.typho", name = "big_shot_lib", version.ref = "bigShot" }
 clothConfig = { group = "maven.modrinth", name = "cloth-config", version.ref = "clothConfig" }
 modmenu = { group = "maven.modrinth", name = "modmenu", version.ref = "modmenu" }
 
@@ -53,4 +53,4 @@ modmenu = { group = "maven.modrinth", name = "modmenu", version.ref = "modmenu" 
 kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }
 dokka = { id = "org.jetbrains.dokka", version.ref = "dokka" }
 moddev = { id = "net.neoforged.moddev", version.ref = "moddev" }
-loom = { id = "fabric-loom", version.ref = "loom" }
+loom = { id = "net.fabricmc.fabric-loom-remap", version.ref = "loom" }

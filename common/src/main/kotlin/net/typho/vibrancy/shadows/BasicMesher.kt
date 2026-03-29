@@ -1,14 +1,15 @@
 package net.typho.vibrancy.shadows
 
-import net.minecraft.core.BlockPos
 import net.minecraft.world.level.Level
-import net.typho.big_shot_lib.api.client.util.quads.NeoAtlas
+import net.typho.big_shot_lib.api.client.rendering.quad.NeoAtlas
+import net.typho.big_shot_lib.api.math.vec.AbstractVec3
+import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.blockPos
 import net.typho.vibrancy.LightManager
 import java.util.function.Consumer
 
 class BasicMesher(
     @JvmField
-    val blocks: Iterable<BlockPos>
+    val blocks: Iterable<AbstractVec3<Int>>
 ) : ShadowMesher {
     override fun submit(
         manager: LightManager,
@@ -16,15 +17,14 @@ class BasicMesher(
         predicate: ShadowPredicate,
         atlas: NeoAtlas,
         shadowOut: Consumer<LightFace>,
-        lightOut: Consumer<LightFace>,
-        splitLargeLightFaces: Boolean
+        lightOut: Consumer<LightFace>
     ) {
         for (pos in blocks) {
             val shadow = predicate.isInShadowRange(pos)
             val light = predicate.isInLightRange(pos)
 
             if (shadow || light) {
-                val state = level.getBlockState(pos)
+                val state = level.getBlockState(pos.blockPos)
 
                 ShadowMesher.collectLightFaces(
                     manager,
@@ -39,11 +39,7 @@ class BasicMesher(
                     }
 
                     if (light) {
-                        if (splitLargeLightFaces) {
-                            face.split(16).forEach(lightOut::accept)
-                        } else {
-                            lightOut.accept(face)
-                        }
+                        lightOut.accept(face)
                     }
                 }
             }

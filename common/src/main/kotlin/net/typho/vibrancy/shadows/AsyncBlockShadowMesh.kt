@@ -1,7 +1,7 @@
 package net.typho.vibrancy.shadows
 
-import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
-import net.typho.big_shot_lib.api.client.util.events.RenderEventData
+import net.typho.big_shot_lib.api.client.rendering.quad.NeoAtlas
+import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 import java.util.concurrent.CompletableFuture
@@ -21,7 +21,7 @@ open class AsyncBlockShadowMesh<M : ShadowMesher>(
             if (task.isDone) {
                 val info = task.get()()
 
-                if (!lightMesh.value!!.empty) {
+                if (!lightMesh.empty) {
                     blit(info, data)
                 }
 
@@ -42,7 +42,7 @@ open class AsyncBlockShadowMesh<M : ShadowMesher>(
         val shadowFaces = arrayListOf<LightFace>()
         val lightFaces = arrayListOf<LightFace>()
         synchronized(mesher) {
-            mesher.submit(manager, level, predicate, TextureUtil.INSTANCE.blockAtlas, shadowFaces::add, lightFaces::add)
+            mesher.submit(manager, level, predicate, NeoAtlas.blocks, shadowFaces::add, lightFaces::add)
         }
 
         val built = build(level, shadowFaces, lightFaces)
@@ -66,7 +66,7 @@ open class AsyncBlockShadowMesh<M : ShadowMesher>(
         } else {
             val info = rebuildAsyncImpl(manager, predicate)()
 
-            if (!lightMesh.value!!.empty) {
+            if (!lightMesh.empty) {
                 blit(info, data)
             }
         }

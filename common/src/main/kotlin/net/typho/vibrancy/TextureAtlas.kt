@@ -1,75 +1,68 @@
 package net.typho.vibrancy
 
-import net.typho.big_shot_lib.api.client.opengl.buffers.GlBuffer
-import org.lwjgl.system.MemoryUtil
-import java.awt.Dimension
-import java.awt.Rectangle
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferAccess
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferTarget
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlBuffer
+import net.typho.big_shot_lib.api.math.rect.AbstractRect2
+import net.typho.big_shot_lib.api.math.rect.NeoRect2i
+import net.typho.big_shot_lib.api.math.vec.AbstractVec2
+import net.typho.big_shot_lib.api.math.vec.NeoVec2i
 import kotlin.math.ceil
 import kotlin.math.sqrt
 
 object TextureAtlas {
-    private fun Dimension.max(other: Dimension): Dimension {
-        return Dimension(
-            width.coerceAtLeast(other.width),
-            height.coerceAtLeast(other.height)
-        )
-    }
-
     @JvmRecord
     data class Result(
         @JvmField
-        val textures: List<Rectangle>,
+        val textures: List<AbstractRect2<Int>>,
         @JvmField
-        val width: Int,
-        @JvmField
-        val height: Int
+        val size: AbstractVec2<Int>
     )
 
     @JvmStatic
     fun store(result: Result, buffer: GlBuffer) {
-        val ints = MemoryUtil.memAllocInt(result.textures.size * 4)
+        buffer.bind(GlBufferTarget.ARRAY_BUFFER).use {
+            it.mapBuffer(GlBufferAccess.WRITE_ONLY, result.textures.size.toLong() * 4 * Int.SIZE_BYTES) {
+                var index = 0L
 
-        buffer.upload(
-            result.textures.fold(ints) { buffer, texture ->
-                buffer.put(texture.x)
-                    .put(texture.y)
-                    .put(texture.width)
-                    .put(texture.height)
-            }.flip()
-        )
-
-        MemoryUtil.memFree(ints)
+                for (texture in result.textures) {
+                    put(index++, texture.min.x)
+                    put(index++, texture.min.y)
+                    put(index++, texture.size.x)
+                    put(index++, texture.size.y)
+                }
+            }
+        }
     }
 
     @JvmStatic
-    fun pack(vararg textures: Dimension): Result {
-        val max: Dimension = textures.fold(null) { accum, texture -> accum?.max(texture) ?: texture }
-            ?: return Result(listOf(), 0, 0)
+    fun pack(vararg textures: AbstractVec2<Int>): Result {
+        val max: AbstractVec2<Int> = textures.fold(null) { accum, texture -> accum?.max(texture) ?: texture }
+            ?: return Result(listOf(), NeoVec2i(0, 0))
 
         val numSectionsX = ceil(sqrt(textures.size.toFloat())).toInt()
         val numSectionsY = ceil(textures.size.toFloat() / numSectionsX).toInt()
 
-        val width = numSectionsX * max.width
-        val height = numSectionsY * max.height
+        val width = numSectionsX * max.x
+        val height = numSectionsY * max.y
 
         var x = 0
         var y = 0
 
         return Result(
             textures.map { dimension ->
-                val rect = Rectangle(x, y, dimension.width, dimension.height)
+                val rect = NeoRect2i(x, y, dimension.x, dimension.y)
 
-                x += max.width
+                x += max.x
 
                 if (x == width) {
                     x = 0
-                    y += max.height
+                    y += max.y
                 }
 
                 return@map rect
             },
-            width,
-            height
+            NeoVec2i(width, height)
         )
     }
 }

@@ -1,39 +1,22 @@
 package net.typho.vibrancy.block.impl
 
 import net.minecraft.world.level.block.state.StateDefinition
-import net.typho.big_shot_lib.api.client.opengl.shaders.NeoShaderRegistry
-import net.typho.big_shot_lib.api.client.opengl.state.*
-import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
-import net.typho.big_shot_lib.api.client.util.events.RenderEventData
+import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
+import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
+import net.typho.big_shot_lib.api.client.rendering.quad.NeoAtlas
+import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.block.BlockLightType
 import net.typho.vibrancy.shadows.LightMesh
 
 object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
-    @JvmStatic
-    fun meshBlitSettings(data: RenderEventData, chunk: SubtleLightStorage.Chunk) = RenderSettings(
-        Vibrancy.id("block/subtle/blit"),
-        listOf(
-            DisableFlagsShard(listOf(
-                GlFlag.DEPTH_TEST,
-                GlFlag.CULL_FACE,
-                GlFlag.BLEND
-            )),
-            BindBufferBaseShard(
-                { chunk.ssbo },
-                0
-            ),
-            FramebufferShard(
-                { chunk.mesh.value!!.target },
-                true
-            ),
-            ShaderShard(
-                Vibrancy.id("block/subtle/blit")
-            ) { shader ->
-                shader.setCommonUniforms(data)
-
-                shader.getUniform("LightBrightness")?.setValue(Vibrancy.config.blockLights.subtle.brightness)
+    @JvmField
+    val meshBlitDrawState = GlDrawState.Basic(
+        shader = GlShaderShard.FromLocation(
+            Vibrancy.id("block/subtle/blit"),
+            {
+                setUniform("LightBrightness") { set(Vibrancy.config.blockLights.subtle.brightness) }
             }
         )
     )
@@ -55,20 +38,15 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
         if (Vibrancy.config.blockLights.subtle.enabled) {
             lights.checkDirty(manager, data)
 
-            val settings = LightMesh.renderSettings(data, TextureUtil.INSTANCE.blockAtlas, TextureUtil.INSTANCE.blockAtlas.width, TextureUtil.INSTANCE.blockAtlas.height, Vibrancy.id("block/subtle/mesh"))
-            val shader = NeoShaderRegistry.get(Vibrancy.id("block/subtle/mesh"))!! // TODO
-
-            settings.bind()
-
-            lights.chunks.values
-                .filter {
-                    manager.inRenderDistance(data, it.pos, Vibrancy.config.blockLights.subtle.renderDistance)
-                }
-                .forEach {
-                    it.render(data, shader, debugOut)
-                }
-
-            settings.unbind()
+            LightMesh.drawState(NeoAtlas.blocks, Vibrancy.id("block/subtle/mesh")).bind().use { settings ->
+                lights.chunks.values
+                    .filter {
+                        manager.inRenderDistance(data, it.pos, Vibrancy.config.blockLights.subtle.renderDistance)
+                    }
+                    .forEach {
+                        it.render(data, settings.shader, debugOut)
+                    }
+            }
         }
     }
 }

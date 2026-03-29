@@ -40,7 +40,7 @@ modrinth {
 }
 
 neoForge {
-    version = libs.versions.neoforge
+    version = libs.versions.neoforge.get()
     // Automatically enable neoforge AccessTransformers if the file exists
     val at = project(":common").file("src/main/resources/META-INF/accesstransformer.cfg")
     if (at.exists()) {

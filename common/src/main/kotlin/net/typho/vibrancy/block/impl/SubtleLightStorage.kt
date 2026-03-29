@@ -1,19 +1,26 @@
 package net.typho.vibrancy.block.impl
 
-import net.minecraft.core.BlockBox
-import net.minecraft.core.BlockPos
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
-import net.minecraft.world.phys.AABB
-import net.typho.big_shot_lib.api.client.opengl.buffers.BufferType
-import net.typho.big_shot_lib.api.client.opengl.buffers.BufferUsage
-import net.typho.big_shot_lib.api.client.opengl.buffers.GlBuffer
-import net.typho.big_shot_lib.api.client.opengl.shaders.GlShader
-import net.typho.big_shot_lib.api.client.opengl.util.GlResourcePool
-import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
-import net.typho.big_shot_lib.api.client.util.events.RenderEventData
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferAccess
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferTarget
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlBuffer
+import net.typho.big_shot_lib.api.client.rendering.quad.NeoAtlas
+import net.typho.big_shot_lib.api.client.util.event.RenderEventData
+import net.typho.big_shot_lib.api.math.NeoDirection
+import net.typho.big_shot_lib.api.math.rect.AbstractRect3
+import net.typho.big_shot_lib.api.math.rect.AbstractRect3.Companion.iterator
+import net.typho.big_shot_lib.api.math.rect.NeoRect2i
+import net.typho.big_shot_lib.api.math.rect.NeoRect3i
+import net.typho.big_shot_lib.api.math.vec.AbstractVec3
+import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.blockPos
+import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.plus
+import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.toJOML
+import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.block.BlockLightRegistry
@@ -22,7 +29,8 @@ import net.typho.vibrancy.block.HashMapBlockLightStorage
 import net.typho.vibrancy.shadows.BasicMesher
 import net.typho.vibrancy.shadows.LightFace
 import net.typho.vibrancy.shadows.LightMesh
-import org.lwjgl.system.MemoryUtil
+import org.lwjgl.opengl.GL30.glBindBufferBase
+import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.system.NativeResource
 import java.util.*
 import java.util.concurrent.CompletableFuture
@@ -42,19 +50,19 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
         manager: LightManager,
         level: Level,
         state: BlockState,
-        pos: BlockPos,
+        pos: AbstractVec3<Int>,
         info: SubtleLightInfo
     ) {
         val chunks = hashSetOf(
-            ChunkPos(pos),
-            ChunkPos(pos.north()),
-            ChunkPos(pos.south()),
-            ChunkPos(pos.east()),
-            ChunkPos(pos.west()),
-            ChunkPos(pos.north().east()),
-            ChunkPos(pos.south().west()),
-            ChunkPos(pos.east().south()),
-            ChunkPos(pos.west().north())
+            ChunkPos(pos.blockPos),
+            ChunkPos((pos + NeoDirection.NORTH).blockPos),
+            ChunkPos((pos + NeoDirection.SOUTH).blockPos),
+            ChunkPos((pos + NeoDirection.EAST).blockPos),
+            ChunkPos((pos + NeoDirection.WEST).blockPos),
+            ChunkPos((pos + NeoDirection.NORTH + NeoDirection.EAST).blockPos),
+            ChunkPos((pos + NeoDirection.SOUTH + NeoDirection.WEST).blockPos),
+            ChunkPos((pos + NeoDirection.EAST + NeoDirection.SOUTH).blockPos),
+            ChunkPos((pos + NeoDirection.WEST + NeoDirection.NORTH).blockPos)
         )
 
         chunks.forEach { getOrCreateChunk(manager, level, it).addLight(manager, level, state, pos, info) }
@@ -63,18 +71,18 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
     override fun removeLight(
         manager: LightManager,
         level: Level,
-        pos: BlockPos,
+        pos: AbstractVec3<Int>,
     ): Boolean {
         val chunks = hashSetOf(
-            ChunkPos(pos),
-            ChunkPos(pos.north()),
-            ChunkPos(pos.south()),
-            ChunkPos(pos.east()),
-            ChunkPos(pos.west()),
-            ChunkPos(pos.north().east()),
-            ChunkPos(pos.south().west()),
-            ChunkPos(pos.east().south()),
-            ChunkPos(pos.west().north())
+            ChunkPos(pos.blockPos),
+            ChunkPos((pos + NeoDirection.NORTH).blockPos),
+            ChunkPos((pos + NeoDirection.SOUTH).blockPos),
+            ChunkPos((pos + NeoDirection.EAST).blockPos),
+            ChunkPos((pos + NeoDirection.WEST).blockPos),
+            ChunkPos((pos + NeoDirection.NORTH + NeoDirection.EAST).blockPos),
+            ChunkPos((pos + NeoDirection.SOUTH + NeoDirection.WEST).blockPos),
+            ChunkPos((pos + NeoDirection.EAST + NeoDirection.SOUTH).blockPos),
+            ChunkPos((pos + NeoDirection.WEST + NeoDirection.NORTH).blockPos)
         )
 
         return chunks.fold(false) { accum, chunkPos -> accum or getOrCreateChunk(manager, level, chunkPos).removeLight(manager, level, pos) }
@@ -131,52 +139,71 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
 
                 fun impl(): Consumer<RenderEventData>? {
                     chunk.box = chunk.map.values.fold(null) { box, light ->
-                        if (box == null) light.boundingBox else box.minmax(light.boundingBox)
+                        box?.include(light.boundingBox) ?: light.boundingBox
                     }
 
                     if (chunk.map.isEmpty()) {
                         return null
                     }
 
-                    val blocks = HashSet<BlockPos>()
-                    val ssboBuffer = MemoryUtil.memAllocFloat(8 * chunk.size)
+                    val blocks = HashSet<AbstractVec3<Int>>()
 
                     chunk.map.values.forEach { light ->
-                        if (light.shouldRender(chunk)) {
-                            blocks.addAll(
-                                light.shadowBox
-                                    .map { BlockPos(it) }
-                                    .filter {
-                                        it.x >= pos.minBlockX && it.x <= pos.maxBlockX &&
-                                                it.z >= pos.minBlockZ && it.z <= pos.maxBlockZ
-                                    }
-                            )
-
-                            val color = light.color
-                            val pos = light.absolutePos
-
-                            ssboBuffer.put(color.x).put(color.y).put(color.z).put(0f)
-                            ssboBuffer.put(pos.x).put(pos.y).put(pos.z).put(0f)
+                        light.shadowBox.iterator().forEach { block ->
+                            if (
+                                block.x >= pos.minBlockX && block.x <= pos.maxBlockX &&
+                                block.z >= pos.minBlockZ && block.z <= pos.maxBlockZ
+                            ) {
+                                blocks.add(block)
+                            }
                         }
                     }
 
                     val faces = LinkedList<LightFace>()
-                    BasicMesher(blocks).submit(manager, data.level, SubtleLight.SHADOW_PREDICATE, TextureUtil.INSTANCE.blockAtlas, {}, faces::add)
-                    val task = chunk.mesh.value!!.build(data.level, faces)
+                    BasicMesher(blocks).submit(
+                        manager,
+                        data.level,
+                        SubtleLight.SHADOW_PREDICATE,
+                        NeoAtlas.blocks,
+                        {},
+                        faces::add
+                    )
+                    val task = chunk.mesh.build(data.level, faces)
 
                     return Consumer { data ->
                         val atlasResult = task()
-                        chunk.ssbo.upload(ssboBuffer.flip())
-                        MemoryUtil.memFree(ssboBuffer)
 
-                        if (faces.isNotEmpty()) {
-                            val blitSettings = SubtleLightType.meshBlitSettings(data, chunk)
-                            blitSettings.bind()
-                            LightMesh.blitLight(LightMesh.LightBlitInfo(atlasResult, faces))
-                            blitSettings.unbind()
+                        chunk.ssbo.bind(GlBufferTarget.SHADER_STORAGE_BUFFER).use {
+                            val size = chunk.size.toLong() * 8 * Float.SIZE_BYTES
+                            it.bufferData(size, GlBufferUsage.STATIC_DRAW)
+                            it.mapBuffer(GlBufferAccess.WRITE_ONLY, size) {
+                                var index = 0L
+
+                                for (light in chunk.map.values) {
+                                    val color = light.color
+                                    val pos = light.absolutePos
+
+                                    put(index++, color.x)
+                                    put(index++, color.y)
+                                    put(index++, color.z)
+                                    put(index++, 0f)
+
+                                    put(index++, pos.x)
+                                    put(index++, pos.y)
+                                    put(index++, pos.z)
+                                    put(index++, 0f)
+                                }
+                            }
                         }
 
-                        data.target.viewport() // TODO
+                        if (faces.isNotEmpty()) {
+                            chunk.mesh.target.bind(NeoRect2i(0, 0, chunk.mesh.texture.width, chunk.mesh.texture.height)).use {
+                                SubtleLightType.meshBlitDrawState.bind().use {
+                                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, chunk.ssbo.glId)
+                                    LightMesh.blitLight(LightMesh.LightBlitInfo(atlasResult, faces))
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -196,24 +223,24 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
         val pos: ChunkPos
     ) : HashMapBlockLightStorage<SubtleLightInfo, SubtleLight>(SubtleLightType), NativeResource {
         @JvmField
-        var box: AABB? = null
+        var box: AbstractRect3<Int>? = null
         @JvmField
-        val mesh: GlResourcePool<LightMesh>.Handle = LightMesh.pool.poll()
+        val mesh = LightMesh()
         @JvmField
-        val ssbo: GlBuffer = GlBuffer(BufferType.SHADER_STORAGE_BUFFER, BufferUsage.STATIC_DRAW)
+        val ssbo = NeoGlBuffer()
 
         fun scan(level: Level, manager: LightManager) {
             map.clear()
 
-            val box = BlockBox(
-                BlockPos(pos.minBlockX - 1, level.minBuildHeight, pos.minBlockZ - 1),
-                BlockPos(pos.maxBlockX + 1, level.maxBuildHeight, pos.maxBlockZ + 1),
+            val box = NeoRect3i(
+                pos.minBlockX - 1, level.minBuildHeight, pos.minBlockZ - 1,
+                pos.maxBlockX + 1, level.maxBuildHeight, pos.maxBlockZ + 1
             )
 
             for (x in pos.x - 1..pos.x + 1) {
                 for (z in pos.z - 1..pos.z + 1) {
                     level.getChunk(x, z).findBlocks(BlockLightRegistry::has) { pos, state ->
-                        val pos = BlockPos(pos)
+                        val pos = NeoVec3i(pos)
 
                         if (box.contains(pos)) {
                             BlockLightRegistry.get(state.block, SubtleLightType)?.let { info ->
@@ -225,12 +252,12 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
             }
         }
 
-        fun render(data: RenderEventData, shader: GlShader, debugOut: (key: String, value: Int) -> Unit) {
+        fun render(data: RenderEventData, shader: GlBoundProgram, debugOut: (key: String, value: Int) -> Unit) {
             if (
                 size > 0
-                && box?.let { data.frustum.testAab(it.minPosition.toVector3f(), it.maxPosition.toVector3f()) } ?: true
+                && box?.let { data.frustum.testAab(it.min.toFloat().toJOML(), it.max.toFloat().toJOML()) } ?: true
             ) {
-                mesh.value!!.draw(shader)
+                mesh.draw(shader)
                 debugOut("lightsRendered", size)
                 debugOut("chunksRendered", 1)
             }
@@ -239,19 +266,9 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
         override fun createLight(
             manager: LightManager,
             state: BlockState,
-            pos: BlockPos,
+            pos: AbstractVec3<Int>,
             info: SubtleLightInfo
         ): SubtleLight? = if (info.enabled.apply(state)) SubtleLight(info, state, pos) else null
-
-        private fun markDirty() {
-            synchronized(dirty) {
-                for (x in pos.x - 1..pos.x + 1) {
-                    for (z in pos.z - 1..pos.z + 1) {
-                        dirty.add(ChunkPos(x, z))
-                    }
-                }
-            }
-        }
 
         override fun loadChunk(manager: LightManager, chunk: LevelChunk) {
             scan(chunk.level!!, manager)
@@ -261,7 +278,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
             manager: LightManager,
             level: Level,
             state: BlockState,
-            pos: BlockPos,
+            pos: AbstractVec3<Int>,
             info: SubtleLightInfo
         ) {
             super.addLight(manager, level, state, pos, info)
@@ -271,14 +288,14 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
             manager: LightManager,
             level: Level,
             state: BlockState,
-            pos: BlockPos,
+            pos: AbstractVec3<Int>,
             info: SubtleLightInfo
         ) {
             super.addLight(manager, level, state, pos, info)
             dirty.add(this.pos)
         }
 
-        override fun removeLight(manager: LightManager, level: Level, pos: BlockPos): Boolean {
+        override fun removeLight(manager: LightManager, level: Level, pos: AbstractVec3<Int>): Boolean {
             if (super.removeLight(manager, level, pos)) {
                 dirty.add(this.pos)
                 return true
@@ -291,7 +308,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
         }
 
         override fun free() {
-            mesh.release()
+            mesh.free()
             ssbo.free()
         }
     }

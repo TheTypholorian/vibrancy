@@ -1,7 +1,7 @@
 package net.typho.vibrancy.sky
 
 import com.mojang.serialization.MapCodec
-import net.typho.big_shot_lib.api.client.util.events.RenderEventData
+import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.vibrancy.LightManager
 
 interface SkyLightType<I : SkyLightInfo, S : SkyLightStorage<I>> {

@@ -1,24 +1,27 @@
 package net.typho.vibrancy.sky.impl
 
-import net.minecraft.core.BlockPos
-import net.minecraft.core.Direction
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.LightLayer
 import net.minecraft.world.level.block.LeavesBlock
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
-import net.typho.big_shot_lib.api.client.opengl.buffers.BufferUsage
-import net.typho.big_shot_lib.api.client.opengl.buffers.ClearBit
-import net.typho.big_shot_lib.api.client.opengl.buffers.Mesh
-import net.typho.big_shot_lib.api.client.opengl.shaders.GlShader
-import net.typho.big_shot_lib.api.client.opengl.shaders.NeoShaderRegistry
-import net.typho.big_shot_lib.api.client.opengl.state.*
-import net.typho.big_shot_lib.api.client.opengl.util.GlShapeType
-import net.typho.big_shot_lib.api.client.opengl.util.TextureUtil
-import net.typho.big_shot_lib.api.client.util.events.RenderEventData
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBeginMode
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlClearBit
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
+import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
+import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
+import net.typho.big_shot_lib.api.client.rendering.util.Mesh
+import net.typho.big_shot_lib.api.client.util.event.RenderEventData
+import net.typho.big_shot_lib.api.math.NeoDirection
+import net.typho.big_shot_lib.api.math.rect.NeoRect2i
+import net.typho.big_shot_lib.api.math.vec.AbstractVec3
+import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.blockPos
+import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.plus
+import net.typho.big_shot_lib.api.math.vec.NeoVec3f
 import net.typho.big_shot_lib.api.util.BlockUtil
-import net.typho.big_shot_lib.api.util.IColor
+import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.shadows.AsyncBlockShadowMesh
@@ -28,16 +31,22 @@ import net.typho.vibrancy.shadows.ShadowPredicate
 import net.typho.vibrancy.shadows.SkyLightMesher
 import net.typho.vibrancy.sky.ChunkedSkyLightStorage
 import net.typho.vibrancy.sky.SkyLightStorage
-import org.joml.Matrix4f
-import org.joml.Vector3f
+import org.lwjgl.opengl.GL30.glBindBufferBase
+import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.system.NativeResource
 import kotlin.math.cos
 import kotlin.math.sin
 
 class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, OverworldSkyLightStorage.Chunk>(OverworldSkyLightType) {
     companion object {
-        @JvmStatic
-        fun meshBlitSettings(data: RenderEventData, storage: OverworldSkyLightStorage) = RenderSettings(
+        @JvmField
+        val meshBlitDrawState = GlDrawState.Basic(
+            shader = GlShaderShard.FromLocation(
+                Vibrancy.id("sky/overworld/blit"),
+                { }
+            )
+        )
+        /*= RenderSettings(
             Vibrancy.id("sky/overworld/blit"),
             listOf(
                 DisableFlagsShard(listOf(
@@ -46,7 +55,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                 )),
                 BlendShard(
                     true,
-                    IColor.FULL_ON,
+                    NeoColor.FULL_ON,
                     BlendEquation.ADD,
                     BlendFunction.Basic(
                         BlendFactor.DST_COLOR,
@@ -59,34 +68,20 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                     shader.setCommonUniforms(data)
                     shader.getUniform("ProjMat")?.setValue(Matrix4f(data.projMat))
                     shader.getUniform("ModelViewMat")?.setValue(Matrix4f(data.modelViewMat))
-                    shader.getUniform("Sampler0")?.setSampler(TextureUtil.INSTANCE.blockAtlas)
+                    shader.getUniform("Sampler0")?.setSampler(NeoAtlas.blocks)
 
                     shader.getUniform("LightDirection")?.setValue(storage.getLightDirection(data.level))
                     //shader.getUniform("LightBrightness")?.setValue(Vibrancy.config.blockLights.raytraced.brightness) // TODO
                 }
             )
         )
-
-        @JvmStatic
-        fun chunkMeshBlitSettings(chunk: Chunk) = RenderSettings(
-            Vibrancy.id("sky/overworld/blit_chunk"),
-            listOf(
-                BindBufferBaseShard(
-                    { chunk.mesh.shadowBuffer },
-                    0
-                ),
-                FramebufferShard(
-                    { chunk.mesh.lightMesh.value!!.target },
-                    true
-                )
-            )
-        )
+         */
     }
 
     var lightInfo: OverworldSkyLightInfo? = null
         private set
 
-    fun getLightDirection(level: Level): Vector3f {
+    fun getLightDirection(level: Level): AbstractVec3<Float> {
         val sunAngle = level.getSunAngle(0f)
         var x = -sin(sunAngle)
         var y = cos(sunAngle)
@@ -96,16 +91,12 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
             y = -y
         }
 
-        return Vector3f(x, y, 0f)
+        return NeoVec3f(x, y, 0f)
     }
 
-    fun getLightColor(level: Level): IColor {
+    fun getLightColor(level: Level): NeoColor {
         val y = cos(level.getSunAngle(0f))
-        return if (y > 0) {
-            IColor.RGBF(lightInfo!!.sunColor.mul(y, Vector3f()))
-        } else {
-            IColor.RGBF(lightInfo!!.moonColor.mul(-y, Vector3f()))
-        }
+        return NeoColor.RGBF(if (y > 0) lightInfo!!.sunColor else lightInfo!!.moonColor * y)
     }
 
     override fun createChunk(
@@ -133,8 +124,8 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
         @JvmField
         val blitMesh = Mesh(
             BLIT_VERTEX_FORMAT,
-            GlShapeType.QUADS,
-            BufferUsage.STREAM_DRAW
+            GlBeginMode.QUADS,
+            GlBufferUsage.STREAM_DRAW
         )
 
         fun updateShadows(manager: LightManager, data: RenderEventData, debugOut: (key: String, value: Int) -> Unit) {
@@ -149,58 +140,54 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                 debugOut("asyncTasks", 1)
             }
 
-            mesh.lightMesh.value!!.target.clear(ClearBit.Color(getLightColor(data.level)))
-
-            val shader = NeoShaderRegistry.get(Vibrancy.id("sky/overworld/blit"))!!
-
-            val blitSettings = chunkMeshBlitSettings(this)
-            blitSettings.bind()
-            shader.getUniform("LightOffset")?.setValue(0f, 0f, 0f)
-            blitMesh.draw()
-            blitSettings.unbind()
-
-            // TODO
-            /*
-            chunks[if (getLightDirection(data.level).x > 0) ChunkPos(pos.x + 1, pos.z) else ChunkPos(pos.x - 1, pos.z)]?.let { chunk ->
-                val blitSettings = chunkMeshBlitSettings(chunk)
-                blitSettings.bind()
-                shader.getUniform("LightOffset")?.setValue(if (getLightDirection(data.level).x > 0) -16f else 16f, 0f, 0f)
+            mesh.lightMesh.target.bind(NeoRect2i(0, 0, mesh.lightMesh.texture.width, mesh.lightMesh.texture.height)).use { fbo ->
+                fbo.clear(GlClearBit.Color(getLightColor(data.level)))
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, mesh.shadowBuffer.glId)
                 blitMesh.draw()
-                blitSettings.unbind()
+
+                // TODO
+                /*
+                chunks[if (getLightDirection(data.level).x > 0) ChunkPos(pos.x + 1, pos.z) else ChunkPos(pos.x - 1, pos.z)]?.let { chunk ->
+                    val blitSettings = chunkMeshBlitSettings(chunk)
+                    blitSettings.bind()
+                    shader.getUniform("LightOffset")?.setValue(if (getLightDirection(data.level).x > 0) -16f else 16f, 0f, 0f)
+                    blitMesh.draw()
+                    blitSettings.unbind()
+                }
+                 */
             }
-             */
         }
 
-        fun render(shader: GlShader, debugOut: (key: String, value: Int) -> Unit) {
+        fun render(shader: GlBoundProgram, debugOut: (key: String, value: Int) -> Unit) {
             if (lightInfo != null) {
-                mesh.lightMesh.value!!.draw(shader)
+                mesh.lightMesh.draw(shader)
                 debugOut("chunksRendered", 1)
             }
         }
 
         override fun shouldCastBlock(
             level: Level,
-            pos: BlockPos,
+            pos: AbstractVec3<Int>,
             state: BlockState
         ): Boolean {
-            return level.getBrightness(LightLayer.SKY, pos) > 0 || level.getBrightness(LightLayer.SKY, pos.above()) > 0 || level.getBrightness(LightLayer.SKY, if (getLightDirection(level).x > 0) pos.east() else pos.west()) > 0
+            return level.getBrightness(LightLayer.SKY, pos.blockPos) > 0 || level.getBrightness(LightLayer.SKY, (pos + NeoDirection.UP).blockPos) > 0 || level.getBrightness(LightLayer.SKY, (pos + if (getLightDirection(level).x > 0) NeoDirection.EAST else NeoDirection.WEST).blockPos) > 0
         }
 
         override fun shouldCastFace(
-            face: Direction?,
+            face: NeoDirection?,
             level: Level,
-            pos: BlockPos,
+            pos: AbstractVec3<Int>,
             state: BlockState
         ): Boolean {
             if (face == null) {
                 return true
             }
 
-            if (face == Direction.DOWN) {
+            if (face == NeoDirection.DOWN) {
                 return false
             }
 
-            if (state.block is LeavesBlock && level.getBlockState(pos.relative(face)).block is LeavesBlock) {
+            if (state.block is LeavesBlock && level.getBlockState((pos + face).blockPos).block is LeavesBlock) {
                 return false
             }
 
@@ -212,11 +199,11 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
             )
         }
 
-        override fun isInLightRange(pos: BlockPos): Boolean {
+        override fun isInLightRange(pos: AbstractVec3<Int>): Boolean {
             return true
         }
 
-        override fun isInShadowRange(pos: BlockPos): Boolean {
+        override fun isInShadowRange(pos: AbstractVec3<Int>): Boolean {
             return true
         }
 

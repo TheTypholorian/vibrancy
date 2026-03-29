@@ -1,24 +1,16 @@
 package net.typho.vibrancy.shadows
 
-import net.minecraft.client.Minecraft
-import net.minecraft.core.BlockPos
-import net.minecraft.world.level.Level
-import net.typho.big_shot_lib.api.client.opengl.buffers.NeoVertexConsumer
-import net.typho.big_shot_lib.api.client.util.quads.NeoAtlas
-import net.typho.big_shot_lib.api.client.util.quads.NeoBakedQuad
-import net.typho.big_shot_lib.api.util.IColor
-import org.joml.Vector2i
-import org.joml.Vector3f
-import java.awt.Rectangle
-import java.nio.ByteBuffer
+import net.typho.big_shot_lib.api.client.rendering.quad.NeoAtlas
+import net.typho.big_shot_lib.api.client.rendering.quad.NeoBakedQuad
+import net.typho.big_shot_lib.api.math.rect.AbstractRect2
+import net.typho.big_shot_lib.api.math.vec.AbstractVec3
 import kotlin.math.abs
 import kotlin.math.ceil
-import kotlin.math.min
 
 @JvmRecord
 data class LightFace(
     @JvmField
-    val blockPos: BlockPos,
+    val blockPos: AbstractVec3<Int>,
     @JvmField
     val quad: NeoBakedQuad,
     @JvmField
@@ -26,99 +18,26 @@ data class LightFace(
     @JvmField
     val height: Int
 ) {
-    companion object {
-        const val UNPACKED_BYTE_SIZE = 32 * 4
-    }
-
     constructor(
-        blockPos: BlockPos,
+        blockPos: AbstractVec3<Int>,
         quad: NeoBakedQuad,
         atlas: NeoAtlas
     ) : this(
         blockPos,
         quad,
-        ceil(abs(quad.vertices[0].textureUV!!.y() - quad.vertices[2].textureUV!!.y()) * atlas.height).toInt(),
-        ceil(abs(quad.vertices[0].textureUV!!.x() - quad.vertices[2].textureUV!!.x()) * atlas.width).toInt()
+        ceil(abs(quad.vertices[0].textureUV!!.y - quad.vertices[2].textureUV!!.y) * atlas.height).toInt(),
+        ceil(abs(quad.vertices[0].textureUV!!.x - quad.vertices[2].textureUV!!.x) * atlas.width).toInt()
     )
 
-    fun buildGeometry(consumer: NeoVertexConsumer?, lightSprite: Rectangle?, level: Level?, ssboBuffer: ByteBuffer?) {
-        val tintColor = if (level != null && quad.tintIndex != null) {
-            IColor.RGB(Minecraft.getInstance().blockColors.getColor(level.getBlockState(blockPos), level, blockPos, quad.tintIndex!!))
-        } else {
-            IColor.FULL_ON
-        }
-
-        val quad = quad.withVertices { index, vertex ->
-            var vertex = vertex.withColor { tintColor }
-
-            lightSprite?.let { sprite -> vertex = vertex.withOverlayUV { when (index) {
-                0 -> Vector2i(sprite.x, sprite.y)
-                1 -> Vector2i(sprite.x + sprite.width, sprite.y)
-                2 -> Vector2i(sprite.x + sprite.width, sprite.y + sprite.height)
-                else -> Vector2i(sprite.x, sprite.y + sprite.height)
-            } } }
-
-            quad.direction?.let { dir -> vertex = vertex.withNormal { dir.step() } }
-
-            vertex
-        }
-
-        if (consumer != null) {
-            quad.put(consumer)
-        }
-
-        if (ssboBuffer != null) {
-            for (vertex in quad.vertices) {
-                ssboBuffer.putFloat(vertex.pos.x()).putFloat(vertex.pos.y()).putFloat(vertex.pos.z()).putFloat(0f)
-                val uv = vertex.textureUV!!
-                ssboBuffer.putFloat(uv.x()).putFloat(uv.y())
-                val color = vertex.color!!
-                ssboBuffer.putInt(color.toRGBA())
-                ssboBuffer.putInt(0)
-            }
-        }
-    }
-
-    fun split(maxSize: Int): Array<LightFace> {
-        if (width <= maxSize && height <= maxSize) {
-            return arrayOf(this)
-        } else {
-            val numX = ceil(width.toFloat() / maxSize).toInt()
-            val numY = ceil(height.toFloat() / maxSize).toInt()
-            val scaleX = maxSize.toFloat() / width
-            val scaleY = maxSize.toFloat() / height
-            return Array(numX * numY) { index ->
-                val x = index % numX
-                val y = (index - x) / numY
-
-                val minX = scaleX * x
-                val minY = scaleY * y
-                val maxX = min(1f, scaleX * (x + 1))
-                val maxY = min(1f, scaleY * (y + 1))
-
-                return@Array LightFace(
-                    blockPos,
-                    quad.withVertices { index, vertex ->
-                        val fx = when (index) {
-                            0, 3 -> minX
-                            else -> maxX
-                        }
-                        val fy = when (index) {
-                            0, 1 -> minY
-                            else -> maxY
-                        }
-                        return@withVertices vertex.withPosition {
-                            quad.v0.pos.lerp(quad.v1.pos, fx, Vector3f())
-                                .lerp(
-                                    quad.v3.pos.lerp(quad.v2.pos, fx, Vector3f()),
-                                    fy,
-                                    Vector3f()
-                                )
-                        }
-                    },
-                    width.coerceAtMost(maxSize),
-                    height.coerceAtMost(maxSize)
-                )
+    fun applyOverlay(sprite: AbstractRect2<Int>): NeoBakedQuad {
+        return quad.withVertices { index, vertex ->
+            vertex.withOverlayUV {
+                when (index) {
+                    0 -> sprite.min
+                    1 -> sprite.maxMin
+                    2 -> sprite.max
+                    else -> sprite.minMax
+                }
             }
         }
     }
@@ -126,7 +45,7 @@ data class LightFace(
     /*
     open class Consumer(
         @JvmField
-        val pos: BlockPos
+        val pos: AbstractVec3<Int>
     ) : NeoVertexConsumer {
         @JvmField
         protected val faces = LinkedList<LightFace>()
