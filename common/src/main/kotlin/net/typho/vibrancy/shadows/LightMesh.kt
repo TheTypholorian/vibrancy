@@ -56,7 +56,7 @@ open class LightMesh : NativeResource {
             shader = GlShaderShard.FromLocation(
                 shader,
                 { },
-                GlShaderShard.FromInstance(
+                GlTextureBinding.FromInstance(
                     sampler0,
                     GlTextureTarget.TEXTURE_2D
                 )

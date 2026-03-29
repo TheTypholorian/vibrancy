@@ -8,7 +8,7 @@ import net.neoforged.fml.ModLoadingException
 import net.neoforged.fml.ModLoadingIssue
 import net.neoforged.fml.common.Mod
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory
-import net.typho.big_shot_lib.api.client.opengl.util.OpenGL
+import net.typho.big_shot_lib.api.client.rendering.opengl.GlQueue
 import org.lwjgl.opengl.GL
 import org.lwjgl.system.Platform
 
@@ -17,7 +17,7 @@ class VibrancyNeoForge(eventBus: IEventBus, modContainer: ModContainer) {
     init {
         modContainer.registerExtensionPoint(IConfigScreenFactory::class.java, IConfigScreenFactory { container, modListScreen -> AutoConfig.getConfigScreen(VibrancyConfig::class.java, modListScreen).get() })
 
-        OpenGL.INSTANCE.recordRenderCall {
+        GlQueue.INSTANCE.runOrQueue {
             if (!GL.getCapabilities().GL_ARB_shader_storage_buffer_object) {
                 throw ModLoadingException(
                     ModLoadingIssue.error(
