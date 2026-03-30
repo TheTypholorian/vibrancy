@@ -7,6 +7,7 @@ import net.typho.big_shot_lib.api.client.rendering.quad.NeoAtlas
 import net.typho.big_shot_lib.api.math.NeoDirection
 import net.typho.big_shot_lib.api.math.vec.AbstractVec3
 import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.blockPos
+import net.typho.big_shot_lib.api.math.vec.NeoVec3f
 import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.vibrancy.LightManager
@@ -46,8 +47,8 @@ interface ShadowMesher {
                                     v + pos.toFloat()
                                 }
 
-                                tintColor?.let { vertex = vertex.withColor { tintColor } }
-                                quad.direction?.let { dir -> vertex = vertex.withNormal { dir.inc.toFloat() } }
+                                vertex = tintColor?.let { vertex.withColor { tintColor } } ?: vertex.withColor { NeoColor.FULL_ON }
+                                vertex = quad.direction?.let { dir -> vertex.withNormal { dir.inc.toFloat() } } ?: vertex.withNormal { NeoVec3f(0f, 0f, 0f) }
 
                                 return@withVertices vertex
                             }

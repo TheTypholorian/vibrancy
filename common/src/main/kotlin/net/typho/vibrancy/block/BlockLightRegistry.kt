@@ -31,8 +31,9 @@ object BlockLightRegistry {
 
     @JvmStatic
     fun registerBuiltins(factory: RegistrationFactory) {
-        val consumer = factory.begin(registryKey, Vibrancy.MOD_ID)
-        consumer.register("raytraced_point") { RayPointLightType }
-        consumer.register("subtle") { SubtleLightType }
+        factory.begin(registryKey, Vibrancy.MOD_ID)?.run {
+            register("raytraced_point") { RayPointLightType }
+            register("subtle") { SubtleLightType }
+        }
     }
 }

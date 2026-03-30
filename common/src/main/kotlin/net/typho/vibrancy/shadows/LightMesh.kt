@@ -1,6 +1,5 @@
 package net.typho.vibrancy.shadows
 
-import net.minecraft.world.level.Level
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlFramebuffer
@@ -109,7 +108,11 @@ open class LightMesh : NativeResource {
         GlBufferUsage.STATIC_DRAW
     )
     @JvmField
-    val texture = NeoGlTexture2D()
+    val texture = NeoGlTexture2D().also {
+        it.bind(GlTextureTarget.TEXTURE_2D).use { texture ->
+            texture.textureDataMutable(1, 1, GlTextureFormat.RGB8)
+        }
+    }
     @JvmField
     val target = NeoGlFramebuffer().also {
         it.bind().use { fbo ->
@@ -127,7 +130,6 @@ open class LightMesh : NativeResource {
     }
 
     fun build(
-        level: Level?,
         lightFaces: List<LightFace>
     ): () -> TextureAtlas.Result {
         val textures = Array(lightFaces.size) {

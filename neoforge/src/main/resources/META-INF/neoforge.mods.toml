@@ -29,7 +29,7 @@ versionRange = "${minecraft_version_range}"
 ordering = "NONE"
 side = "BOTH"
 [[dependencies."${mod_id}"]]
-modId = "big_shot_api"
+modId = "big_shot_lib"
 type="required"
 versionRange = "[${big_shot_version},)"
 ordering = "BEFORE"

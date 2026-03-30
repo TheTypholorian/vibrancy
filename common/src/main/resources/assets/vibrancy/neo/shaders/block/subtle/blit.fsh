@@ -1,7 +1,7 @@
 #version 430
 
-#include "vibrancy:include/fragment"
-#include "vibrancy:include/rays"
+#include "vibrancy:include/fragment.glsl"
+#include "vibrancy:include/rays.glsl"
 
 struct Light {
     vec3 color;

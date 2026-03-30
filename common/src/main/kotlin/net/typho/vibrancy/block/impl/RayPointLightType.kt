@@ -6,6 +6,7 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
 import net.typho.big_shot_lib.api.client.rendering.quad.NeoAtlas
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.toJOML
+import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.block.BlockLightType
@@ -30,8 +31,8 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
     ) {
         if (Vibrancy.config.blockLights.raytraced.enabled) {
             LightMesh.drawState(NeoAtlas.blocks, Vibrancy.id("block/raytraced/mesh")).bind().use { settings ->
-                settings.shader.setTexture(1, GlTextureBinding.FromInstance(
-                    ReflectionAtlases[NeoAtlas.blocks.location],
+                settings.shader.setTexture(2, GlTextureBinding.FromInstance(
+                    ReflectionAtlases[NeoIdentifier("blocks")], //NeoAtlas.blocks.location
                     GlTextureTarget.TEXTURE_2D
                 ))
                 settings.shader.setUniform("CameraPos") { set(data.camera.pos) }

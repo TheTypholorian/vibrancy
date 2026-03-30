@@ -11,6 +11,7 @@ import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.Vibrancy
 
 object SkyLightInfoLoader : NeoResourceManagerReloadListener {
+    override val location: NeoIdentifier = Vibrancy.id("sky_lights")
     @JvmField
     val idConverter = NeoFileToIdConverter.json("rtx/sky_lights")
 

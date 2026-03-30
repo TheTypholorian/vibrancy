@@ -4,10 +4,7 @@ import com.mojang.serialization.Lifecycle
 import me.shedaniel.autoconfig.AutoConfig
 import me.shedaniel.autoconfig.serializer.GsonConfigSerializer
 import net.minecraft.ChatFormatting
-import net.minecraft.client.KeyMapping
 import net.minecraft.client.Minecraft
-import net.minecraft.network.chat.CommonComponents
-import net.minecraft.network.chat.Component
 import net.minecraft.world.level.block.Block
 import net.typho.big_shot_lib.api.client.rendering.opengl.GlQueue
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
@@ -18,12 +15,11 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
-import net.typho.big_shot_lib.api.client.util.*
+import net.typho.big_shot_lib.api.client.util.BigShotClientEntrypoint
+import net.typho.big_shot_lib.api.client.util.DebugScreenFactory
+import net.typho.big_shot_lib.api.client.util.ResourceListenerFactory
 import net.typho.big_shot_lib.api.client.util.event.ClientEventFactory
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
-import net.typho.big_shot_lib.api.client.util.panorama.PanoramaPriority
-import net.typho.big_shot_lib.api.client.util.panorama.PanoramaSet
-import net.typho.big_shot_lib.api.client.util.panorama.PanoramaTexture
 import net.typho.big_shot_lib.api.math.NeoDirection
 import net.typho.big_shot_lib.api.math.rect.NeoRect2i
 import net.typho.big_shot_lib.api.math.vec.AbstractVec3
@@ -35,12 +31,11 @@ import net.typho.vibrancy.block.BlockLightInfoLoader
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.sky.SkyLightInfoLoader
 import net.typho.vibrancy.sky.SkyLightRegistry
-import org.lwjgl.glfw.GLFW
 import org.lwjgl.system.NativeResource
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
-object Vibrancy {
+object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
     const val MOD_ID = "vibrancy"
     const val MOD_NAME = "Vibrancy"
     @JvmField
@@ -50,12 +45,16 @@ object Vibrancy {
         get() = AutoConfig.getConfigHolder(VibrancyConfig::class.java).config
     @JvmField
     val lightManager = LightManager()
+
+    /*
     @JvmField
     var reloadShadowsKey: KeyMapping? = null
     @JvmField
     var toggleRaytracedLightsKey: KeyMapping? = null
     @JvmField
     var toggleSubtleLightsKey: KeyMapping? = null
+     */
+
     @JvmField
     val noShadowsTag = WrapperUtil.INSTANCE.unwrap(
         NeoTagKey<Block>(
@@ -64,10 +63,18 @@ object Vibrancy {
         )
     )
     val TARGET by lazy {
-        NeoGlTexture2D()
+        NeoGlTexture2D().also {
+            it.bind(GlTextureTarget.TEXTURE_2D).use { texture ->
+                texture.textureDataMutable(1, 1, GlTextureFormat.RGB16F)
+            }
+        }
     }
     val TARGET_DEPTH by lazy {
-        NeoGlTexture2D()
+        NeoGlTexture2D().also {
+            it.bind(GlTextureTarget.TEXTURE_2D).use { texture ->
+                texture.textureDataMutable(1, 1, GlTextureFormat.DEPTH_COMPONENT)
+            }
+        }
     }
     val FRAMEBUFFER by lazy {
         NeoGlFramebuffer().also {
@@ -102,22 +109,28 @@ object Vibrancy {
     @JvmStatic
     fun render(data: RenderEventData) {
         val targetAttachment = data.target.colorAttachments[0] as GlTexture2D
+        val width = targetAttachment.width.coerceAtLeast(1)
+        val height = targetAttachment.height.coerceAtLeast(1)
 
         FRAMEBUFFER.bind().use { fbo ->
-            if (TARGET.width != targetAttachment.width || TARGET.height != targetAttachment.height) {
+            if (TARGET.width != width || TARGET.height != height) {
                 TARGET.bind(GlTextureTarget.TEXTURE_2D).use {
-                    it.textureDataMutable(targetAttachment.width, targetAttachment.height, GlTextureFormat.RGB16F)
+                    it.textureDataMutable(width, height, GlTextureFormat.RGB16F)
                 }
                 TARGET_DEPTH.bind(GlTextureTarget.TEXTURE_2D).use {
-                    it.textureDataMutable(targetAttachment.width, targetAttachment.height, GlTextureFormat.DEPTH_COMPONENT)
+                    it.textureDataMutable(
+                        width,
+                        height,
+                        GlTextureFormat.DEPTH_COMPONENT
+                    )
                 }
             }
 
             fbo.clear(GlClearBit.Color(NeoColor.FULL_OFF), GlClearBit.Depth(1f))
             fbo.blitFrom(
                 data.target,
-                NeoRect2i(0, 0, targetAttachment.width, targetAttachment.height),
-                NeoRect2i(0, 0, targetAttachment.width, targetAttachment.height),
+                NeoRect2i(0, 0, width, height),
+                NeoRect2i(0, 0, width, height),
                 GlTextureMinFilter.NEAREST,
                 GlBufferBit.DEPTH
             )
@@ -142,7 +155,7 @@ object Vibrancy {
                 GlTextureBinding.FromInstance(targetAttachment, GlTextureTarget.TEXTURE_2D),
             )
         )
-        data.target.bind(NeoRect2i(0, 0, targetAttachment.width, targetAttachment.height)).use {
+        data.target.bind(NeoRect2i(0, 0, width, height)).use {
             drawState.bind().use { Mesh.SCREEN_MESH.draw() }
         }
     }
@@ -170,61 +183,62 @@ object Vibrancy {
         NeoDirection.EAST -> to.x >= from.x
     }
 
-    class Entrypoint : BigShotCommonEntrypoint, BigShotClientEntrypoint {
-        override fun registerRegistries(factory: RegistryFactory) {
-            BlockLightRegistry.registry = factory.create(
-                BlockLightRegistry.registryKey.location,
-                Lifecycle.stable(),
-                false
-            )
-            SkyLightRegistry.registry = factory.create(
-                SkyLightRegistry.registryKey.location,
-                Lifecycle.stable(),
-                false
-            )
-        }
+    override fun registerRegistries(factory: RegistryFactory) {
+        BlockLightRegistry.registry = factory.create(
+            BlockLightRegistry.registryKey.location,
+            Lifecycle.stable(),
+            false
+        )
+        SkyLightRegistry.registry = factory.create(
+            SkyLightRegistry.registryKey.location,
+            Lifecycle.stable(),
+            false
+        )
+    }
 
-        override fun registerContent(factory: RegistrationFactory) {
-            BlockLightRegistry.registerBuiltins(factory)
-            SkyLightRegistry.registerBuiltins(factory)
-        }
+    override fun registerContent(factory: RegistrationFactory) {
+        BlockLightRegistry.registerBuiltins(factory)
+        SkyLightRegistry.registerBuiltins(factory)
+    }
 
-        override fun registerEvents(factory: CommonEventFactory) {
-            factory.blockChanged.add { level, pos, old, new ->
-                if (level.isClientSide()) {
-                    GlQueue.INSTANCE.runOrQueue {
-                        lightManager.blockChanged(level, pos, old, new)
-                    }
+    override fun registerEvents(factory: CommonEventFactory) {
+        factory.blockChanged.add { level, pos, old, new ->
+            if (level.isClientSide()) {
+                GlQueue.INSTANCE.runOrQueue {
+                    lightManager.blockChanged(level, pos, old, new)
                 }
             }
         }
+    }
 
-        override fun registerReloadListeners(factory: ResourceListenerFactory) {
-            factory.register(id("block_lights"), BlockLightInfoLoader)
-            factory.register(id("sky_lights"), SkyLightInfoLoader)
-        }
+    override fun registerReloadListeners(factory: ResourceListenerFactory) {
+        factory.register(BlockLightInfoLoader)
+        factory.register(SkyLightInfoLoader)
+    }
 
-        override fun registerKeyMappings(factory: KeyMappingFactory) {
-            val category = factory.getOrCreateCategory(id("keys"))
-            reloadShadowsKey = factory.create(id("rebuild_all_shadows"), GLFW.GLFW_KEY_F6, category)
-            toggleRaytracedLightsKey = factory.create(id("toggle_raytraced_block_lights"), GLFW.GLFW_KEY_F7, category)
-            toggleSubtleLightsKey = factory.create(id("toggle_subtle_block_lights"), GLFW.GLFW_KEY_F8, category)
-        }
+    /*
+    override fun registerKeyMappings(factory: KeyMappingFactory) {
+        val category = factory.getOrCreateCategory(id("keys"))
+        reloadShadowsKey = factory.create(id("rebuild_all_shadows"), GLFW.GLFW_KEY_F6, category)
+        toggleRaytracedLightsKey = factory.create(id("toggle_raytraced_block_lights"), GLFW.GLFW_KEY_F7, category)
+        toggleSubtleLightsKey = factory.create(id("toggle_subtle_block_lights"), GLFW.GLFW_KEY_F8, category)
+    }
+     */
 
-        override fun registerEvents(factory: ClientEventFactory) {
-            factory.levelRenderEnd.add(Vibrancy::render)
-            factory.levelChanged.add { old, new ->
-                lightManager.clear()
+    override fun registerEvents(factory: ClientEventFactory) {
+        factory.levelRenderEnd.add(Vibrancy::render)
+        factory.levelChanged.add { old, new ->
+            lightManager.clear()
 
-                if (new == null) {
-                    (lightManager.skyLight?.second as? NativeResource)?.free()
-                    lightManager.skyLight = null
-                } else {
-                    val resourceManager = WrapperUtil.INSTANCE.wrap(Minecraft.getInstance().resourceManager)
-                    BlockLightInfoLoader.onResourceManagerReload(resourceManager)
-                    SkyLightInfoLoader.onResourceManagerReload(resourceManager)
+            if (new == null) {
+                (lightManager.skyLight?.second as? NativeResource)?.free()
+                lightManager.skyLight = null
+            } else {
+                val resourceManager = WrapperUtil.INSTANCE.wrap(Minecraft.getInstance().resourceManager)
+                BlockLightInfoLoader.onResourceManagerReload(resourceManager)
+                SkyLightInfoLoader.onResourceManagerReload(resourceManager)
 
-                    /*
+                /*
                     SkyLightRegistry.get(new)?.let { info ->
                         if (lightManager.skyLight?.first != info.type) {
                             (lightManager.skyLight?.second as? NativeResource)?.free()
@@ -243,74 +257,79 @@ object Vibrancy {
                         load(lightManager.skyLight!!.second)
                     }
                      */
-                }
             }
-            factory.clientTickStart.add {
-                fun debugPrint(text: Component) {
-                    Minecraft.getInstance().gui.chat.addMessage(
-                        Component.empty()
-                            .append(Component.translatable("debug.prefix").withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD))
-                            .append(CommonComponents.SPACE)
-                            .append(text)
-                    )
-                }
-
-                while (reloadShadowsKey?.consumeClick() == true) {
-                    lightManager.reload()
-                    debugPrint(
-                        Component.translatable(
-                            "debug.vibrancy.rebuild_all_shadows",
-                            reloadShadowsKey!!.translatedKeyMessage
+        }
+        /*
+        factory.clientTickStart.add {
+            fun debugPrint(text: Component) {
+                Minecraft.getInstance().gui.chat.addMessage(
+                    Component.empty()
+                        .append(
+                            Component.translatable("debug.prefix").withStyle(ChatFormatting.YELLOW, ChatFormatting.BOLD)
                         )
-                    )
-                }
-
-                while (toggleRaytracedLightsKey?.consumeClick() == true) {
-                    val enabled = !config.blockLights.raytraced.enabled
-                    config.blockLights.raytraced.enabled = enabled
-                    AutoConfig.getConfigHolder(VibrancyConfig::class.java).save()
-                    debugPrint(
-                        Component.translatable(
-                            "debug.vibrancy.${if (enabled) "enable" else "disable"}_raytraced_block_lights",
-                            toggleRaytracedLightsKey!!.translatedKeyMessage
-                        )
-                    )
-                }
-
-                while (toggleSubtleLightsKey?.consumeClick() == true) {
-                    val enabled = !config.blockLights.subtle.enabled
-                    config.blockLights.subtle.enabled = enabled
-                    AutoConfig.getConfigHolder(VibrancyConfig::class.java).save()
-                    debugPrint(
-                        Component.translatable(
-                            "debug.vibrancy.${if (enabled) "enable" else "disable"}_subtle_block_lights",
-                            toggleSubtleLightsKey!!.translatedKeyMessage
-                        )
-                    )
-                }
+                        .append(CommonComponents.SPACE)
+                        .append(text)
+                )
             }
-            factory.chunkChanged.add { level, old, new ->
-                if (level.isClientSide()) {
-                    GlQueue.INSTANCE.runOrQueue {
-                        if (old != null) {
-                            lightManager.deloadChunk(old)
-                        }
 
-                        if (new != null) {
-                            lightManager.loadChunk(new)
-                        }
+            while (reloadShadowsKey?.consumeClick() == true) {
+                lightManager.reload()
+                debugPrint(
+                    Component.translatable(
+                        "debug.vibrancy.rebuild_all_shadows",
+                        reloadShadowsKey!!.translatedKeyMessage
+                    )
+                )
+            }
+
+            while (toggleRaytracedLightsKey?.consumeClick() == true) {
+                val enabled = !config.blockLights.raytraced.enabled
+                config.blockLights.raytraced.enabled = enabled
+                AutoConfig.getConfigHolder(VibrancyConfig::class.java).save()
+                debugPrint(
+                    Component.translatable(
+                        "debug.vibrancy.${if (enabled) "enable" else "disable"}_raytraced_block_lights",
+                        toggleRaytracedLightsKey!!.translatedKeyMessage
+                    )
+                )
+            }
+
+            while (toggleSubtleLightsKey?.consumeClick() == true) {
+                val enabled = !config.blockLights.subtle.enabled
+                config.blockLights.subtle.enabled = enabled
+                AutoConfig.getConfigHolder(VibrancyConfig::class.java).save()
+                debugPrint(
+                    Component.translatable(
+                        "debug.vibrancy.${if (enabled) "enable" else "disable"}_subtle_block_lights",
+                        toggleSubtleLightsKey!!.translatedKeyMessage
+                    )
+                )
+            }
+        }
+         */
+        factory.chunkChanged.add { level, old, new ->
+            if (level.isClientSide()) {
+                GlQueue.INSTANCE.runOrQueue {
+                    if (old != null) {
+                        lightManager.deloadChunk(old)
+                    }
+
+                    if (new != null) {
+                        lightManager.loadChunk(new)
                     }
                 }
             }
         }
+    }
 
-        override fun registerDebugScreenInfo(factory: DebugScreenFactory) {
-            factory.register(id("debug_info"), false) { out ->
-                out(ChatFormatting.UNDERLINE.toString() + MOD_NAME)
-                lightManager.getDebugOutput(out)
-            }
+    override fun registerDebugScreenInfo(factory: DebugScreenFactory) {
+        factory.register(id("debug_info"), false) { out ->
+            out(ChatFormatting.UNDERLINE.toString() + MOD_NAME)
+            lightManager.getDebugOutput(out)
         }
+    }
 
+    /*
         override fun registerPanoramas(factory: PanoramaFactory) {
             factory.register(
                 PanoramaSet(
@@ -324,5 +343,5 @@ object Vibrancy {
                 )
             )
         }
-    }
+         */
 }

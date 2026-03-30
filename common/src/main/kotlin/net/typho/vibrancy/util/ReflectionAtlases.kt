@@ -37,10 +37,15 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener {
     operator fun get(key: NeoIdentifier, resources: NeoResourceManager = WrapperUtil.INSTANCE.wrap(Minecraft.getInstance().resourceManager)): GlTexture2D {
         return atlases.computeIfAbsent(key) { key ->
             NeoGlTexture2D().bind(GlTextureTarget.TEXTURE_2D).use { texture ->
-                val parent = NeoAtlas[key] ?: throw FileNotFoundException("No atlas $key")
+                val parent = try {
+                    NeoAtlas[key]!!
+                } catch (_: NullPointerException) {
+                    throw FileNotFoundException("No atlas $key")
+                }
                 texture.textureDataImmutable(parent.width, parent.height, GlTextureFormat.R8)
 
                 NeoGlFramebuffer().bind(NeoRect2i(0, 0, parent.width, parent.height)).use {
+                    it.colorAttachments[0] = texture.resource
                     it.clear(GlClearBit.Color(NeoColor.FULL_OFF))
                 }
 

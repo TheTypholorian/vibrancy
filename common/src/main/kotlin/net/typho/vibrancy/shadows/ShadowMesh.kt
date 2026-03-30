@@ -1,6 +1,5 @@
 package net.typho.vibrancy.shadows
 
-import net.minecraft.world.level.Level
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBeginMode
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferAccess
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferTarget
@@ -34,31 +33,33 @@ open class ShadowMesh : NativeResource {
     }
 
     fun build(
-        level: Level?,
         shadowFaces: List<LightFace>,
         lightFaces: List<LightFace>
     ): () -> TextureAtlas.Result {
-        val light = lightMesh.build(level, lightFaces)
+        val light = lightMesh.build(lightFaces)
 
         return {
             shadowBuffer.bind(GlBufferTarget.ARRAY_BUFFER).use { shadowBuffer ->
-                val bufferBuilder = NeoBufferBuilder.create(
-                    VERTEX_FORMAT,
-                    GlBeginMode.QUADS,
-                    shadowFaces.size * 4,
-                    {
-                        shadowBuffer.bufferData(it, GlBufferUsage.STATIC_DRAW)
-                        shadowBuffer.mapBuffer(GlBufferAccess.WRITE_ONLY, it)
-                    },
-                    { null }
-                )
+                if (shadowFaces.isEmpty()) {
+                    shadowBuffer.bufferData(0, GlBufferUsage.STATIC_DRAW)
+                } else {
+                    val bufferBuilder = NeoBufferBuilder.create(
+                        VERTEX_FORMAT,
+                        GlBeginMode.QUADS,
+                        shadowFaces.size * 4,
+                        {
+                            shadowBuffer.bufferData(it, GlBufferUsage.STATIC_DRAW)
+                            shadowBuffer.mapBuffer(GlBufferAccess.WRITE_ONLY, it)
+                        },
+                        { null }
+                    )
 
-                shadowFaces.forEach {
-                    it.quad.put(bufferBuilder)
+                    shadowFaces.forEach {
+                        it.quad.put(bufferBuilder)
+                    }
+
+                    bufferBuilder.build()
                 }
-
-                bufferBuilder.build()
-                bufferBuilder.free()
             }
 
             light()

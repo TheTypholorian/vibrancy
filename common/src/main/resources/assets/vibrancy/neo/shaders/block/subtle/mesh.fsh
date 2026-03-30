@@ -1,6 +1,6 @@
 #version 150
 
-#include "big_shot_lib:fog"
+//#include "big_shot_lib:fog"
 
 uniform sampler2D Sampler0;
 uniform sampler2D Sampler1;

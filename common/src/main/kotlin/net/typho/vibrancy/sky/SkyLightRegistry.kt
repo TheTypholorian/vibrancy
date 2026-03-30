@@ -28,7 +28,8 @@ object SkyLightRegistry {
 
     @JvmStatic
     fun registerBuiltins(factory: RegistrationFactory) {
-        val consumer = factory.begin(registryKey, Vibrancy.MOD_ID)
-        consumer.register("overworld") { OverworldSkyLightType }
+        factory.begin(registryKey, Vibrancy.MOD_ID)?.run {
+            register("overworld") { OverworldSkyLightType }
+        }
     }
 }

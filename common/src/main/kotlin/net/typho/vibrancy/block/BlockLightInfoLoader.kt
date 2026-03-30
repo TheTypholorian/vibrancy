@@ -16,6 +16,7 @@ import net.typho.big_shot_lib.api.util.resource.NeoTagKey
 import net.typho.vibrancy.Vibrancy
 
 object BlockLightInfoLoader : NeoResourceManagerReloadListener {
+    override val location: NeoIdentifier = Vibrancy.id("block_lights")
     @JvmField
     val singleIdConverter = NeoFileToIdConverter.json("rtx/block_lights/by_block")
     @JvmField

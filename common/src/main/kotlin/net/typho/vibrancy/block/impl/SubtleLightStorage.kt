@@ -168,7 +168,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                         {},
                         faces::add
                     )
-                    val task = chunk.mesh.build(data.level, faces)
+                    val task = chunk.mesh.build(faces)
 
                     return Consumer { data ->
                         val atlasResult = task()

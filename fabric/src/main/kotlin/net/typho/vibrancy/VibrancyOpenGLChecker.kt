@@ -7,7 +7,7 @@ import org.lwjgl.system.Platform
 
 object VibrancyOpenGLChecker : ClientModInitializer {
     override fun onInitializeClient() {
-        GlQueue.INSTANCE.runOrQueue {
+        GlQueue.INSTANCE.queue {
             if (!GL.getCapabilities().GL_ARB_shader_storage_buffer_object) {
                 val text = if (Platform.get() == Platform.MACOSX)
                     "Vibrancy requires GL_ARB_shader_storage_buffer_object (OpenGL 4.3), which MacOS does not support, and there is no way to fix it."

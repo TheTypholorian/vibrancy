@@ -1,0 +1,8 @@
+{
+  "net.typho.big_shot_lib.api.util.BigShotCommonEntrypoint": [
+    "net.typho.vibrancy.Vibrancy"
+  ],
+  "net.typho.big_shot_lib.api.client.util.BigShotClientEntrypoint": [
+    "net.typho.vibrancy.Vibrancy"
+  ]
+}

@@ -1,6 +1,6 @@
 #version 150
 
-#include "big_shot_lib:fog"
+//#include "big_shot_lib:fog"
 
 uniform sampler2D Sampler0;
 uniform ivec2 Sampler0Size;
@@ -26,7 +26,7 @@ void main() {
         discard;
     }
 
-    vec3 lightColor = texelFetch(Sampler2, ivec2(texCoord1), 0).rgb;
+    vec3 lightColor = texelFetch(Sampler1, ivec2(texCoord1), 0).rgb;
 
     vec3 inputNormal = normalize(LightPos - vertexPosition);
     vec3 outputNormal = normalize(CameraPos - vertexPosition);
@@ -34,7 +34,7 @@ void main() {
     float multiplier = clamp(dot(outputNormal, reflectedNormal), 0, 1);
     multiplier = multiplier * multiplier * multiplier * 3.5;
 
-    lightColor *= 1 + multiplier * texelFetch(Sampler1, ivec2(texCoord0 * Sampler0Size), 0).r;
+    lightColor *= 1 + multiplier * texelFetch(Sampler2, ivec2(texCoord0 * Sampler0Size), 0).r;
 
     fragColor = block.rgb * lightColor * block.a;
 }

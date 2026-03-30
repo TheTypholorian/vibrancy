@@ -17,7 +17,7 @@ class VibrancyNeoForge(eventBus: IEventBus, modContainer: ModContainer) {
     init {
         modContainer.registerExtensionPoint(IConfigScreenFactory::class.java, IConfigScreenFactory { container, modListScreen -> AutoConfig.getConfigScreen(VibrancyConfig::class.java, modListScreen).get() })
 
-        GlQueue.INSTANCE.runOrQueue {
+        GlQueue.INSTANCE.queue {
             if (!GL.getCapabilities().GL_ARB_shader_storage_buffer_object) {
                 throw ModLoadingException(
                     ModLoadingIssue.error(

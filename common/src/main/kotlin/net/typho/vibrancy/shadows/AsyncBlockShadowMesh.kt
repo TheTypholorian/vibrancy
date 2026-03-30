@@ -45,7 +45,7 @@ open class AsyncBlockShadowMesh<M : ShadowMesher>(
             mesher.submit(manager, level, predicate, NeoAtlas.blocks, shadowFaces::add, lightFaces::add)
         }
 
-        val built = build(level, shadowFaces, lightFaces)
+        val built = build(shadowFaces, lightFaces)
 
         return {
             LightMesh.LightBlitInfo(
