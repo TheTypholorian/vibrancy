@@ -111,6 +111,8 @@ open class LightMesh : NativeResource {
     val texture = NeoGlTexture2D().also {
         it.bind(GlTextureTarget.TEXTURE_2D).use { texture ->
             texture.textureDataMutable(1, 1, GlTextureFormat.RGB8)
+            texture.minFilter = GlTextureMinFilter.NEAREST
+            texture.magFilter = GlTextureMagFilter.NEAREST
         }
     }
     @JvmField

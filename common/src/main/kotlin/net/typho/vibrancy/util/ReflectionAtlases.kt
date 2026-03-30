@@ -3,9 +3,7 @@ package net.typho.vibrancy.util
 import com.mojang.blaze3d.platform.NativeImage
 import net.minecraft.client.Minecraft
 import net.typho.big_shot_lib.api.client.rendering.opengl.GlQueue
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlClearBit
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureFormat
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureTarget
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlFramebuffer
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D
@@ -43,6 +41,8 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener {
                     throw FileNotFoundException("No atlas $key")
                 }
                 texture.textureDataImmutable(parent.width, parent.height, GlTextureFormat.R8)
+                texture.minFilter = GlTextureMinFilter.NEAREST
+                texture.magFilter = GlTextureMagFilter.NEAREST
 
                 NeoGlFramebuffer().bind(NeoRect2i(0, 0, parent.width, parent.height)).use {
                     it.colorAttachments[0] = texture.resource
