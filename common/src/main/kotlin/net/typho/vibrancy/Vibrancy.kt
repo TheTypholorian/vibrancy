@@ -66,6 +66,8 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
         NeoGlTexture2D().also {
             it.bind(GlTextureTarget.TEXTURE_2D).use { texture ->
                 texture.textureDataMutable(1, 1, GlTextureFormat.RGB16F)
+                texture.minFilter = GlTextureMinFilter.NEAREST
+                texture.magFilter = GlTextureMagFilter.NEAREST
             }
         }
     }
@@ -73,6 +75,8 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
         NeoGlTexture2D().also {
             it.bind(GlTextureTarget.TEXTURE_2D).use { texture ->
                 texture.textureDataMutable(1, 1, GlTextureFormat.DEPTH_COMPONENT)
+                texture.minFilter = GlTextureMinFilter.NEAREST
+                texture.magFilter = GlTextureMagFilter.NEAREST
             }
         }
     }
