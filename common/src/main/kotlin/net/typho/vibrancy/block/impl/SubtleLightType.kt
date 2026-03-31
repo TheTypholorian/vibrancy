@@ -39,6 +39,9 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
             lights.checkDirty(manager, data)
 
             LightMesh.drawState(NeoAtlas.blocks, Vibrancy.id("block/subtle/mesh")).bind().use { settings ->
+                settings.shader.setUniform("ProjMat") { set(data.projMat) }
+                settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat) }
+
                 lights.chunks.values
                     .filter {
                         manager.inRenderDistance(data, it.pos, Vibrancy.config.blockLights.subtle.renderDistance)

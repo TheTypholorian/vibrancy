@@ -11,6 +11,10 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlFramebuffer
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D
+import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
+import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
+import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
+import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.util.BigShotClientEntrypoint
 import net.typho.big_shot_lib.api.client.util.DebugScreenFactory
 import net.typho.big_shot_lib.api.client.util.ResourceListenerFactory
@@ -147,7 +151,6 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
             )
         }
 
-        /*
         val drawState = GlDrawState.Basic(
             shader = GlShaderShard.FromLocation(
                 id("light_post"),
@@ -159,7 +162,6 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
         data.target.bind(NeoRect2i(0, 0, width, height)).use {
             drawState.bind().use { Mesh.SCREEN_MESH.draw() }
         }
-         */
     }
 
     @JvmStatic

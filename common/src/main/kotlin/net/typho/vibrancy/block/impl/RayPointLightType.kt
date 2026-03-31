@@ -35,6 +35,8 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                     ReflectionAtlases[NeoIdentifier("blocks")], //NeoAtlas.blocks.location
                     GlTextureTarget.TEXTURE_2D
                 ))
+                settings.shader.setUniform("ProjMat") { set(data.projMat) }
+                settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat) }
                 settings.shader.setUniform("CameraPos") { set(data.camera.pos) }
 
                 lights.map.values.forEach { it.update(manager, data) }
