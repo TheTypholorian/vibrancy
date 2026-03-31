@@ -20,7 +20,6 @@ in vec3 vertexNormal;
 out vec3 fragColor;
 
 void main() {
-    /*
     vec4 block = texelFetch(Sampler0, ivec2(texCoord0 * Sampler0Size), 0) * vertexColor;
 
     if (block.a == 0) {
@@ -38,6 +37,4 @@ void main() {
     lightColor *= 1 + multiplier * texelFetch(Sampler2, ivec2(texCoord0 * Sampler0Size), 0).r;
 
     fragColor = block.rgb * lightColor * block.a;
-    */
-    fragColor = vec3(0.25, 0.5, 1);
 }

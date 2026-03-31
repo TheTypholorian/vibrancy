@@ -3,5 +3,5 @@
     "vertex": "vibrancy:block/subtle/mesh",
     "fragment": "vibrancy:block/subtle/mesh"
   },
-  "format": "POSITION_TEX"
+  "format": "vibrancy:light_mesh"
 }

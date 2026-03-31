@@ -33,19 +33,15 @@ vec4 test(Quad q, Ray check) {
 void main() {
     //vec2 step = 1 / (vec2(sprite.width, sprite.height) * 3);
 
-    /*
     vec3 delta = LightPos - vertexPos;
     vec3 dir = normalize(delta);
     float len = length(delta);
 
     Ray ray = Ray(vertexPos, dir, len);
 
-    //fragColor = samplePointLight(LightPos, vertexPos, LightRadius, LightColor);
+    fragColor = samplePointLight(LightPos, vertexPos, LightRadius, LightColor);
 
     for (uint i = 0u; i < shadowQuads.length(); i++) {
-        //fragColor *= test(shadowQuads[i], ray);
+        fragColor *= test(shadowQuads[i], ray);
     }
-    */
-
-    fragColor = vec4(1, 0.5, 0.25, 1);
 }

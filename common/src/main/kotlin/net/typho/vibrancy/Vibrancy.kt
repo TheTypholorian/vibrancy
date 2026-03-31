@@ -15,6 +15,7 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
+import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
 import net.typho.big_shot_lib.api.client.util.BigShotClientEntrypoint
 import net.typho.big_shot_lib.api.client.util.DebugScreenFactory
 import net.typho.big_shot_lib.api.client.util.ResourceListenerFactory
@@ -29,6 +30,8 @@ import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.big_shot_lib.api.util.resource.NeoTagKey
 import net.typho.vibrancy.block.BlockLightInfoLoader
 import net.typho.vibrancy.block.BlockLightRegistry
+import net.typho.vibrancy.shadows.LightMesh
+import net.typho.vibrancy.shadows.ShadowMesh
 import net.typho.vibrancy.sky.SkyLightInfoLoader
 import net.typho.vibrancy.sky.SkyLightRegistry
 import org.lwjgl.system.NativeResource
@@ -85,6 +88,7 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
             it.bind(null).use { fbo ->
                 fbo.colorAttachments[0] = TARGET
                 fbo.depthAttachment = TARGET_DEPTH
+                fbo.checkStatus().throwIfError()
             }
         }
     }
@@ -203,6 +207,12 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
     override fun registerContent(factory: RegistrationFactory) {
         BlockLightRegistry.registerBuiltins(factory)
         SkyLightRegistry.registerBuiltins(factory)
+
+        factory.begin(NeoVertexFormat.REGISTRY_KEY)?.run {
+            register(id("shadow_mesh")) { ShadowMesh.VERTEX_FORMAT }
+            register(id("light_mesh")) { LightMesh.VERTEX_FORMAT }
+            register(id("light_mesh_blit")) { LightMesh.BLIT_VERTEX_FORMAT }
+        }
     }
 
     override fun registerEvents(factory: CommonEventFactory) {

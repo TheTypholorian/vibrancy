@@ -51,7 +51,7 @@ object TextureAtlas {
 
         return Result(
             textures.map { dimension ->
-                val rect = NeoRect2i(x, y, dimension.x, dimension.y)
+                val rect = NeoRect2i(x, y, x + dimension.x, y + dimension.y)
 
                 x += max.x
 

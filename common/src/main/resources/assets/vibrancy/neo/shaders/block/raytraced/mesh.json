@@ -3,5 +3,5 @@
     "vertex": "vibrancy:block/raytraced/mesh",
     "fragment": "vibrancy:block/raytraced/mesh"
   },
-  "format": "POSITION_TEX"
+  "format": "vibrancy:light_mesh"
 }

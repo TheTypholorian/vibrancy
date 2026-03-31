@@ -5,10 +5,12 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
 import net.typho.big_shot_lib.api.client.rendering.quad.NeoAtlas
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
+import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.toJOML
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.block.BlockLightType
 import net.typho.vibrancy.shadows.LightMesh
+import org.joml.Matrix4f
 
 object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
     @JvmField
@@ -40,7 +42,7 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
 
             LightMesh.drawState(NeoAtlas.blocks, Vibrancy.id("block/subtle/mesh")).bind().use { settings ->
                 settings.shader.setUniform("ProjMat") { set(data.projMat) }
-                settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat) }
+                settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((-data.camera.pos).toJOML(), Matrix4f())) }
 
                 lights.chunks.values
                     .filter {

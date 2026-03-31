@@ -17,7 +17,6 @@ open class ShadowMesh : NativeResource {
             .add("Position", NeoVertexFormat.Element.POSITION)
             .padding(4)
             .add("UV0", NeoVertexFormat.Element.TEXTURE_UV)
-            .padding(8)
             .add("Color", NeoVertexFormat.Element.COLOR)
             .padding(4)
             .build()
@@ -58,7 +57,7 @@ open class ShadowMesh : NativeResource {
                         it.quad.put(bufferBuilder)
                     }
 
-                    bufferBuilder.build()
+                    (bufferBuilder.build()!! as NativeResource).free() // TODO
                 }
             }
 

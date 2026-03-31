@@ -10,6 +10,7 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.util.BlendFunction
 import net.typho.big_shot_lib.api.client.rendering.opengl.util.PolygonOffset
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
+import net.typho.big_shot_lib.api.math.vec.NeoVec2f
 import net.typho.big_shot_lib.api.math.vec.NeoVec2i
 import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.TextureAtlas
@@ -76,13 +77,13 @@ open class LightMesh : NativeResource {
                 info.lightFaces.forEachIndexed { index, face ->
                     val texture = info.atlasResult.textures[index]
                     vertex(face.quad.v0.pos)
-                        .textureUV(texture.min.toFloat() / info.atlasResult.size.toFloat())
+                        .textureUV(NeoVec2f(texture.min.x.toFloat(), texture.min.y.toFloat()) / info.atlasResult.size.toFloat())
                     vertex(face.quad.v1.pos)
-                        .textureUV(texture.maxMin.toFloat() / info.atlasResult.size.toFloat())
+                        .textureUV(NeoVec2f(texture.max.x.toFloat(), texture.min.y.toFloat()) / info.atlasResult.size.toFloat())
                     vertex(face.quad.v2.pos)
-                        .textureUV(texture.max.toFloat() / info.atlasResult.size.toFloat())
+                        .textureUV(NeoVec2f(texture.max.x.toFloat(), texture.max.y.toFloat()) / info.atlasResult.size.toFloat())
                     vertex(face.quad.v3.pos)
-                        .textureUV(texture.minMax.toFloat() / info.atlasResult.size.toFloat())
+                        .textureUV(NeoVec2f(texture.min.x.toFloat(), texture.max.y.toFloat()) / info.atlasResult.size.toFloat())
                 }
             }
         }
@@ -119,6 +120,7 @@ open class LightMesh : NativeResource {
     val target = NeoGlFramebuffer().also {
         it.bind().use { fbo ->
             fbo.colorAttachments[0] = texture
+            fbo.checkStatus().throwIfError()
         }
     }
     var empty = true
