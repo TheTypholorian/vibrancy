@@ -179,19 +179,25 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                             it.mapBuffer(GlBufferAccess.WRITE_ONLY, size) {
                                 var index = 0L
 
+                                fun index(): Long {
+                                    val i = index
+                                    index += 4
+                                    return i
+                                }
+
                                 for (light in chunk.map.values) {
                                     val color = light.color
                                     val pos = light.absolutePos
 
-                                    put(index++, pos.x)
-                                    put(index++, pos.y)
-                                    put(index++, pos.z)
-                                    put(index++, 0f)
+                                    put(index(), pos.x)
+                                    put(index(), pos.y)
+                                    put(index(), pos.z)
+                                    put(index(), 0f)
 
-                                    put(index++, color.x)
-                                    put(index++, color.y)
-                                    put(index++, color.z)
-                                    put(index++, 0f)
+                                    put(index(), color.x)
+                                    put(index(), color.y)
+                                    put(index(), color.z)
+                                    put(index(), 0f)
                                 }
                             }
                         }
