@@ -183,14 +183,14 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                                     val color = light.color
                                     val pos = light.absolutePos
 
-                                    put(index++, color.x)
-                                    put(index++, color.y)
-                                    put(index++, color.z)
-                                    put(index++, 0f)
-
                                     put(index++, pos.x)
                                     put(index++, pos.y)
                                     put(index++, pos.z)
+                                    put(index++, 0f)
+
+                                    put(index++, color.x)
+                                    put(index++, color.y)
+                                    put(index++, color.z)
                                     put(index++, 0f)
                                 }
                             }

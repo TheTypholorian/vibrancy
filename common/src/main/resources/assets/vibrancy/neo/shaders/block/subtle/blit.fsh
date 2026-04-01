@@ -4,8 +4,8 @@
 #include "vibrancy:include/rays.glsl"
 
 struct Light {
-    vec3 color;
     vec3 pos;
+    vec3 color;
 };
 
 layout(std430, binding = 0) buffer LightBuffer {
