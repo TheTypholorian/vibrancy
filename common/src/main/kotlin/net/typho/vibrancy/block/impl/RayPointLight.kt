@@ -2,18 +2,13 @@ package net.typho.vibrancy.block.impl
 
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBeginMode
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlClearBit
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureTarget
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
 import net.typho.big_shot_lib.api.client.rendering.quad.NeoAtlas
-import net.typho.big_shot_lib.api.client.rendering.util.Mesh
-import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.math.NeoDirection
 import net.typho.big_shot_lib.api.math.rect.AbstractRect3
@@ -72,18 +67,6 @@ open class RayPointLight(
                 LightMesh.blitLight(info)
             }
         }
-    }
-    val boxBuffer by lazy {
-        val mesh = Mesh(
-            NeoVertexFormat.POSITION,
-            GlBeginMode.QUADS,
-            GlBufferWriter.Mode.REGULAR,
-            GlBufferUsage.STATIC_DRAW
-        )
-        mesh.upload(24) {
-            cube(boundingBox)
-        }
-        return@lazy mesh
     }
     var shadowsDirty = true
 
@@ -172,7 +155,6 @@ open class RayPointLight(
 
     override fun free() {
         shadows.free()
-        boxBuffer.free()
     }
 
     fun update(manager: LightManager, data: RenderEventData) {

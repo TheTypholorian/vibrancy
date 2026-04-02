@@ -18,7 +18,6 @@ import net.typho.big_shot_lib.api.math.rect.NeoRect3i
 import net.typho.big_shot_lib.api.math.vec.AbstractVec3
 import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.blockPos
 import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.plus
-import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.toJOML
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
@@ -252,7 +251,8 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
         fun render(data: RenderEventData, shader: GlBoundProgram, debugOut: (key: String, value: Int) -> Unit) {
             if (
                 size > 0
-                && box?.let { data.frustum.testAab(it.min.toFloat().toJOML(), it.max.toFloat().toJOML()) } ?: true
+                // TODO
+                //&& box?.let { data.frustum.testAab(it.min.toFloat().toJOML(), it.max.toFloat().toJOML()) } ?: true
             ) {
                 mesh.draw(shader)
                 debugOut("lightsRendered", size)
