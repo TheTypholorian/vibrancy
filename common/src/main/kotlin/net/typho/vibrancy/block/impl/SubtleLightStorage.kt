@@ -4,10 +4,10 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferAccess
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferTarget
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlBuffer
 import net.typho.big_shot_lib.api.client.rendering.quad.NeoAtlas
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
@@ -32,6 +32,7 @@ import net.typho.vibrancy.shadows.LightMesh
 import org.lwjgl.opengl.GL30.glBindBufferBase
 import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.system.NativeResource
+import java.io.DataOutputStream
 import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
@@ -173,31 +174,25 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                     return Consumer { data ->
                         val atlasResult = task()
 
-                        chunk.ssbo.bind(GlBufferTarget.SHADER_STORAGE_BUFFER).use {
+                        chunk.ssbo.bind(GlBufferTarget.SHADER_STORAGE_BUFFER).use { ssbo ->
                             val size = chunk.size.toLong() * 8 * Float.SIZE_BYTES
-                            it.bufferData(size, GlBufferUsage.STATIC_DRAW)
-                            it.mapBuffer(GlBufferAccess.WRITE_ONLY, size) {
-                                var index = 0L
 
-                                fun index(): Long {
-                                    val i = index
-                                    index += 4
-                                    return i
-                                }
+                            GlBufferWriter.Mode.REGULAR.create(ssbo, size, GlBufferUsage.STATIC_DRAW).use { writer ->
+                                val write = DataOutputStream(writer.write())
 
                                 for (light in chunk.map.values) {
                                     val color = light.color
                                     val pos = light.absolutePos
 
-                                    put(index(), pos.x)
-                                    put(index(), pos.y)
-                                    put(index(), pos.z)
-                                    put(index(), 0f)
+                                    write.writeFloat(pos.x)
+                                    write.writeFloat(pos.y)
+                                    write.writeFloat(pos.z)
+                                    write.writeFloat(0f)
 
-                                    put(index(), color.x)
-                                    put(index(), color.y)
-                                    put(index(), color.z)
-                                    put(index(), 0f)
+                                    write.writeFloat(color.x)
+                                    write.writeFloat(color.y)
+                                    write.writeFloat(color.z)
+                                    write.writeFloat(0f)
                                 }
                             }
                         }

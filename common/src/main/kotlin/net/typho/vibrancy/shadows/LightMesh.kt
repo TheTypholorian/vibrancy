@@ -2,6 +2,7 @@ package net.typho.vibrancy.shadows
 
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlFramebuffer
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D
@@ -67,6 +68,7 @@ open class LightMesh : NativeResource {
             Mesh(
                 BLIT_VERTEX_FORMAT,
                 GlBeginMode.QUADS,
+                GlBufferWriter.Mode.REGULAR,
                 GlBufferUsage.STREAM_DRAW
             )
         }
@@ -106,6 +108,7 @@ open class LightMesh : NativeResource {
     val mesh = Mesh(
         VERTEX_FORMAT,
         GlBeginMode.QUADS,
+        GlBufferWriter.Mode.REGULAR,
         GlBufferUsage.STATIC_DRAW
     )
     @JvmField

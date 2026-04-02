@@ -1,8 +1,5 @@
 package net.typho.vibrancy
 
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferAccess
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferTarget
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlBuffer
 import net.typho.big_shot_lib.api.math.rect.AbstractRect2
 import net.typho.big_shot_lib.api.math.rect.NeoRect2i
 import net.typho.big_shot_lib.api.math.vec.AbstractVec2
@@ -18,22 +15,6 @@ object TextureAtlas {
         @JvmField
         val size: AbstractVec2<Int>
     )
-
-    @JvmStatic
-    fun store(result: Result, buffer: GlBuffer) {
-        buffer.bind(GlBufferTarget.ARRAY_BUFFER).use {
-            it.mapBuffer(GlBufferAccess.WRITE_ONLY, result.textures.size.toLong() * 4 * Int.SIZE_BYTES) {
-                var index = 0L
-
-                for (texture in result.textures) {
-                    put(index++, texture.min.x)
-                    put(index++, texture.min.y)
-                    put(index++, texture.size.x)
-                    put(index++, texture.size.y)
-                }
-            }
-        }
-    }
 
     @JvmStatic
     fun pack(vararg textures: AbstractVec2<Int>): Result {

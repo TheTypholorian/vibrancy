@@ -7,6 +7,7 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlClearBit
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureTarget
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
@@ -76,6 +77,7 @@ open class RayPointLight(
         val mesh = Mesh(
             NeoVertexFormat.POSITION,
             GlBeginMode.QUADS,
+            GlBufferWriter.Mode.REGULAR,
             GlBufferUsage.STATIC_DRAW
         )
         mesh.upload(24) {

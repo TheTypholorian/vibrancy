@@ -1,9 +1,9 @@
 package net.typho.vibrancy.shadows
 
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBeginMode
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferAccess
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferTarget
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlBuffer
 import net.typho.big_shot_lib.api.client.rendering.util.NeoBufferBuilder
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
@@ -42,14 +42,11 @@ open class ShadowMesh : NativeResource {
                 if (shadowFaces.isEmpty()) {
                     shadowBuffer.bufferData(0, GlBufferUsage.STATIC_DRAW)
                 } else {
-                    val bufferBuilder = NeoBufferBuilder.create(
+                    val bufferBuilder = NeoBufferBuilder(
                         VERTEX_FORMAT,
                         GlBeginMode.QUADS,
                         shadowFaces.size * 4,
-                        {
-                            shadowBuffer.bufferData(it, GlBufferUsage.STATIC_DRAW)
-                            shadowBuffer.mapBuffer(GlBufferAccess.WRITE_ONLY, it)
-                        },
+                        { GlBufferWriter.Mode.REGULAR.create(shadowBuffer, it, GlBufferUsage.STATIC_DRAW) },
                         { null }
                     )
 
@@ -57,7 +54,7 @@ open class ShadowMesh : NativeResource {
                         it.quad.put(bufferBuilder)
                     }
 
-                    (bufferBuilder.build()!! as NativeResource).free() // TODO
+                    bufferBuilder.build()
                 }
             }
 
