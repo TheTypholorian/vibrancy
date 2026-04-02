@@ -7,7 +7,6 @@ import net.minecraft.world.level.chunk.LevelChunk
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferTarget
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlBuffer
 import net.typho.big_shot_lib.api.client.rendering.quad.NeoAtlas
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
@@ -32,7 +31,6 @@ import net.typho.vibrancy.shadows.LightMesh
 import org.lwjgl.opengl.GL30.glBindBufferBase
 import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.system.NativeResource
-import java.io.DataOutputStream
 import java.util.*
 import java.util.concurrent.CompletableFuture
 import java.util.function.Consumer
@@ -177,22 +175,20 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                         chunk.ssbo.bind(GlBufferTarget.SHADER_STORAGE_BUFFER).use { ssbo ->
                             val size = chunk.size.toLong() * 8 * Float.SIZE_BYTES
 
-                            GlBufferWriter.Mode.REGULAR.create(ssbo, size, GlBufferUsage.STATIC_DRAW).use { writer ->
-                                val write = DataOutputStream(writer.write())
-
+                            ssbo.upload(size, GlBufferUsage.STATIC_DRAW) {
                                 for (light in chunk.map.values) {
                                     val color = light.color
                                     val pos = light.absolutePos
 
-                                    write.writeFloat(pos.x)
-                                    write.writeFloat(pos.y)
-                                    write.writeFloat(pos.z)
-                                    write.writeFloat(0f)
+                                    writeFloat(pos.x)
+                                    writeFloat(pos.y)
+                                    writeFloat(pos.z)
+                                    writeFloat(0f)
 
-                                    write.writeFloat(color.x)
-                                    write.writeFloat(color.y)
-                                    write.writeFloat(color.z)
-                                    write.writeFloat(0f)
+                                    writeFloat(color.x)
+                                    writeFloat(color.y)
+                                    writeFloat(color.z)
+                                    writeFloat(0f)
                                 }
                             }
                         }
