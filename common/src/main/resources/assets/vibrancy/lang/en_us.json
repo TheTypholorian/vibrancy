@@ -7,6 +7,11 @@
   "text.autoconfig.vibrancy.option.limitLightBrightness.@Tooltip[0]": "Limits how bright Vibrancy lights can make each pixel.",
   "text.autoconfig.vibrancy.option.limitLightBrightness.@Tooltip[1]": "Better for videos in some situations, but looses some detail and quality.",
 
+  "text.autoconfig.vibrancy.option.specularReflections": "Specular Reflections",
+  "text.autoconfig.vibrancy.option.specularReflections.enabled": "Enabled",
+  "text.autoconfig.vibrancy.option.specularReflections.strength": "Strength",
+  "text.autoconfig.vibrancy.option.specularReflections.exponent": "Exponent",
+
   "text.autoconfig.vibrancy.option.blockLights": "Block Lights",
 
   "text.autoconfig.vibrancy.option.blockLights.raytraced": "Raytraced",

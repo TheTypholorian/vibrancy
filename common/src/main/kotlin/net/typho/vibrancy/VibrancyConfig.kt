@@ -8,13 +8,23 @@ import me.shedaniel.autoconfig.annotation.ConfigEntry
 class VibrancyConfig : ConfigData {
     @JvmField
     var modEnabled = true
-
     @JvmField
     var useMultithreading = true
-
     @JvmField
-    @ConfigEntry.Gui.Tooltip
+    @ConfigEntry.Gui.Tooltip(count = 2)
     var limitLightBrightness = false
+    @JvmField
+    @ConfigEntry.Gui.CollapsibleObject
+    var specularReflections = SpecularReflectionsSection()
+
+    class SpecularReflectionsSection : ConfigData {
+        @JvmField
+        var enabled = true
+        @JvmField
+        var strength = 3.5f
+        @JvmField
+        var exponent = 3f
+    }
 
     @JvmField
     @ConfigEntry.Gui.CollapsibleObject

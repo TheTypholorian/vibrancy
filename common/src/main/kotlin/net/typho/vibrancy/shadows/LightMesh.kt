@@ -57,7 +57,11 @@ open class LightMesh : NativeResource {
             ),
             shader = GlShaderShard.FromLocation(
                 shader,
-                { },
+                {
+                    setUniform("SpecularReflectionsEnabled") { set(if (Vibrancy.config.specularReflections.enabled) 1 else 0) }
+                    setUniform("SpecularReflectionStrength") { set(Vibrancy.config.specularReflections.strength) }
+                    setUniform("SpecularReflectionExponent") { set(Vibrancy.config.specularReflections.exponent) }
+                },
                 GlTextureBinding.FromInstance(
                     sampler0,
                     GlTextureTarget.TEXTURE_2D
