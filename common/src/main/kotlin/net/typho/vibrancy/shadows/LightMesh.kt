@@ -15,6 +15,7 @@ import net.typho.big_shot_lib.api.math.vec.NeoVec2f
 import net.typho.big_shot_lib.api.math.vec.NeoVec2i
 import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.TextureAtlas
+import net.typho.vibrancy.Vibrancy
 import org.lwjgl.system.NativeResource
 
 open class LightMesh : NativeResource {
@@ -40,7 +41,7 @@ open class LightMesh : NativeResource {
                     GlBlendingFactor.ONE,
                     GlBlendingFactor.ONE
                 ),
-                GlBlendEquation.MAX
+                if (Vibrancy.config.limitLightBrightness) GlBlendEquation.MAX else GlBlendEquation.ADD
             ),
             cull = GlCullShard.Enabled(
                 GlCullFace.BACK
@@ -144,13 +145,14 @@ open class LightMesh : NativeResource {
             NeoVec2i(face.width, face.height)
         }
         val result = TextureAtlas.pack(*textures)
+        val lazyUpload = mesh.lazyUpload(lightFaces.size * 4) {
+            lightFaces.forEachIndexed { index, face -> face.applyOverlay(result.textures[index]).put(this) }
+        }
 
         return {
             empty = lightFaces.isEmpty()
 
-            mesh.upload(lightFaces.size * 4) {
-                lightFaces.forEachIndexed { index, face -> face.applyOverlay(result.textures[index]).put(this) }
-            }
+            lazyUpload()
 
             if (!empty) {
                 texture.bind(GlTextureTarget.TEXTURE_2D).use {

@@ -10,6 +10,10 @@ class VibrancyConfig : ConfigData {
     var useMultithreading = true
 
     @JvmField
+    @ConfigEntry.Gui.Tooltip
+    var limitLightBrightness = false
+
+    @JvmField
     @ConfigEntry.Gui.CollapsibleObject
     var blockLights = BlockLightsSection()
 
@@ -26,7 +30,7 @@ class VibrancyConfig : ConfigData {
             var maxRendered: Int = 400
             @JvmField
             @ConfigEntry.Gui.Tooltip(count = 2)
-            var brightness: Float = 0.75f
+            var brightness: Float = 1f
             @JvmField
             @ConfigEntry.Gui.Tooltip
             @ConfigEntry.BoundedDiscrete(min = 1, max = 16)
@@ -48,7 +52,7 @@ class VibrancyConfig : ConfigData {
             var renderDistance: Int = 6 // 50_000 to inf + 50_000
             @JvmField
             @ConfigEntry.Gui.Tooltip(count = 2)
-            var brightness = 2f // 0.25 to 2.5 + 0.25 (%)
+            var brightness = 1f // 0.25 to 2.5 + 0.25 (%)
         }
     }
 }

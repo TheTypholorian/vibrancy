@@ -1,6 +1,5 @@
 package net.typho.vibrancy.shadows
 
-
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.typho.big_shot_lib.api.client.rendering.quad.NeoAtlas
@@ -31,20 +30,14 @@ class FloodFillMesher(
         faces.clear()
     }
 
-    fun markDirty(pos: AbstractVec3<Int>) {
-        val remove = setOf(
-            pos,
-            pos + NeoDirection.UP,
-            pos + NeoDirection.DOWN,
-            pos + NeoDirection.NORTH,
-            pos + NeoDirection.SOUTH,
-            pos + NeoDirection.WEST,
-            pos + NeoDirection.EAST
-        )
-
-        checked.addAll(remove)
-        cursors.addAll(remove)
-        faces.removeIf { remove.contains(it.blockPos) }
+    fun markDirty(pos: AbstractVec3<Int>): Boolean {
+        if (checked.contains(pos)) {
+            cursors.add(pos)
+            faces.removeIf { it.blockPos == pos }
+            return true
+        } else {
+            return false
+        }
     }
 
     override fun submit(

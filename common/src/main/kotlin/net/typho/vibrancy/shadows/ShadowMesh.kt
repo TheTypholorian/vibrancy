@@ -37,28 +37,28 @@ open class ShadowMesh : NativeResource {
     ): () -> TextureAtlas.Result {
         val light = lightMesh.build(lightFaces)
 
-        return {
-            shadowBuffer.bind(GlBufferTarget.ARRAY_BUFFER).use { shadowBuffer ->
-                if (shadowFaces.isEmpty()) {
-                    shadowBuffer.bufferData(0, GlBufferUsage.STATIC_DRAW)
-                } else {
-                    val bufferBuilder = NeoBufferBuilder(
-                        VERTEX_FORMAT,
-                        GlBeginMode.QUADS,
-                        shadowFaces.size * 4,
-                        { GlBufferWriter.Mode.REGULAR.create(shadowBuffer, it, GlBufferUsage.STATIC_DRAW) },
-                        { null }
-                    )
+        if (shadowFaces.isEmpty()) {
+            return {
+                shadowBuffer.bind(GlBufferTarget.ARRAY_BUFFER).use { it.bufferData(0, GlBufferUsage.STATIC_DRAW) }
+                light()
+            }
+        } else {
+            val bufferBuilder = NeoBufferBuilder(
+                VERTEX_FORMAT,
+                GlBeginMode.QUADS,
+                shadowFaces.size * 4,
+                { GlBufferWriter.Mode.REGULAR.create(shadowBuffer, GlBufferTarget.ARRAY_BUFFER, it, GlBufferUsage.STATIC_DRAW) },
+                { null }
+            )
 
-                    shadowFaces.forEach {
-                        it.quad.put(bufferBuilder)
-                    }
-
-                    bufferBuilder.build()
-                }
+            shadowFaces.forEach {
+                it.quad.put(bufferBuilder)
             }
 
-            light()
+            return {
+                bufferBuilder.build()
+                light()
+            }
         }
     }
 }

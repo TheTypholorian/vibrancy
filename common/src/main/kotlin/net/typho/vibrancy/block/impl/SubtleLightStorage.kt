@@ -19,6 +19,7 @@ import net.typho.big_shot_lib.api.math.vec.AbstractVec3
 import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.blockPos
 import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.plus
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
+import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.block.BlockLightRegistry
@@ -167,29 +168,30 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                         faces::add
                     )
                     val task = chunk.mesh.build(faces)
+                    val buffer = NeoBuffer.Native(chunk.size.toLong() * 8 * Float.SIZE_BYTES)
+
+                    buffer.write().run {
+                        for (light in chunk.map.values) {
+                            val color = light.color
+                            val pos = light.absolutePos
+
+                            writeFloat(pos.x)
+                            writeFloat(pos.y)
+                            writeFloat(pos.z)
+                            writeFloat(0f)
+
+                            writeFloat(color.x)
+                            writeFloat(color.y)
+                            writeFloat(color.z)
+                            writeFloat(0f)
+                        }
+                    }
 
                     return Consumer { data ->
                         val atlasResult = task()
 
                         chunk.ssbo.bind(GlBufferTarget.SHADER_STORAGE_BUFFER).use { ssbo ->
-                            val size = chunk.size.toLong() * 8 * Float.SIZE_BYTES
-
-                            ssbo.upload(size, GlBufferUsage.STATIC_DRAW) {
-                                for (light in chunk.map.values) {
-                                    val color = light.color
-                                    val pos = light.absolutePos
-
-                                    writeFloat(pos.x)
-                                    writeFloat(pos.y)
-                                    writeFloat(pos.z)
-                                    writeFloat(0f)
-
-                                    writeFloat(color.x)
-                                    writeFloat(color.y)
-                                    writeFloat(color.z)
-                                    writeFloat(0f)
-                                }
-                            }
+                            ssbo.bufferData(buffer, GlBufferUsage.STATIC_DRAW)
                         }
 
                         if (faces.isNotEmpty()) {

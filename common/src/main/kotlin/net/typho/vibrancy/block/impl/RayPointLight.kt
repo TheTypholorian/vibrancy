@@ -158,13 +158,11 @@ open class RayPointLight(
     }
 
     fun update(manager: LightManager, data: RenderEventData) {
-        for (pos in manager.dirtyBlocks) {
-            if (boundingBox.contains(pos)) {
-                synchronized(shadows.mesher) {
-                    shadows.mesher.markDirty(pos)
+        synchronized(shadows.mesher) {
+            for (pos in manager.dirtyBlocks) {
+                if (boundingBox.contains(pos)) {
+                    shadowsDirty = shadowsDirty or shadows.mesher.markDirty(pos)
                 }
-                shadowsDirty = true
-                break
             }
         }
 
