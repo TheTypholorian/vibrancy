@@ -52,8 +52,9 @@ class FloodFillMesher(
                 level,
                 pos,
                 atlas,
-                { predicate.shouldCastFace(it, level, pos, state) }
-            ) { dir, face -> faces.add(face) }
+                { predicate.shouldCastFace(it, level, pos, state) },
+                { dir, face -> faces.add(face) }
+            )
         }
 
         while (cursors.isNotEmpty()) {

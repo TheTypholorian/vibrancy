@@ -4,14 +4,15 @@ import net.minecraft.client.Minecraft
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.typho.big_shot_lib.api.client.rendering.quad.NeoAtlas
+import net.typho.big_shot_lib.api.client.rendering.quad.NeoBakedQuad
 import net.typho.big_shot_lib.api.math.NeoDirection
 import net.typho.big_shot_lib.api.math.vec.AbstractVec3
 import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.blockPos
 import net.typho.big_shot_lib.api.math.vec.NeoVec3f
 import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.big_shot_lib.api.util.NeoColor
+import net.typho.big_shot_lib.api.util.WrapperUtil
 import net.typho.vibrancy.LightManager
-import java.util.function.BiConsumer
 
 interface ShadowMesher {
     fun submit(
@@ -31,7 +32,8 @@ interface ShadowMesher {
             pos: AbstractVec3<Int>,
             atlas: NeoAtlas,
             predicate: (face: NeoDirection?) -> Boolean,
-            out: BiConsumer<NeoDirection?, LightFace>
+            out: (dir: NeoDirection?, face: LightFace) -> Unit,
+            collectFluid: Boolean = true
         ) {
             if (!state.isAir) {
                 BlockUtil.INSTANCE.getBlockQuads(state, level, pos) { dir, quads ->
@@ -51,7 +53,7 @@ interface ShadowMesher {
                                 return@withVertices vertex
                             }
 
-                            out.accept(
+                            out(
                                 dir,
                                 LightFace(
                                     pos,
@@ -62,6 +64,33 @@ interface ShadowMesher {
                             )
                         }
                     }
+                }
+
+                if (collectFluid) {
+                    val fluid = level.getFluidState(pos.blockPos)
+                    val consumer = object : NeoBakedQuad.Consumer() {
+                        override fun take(quad: NeoBakedQuad) {
+                            out(null, LightFace(pos, state, quad.withVertices { index, vertex ->
+                                vertex.withPosition { vertexPos ->
+                                    vertexPos.plus(
+                                        (pos.x and 15.inv()).toFloat(),
+                                        (pos.y and 15.inv()).toFloat(),
+                                        (pos.z and 15.inv()).toFloat()
+                                    )
+                                }
+                            }, atlas)) // TODO once RenderSettings draw state implemented, set to fluid's texture rather than block atlas
+                        }
+                    }
+
+                    Minecraft.getInstance().blockRenderer.renderLiquid(
+                        pos.blockPos,
+                        level,
+                        WrapperUtil.INSTANCE.unwrap(consumer),
+                        state,
+                        fluid
+                    )
+
+                    consumer.flush()
                 }
             }
         }

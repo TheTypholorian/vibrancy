@@ -26,10 +26,9 @@ class BasicMesher(
                 level,
                 pos,
                 atlas,
-                { predicate.shouldCastFace(it, level, pos, state) }
-            ) { dir, face ->
-                out(face)
-            }
+                { predicate.shouldCastFace(it, level, pos, state) },
+                { dir, face -> out(face) }
+            )
         }
     }
 }

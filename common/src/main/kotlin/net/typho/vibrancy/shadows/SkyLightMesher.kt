@@ -31,8 +31,9 @@ class SkyLightMesher(
                 level,
                 pos,
                 atlas,
-                { predicate.shouldCastFace(it, level, pos, state) }
-            ) { dir, face -> faces.add(face) }
+                { predicate.shouldCastFace(it, level, pos, state) },
+                { dir, face -> faces.add(face) }
+            )
         }
 
         val chunk = level.getChunk(pos.x, pos.z)
