@@ -1,5 +1,6 @@
 package net.typho.vibrancy.shadows
 
+import net.minecraft.world.level.block.state.BlockState
 import net.typho.big_shot_lib.api.client.rendering.quad.NeoAtlas
 import net.typho.big_shot_lib.api.client.rendering.quad.NeoBakedQuad
 import net.typho.big_shot_lib.api.math.rect.AbstractRect2
@@ -12,6 +13,8 @@ data class LightFace(
     @JvmField
     val blockPos: AbstractVec3<Int>,
     @JvmField
+    val state: BlockState,
+    @JvmField
     val quad: NeoBakedQuad,
     @JvmField
     val width: Int,
@@ -20,10 +23,12 @@ data class LightFace(
 ) {
     constructor(
         blockPos: AbstractVec3<Int>,
+        state: BlockState,
         quad: NeoBakedQuad,
         atlas: NeoAtlas
     ) : this(
         blockPos,
+        state,
         quad,
         ceil(abs(quad.vertices[0].textureUV!!.y - quad.vertices[2].textureUV!!.y) * atlas.height).toInt(),
         ceil(abs(quad.vertices[0].textureUV!!.x - quad.vertices[2].textureUV!!.x) * atlas.width).toInt()

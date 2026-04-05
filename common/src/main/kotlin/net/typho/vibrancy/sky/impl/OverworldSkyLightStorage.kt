@@ -26,9 +26,9 @@ import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.shadows.AsyncBlockShadowMesh
+import net.typho.vibrancy.shadows.LightFacePredicate
 import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.shadows.LightMesh.Companion.BLIT_VERTEX_FORMAT
-import net.typho.vibrancy.shadows.ShadowPredicate
 import net.typho.vibrancy.shadows.SkyLightMesher
 import net.typho.vibrancy.sky.ChunkedSkyLightStorage
 import net.typho.vibrancy.sky.SkyLightStorage
@@ -116,7 +116,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
     inner class Chunk(
         @JvmField
         val pos: ChunkPos
-    ) : SkyLightStorage<OverworldSkyLightInfo>, NativeResource, ShadowPredicate {
+    ) : SkyLightStorage<OverworldSkyLightInfo>, NativeResource, LightFacePredicate {
         private var shadowsDirty = true
         @JvmField
         val mesh: AsyncBlockShadowMesh<*> = AsyncBlockShadowMesh(SkyLightMesher(pos)) { info, data ->
@@ -132,7 +132,9 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
         fun updateShadows(manager: LightManager, data: RenderEventData, debugOut: (key: String, value: Int) -> Unit) {
             if (shadowsDirty) {
-                mesh.rebuildAsync(manager, data, this)
+                mesh.rebuildAsync(manager, data, this) {
+                    true
+                }
                 shadowsDirty = false
             }
 
@@ -199,14 +201,6 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                 face,
                 state
             )
-        }
-
-        override fun isInLightRange(pos: AbstractVec3<Int>): Boolean {
-            return true
-        }
-
-        override fun isInShadowRange(pos: AbstractVec3<Int>): Boolean {
-            return true
         }
 
         fun markNeighborsDirty() {

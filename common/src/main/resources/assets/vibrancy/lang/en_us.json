@@ -21,8 +21,6 @@
   "text.autoconfig.vibrancy.option.blockLights.raytraced.brightness": "Brightness",
   "text.autoconfig.vibrancy.option.blockLights.raytraced.brightness.@Tooltip[0]": "Linear multiplier for the brightness of all block lights.",
   "text.autoconfig.vibrancy.option.blockLights.raytraced.brightness.@Tooltip[1]": "Does not affect their radius.",
-  "text.autoconfig.vibrancy.option.blockLights.raytraced.lightRadius": "Light Radius",
-  "text.autoconfig.vibrancy.option.blockLights.raytraced.lightRadius.@Tooltip": "The maximum radius (in blocks) from each block light where blocks will have light applied.",
   "text.autoconfig.vibrancy.option.blockLights.raytraced.shadowRadius": "Shadow Radius",
   "text.autoconfig.vibrancy.option.blockLights.raytraced.shadowRadius.@Tooltip": "The maximum radius (in blocks) from each block light where blocks will cast shadows.",
 

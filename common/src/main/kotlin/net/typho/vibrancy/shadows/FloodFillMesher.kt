@@ -9,9 +9,7 @@ import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.blockPos
 import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.plus
 import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.vibrancy.LightManager
-import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.Vibrancy.isPointingTowardsInclusive
-import java.util.function.Consumer
 
 class FloodFillMesher(
     @JvmField
@@ -43,10 +41,9 @@ class FloodFillMesher(
     override fun submit(
         manager: LightManager,
         level: Level,
-        predicate: ShadowPredicate,
         atlas: NeoAtlas,
-        shadowOut: Consumer<LightFace>,
-        lightOut: Consumer<LightFace>
+        predicate: LightFacePredicate,
+        out: (face: LightFace) -> Unit
     ) {
         fun collect(pos: AbstractVec3<Int>, state: BlockState) {
             ShadowMesher.collectLightFaces(
@@ -72,7 +69,7 @@ class FloodFillMesher(
                 if (direction.isPointingTowardsInclusive(this.pos, cursor) && checked.add(pos)) {
                     val state = level.getBlockState(pos.blockPos)
 
-                    if (predicate.shouldCastBlock(level, pos, state) && predicate.isInLightRange(pos)) {
+                    if (predicate.shouldCastBlock(level, pos, state)) {
                         if (BlockUtil.INSTANCE.isSolidRender(state, pos, level)) {
                             collect(pos, state)
                         } else {
@@ -84,11 +81,7 @@ class FloodFillMesher(
         }
 
         faces.forEach {
-            if (predicate.isInShadowRange(it.blockPos) && !level.getBlockState(it.blockPos.blockPos).`is`(Vibrancy.noShadowsTag)) {
-                shadowOut.accept(it)
-            }
-
-            lightOut.accept(it)
+            out(it)
         }
     }
 }

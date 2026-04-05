@@ -6,7 +6,7 @@ import net.typho.big_shot_lib.api.math.NeoDirection
 import net.typho.big_shot_lib.api.math.vec.AbstractVec3
 import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.blockPos
 
-interface ShadowPredicate {
+interface LightFacePredicate {
     fun shouldCastBlock(
         level: Level,
         pos: AbstractVec3<Int>,
@@ -19,8 +19,4 @@ interface ShadowPredicate {
         pos: AbstractVec3<Int>,
         state: BlockState = level.getBlockState(pos.blockPos)
     ): Boolean
-
-    fun isInLightRange(pos: AbstractVec3<Int>): Boolean
-
-    fun isInShadowRange(pos: AbstractVec3<Int>): Boolean
 }

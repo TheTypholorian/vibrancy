@@ -6,7 +6,6 @@ import me.shedaniel.autoconfig.serializer.GsonConfigSerializer
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
 import net.minecraft.network.chat.Component
-import net.minecraft.world.level.block.Block
 import net.typho.big_shot_lib.api.client.rendering.opengl.GlQueue
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlFramebuffer
@@ -29,7 +28,6 @@ import net.typho.big_shot_lib.api.math.vec.AbstractVec3
 import net.typho.big_shot_lib.api.util.*
 import net.typho.big_shot_lib.api.util.event.CommonEventFactory
 import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
-import net.typho.big_shot_lib.api.util.resource.NeoTagKey
 import net.typho.vibrancy.block.BlockLightInfoLoader
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.shadows.LightMesh
@@ -64,13 +62,6 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
     var toggleSubtleLightsKey: KeyMapping? = null
      */
 
-    @JvmField
-    val noShadowsTag = WrapperUtil.INSTANCE.unwrap(
-        NeoTagKey<Block>(
-            NeoIdentifier("minecraft", "block"),
-            id("no_shadows")
-        )
-    )
     val TARGET by lazy {
         NeoGlTexture2D().also {
             it.bind(GlTextureTarget.TEXTURE_2D).use { texture ->

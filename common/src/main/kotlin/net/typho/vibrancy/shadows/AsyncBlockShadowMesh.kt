@@ -35,14 +35,21 @@ open class AsyncBlockShadowMesh<M : ShadowMesher>(
 
     protected fun rebuildAsyncImpl(
         manager: LightManager,
-        predicate: ShadowPredicate
+        predicate: LightFacePredicate,
+        shadowPredicate: (face: LightFace) -> Boolean
     ): () -> LightMesh.LightBlitInfo {
         val level = manager.getLevel() ?: throw NullPointerException("No level?")
 
         val shadowFaces = arrayListOf<LightFace>()
         val lightFaces = arrayListOf<LightFace>()
         synchronized(mesher) {
-            mesher.submit(manager, level, predicate, NeoAtlas.blocks, shadowFaces::add, lightFaces::add)
+            mesher.submit(manager, level, NeoAtlas.blocks, predicate) { face ->
+                if (shadowPredicate(face)) {
+                    shadowFaces.add(face)
+                }
+
+                lightFaces.add(face)
+            }
         }
 
         val built = build(shadowFaces, lightFaces)
@@ -58,13 +65,14 @@ open class AsyncBlockShadowMesh<M : ShadowMesher>(
     fun rebuildAsync(
         manager: LightManager,
         data: RenderEventData,
-        predicate: ShadowPredicate
+        predicate: LightFacePredicate,
+        shadowPredicate: (face: LightFace) -> Boolean
     ) {
         if (Vibrancy.config.useMultithreading) {
             asyncTask?.cancel(true)
-            asyncTask = CompletableFuture.supplyAsync { rebuildAsyncImpl(manager, predicate) }
+            asyncTask = CompletableFuture.supplyAsync { rebuildAsyncImpl(manager, predicate, shadowPredicate) }
         } else {
-            val info = rebuildAsyncImpl(manager, predicate)()
+            val info = rebuildAsyncImpl(manager, predicate, shadowPredicate)()
 
             if (!lightMesh.empty) {
                 blit(info, data)

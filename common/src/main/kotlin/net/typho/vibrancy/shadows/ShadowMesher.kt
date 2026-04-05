@@ -12,16 +12,14 @@ import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.vibrancy.LightManager
 import java.util.function.BiConsumer
-import java.util.function.Consumer
 
 interface ShadowMesher {
     fun submit(
         manager: LightManager,
         level: Level,
-        predicate: ShadowPredicate,
         atlas: NeoAtlas,
-        shadowOut: Consumer<LightFace>,
-        lightOut: Consumer<LightFace>
+        predicate: LightFacePredicate,
+        out: (face: LightFace) -> Unit
     )
 
     companion object {
@@ -57,6 +55,7 @@ interface ShadowMesher {
                                 dir,
                                 LightFace(
                                     pos,
+                                    state,
                                     quad,
                                     atlas
                                 )

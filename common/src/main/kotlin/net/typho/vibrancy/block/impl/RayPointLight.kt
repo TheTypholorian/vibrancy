@@ -24,8 +24,8 @@ import net.typho.vibrancy.Vibrancy.isPointingTowards
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.shadows.AsyncBlockShadowMesh
 import net.typho.vibrancy.shadows.FloodFillMesher
+import net.typho.vibrancy.shadows.LightFacePredicate
 import net.typho.vibrancy.shadows.LightMesh
-import net.typho.vibrancy.shadows.ShadowPredicate
 import net.typho.vibrancy.util.PointLight
 import org.lwjgl.opengl.GL30.glBindBufferBase
 import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
@@ -40,7 +40,7 @@ open class RayPointLight(
     @JvmField
     val offset: AbstractVec3<Float>,
     override val pos: AbstractVec3<Int>
-) : PointLight, NativeResource {
+) : PointLight, LightFacePredicate, NativeResource {
     companion object {
         @JvmField
         val drawState = GlDrawState.Basic(
@@ -88,62 +88,47 @@ open class RayPointLight(
             val shadowRadius = ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.shadowRadius.toFloat())).toInt()
             return NeoRect3i(pos - shadowRadius, pos + shadowRadius)
         }
-    override val shadowPredicate = object : ShadowPredicate {
-        override fun shouldCastBlock(
-            level: Level,
-            pos: AbstractVec3<Int>,
-            state: BlockState
-        ): Boolean {
-            return boundingBox.contains(pos) && !BlockLightRegistry.has(state)
-        }
 
-        override fun shouldCastFace(
-            face: NeoDirection?,
-            level: Level,
-            pos: AbstractVec3<Int>,
-            state: BlockState
-        ): Boolean {
-            if (face == null) {
-                return true
-            }
+    override fun shouldCastBlock(
+        level: Level,
+        pos: AbstractVec3<Int>,
+        state: BlockState
+    ): Boolean {
+        return boundingBox.contains(pos)
+    }
 
-            val sidePos = pos + face
-
-            if (sidePos == this@RayPointLight.pos) {
-                return true
-            }
-
-            if (!face.isPointingTowards(pos, this@RayPointLight.pos)) {
-                return false
-            }
-
-            if (
-                !BlockUtil.INSTANCE.shouldRenderFace(
-                    level,
-                    pos,
-                    face,
-                    state
-                )
-            ) {
-                return false
-            }
-
+    override fun shouldCastFace(
+        face: NeoDirection?,
+        level: Level,
+        pos: AbstractVec3<Int>,
+        state: BlockState
+    ): Boolean {
+        if (face == null) {
             return true
         }
 
-        override fun isInShadowRange(pos: AbstractVec3<Int>): Boolean {
-            if (pos == this@RayPointLight.pos) {
-                return false
-            }
+        val sidePos = pos + face
 
-            val shadowRadius = ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.shadowRadius.toFloat())).toInt()
-            return pos.inDistance(this@RayPointLight.pos, shadowRadius)
+        if (sidePos == this@RayPointLight.pos) {
+            return true
         }
 
-        override fun isInLightRange(pos: AbstractVec3<Int>): Boolean {
-            val lightRadius = ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.lightRadius.toFloat())).toInt()
-            return pos.inDistance(this@RayPointLight.pos, lightRadius)
+        if (!face.isPointingTowards(pos, this@RayPointLight.pos)) {
+            return false
         }
+
+        if (
+            !BlockUtil.INSTANCE.shouldRenderFace(
+                level,
+                pos,
+                face,
+                state
+            )
+        ) {
+            return false
+        }
+
+        return true
     }
 
     fun reload() {
@@ -167,7 +152,9 @@ open class RayPointLight(
         }
 
         if (shadowsDirty) {
-            shadows.rebuildAsync(manager, data, shadowPredicate)
+            shadows.rebuildAsync(manager, data, this) { face ->
+                face.blockPos.inDistance(pos, Vibrancy.config.blockLights.raytraced.shadowRadius) && !BlockLightRegistry.has(face.state)
+            }
             shadowsDirty = false
         }
 

@@ -162,9 +162,8 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                     BasicMesher(blocks).submit(
                         manager,
                         data.level,
-                        SubtleLight.SHADOW_PREDICATE,
                         NeoAtlas.blocks,
-                        {},
+                        SubtleLightFacePredicate,
                         faces::add
                     )
                     val task = chunk.mesh.build(faces)

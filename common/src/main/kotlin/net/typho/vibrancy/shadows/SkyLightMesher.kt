@@ -10,8 +10,6 @@ import net.typho.big_shot_lib.api.math.vec.AbstractVec3
 import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.blockPos
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.vibrancy.LightManager
-import net.typho.vibrancy.Vibrancy
-import java.util.function.Consumer
 
 class SkyLightMesher(
     @JvmField
@@ -20,10 +18,9 @@ class SkyLightMesher(
     override fun submit(
         manager: LightManager,
         level: Level,
-        predicate: ShadowPredicate,
         atlas: NeoAtlas,
-        shadowOut: Consumer<LightFace>,
-        lightOut: Consumer<LightFace>
+        predicate: LightFacePredicate,
+        out: (face: LightFace) -> Unit
     ) {
         val faces = arrayListOf<LightFace>()
 
@@ -88,12 +85,7 @@ class SkyLightMesher(
          */
 
         faces.forEach {
-            val state = level.getBlockState(it.blockPos.blockPos)
-            if (predicate.isInShadowRange(it.blockPos) && /*!BlockUtil.INSTANCE.isSolidRender(state, it.blockPos, level) &&*/ !state.`is`(Vibrancy.noShadowsTag)) {
-                shadowOut.accept(it)
-            }
-
-            lightOut.accept(it)
+            out(it)
         }
     }
 }
