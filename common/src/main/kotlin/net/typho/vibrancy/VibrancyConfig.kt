@@ -7,6 +7,9 @@ import me.shedaniel.autoconfig.annotation.ConfigEntry
 @Config(name = Vibrancy.MOD_ID)
 class VibrancyConfig : ConfigData {
     @JvmField
+    var modEnabled = true
+
+    @JvmField
     var useMultithreading = true
 
     @JvmField

@@ -40,11 +40,13 @@ open class LightManager {
     }
 
     fun reload() {
-        for (light in blockLights.values) {
-            light.reload(this, null)
-        }
+        if (Vibrancy.config.modEnabled) {
+            for (light in blockLights.values) {
+                light.reload(this, null)
+            }
 
-        skyLight?.second?.reload(this)
+            skyLight?.second?.reload(this)
+        }
     }
 
     fun ensureStorageInitialized() {

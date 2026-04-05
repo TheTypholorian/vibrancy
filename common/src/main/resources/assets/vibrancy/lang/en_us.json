@@ -1,6 +1,7 @@
 {
   "text.autoconfig.vibrancy.title": "Vibrancy Config",
 
+  "text.autoconfig.vibrancy.option.modEnabled": "Mod Enabled",
   "text.autoconfig.vibrancy.option.useMultithreading": "Use Multithreading",
   "text.autoconfig.vibrancy.option.limitLightBrightness": "Limit Light Brightness",
   "text.autoconfig.vibrancy.option.limitLightBrightness.@Tooltip[0]": "Limits how bright Vibrancy lights can make each pixel.",
@@ -38,5 +39,8 @@
   "debug.vibrancy.enable_raytraced_block_lights": "[%s] Enabled raytraced block lights",
   "debug.vibrancy.disable_raytraced_block_lights": "[%s] Disabled raytraced block lights",
   "debug.vibrancy.enable_subtle_block_lights": "[%s] Enabled subtle block lights",
-  "debug.vibrancy.disable_subtle_block_lights": "[%s] Disabled subtle block lights"
+  "debug.vibrancy.disable_subtle_block_lights": "[%s] Disabled subtle block lights",
+
+  "error.vibrancy.no_ssbos": "Vibrancy requires the GPU extension GL_ARB_shader_storage_buffer_object (included in OpenGL 4.3), which your system does not support. This can typically be solved by updating your GPU drivers. The mod has been disabled.",
+  "error.vibrancy.no_ssbos_mac": "Vibrancy requires the GPU extension GL_ARB_shader_storage_buffer_object (included in OpenGL 4.3), which MacOS does not support, and there is no way to fix it. The mod has been disabled."
 }

@@ -14,12 +14,6 @@
   "icon": "${mod_id}.png",
   "environment": "client",
   "entrypoints": {
-    "client": [
-      {
-        "adapter": "kotlin",
-        "value": "net.typho.vibrancy.VibrancyOpenGLChecker"
-      }
-    ],
     "modmenu": [
       {
         "adapter": "kotlin",

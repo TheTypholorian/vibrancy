@@ -5,6 +5,7 @@ import me.shedaniel.autoconfig.AutoConfig
 import me.shedaniel.autoconfig.serializer.GsonConfigSerializer
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
+import net.minecraft.network.chat.Component
 import net.minecraft.world.level.block.Block
 import net.typho.big_shot_lib.api.client.rendering.opengl.GlQueue
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
@@ -18,6 +19,7 @@ import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
 import net.typho.big_shot_lib.api.client.util.BigShotClientEntrypoint
 import net.typho.big_shot_lib.api.client.util.DebugScreenFactory
+import net.typho.big_shot_lib.api.client.util.InitialScreenFactory
 import net.typho.big_shot_lib.api.client.util.ResourceListenerFactory
 import net.typho.big_shot_lib.api.client.util.event.ClientEventFactory
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
@@ -34,7 +36,9 @@ import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.shadows.ShadowMesh
 import net.typho.vibrancy.sky.SkyLightInfoLoader
 import net.typho.vibrancy.sky.SkyLightRegistry
+import org.lwjgl.opengl.GL
 import org.lwjgl.system.NativeResource
+import org.lwjgl.system.Platform
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 
@@ -116,55 +120,57 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
 
     @JvmStatic
     fun render(data: RenderEventData) {
-        val targetAttachment = data.target.colorAttachments[0] as GlTexture2D
-        val width = targetAttachment.width.coerceAtLeast(1)
-        val height = targetAttachment.height.coerceAtLeast(1)
+        if (config.modEnabled) {
+            val targetAttachment = data.target.colorAttachments[0] as GlTexture2D
+            val width = targetAttachment.width.coerceAtLeast(1)
+            val height = targetAttachment.height.coerceAtLeast(1)
 
-        FRAMEBUFFER.bind().use { fbo ->
-            if (TARGET.width != width || TARGET.height != height) {
-                TARGET.bind(GlTextureTarget.TEXTURE_2D).use {
-                    it.textureDataMutable(width, height, GlTextureFormat.RGB16F)
+            FRAMEBUFFER.bind().use { fbo ->
+                if (TARGET.width != width || TARGET.height != height) {
+                    TARGET.bind(GlTextureTarget.TEXTURE_2D).use {
+                        it.textureDataMutable(width, height, GlTextureFormat.RGB16F)
+                    }
+                    TARGET_DEPTH.bind(GlTextureTarget.TEXTURE_2D).use {
+                        it.textureDataMutable(
+                            width,
+                            height,
+                            GlTextureFormat.DEPTH_COMPONENT
+                        )
+                    }
                 }
-                TARGET_DEPTH.bind(GlTextureTarget.TEXTURE_2D).use {
-                    it.textureDataMutable(
-                        width,
-                        height,
-                        GlTextureFormat.DEPTH_COMPONENT
+
+                fbo.clear(GlClearBit.Color(NeoColor.FULL_OFF), GlClearBit.Depth(1f))
+                fbo.blitFrom(
+                    data.target,
+                    NeoRect2i(0, 0, width, height),
+                    NeoRect2i(0, 0, width, height),
+                    GlTextureMinFilter.NEAREST,
+                    GlBufferBit.DEPTH
+                )
+
+                lightManager.render(
+                    RenderEventData(
+                        data.camera,
+                        data.level,
+                        data.projMat,
+                        data.modelViewMat,
+                        data.frustum,
+                        FRAMEBUFFER
                     )
-                }
+                )
             }
 
-            fbo.clear(GlClearBit.Color(NeoColor.FULL_OFF), GlClearBit.Depth(1f))
-            fbo.blitFrom(
-                data.target,
-                NeoRect2i(0, 0, width, height),
-                NeoRect2i(0, 0, width, height),
-                GlTextureMinFilter.NEAREST,
-                GlBufferBit.DEPTH
-            )
-
-            lightManager.render(
-                RenderEventData(
-                    data.camera,
-                    data.level,
-                    data.projMat,
-                    data.modelViewMat,
-                    data.frustum,
-                    FRAMEBUFFER
+            val drawState = GlDrawState.Basic(
+                shader = GlShaderShard.FromLocation(
+                    id("light_post"),
+                    {},
+                    GlTextureBinding.FromInstance(TARGET, GlTextureTarget.TEXTURE_2D),
+                    GlTextureBinding.FromInstance(targetAttachment, GlTextureTarget.TEXTURE_2D),
                 )
             )
-        }
-
-        val drawState = GlDrawState.Basic(
-            shader = GlShaderShard.FromLocation(
-                id("light_post"),
-                {},
-                GlTextureBinding.FromInstance(TARGET, GlTextureTarget.TEXTURE_2D),
-                GlTextureBinding.FromInstance(targetAttachment, GlTextureTarget.TEXTURE_2D),
-            )
-        )
-        data.target.bind(NeoRect2i(0, 0, width, height)).use {
-            drawState.bind().use { Mesh.SCREEN_MESH.draw() }
+            data.target.bind(NeoRect2i(0, 0, width, height)).use {
+                drawState.bind().use { Mesh.SCREEN_MESH.draw() }
+            }
         }
     }
 
@@ -189,6 +195,14 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
         NeoDirection.SOUTH -> to.z >= from.z
         NeoDirection.WEST -> to.x <= from.x
         NeoDirection.EAST -> to.x >= from.x
+    }
+
+    override fun displayInitialScreens(factory: InitialScreenFactory) {
+        if (config.modEnabled && !GL.getCapabilities().GL_ARB_shader_storage_buffer_object) {
+            config.modEnabled = false
+            AutoConfig.getConfigHolder(VibrancyConfig::class.java).save()
+            factory.display(Component.translatable(if (Platform.get() == Platform.MACOSX) "error.vibrancy.no_ssbos_mac" else "error.vibrancy.no_ssbos"))
+        }
     }
 
     override fun registerRegistries(factory: RegistryFactory) {
@@ -217,7 +231,7 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
 
     override fun registerEvents(factory: CommonEventFactory) {
         factory.blockChanged.add { level, pos, old, new ->
-            if (level.isClientSide()) {
+            if (config.modEnabled && level.isClientSide()) {
                 GlQueue.INSTANCE.runOrQueue {
                     lightManager.blockChanged(level, pos, old, new)
                 }
@@ -242,17 +256,18 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
     override fun registerEvents(factory: ClientEventFactory) {
         factory.levelRenderEnd.add(Vibrancy::render)
         factory.levelChanged.add { old, new ->
-            lightManager.clear()
+            if (config.modEnabled) {
+                lightManager.clear()
 
-            if (new == null) {
-                (lightManager.skyLight?.second as? NativeResource)?.free()
-                lightManager.skyLight = null
-            } else {
-                val resourceManager = WrapperUtil.INSTANCE.wrap(Minecraft.getInstance().resourceManager)
-                BlockLightInfoLoader.onResourceManagerReload(resourceManager)
-                SkyLightInfoLoader.onResourceManagerReload(resourceManager)
+                if (new == null) {
+                    (lightManager.skyLight?.second as? NativeResource)?.free()
+                    lightManager.skyLight = null
+                } else {
+                    val resourceManager = WrapperUtil.INSTANCE.wrap(Minecraft.getInstance().resourceManager)
+                    BlockLightInfoLoader.onResourceManagerReload(resourceManager)
+                    SkyLightInfoLoader.onResourceManagerReload(resourceManager)
 
-                /*
+                    /*
                     SkyLightRegistry.get(new)?.let { info ->
                         if (lightManager.skyLight?.first != info.type) {
                             (lightManager.skyLight?.second as? NativeResource)?.free()
@@ -271,6 +286,7 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
                         load(lightManager.skyLight!!.second)
                     }
                      */
+                }
             }
         }
         /*
@@ -322,7 +338,7 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
         }
          */
         factory.chunkChanged.add { level, old, new ->
-            if (level.isClientSide()) {
+            if (config.modEnabled && level.isClientSide()) {
                 GlQueue.INSTANCE.runOrQueue {
                     if (old != null) {
                         lightManager.deloadChunk(old)
