@@ -44,25 +44,23 @@ bool raycastQuad(vec3 origin, vec3 dir, float len, float margin, Quad q, out vec
     return true;
 }
 
-vec4 sampleQuad(sampler2D AtlasSampler, vec3 origin, vec3 dir, float len, float margin, Quad q, out float dist) {
+bool sampleQuad(sampler2D AtlasSampler, vec3 origin, vec3 dir, float len, float margin, Quad q, out float dist, out vec4 outColor) {
     vec2 uv;
 
     if (raycastQuad(origin, dir, len, margin, q, uv, dist)) {
         vec2 texUv = mix(mix(q.uv1, q.uv2, uv.x), mix(q.uv4, q.uv3, uv.x), uv.y);
         vec4 color = mix(mix(unpackUnorm4x8(q.color1), unpackUnorm4x8(q.color2), uv.x), mix(unpackUnorm4x8(q.color4), unpackUnorm4x8(q.color3), uv.x), uv.y);
         vec4 pixel = texelFetch(AtlasSampler, ivec2(texUv * textureSize(AtlasSampler, 0)), 0) * color;
-
-        if (pixel.a < 0.01) {
-            return vec4(1);
-        }
+        outColor = pixel;
 
         if (pixel.a > 0.99) {
-            return vec4(0);
+            return true;
         }
 
-        return vec4(pixel.rgb, 1);
+        return false;
     } else {
-        return vec4(1);
+        outColor = vec4(0);
+        return false;
     }
 }
 

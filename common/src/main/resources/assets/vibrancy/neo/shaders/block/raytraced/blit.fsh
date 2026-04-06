@@ -24,12 +24,6 @@ struct Ray {
     float len;
 };
 
-vec4 test(Quad q, Ray check) {
-    float dist;
-
-    return sampleQuad(Sampler0, check.pos, check.dir, check.len, 1e-3, q, dist);
-}
-
 void main() {
     //vec2 step = 1 / (vec2(sprite.width, sprite.height) * 3);
 
@@ -40,8 +34,25 @@ void main() {
     Ray ray = Ray(vertexPos, dir, len);
 
     fragColor = samplePointLight(LightPos, vertexPos, LightRadius, LightColor);
+    vec3 accum = vec3(0);
+    float denom = 0;
 
     for (uint i = 0u; i < shadowQuads.length(); i++) {
-        fragColor *= test(shadowQuads[i], ray);
+        float dist;
+        vec4 outColor;
+        Quad quad = shadowQuads[i];
+
+        if (sampleQuad(Sampler0, ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor)) {
+            discard;
+        }
+
+        if (outColor.a > 0) {
+            accum += outColor.rgb;
+            denom++;
+        }
+    }
+
+    if (denom > 0) {
+        fragColor.rgb *= accum / denom;
     }
 }
