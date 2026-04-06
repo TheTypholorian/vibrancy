@@ -68,29 +68,39 @@ interface ShadowMesher {
 
                 if (collectFluid) {
                     val fluid = level.getFluidState(pos.blockPos)
-                    val consumer = object : NeoBakedQuad.Consumer() {
-                        override fun take(quad: NeoBakedQuad) {
-                            out(null, LightFace(pos, state, quad.withVertices { index, vertex ->
-                                vertex.withPosition { vertexPos ->
-                                    vertexPos.plus(
-                                        (pos.x and 15.inv()).toFloat(),
-                                        (pos.y and 15.inv()).toFloat(),
-                                        (pos.z and 15.inv()).toFloat()
+
+                    if (!fluid.isEmpty) {
+                        val consumer = object : NeoBakedQuad.Consumer() {
+                            override fun take(quad: NeoBakedQuad) {
+                                out(
+                                    null, LightFace(
+                                        pos,
+                                        state,
+                                        quad.withVertices { index, vertex ->
+                                            vertex.withPosition { vertexPos ->
+                                                vertexPos.plus(
+                                                    (pos.x and 15.inv()).toFloat(),
+                                                    (pos.y and 15.inv()).toFloat(),
+                                                    (pos.z and 15.inv()).toFloat()
+                                                )
+                                            }
+                                        },
+                                        atlas
                                     )
-                                }
-                            }, atlas)) // TODO once RenderSettings draw state implemented, set to fluid's texture rather than block atlas
+                                ) // TODO once RenderSettings draw state implemented, set to fluid's texture rather than block atlas (for other mod compat)
+                            }
                         }
+
+                        Minecraft.getInstance().blockRenderer.renderLiquid(
+                            pos.blockPos,
+                            level,
+                            WrapperUtil.INSTANCE.unwrap(consumer),
+                            state,
+                            fluid
+                        )
+
+                        consumer.flush()
                     }
-
-                    Minecraft.getInstance().blockRenderer.renderLiquid(
-                        pos.blockPos,
-                        level,
-                        WrapperUtil.INSTANCE.unwrap(consumer),
-                        state,
-                        fluid
-                    )
-
-                    consumer.flush()
                 }
             }
         }

@@ -55,6 +55,7 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener {
                     parent.sprites[id]?.let { sprite ->
                         resource.value.open().use { stream ->
                             NativeImage.read(NativeImage.Format.RGBA, stream).use { image ->
+                                println("sub image ${sprite.x} ${sprite.y} ${image.width} ${image.height} ${parent.width} ${parent.height}")
                                 glTexSubImage2D(
                                     GL_TEXTURE_2D,
                                     0,
