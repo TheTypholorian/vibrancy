@@ -2,12 +2,19 @@ package net.typho.vibrancy.util
 
 import com.mojang.blaze3d.platform.NativeImage
 import net.minecraft.client.Minecraft
+import net.minecraft.client.renderer.texture.SpriteContents
+import net.minecraft.client.renderer.texture.SpriteLoader
+import net.minecraft.client.renderer.texture.SpriteTicker
+import net.minecraft.client.renderer.texture.atlas.SpriteResourceLoader
+import net.minecraft.resources.ResourceLocation
 import net.typho.big_shot_lib.api.client.rendering.opengl.GlQueue
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlFramebuffer
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.quad.NeoAtlas
+import net.typho.big_shot_lib.api.client.util.BigShotClientEntrypoint
+import net.typho.big_shot_lib.api.client.util.event.ClientEventFactory
 import net.typho.big_shot_lib.api.client.util.resource.NeoResourceManager
 import net.typho.big_shot_lib.api.client.util.resource.NeoResourceManagerReloadListener
 import net.typho.big_shot_lib.api.math.rect.NeoRect2i
@@ -21,15 +28,52 @@ import net.typho.vibrancy.mixin.NativeImageAccessor
 import org.lwjgl.opengl.GL11.*
 import java.io.FileNotFoundException
 
-object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener {
+object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigShotClientEntrypoint {
+    private class Animation(
+        @JvmField
+        val x: Int,
+        @JvmField
+        val y: Int,
+        @JvmField
+        val contents: SpriteContents,
+        @JvmField
+        val ticker: SpriteTicker
+    )
+
+    private class Atlas(
+        @JvmField
+        val texture: GlTexture2D,
+        @JvmField
+        val animations: List<Animation>
+    )
+
     @JvmField
     val idConverter = NeoFileToIdConverter("rtx/reflections", "png")
     override val location: NeoIdentifier = Vibrancy.id("reflection_atlases")
-    private val atlases = hashMapOf<NeoIdentifier, GlTexture2D>()
+    private val atlases = hashMapOf<NeoIdentifier, Atlas>()
 
     override fun onResourceManagerReload(manager: NeoResourceManager) {
-        atlases.forEach { (key, texture) -> GlQueue.INSTANCE.runOrQueue { texture.free() } }
+        atlases.forEach { (key, atlas) -> GlQueue.INSTANCE.runOrQueue {
+            atlas.texture.free()
+
+            for (animation in atlas.animations) {
+                animation.contents.close()
+                animation.ticker.close()
+            }
+        } }
         atlases.clear()
+    }
+
+    override fun registerEvents(factory: ClientEventFactory) {
+        factory.clientTickStart.add {
+            for (atlas in atlases.values) {
+                atlas.texture.bind(GlTextureTarget.TEXTURE_2D).use { texture ->
+                    for (animation in atlas.animations) {
+                        animation.ticker.tickAndUpload(animation.x, animation.y)
+                    }
+                }
+            }
+        }
     }
 
     operator fun get(key: NeoIdentifier, resources: NeoResourceManager = WrapperUtil.INSTANCE.wrap(Minecraft.getInstance().resourceManager)): GlTexture2D {
@@ -40,6 +84,7 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener {
                 } catch (_: NullPointerException) {
                     throw FileNotFoundException("No atlas $key")
                 }
+
                 texture.textureDataImmutable(parent.width, parent.height, GlTextureFormat.R8)
                 texture.minFilter = GlTextureMinFilter.NEAREST
                 texture.magFilter = GlTextureMagFilter.NEAREST
@@ -48,6 +93,9 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener {
                     it.colorAttachments[0] = texture.resource
                     it.clear(GlClearBit.Color(NeoColor.FULL_OFF))
                 }
+
+                val animations = mutableListOf<Animation>()
+                val loader = SpriteResourceLoader.create(SpriteLoader.DEFAULT_METADATA_SECTIONS)
 
                 for (resource in idConverter.listMatchingResources(resources)) {
                     val id = idConverter.fileToId(resource.key)
@@ -67,13 +115,27 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener {
                                     GL_UNSIGNED_BYTE,
                                     (image as NativeImageAccessor).`big_shot_lib$getPixels`()
                                 )
+
+                                val contents = loader.loadSprite(ResourceLocation.fromNamespaceAndPath(resource.key.namespace, resource.key.path), resource.value)
+                                val ticker = contents?.createTicker()
+
+                                if (ticker == null) {
+                                    contents?.close()
+                                } else {
+                                    animations.add(Animation(
+                                        sprite.x,
+                                        sprite.y,
+                                        contents,
+                                        ticker
+                                    ))
+                                }
                             }
                         }
                     }
                 }
 
-                return@computeIfAbsent texture.resource
+                return@computeIfAbsent Atlas(texture.resource, animations)
             }
-        }
+        }.texture
     }
 }

@@ -8,7 +8,6 @@ uniform sampler2D Sampler1;
 uniform sampler2D Sampler2;
 
 uniform vec3 CameraPos;
-uniform vec3 LightPos;
 uniform float LightRadius;
 
 uniform bool SpecularReflectionsEnabled;
@@ -33,7 +32,7 @@ void main() {
     vec3 lightColor = texelFetch(Sampler1, ivec2(texCoord1), 0).rgb;
 
     if (SpecularReflectionsEnabled) {
-        vec3 inputNormal = normalize(LightPos - vertexPosition);
+        vec3 inputNormal = normalize(-vertexPosition);
         vec3 outputNormal = normalize(CameraPos - vertexPosition);
         vec3 reflectedNormal = 2 * dot(inputNormal, vertexNormal) * vertexNormal - inputNormal;
         float multiplier = clamp(dot(outputNormal, reflectedNormal), 0, 1);

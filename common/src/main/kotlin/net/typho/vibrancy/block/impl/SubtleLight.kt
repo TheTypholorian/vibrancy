@@ -4,6 +4,7 @@ import net.minecraft.world.level.block.state.BlockState
 import net.typho.big_shot_lib.api.math.rect.AbstractRect3
 import net.typho.big_shot_lib.api.math.rect.NeoRect3i
 import net.typho.big_shot_lib.api.math.vec.AbstractVec3
+import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.vibrancy.util.PointLight
 
 open class SubtleLight(
@@ -21,6 +22,8 @@ open class SubtleLight(
 
     override val absolutePos: AbstractVec3<Float>
         get() = pos.toFloat() + offset
+    val relativePos: AbstractVec3<Float>
+        get() = NeoVec3i(pos.x % 16, pos.y, pos.z % 16).toFloat() + offset
     override val boundingBox: AbstractRect3<Int>
         get() = NeoRect3i(
             pos - 3,

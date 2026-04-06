@@ -159,7 +159,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                     }
 
                     val faces = LinkedList<LightFace>()
-                    BasicMesher(blocks).submit(
+                    BasicMesher(blocks, NeoVec3i(pos.worldPosition)).submit(
                         manager,
                         data.level,
                         NeoAtlas.blocks,
@@ -172,7 +172,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                     buffer.write().run {
                         for (light in chunk.map.values) {
                             val color = light.color
-                            val pos = light.absolutePos
+                            val pos = light.relativePos
 
                             writeFloat(pos.x)
                             writeFloat(pos.y)

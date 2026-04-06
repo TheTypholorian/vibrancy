@@ -3,6 +3,7 @@
     "net.typho.vibrancy.Vibrancy"
   ],
   "net.typho.big_shot_lib.api.client.util.BigShotClientEntrypoint": [
-    "net.typho.vibrancy.Vibrancy"
+    "net.typho.vibrancy.Vibrancy",
+    "net.typho.vibrancy.util.ReflectionAtlases"
   ]
 }
