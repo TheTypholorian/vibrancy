@@ -16,7 +16,7 @@ uniform float LightBrightness;
 
 in vec3 vertexPos;
 
-out vec4 fragColor;
+out vec3 fragColor;
 
 struct Ray {
     vec3 pos;
@@ -32,9 +32,7 @@ void main() {
     float len = length(delta);
 
     Ray ray = Ray(vertexPos, dir, len);
-
-    fragColor = samplePointLight(LightPos, vertexPos, LightRadius, LightColor);
-    vec3 accum = vec3(0);
+    vec4 accum = vec4(0);
     float denom = 0;
 
     for (uint i = 0u; i < shadowQuads.length(); i++) {
@@ -47,12 +45,17 @@ void main() {
         }
 
         if (outColor.a > 0) {
-            accum += outColor.rgb;
+            accum += outColor;
             denom++;
         }
     }
 
+    float lightStrength = attenuateNoCusp(distance(LightPos, vertexPos), LightRadius);
+
     if (denom > 0) {
-        fragColor.rgb *= accum / denom;
+        accum /= denom;
+        fragColor = (LightColor * (1 - accum.a) + accum.rgb * accum.a) * lightStrength;
+    } else {
+        fragColor = LightColor * lightStrength;
     }
 }

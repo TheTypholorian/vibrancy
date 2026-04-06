@@ -65,11 +65,9 @@ interface ShadowMesher {
                 }
 
                 if (collectFluid) {
-                    val fluid = level.getFluidState(pos.blockPos)
-
                     BlockUtil.INSTANCE.getFluidQuads(
                         state,
-                        fluid,
+                        level.getFluidState(pos.blockPos),
                         level,
                         pos,
                         { level, from, direction, otherState -> false },
