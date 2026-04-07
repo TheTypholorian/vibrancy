@@ -25,8 +25,10 @@ object GlThreadPool : ThreadPoolExecutor(4, 6, 1L, TimeUnit.HOURS, SynchronousQu
         glfwMakeContextCurrent(handle)
         GL.createCapabilities()
 
-        task.run()
-
-        glfwDestroyWindow(handle)
+        try {
+            task.run()
+        } finally {
+            glfwDestroyWindow(handle)
+        }
     }
 })

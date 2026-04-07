@@ -55,7 +55,7 @@ open class RayPointLight(
         )
     }
 
-    val shadows: AsyncBlockShadowMesh<FloodFillMesher> = AsyncBlockShadowMesh(FloodFillMesher(pos)) { info, data ->
+    val shadows: AsyncBlockShadowMesh<FloodFillMesher> = AsyncBlockShadowMesh(FloodFillMesher(pos)) { info ->
         shadows.lightMesh.target.bind(NeoRect2i(0, 0, shadows.lightMesh.texture.width, shadows.lightMesh.texture.height)).use {
             it.clear(GlClearBit.Color(NeoColor.FULL_OFF))
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, shadows.shadowBuffer.glId)
@@ -152,13 +152,16 @@ open class RayPointLight(
         }
 
         if (shadowsDirty) {
-            shadows.rebuildAsync(manager, data, this) { face ->
-                face.blockPos.inDistance(pos, Vibrancy.config.blockLights.raytraced.shadowRadius) && !BlockLightRegistry.has(face.state)
+            shadows.rebuildAsync(manager, this) { face ->
+                face.blockPos.inDistance(
+                    pos,
+                    Vibrancy.config.blockLights.raytraced.shadowRadius
+                ) && !BlockLightRegistry.has(face.state)
             }
             shadowsDirty = false
         }
 
-        shadows.checkIfFinished(data)
+        shadows.checkIfFinished()
     }
 
     fun render(shader: GlBoundProgram, debugOut: (key: String, value: Int) -> Unit) {

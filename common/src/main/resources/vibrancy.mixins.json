@@ -6,7 +6,8 @@
   "compatibilityLevel": "JAVA_${java_version}",
   "mixins": [],
   "client": [
-    "NativeImageAccessor"
+    "NativeImageAccessor",
+    "RenderSystemMixin"
   ],
   "injectors": {
     "defaultRequire": 1

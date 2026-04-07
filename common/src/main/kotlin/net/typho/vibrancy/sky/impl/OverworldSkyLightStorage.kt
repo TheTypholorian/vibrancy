@@ -119,7 +119,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
     ) : SkyLightStorage<OverworldSkyLightInfo>, NativeResource, LightFacePredicate {
         private var shadowsDirty = true
         @JvmField
-        val mesh: AsyncBlockShadowMesh<*> = AsyncBlockShadowMesh(SkyLightMesher(pos)) { info, data ->
+        val mesh: AsyncBlockShadowMesh<*> = AsyncBlockShadowMesh(SkyLightMesher(pos)) { info ->
             LightMesh.initBlitMesh(blitMesh, info)
         }
         @JvmField
@@ -132,13 +132,13 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
         fun updateShadows(manager: LightManager, data: RenderEventData, debugOut: (key: String, value: Int) -> Unit) {
             if (shadowsDirty) {
-                mesh.rebuildAsync(manager, data, this) {
+                mesh.rebuildAsync(manager, this) {
                     true
                 }
                 shadowsDirty = false
             }
 
-            mesh.checkIfFinished(data)
+            mesh.checkIfFinished()
 
             if (mesh.isTaskActive()) {
                 debugOut("asyncTasks", 1)
