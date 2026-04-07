@@ -61,7 +61,7 @@ open class RayPointLight(
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, shadows.shadowBuffer.glId)
 
             drawState.bind().use { drawState ->
-                drawState.shader.setUniform("LightOffset") { set(offset) }
+                drawState.shader.setUniform("LightPos") { set(absolutePos) }
                 drawState.shader.setUniform("LightColor") { set(color * Vibrancy.config.blockLights.raytraced.brightness) }
                 drawState.shader.setUniform("LightRadius") { set(radius) }
                 LightMesh.blitLight(info)
@@ -161,14 +161,14 @@ open class RayPointLight(
         shadows.checkIfFinished(data)
     }
 
-    fun render(shader: GlBoundProgram, data: RenderEventData, debugOut: (key: String, value: Int) -> Unit) {
+    fun render(shader: GlBoundProgram, debugOut: (key: String, value: Int) -> Unit) {
         debugOut("lightsRendered", 1)
 
         if (shadows.isTaskActive()) {
             debugOut("numAsyncTasks", 1)
         }
 
-        shader.setUniform("Offset") { set(pos.toFloat() - data.camera.pos) }
+        shader.setUniform("LightPos") { set(absolutePos) }
         shader.setUniform("LightColor") { set(color) }
         shader.setUniform("LightRadius") { set(radius) }
         shadows.lightMesh.draw(shader)

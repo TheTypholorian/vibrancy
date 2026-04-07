@@ -30,7 +30,6 @@ class SkyLightMesher(
                 state,
                 level,
                 pos,
-                NeoVec3i(this.pos.worldPosition),
                 atlas,
                 { predicate.shouldCastFace(it, level, pos, state) },
                 { dir, face -> faces.add(face) }

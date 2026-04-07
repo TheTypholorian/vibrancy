@@ -5,6 +5,7 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureTarg
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
 import net.typho.big_shot_lib.api.client.rendering.quad.NeoAtlas
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
+import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.toJOML
 import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
@@ -12,6 +13,7 @@ import net.typho.vibrancy.block.BlockLightType
 import net.typho.vibrancy.block.HashMapBlockLightStorage
 import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.util.ReflectionAtlases
+import org.joml.Matrix4f
 
 object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightStorage<RayPointLightInfo, RayPointLight>> {
     override fun infoCodec(stateDefinition: StateDefinition<*, *>) = RayPointLightInfo.codec(stateDefinition)
@@ -35,7 +37,8 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                     GlTextureTarget.TEXTURE_2D
                 ))
                 settings.shader.setUniform("ProjMat") { set(data.projMat) }
-                settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat) }
+                settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((-data.camera.pos).toJOML(), Matrix4f())) }
+                settings.shader.setUniform("CameraPos") { set(data.camera.pos) }
 
                 lights.map.values.forEach { it.update(manager, data) }
                 lights.map.values
@@ -50,7 +53,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                      */
                     .sortedBy { light -> manager.getSortingOrder(data, light.pos) }
                     .take(Vibrancy.config.blockLights.raytraced.maxRendered)
-                    .forEach { light -> light.render(settings.shader, data, debugOut) }
+                    .forEach { light -> light.render(settings.shader, debugOut) }
             }
         }
     }

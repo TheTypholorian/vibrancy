@@ -9,7 +9,7 @@ layout(std430, binding = 0) buffer ShadowQuadBuffer {
 
 uniform sampler2D Sampler0;
 
-uniform vec3 LightOffset;
+uniform vec3 LightPos;
 uniform vec3 LightColor;
 uniform float LightRadius;
 uniform float LightBrightness;
@@ -27,7 +27,7 @@ struct Ray {
 void main() {
     //vec2 step = 1 / (vec2(sprite.width, sprite.height) * 3);
 
-    vec3 delta = LightOffset - vertexPos;
+    vec3 delta = LightPos - vertexPos;
     vec3 dir = normalize(delta);
     float len = length(delta);
 
@@ -50,7 +50,7 @@ void main() {
         }
     }
 
-    float lightStrength = attenuateNoCusp(len, LightRadius);
+    float lightStrength = attenuateNoCusp(distance(LightPos, vertexPos), LightRadius);
 
     if (denom > 0) {
         accum /= denom;

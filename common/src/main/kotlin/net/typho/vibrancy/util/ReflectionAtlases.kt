@@ -1,6 +1,5 @@
 package net.typho.vibrancy.util
 
-import com.mojang.blaze3d.platform.NativeImage
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.texture.SpriteContents
 import net.minecraft.client.renderer.texture.SpriteLoader
@@ -24,8 +23,6 @@ import net.typho.big_shot_lib.api.util.resource.NamedResource
 import net.typho.big_shot_lib.api.util.resource.NeoFileToIdConverter
 import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.Vibrancy
-import net.typho.vibrancy.mixin.NativeImageAccessor
-import org.lwjgl.opengl.GL11.*
 import java.io.FileNotFoundException
 
 object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigShotClientEntrypoint {
@@ -102,25 +99,12 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
 
                     parent.sprites[id]?.let { sprite ->
                         resource.value.open().use { stream ->
-                            NativeImage.read(NativeImage.Format.RGBA, stream).use { image ->
-                                println("sub image ${sprite.x} ${sprite.y} ${image.width} ${image.height} ${parent.width} ${parent.height}")
-                                glTexSubImage2D(
-                                    GL_TEXTURE_2D,
-                                    0,
-                                    sprite.x,
-                                    sprite.y,
-                                    image.width,
-                                    image.height,
-                                    GL_RGBA,
-                                    GL_UNSIGNED_BYTE,
-                                    (image as NativeImageAccessor).`big_shot_lib$getPixels`()
-                                )
-
-                                val contents = loader.loadSprite(ResourceLocation.fromNamespaceAndPath(resource.key.namespace, resource.key.path), resource.value)
-                                val ticker = contents?.createTicker()
+                            loader.loadSprite(ResourceLocation.fromNamespaceAndPath(resource.key.namespace, resource.key.path), resource.value)?.let { contents ->
+                                contents.uploadFirstFrame(sprite.x, sprite.y)
+                                val ticker = contents.createTicker()
 
                                 if (ticker == null) {
-                                    contents?.close()
+                                    contents.close()
                                 } else {
                                     animations.add(Animation(
                                         sprite.x,

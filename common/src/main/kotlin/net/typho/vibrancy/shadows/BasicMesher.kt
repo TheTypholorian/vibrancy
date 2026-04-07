@@ -8,9 +8,7 @@ import net.typho.vibrancy.LightManager
 
 class BasicMesher(
     @JvmField
-    val blocks: Iterable<AbstractVec3<Int>>,
-    @JvmField
-    val origin: AbstractVec3<Int>
+    val blocks: Iterable<AbstractVec3<Int>>
 ) : ShadowMesher {
     override fun submit(
         manager: LightManager,
@@ -27,7 +25,6 @@ class BasicMesher(
                 state,
                 level,
                 pos,
-                origin,
                 atlas,
                 { predicate.shouldCastFace(it, level, pos, state) },
                 { dir, face -> out(face) }

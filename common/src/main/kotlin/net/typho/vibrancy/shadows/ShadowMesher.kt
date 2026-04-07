@@ -28,7 +28,6 @@ interface ShadowMesher {
             state: BlockState,
             level: Level,
             pos: AbstractVec3<Int>,
-            origin: AbstractVec3<Int>,
             atlas: NeoAtlas,
             predicate: (face: NeoDirection?) -> Boolean,
             out: (dir: NeoDirection?, face: LightFace) -> Unit,
@@ -43,7 +42,7 @@ interface ShadowMesher {
 
                             quad = quad.withVertices { index, vertex ->
                                 var vertex = vertex.withPosition { v ->
-                                    v + (pos - origin).toFloat()
+                                    v + pos.toFloat()
                                 }
 
                                 vertex = tintColor?.let { vertex.withColor { tintColor } } ?: vertex.withColor { NeoColor.FULL_ON }
@@ -80,9 +79,9 @@ interface ShadowMesher {
                                     quad.withVertices { index, vertex ->
                                         vertex.withPosition { vertexPos ->
                                             vertexPos.plus(
-                                                (pos.x and 15.inv() - origin.x).toFloat(),
-                                                (pos.y and 15.inv() - origin.y).toFloat(),
-                                                (pos.z and 15.inv() - origin.z).toFloat()
+                                                (pos.x and 15.inv()).toFloat(),
+                                                (pos.y and 15.inv()).toFloat(),
+                                                (pos.z and 15.inv()).toFloat()
                                             )
                                         }
                                     },
