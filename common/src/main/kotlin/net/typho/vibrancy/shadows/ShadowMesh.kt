@@ -1,12 +1,10 @@
 package net.typho.vibrancy.shadows
 
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBeginMode
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferTarget
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlBuffer
-import net.typho.big_shot_lib.api.client.rendering.util.NeoBufferBuilder
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
+import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
 import net.typho.vibrancy.TextureAtlas
 import org.lwjgl.system.NativeResource
 
@@ -43,20 +41,29 @@ open class ShadowMesh : NativeResource {
                 light()
             }
         } else {
-            val bufferBuilder = NeoBufferBuilder(
-                VERTEX_FORMAT,
-                GlBeginMode.QUADS,
-                shadowFaces.size * 4,
-                { GlBufferWriter.Mode.REGULAR.create(shadowBuffer, GlBufferTarget.ARRAY_BUFFER, it, GlBufferUsage.STATIC_DRAW) },
-                { null }
-            )
+            val buffer = NeoBuffer.Native(shadowFaces.size.toLong() * 4 * VERTEX_FORMAT.vertexSizeBytes)
 
-            shadowFaces.forEach {
-                it.quad.put(bufferBuilder)
+            buffer.write().run {
+                for (face in shadowFaces) {
+                    for (vertex in face.quad.vertices) {
+                        writeFloat(vertex.pos.x)
+                        writeFloat(vertex.pos.y)
+                        writeFloat(vertex.pos.z)
+                        writeInt(0)
+
+                        writeFloat(vertex.textureUV!!.x)
+                        writeFloat(vertex.textureUV!!.y)
+                        writeInt(vertex.color!!.toRGBA())
+                        writeInt(0)
+                    }
+                }
             }
 
             return {
-                bufferBuilder.build()
+                shadowBuffer.bind(GlBufferTarget.ARRAY_BUFFER).use {
+                    it.bufferData(buffer, GlBufferUsage.STATIC_DRAW)
+                    buffer.free()
+                }
                 light()
             }
         }

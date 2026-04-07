@@ -11,8 +11,11 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.util.BlendFunction
 import net.typho.big_shot_lib.api.client.rendering.opengl.util.PolygonOffset
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
-import net.typho.big_shot_lib.api.math.vec.NeoVec2f
+import net.typho.big_shot_lib.api.math.vec.AbstractVec3
 import net.typho.big_shot_lib.api.math.vec.NeoVec2i
+import net.typho.big_shot_lib.api.util.buffer.BYTE_MASK
+import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
+import net.typho.big_shot_lib.api.util.buffer.SHORT_MASK
 import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.TextureAtlas
 import net.typho.vibrancy.Vibrancy
@@ -80,19 +83,50 @@ open class LightMesh : NativeResource {
 
         @JvmStatic
         fun initBlitMesh(mesh: Mesh, info: LightBlitInfo) {
-            mesh.upload(info.lightFaces.size * 4) {
+            val vertexBuffer = NeoBuffer.Native(info.lightFaces.size.toLong() * 4 * BLIT_VERTEX_FORMAT.vertexSizeBytes)
+            val indexCount = info.lightFaces.size * 6
+            val indexType = when (indexCount) {
+                indexCount and BYTE_MASK -> GlIndexDataType.BYTE
+                indexCount and SHORT_MASK -> GlIndexDataType.SHORT
+                else -> GlIndexDataType.INT
+            }
+            val indexBuffer = NeoBuffer.Native(indexCount.toLong() * VERTEX_FORMAT.vertexSizeBytes)
+
+            vertexBuffer.write().run {
+                fun vertex(pos: AbstractVec3<Float>, texX: Float, texY: Float) {
+                    writeFloat(pos.x)
+                    writeFloat(pos.y)
+                    writeFloat(pos.z)
+                    writeFloat(texX / info.atlasResult.size.x.toFloat())
+                    writeFloat(texY / info.atlasResult.size.y.toFloat())
+                }
+
                 info.lightFaces.forEachIndexed { index, face ->
                     val texture = info.atlasResult.textures[index]
-                    vertex(face.quad.v0.pos)
-                        .textureUV(NeoVec2f(texture.min.x.toFloat(), texture.min.y.toFloat()) / info.atlasResult.size.toFloat())
-                    vertex(face.quad.v1.pos)
-                        .textureUV(NeoVec2f(texture.max.x.toFloat(), texture.min.y.toFloat()) / info.atlasResult.size.toFloat())
-                    vertex(face.quad.v2.pos)
-                        .textureUV(NeoVec2f(texture.max.x.toFloat(), texture.max.y.toFloat()) / info.atlasResult.size.toFloat())
-                    vertex(face.quad.v3.pos)
-                        .textureUV(NeoVec2f(texture.min.x.toFloat(), texture.max.y.toFloat()) / info.atlasResult.size.toFloat())
+
+                    vertex(face.quad.v0.pos, texture.min.x.toFloat(), texture.min.y.toFloat())
+                    vertex(face.quad.v1.pos, texture.max.x.toFloat(), texture.min.y.toFloat())
+                    vertex(face.quad.v2.pos, texture.max.x.toFloat(), texture.max.y.toFloat())
+                    vertex(face.quad.v3.pos, texture.min.x.toFloat(), texture.max.y.toFloat())
                 }
             }
+            indexBuffer.write().run {
+                var vertex = 0
+
+                repeat(info.lightFaces.size) {
+                    indexType.write(this, vertex)
+                    indexType.write(this, vertex + 1)
+                    indexType.write(this, vertex + 2)
+                    indexType.write(this, vertex + 2)
+                    indexType.write(this, vertex + 3)
+                    indexType.write(this, vertex)
+                    vertex += 4
+                }
+            }
+
+            mesh.rawUpload(indexCount, indexType, vertexBuffer, indexBuffer)
+            vertexBuffer.free()
+            indexBuffer.free()
         }
 
         @JvmStatic
@@ -149,18 +183,61 @@ open class LightMesh : NativeResource {
             NeoVec2i(face.width, face.height)
         }
         val result = TextureAtlas.pack(*textures)
-        val lazyUpload = mesh.lazyUpload(lightFaces.size * 4) {
-            lightFaces.forEachIndexed { index, face -> face.applyOverlay(result.textures[index]).put(this) }
+        val vertexBuffer = NeoBuffer.Native(lightFaces.size.toLong() * 4 * VERTEX_FORMAT.vertexSizeBytes)
+        val indexCount = lightFaces.size * 6
+        val indexType = when (indexCount) {
+            indexCount and BYTE_MASK -> GlIndexDataType.BYTE
+            indexCount and SHORT_MASK -> GlIndexDataType.SHORT
+            else -> GlIndexDataType.INT
+        }
+        val indexBuffer = NeoBuffer.Native(indexCount.toLong() * VERTEX_FORMAT.vertexSizeBytes)
+
+        vertexBuffer.write().run {
+            lightFaces.forEachIndexed { index, face ->
+                for (vertex in face.applyOverlay(result.textures[index]).vertices) {
+                    writeFloat(vertex.pos.x)
+                    writeFloat(vertex.pos.y)
+                    writeFloat(vertex.pos.z)
+                    writeFloat(vertex.textureUV!!.x)
+                    writeFloat(vertex.textureUV!!.y)
+                    writeShort(vertex.overlayUV!!.x)
+                    writeShort(vertex.overlayUV!!.y)
+                    writeInt(vertex.color!!.toRGBA())
+                    writeByte((vertex.normal!!.x * 127).toInt())
+                    writeByte((vertex.normal!!.y * 127).toInt())
+                    writeByte((vertex.normal!!.z * 127).toInt())
+                }
+            }
+        }
+        indexBuffer.write().run {
+            var vertex = 0
+
+            repeat(lightFaces.size) {
+                indexType.write(this, vertex)
+                indexType.write(this, vertex + 1)
+                indexType.write(this, vertex + 2)
+                indexType.write(this, vertex + 2)
+                indexType.write(this, vertex + 3)
+                indexType.write(this, vertex)
+                vertex += 4
+            }
         }
 
         return {
             empty = lightFaces.isEmpty()
 
-            lazyUpload()
+            mesh.rawUpload(indexCount, indexType, vertexBuffer, indexBuffer)
+            vertexBuffer.free()
+            indexBuffer.free()
 
             if (!empty) {
-                texture.bind(GlTextureTarget.TEXTURE_2D).use {
-                    it.textureDataMutable(result.size.x.coerceAtLeast(1), result.size.y.coerceAtLeast(1), GlTextureFormat.RGB8)
+                val width = result.size.x.coerceAtLeast(1)
+                val height = result.size.y.coerceAtLeast(1)
+
+                if (width != texture.width || height != texture.height) {
+                    texture.bind(GlTextureTarget.TEXTURE_2D).use {
+                        it.textureDataMutable(width, height, GlTextureFormat.RGB8)
+                    }
                 }
             }
 

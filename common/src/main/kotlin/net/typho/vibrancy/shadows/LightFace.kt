@@ -1,8 +1,9 @@
 package net.typho.vibrancy.shadows
 
 import net.minecraft.world.level.block.state.BlockState
-import net.typho.big_shot_lib.api.client.rendering.quad.NeoAtlas
-import net.typho.big_shot_lib.api.client.rendering.quad.NeoBakedQuad
+import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
+import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
+import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoVertexData
 import net.typho.big_shot_lib.api.math.rect.AbstractRect2
 import net.typho.big_shot_lib.api.math.vec.AbstractVec3
 import kotlin.math.abs
@@ -36,14 +37,15 @@ data class LightFace(
 
     fun applyOverlay(sprite: AbstractRect2<Int>): NeoBakedQuad {
         return quad.withVertices { index, vertex ->
-            vertex.withOverlayUV {
-                when (index) {
+            NeoVertexData(
+                vertex,
+                overlayUV = when (index) {
                     0 -> sprite.min
                     1 -> sprite.maxMin
                     2 -> sprite.max
                     else -> sprite.minMax
                 }
-            }
+            )
         }
     }
 

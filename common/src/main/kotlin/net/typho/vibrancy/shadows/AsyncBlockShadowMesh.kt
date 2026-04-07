@@ -1,6 +1,6 @@
 package net.typho.vibrancy.shadows
 
-import net.typho.big_shot_lib.api.client.rendering.quad.NeoAtlas
+import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy

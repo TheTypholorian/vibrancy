@@ -1,7 +1,7 @@
 package net.typho.vibrancy.shadows
 
 import net.minecraft.world.level.Level
-import net.typho.big_shot_lib.api.client.rendering.quad.NeoAtlas
+import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.math.vec.AbstractVec3
 import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.blockPos
 import net.typho.vibrancy.LightManager
