@@ -7,7 +7,7 @@
   "mixins": [],
   "client": [
     "NativeImageAccessor",
-    "RenderSystemMixin"
+    "WindowMixin"
   ],
   "injectors": {
     "defaultRequire": 1

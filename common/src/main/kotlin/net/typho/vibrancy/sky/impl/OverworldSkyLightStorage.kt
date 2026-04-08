@@ -8,7 +8,6 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBeginMode
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlClearBit
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
@@ -16,7 +15,6 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.math.NeoDirection
-import net.typho.big_shot_lib.api.math.rect.NeoRect2i
 import net.typho.big_shot_lib.api.math.vec.AbstractVec3
 import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.blockPos
 import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.plus
@@ -32,8 +30,6 @@ import net.typho.vibrancy.shadows.LightMesh.Companion.BLIT_VERTEX_FORMAT
 import net.typho.vibrancy.shadows.SkyLightMesher
 import net.typho.vibrancy.sky.ChunkedSkyLightStorage
 import net.typho.vibrancy.sky.SkyLightStorage
-import org.lwjgl.opengl.GL30.glBindBufferBase
-import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.system.NativeResource
 import kotlin.math.cos
 import kotlin.math.sin
@@ -144,6 +140,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                 debugOut("asyncTasks", 1)
             }
 
+            /*
             mesh.lightMesh.target.bind(NeoRect2i(0, 0, mesh.lightMesh.texture.width, mesh.lightMesh.texture.height)).use { fbo ->
                 fbo.clear(GlClearBit.Color(getLightColor(data.level)))
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, mesh.shadowBuffer.glId)
@@ -160,6 +157,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                 }
                  */
             }
+             */
         }
 
         fun render(shader: GlBoundProgram, debugOut: (key: String, value: Int) -> Unit) {

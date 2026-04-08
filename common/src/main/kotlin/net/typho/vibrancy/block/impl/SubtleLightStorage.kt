@@ -8,6 +8,7 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferTarge
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlBuffer
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlFramebuffer
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.math.NeoDirection
@@ -195,10 +196,15 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                         }
 
                         if (faces.isNotEmpty()) {
-                            chunk.mesh.target.bind(NeoRect2i(0, 0, chunk.mesh.texture.width, chunk.mesh.texture.height)).use {
-                                SubtleLightType.meshBlitDrawState.bind().use {
-                                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, chunk.ssbo.glId)
-                                    LightMesh.blitLight(LightMesh.LightBlitInfo(atlasResult, faces))
+                            NeoGlFramebuffer().use { fbo ->
+                                fbo.bind(NeoRect2i(0, 0, chunk.mesh.texture.width, chunk.mesh.texture.height)).use { fbo ->
+                                    fbo.colorAttachments[0] = chunk.mesh.texture
+                                    fbo.checkStatus().throwIfError()
+
+                                    SubtleLightType.meshBlitDrawState.bind().use {
+                                        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, chunk.ssbo.glId)
+                                        LightMesh.blitLight(LightMesh.LightBlitInfo(atlasResult, faces))
+                                    }
                                 }
                             }
                         }

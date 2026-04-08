@@ -86,9 +86,11 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
                 texture.minFilter = GlTextureMinFilter.NEAREST
                 texture.magFilter = GlTextureMagFilter.NEAREST
 
-                NeoGlFramebuffer().bind(NeoRect2i(0, 0, parent.width, parent.height)).use {
-                    it.colorAttachments[0] = texture.resource
-                    it.clear(GlClearBit.Color(NeoColor.FULL_OFF))
+                NeoGlFramebuffer().use { fbo ->
+                    fbo.bind(NeoRect2i(0, 0, parent.width, parent.height)).use {
+                        it.colorAttachments[0] = texture.resource
+                        it.clear(GlClearBit.Color(NeoColor.FULL_OFF))
+                    }
                 }
 
                 val animations = mutableListOf<Animation>()

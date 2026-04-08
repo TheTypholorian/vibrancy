@@ -3,7 +3,6 @@ package net.typho.vibrancy.shadows
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlFramebuffer
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.*
@@ -158,13 +157,6 @@ open class LightMesh : NativeResource {
             texture.magFilter = GlTextureMagFilter.NEAREST
         }
     }
-    @JvmField
-    val target = NeoGlFramebuffer().also {
-        it.bind().use { fbo ->
-            fbo.colorAttachments[0] = texture
-            fbo.checkStatus().throwIfError()
-        }
-    }
     var empty = true
         protected set
 
@@ -247,7 +239,6 @@ open class LightMesh : NativeResource {
 
     override fun free() {
         mesh.free()
-        target.free()
         texture.free()
     }
 }

@@ -5,6 +5,7 @@ import net.minecraft.world.level.block.state.BlockState
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlClearBit
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureTarget
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlFramebuffer
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
@@ -56,15 +57,20 @@ open class RayPointLight(
     }
 
     val shadows: AsyncBlockShadowMesh<FloodFillMesher> = AsyncBlockShadowMesh(FloodFillMesher(pos)) { info ->
-        shadows.lightMesh.target.bind(NeoRect2i(0, 0, shadows.lightMesh.texture.width, shadows.lightMesh.texture.height)).use {
-            it.clear(GlClearBit.Color(NeoColor.FULL_OFF))
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, shadows.shadowBuffer.glId)
+        NeoGlFramebuffer().use { fbo ->
+            fbo.bind(NeoRect2i(0, 0, shadows.lightMesh.texture.width, shadows.lightMesh.texture.height)).use { fbo ->
+                fbo.colorAttachments[0] = shadows.lightMesh.texture
+                fbo.checkStatus().throwIfError()
 
-            drawState.bind().use { drawState ->
-                drawState.shader.setUniform("LightPos") { set(absolutePos) }
-                drawState.shader.setUniform("LightColor") { set(color * Vibrancy.config.blockLights.raytraced.brightness) }
-                drawState.shader.setUniform("LightRadius") { set(radius) }
-                LightMesh.blitLight(info)
+                fbo.clear(GlClearBit.Color(NeoColor.FULL_OFF))
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, shadows.shadowBuffer.glId)
+
+                drawState.bind().use { drawState ->
+                    drawState.shader.setUniform("LightPos") { set(absolutePos) }
+                    drawState.shader.setUniform("LightColor") { set(color * Vibrancy.config.blockLights.raytraced.brightness) }
+                    drawState.shader.setUniform("LightRadius") { set(radius) }
+                    LightMesh.blitLight(info)
+                }
             }
         }
     }
