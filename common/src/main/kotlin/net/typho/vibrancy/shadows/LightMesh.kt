@@ -130,8 +130,10 @@ open class LightMesh : NativeResource {
 
         @JvmStatic
         fun blitLight(info: LightBlitInfo) {
-            initBlitMesh(lightBlitMesh, info)
-            lightBlitMesh.draw()
+            synchronized(lightBlitMesh) {
+                initBlitMesh(lightBlitMesh, info)
+                lightBlitMesh.draw()
+            }
         }
     }
 
