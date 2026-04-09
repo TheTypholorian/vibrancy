@@ -1,14 +1,19 @@
 package net.typho.vibrancy.block.impl
 
+import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBeginMode
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlClearBit
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureTarget
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlFramebuffer
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
+import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.math.NeoDirection
@@ -69,7 +74,17 @@ open class RayPointLight(
                     drawState.shader.setUniform("LightPos") { set(absolutePos) }
                     drawState.shader.setUniform("LightColor") { set(color * Vibrancy.config.blockLights.raytraced.brightness) }
                     drawState.shader.setUniform("LightRadius") { set(radius) }
-                    LightMesh.blitLight(info)
+
+                    Mesh(
+                        LightMesh.BLIT_VERTEX_FORMAT,
+                        GlBeginMode.QUADS,
+                        GlBufferWriter.Mode.REGULAR,
+                        GlBufferUsage.STREAM_DRAW
+                    ).use { mesh ->
+                        LightMesh.initBlitMesh(mesh, info)
+                        println(RenderSystem.isOnRenderThread())
+                        mesh.draw()
+                    }
                 }
             }
         }

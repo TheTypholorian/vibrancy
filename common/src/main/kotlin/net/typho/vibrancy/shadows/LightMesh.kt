@@ -71,15 +71,6 @@ open class LightMesh : NativeResource {
             )
         )
 
-        private val lightBlitMesh by lazy {
-            Mesh(
-                BLIT_VERTEX_FORMAT,
-                GlBeginMode.QUADS,
-                GlBufferWriter.Mode.REGULAR,
-                GlBufferUsage.STREAM_DRAW
-            )
-        }
-
         @JvmStatic
         fun initBlitMesh(mesh: Mesh, info: LightBlitInfo) {
             val vertexBuffer = NeoBuffer.Native(info.lightFaces.size.toLong() * 4 * BLIT_VERTEX_FORMAT.vertexSizeBytes)
@@ -126,14 +117,6 @@ open class LightMesh : NativeResource {
             mesh.rawUpload(indexCount, indexType, vertexBuffer, indexBuffer)
             vertexBuffer.free()
             indexBuffer.free()
-        }
-
-        @JvmStatic
-        fun blitLight(info: LightBlitInfo) {
-            synchronized(lightBlitMesh) {
-                initBlitMesh(lightBlitMesh, info)
-                lightBlitMesh.draw()
-            }
         }
     }
 

@@ -70,7 +70,11 @@ open class AsyncBlockShadowMesh<M : ShadowMesher>(
     ) {
         if (Vibrancy.config.useMultithreading) {
             GlThreadPool.submit {
-                rebuildAsyncImpl(manager, predicate, shadowPredicate)()
+                val info = rebuildAsyncImpl(manager, predicate, shadowPredicate)()
+
+                if (!lightMesh.empty) {
+                    blit(info)
+                }
             }
             //asyncTask?.cancel(true)
             //asyncTask = CompletableFuture.supplyAsync { rebuildAsyncImpl(manager, predicate, shadowPredicate) }

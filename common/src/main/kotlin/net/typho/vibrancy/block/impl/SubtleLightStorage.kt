@@ -4,11 +4,14 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBeginMode
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferTarget
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlBuffer
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlFramebuffer
+import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.math.NeoDirection
@@ -203,7 +206,16 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
 
                                     SubtleLightType.meshBlitDrawState.bind().use {
                                         glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, chunk.ssbo.glId)
-                                        LightMesh.blitLight(LightMesh.LightBlitInfo(atlasResult, faces))
+
+                                        Mesh(
+                                            LightMesh.BLIT_VERTEX_FORMAT,
+                                            GlBeginMode.QUADS,
+                                            GlBufferWriter.Mode.REGULAR,
+                                            GlBufferUsage.STREAM_DRAW
+                                        ).use { mesh ->
+                                            LightMesh.initBlitMesh(mesh, LightMesh.LightBlitInfo(atlasResult, faces))
+                                            mesh.draw()
+                                        }
                                     }
                                 }
                             }

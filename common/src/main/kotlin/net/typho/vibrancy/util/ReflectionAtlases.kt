@@ -87,9 +87,10 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
                 texture.magFilter = GlTextureMagFilter.NEAREST
 
                 NeoGlFramebuffer().use { fbo ->
-                    fbo.bind(NeoRect2i(0, 0, parent.width, parent.height)).use {
-                        it.colorAttachments[0] = texture.resource
-                        it.clear(GlClearBit.Color(NeoColor.FULL_OFF))
+                    fbo.bind(NeoRect2i(0, 0, parent.width, parent.height)).use { fbo ->
+                        fbo.colorAttachments[0] = texture.resource
+                        fbo.checkStatus().throwIfError()
+                        fbo.clear(GlClearBit.Color(NeoColor.FULL_OFF))
                     }
                 }
 
