@@ -1,6 +1,5 @@
 package net.typho.vibrancy.block.impl
 
-import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBeginMode
@@ -82,7 +81,6 @@ open class RayPointLight(
                         GlBufferUsage.STREAM_DRAW
                     ).use { mesh ->
                         LightMesh.initBlitMesh(mesh, info)
-                        println(RenderSystem.isOnRenderThread())
                         mesh.draw()
                     }
                 }

@@ -3,7 +3,7 @@ package net.typho.vibrancy.shadows
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
-import net.typho.vibrancy.util.GlThreadPool
+import java.util.concurrent.CompletableFuture
 
 open class AsyncBlockShadowMesh<M : ShadowMesher>(
     @JvmField
@@ -11,12 +11,11 @@ open class AsyncBlockShadowMesh<M : ShadowMesher>(
     @JvmField
     val blit: (info: LightMesh.LightBlitInfo) -> Unit
 ) : ShadowMesh() {
-    //protected var asyncTask: CompletableFuture<() -> LightMesh.LightBlitInfo>? = null
+    protected var asyncTask: CompletableFuture<() -> LightMesh.LightBlitInfo>? = null
 
-    fun isTaskActive() = false//asyncTask?.let { task -> !task.isDone } ?: false
+    fun isTaskActive() = asyncTask?.let { task -> !task.isDone } ?: false
 
     fun checkIfFinished(): Boolean {
-        /*
         asyncTask?.let { task ->
             if (task.isDone) {
                 val info = task.get()()
@@ -29,7 +28,6 @@ open class AsyncBlockShadowMesh<M : ShadowMesher>(
                 return true
             }
         }
-         */
 
         return false
     }
@@ -69,6 +67,7 @@ open class AsyncBlockShadowMesh<M : ShadowMesher>(
         shadowPredicate: (face: LightFace) -> Boolean
     ) {
         if (Vibrancy.config.useMultithreading) {
+            /*
             GlThreadPool.submit {
                 val info = rebuildAsyncImpl(manager, predicate, shadowPredicate)()
 
@@ -76,8 +75,9 @@ open class AsyncBlockShadowMesh<M : ShadowMesher>(
                     blit(info)
                 }
             }
-            //asyncTask?.cancel(true)
-            //asyncTask = CompletableFuture.supplyAsync { rebuildAsyncImpl(manager, predicate, shadowPredicate) }
+             */
+            asyncTask?.cancel(true)
+            asyncTask = CompletableFuture.supplyAsync { rebuildAsyncImpl(manager, predicate, shadowPredicate) }
         } else {
             val info = rebuildAsyncImpl(manager, predicate, shadowPredicate)()
 
