@@ -31,6 +31,20 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
         debugOut: (String, Int) -> Unit
     ) {
         if (Vibrancy.config.blockLights.raytraced.enabled) {
+            val lights = lights.map.values
+                // TODO
+                /*
+                .filter { light ->
+                    data.frustum.testAab(
+                        light.boundingBox.min.toFloat().toJOML(),
+                        light.boundingBox.max.toFloat().toJOML(),
+                    )
+                }
+                 */
+                .sortedBy { light -> manager.getSortingOrder(data, light.pos) }
+                .take(Vibrancy.config.blockLights.raytraced.maxRendered)
+                .toList()
+
             LightMesh.drawState(NeoAtlas.blocks, Vibrancy.id("block/raytraced/mesh")).bind().use { settings ->
                 settings.shader.setTexture(2, GlTextureBinding.FromInstance(
                     ReflectionAtlases[NeoIdentifier("blocks")], //NeoAtlas.blocks.location
@@ -40,20 +54,17 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                 settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((-data.camera.pos).toJOML(), Matrix4f())) }
                 settings.shader.setUniform("CameraPos") { set(data.camera.pos) }
 
-                lights.map.values.forEach { it.update(manager, data) }
-                lights.map.values
-                    // TODO
-                    /*
-                    .filter { light ->
-                        data.frustum.testAab(
-                            light.boundingBox.min.toFloat().toJOML(),
-                            light.boundingBox.max.toFloat().toJOML(),
-                        )
-                    }
-                     */
-                    .sortedBy { light -> manager.getSortingOrder(data, light.pos) }
-                    .take(Vibrancy.config.blockLights.raytraced.maxRendered)
-                    .forEach { light -> light.render(settings.shader, debugOut) }
+                lights.forEach { it.update(manager, data) }
+                lights.forEach { light -> light.render(settings.shader, debugOut) }
+            }
+
+            if (Vibrancy.DEBUG) {
+                LightMesh.debugDrawState.bind().use { settings ->
+                    settings.shader.setUniform("ProjMat") { set(data.projMat) }
+                    settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((-data.camera.pos).toJOML(), Matrix4f())) }
+
+                    lights.forEach { it.shadows.drawDebug() }
+                }
             }
         }
     }

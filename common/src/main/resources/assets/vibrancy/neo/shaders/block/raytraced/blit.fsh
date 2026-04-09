@@ -36,6 +36,8 @@ void main() {
     vec4 accum = vec4(0);
     float denom = 0;
 
+    fragColor = vec3(1);
+
     for (uint i = 0u; i < index; i++) {
         float dist;
         vec4 outColor;
@@ -46,17 +48,7 @@ void main() {
         }
 
         if (outColor.a > 0) {
-            accum += outColor;
-            denom++;
+            fragColor = fragColor * (1 - outColor.a) * outColor.rgb;
         }
-    }
-
-    float lightStrength = attenuateNoCusp(distance(LightPos, vertexPos), LightRadius);
-
-    if (denom > 0) {
-        accum /= denom;
-        fragColor = (LightColor * (1 - accum.a) + accum.rgb * accum.a) * lightStrength;
-    } else {
-        fragColor = LightColor * lightStrength;
     }
 }

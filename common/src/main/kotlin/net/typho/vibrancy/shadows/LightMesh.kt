@@ -71,6 +71,23 @@ open class LightMesh : NativeResource {
             )
         )
 
+        @JvmField
+        val debugDrawState = GlDrawState.Basic(
+            depth = GlDepthShard.Enabled(
+                GlAlphaFunction.LEQUAL
+            ),
+            polygonOffset = GlPolygonOffsetShard.Enabled(
+                PolygonOffset(
+                    -1f,
+                    -4f
+                )
+            ),
+            shader = GlShaderShard.FromLocation(
+                Vibrancy.id("light_mesh_debug"),
+                { }
+            )
+        )
+
         @JvmStatic
         fun initBlitMesh(mesh: Mesh, info: LightBlitInfo) {
             val vertexBuffer = NeoBuffer.Native(info.lightFaces.size.toLong() * 4 * BLIT_VERTEX_FORMAT.vertexSizeBytes)
@@ -150,6 +167,10 @@ open class LightMesh : NativeResource {
             shader.setTexture(1, GlTextureBinding.FromInstance(texture, GlTextureTarget.TEXTURE_2D))
             mesh.draw()
         }
+    }
+
+    fun drawDebug() {
+        mesh.draw()
     }
 
     fun build(

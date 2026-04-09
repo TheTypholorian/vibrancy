@@ -21,6 +21,7 @@ import net.typho.big_shot_lib.api.math.rect.NeoRect2i
 import net.typho.big_shot_lib.api.math.rect.NeoRect3i
 import net.typho.big_shot_lib.api.math.vec.AbstractVec3
 import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.plus
+import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.toJOML
 import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.vibrancy.LightManager
@@ -67,7 +68,7 @@ open class RayPointLight(
                 fbo.checkStatus().throwIfError()
 
                 fbo.clear(GlClearBit.Color(NeoColor.FULL_OFF))
-                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, shadows.shadowBuffer.glId)
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, shadows.shadowMesh.vbo.glId)
 
                 drawState.bind().use { drawState ->
                     drawState.shader.setUniform("LightPos") { set(absolutePos) }
@@ -172,6 +173,7 @@ open class RayPointLight(
 
         if (shadowsDirty) {
             shadows.rebuildAsync(manager, this) { face ->
+                (face.quad.v0.normal?.let { it.toJOML().dot((absolutePos - face.quad.v0.pos).toJOML()) > 0f } ?: true) &&
                 face.blockPos.inDistance(
                     pos,
                     Vibrancy.config.blockLights.raytraced.shadowRadius
