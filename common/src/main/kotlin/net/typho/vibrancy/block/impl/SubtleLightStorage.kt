@@ -241,7 +241,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
         @JvmField
         var box: AbstractRect3<Int>? = null
         @JvmField
-        val mesh = LightMesh()
+        val mesh = LightMesh(GlBufferUsage.STATIC_DRAW)
         @JvmField
         val ssbo = NeoGlBuffer()
 

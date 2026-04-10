@@ -32,7 +32,7 @@ open class ShadowMesh : NativeResource {
         GlBufferUsage.STATIC_DRAW
     )
     @JvmField
-    val lightMesh = LightMesh()
+    val lightMesh = LightMesh(GlBufferUsage.STATIC_DRAW)
 
     override fun free() {
         lightMesh.free()

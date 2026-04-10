@@ -12,6 +12,8 @@ open class AsyncBlockShadowMesh<M : ShadowMesher>(
     val blit: (info: LightMesh.LightBlitInfo) -> Unit
 ) : ShadowMesh() {
     protected var asyncTask: CompletableFuture<() -> LightMesh.LightBlitInfo>? = null
+    var blitInfo: LightMesh.LightBlitInfo? = null
+        protected set
 
     fun isTaskActive() = asyncTask?.let { task -> !task.isDone } ?: false
 
@@ -54,10 +56,12 @@ open class AsyncBlockShadowMesh<M : ShadowMesher>(
         val built = build(shadowFaces, lightFaces)
 
         return {
-            LightMesh.LightBlitInfo(
+            val blitInfo = LightMesh.LightBlitInfo(
                 built(),
                 lightFaces
             )
+            this.blitInfo = blitInfo
+            blitInfo
         }
     }
 

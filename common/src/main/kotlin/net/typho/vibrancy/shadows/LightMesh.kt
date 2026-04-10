@@ -10,6 +10,7 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.util.BlendFunction
 import net.typho.big_shot_lib.api.client.rendering.opengl.util.PolygonOffset
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
+import net.typho.big_shot_lib.api.client.rendering.util.Renderable
 import net.typho.big_shot_lib.api.math.vec.AbstractVec3
 import net.typho.big_shot_lib.api.math.vec.NeoVec2i
 import net.typho.big_shot_lib.api.util.buffer.BYTE_MASK
@@ -20,7 +21,10 @@ import net.typho.vibrancy.TextureAtlas
 import net.typho.vibrancy.Vibrancy
 import org.lwjgl.system.NativeResource
 
-open class LightMesh : NativeResource {
+open class LightMesh(
+    @JvmField
+    val usage: GlBufferUsage
+) : NativeResource {
     companion object {
         @JvmField
         val VERTEX_FORMAT = NeoVertexFormat.builder()
@@ -149,7 +153,7 @@ open class LightMesh : NativeResource {
         VERTEX_FORMAT,
         GlBeginMode.QUADS,
         GlBufferWriter.Mode.REGULAR,
-        GlBufferUsage.STATIC_DRAW
+        usage
     )
     @JvmField
     val texture = NeoGlTexture2D().also {
@@ -246,5 +250,8 @@ open class LightMesh : NativeResource {
     override fun free() {
         mesh.free()
         texture.free()
+    }
+
+    interface Layer : NativeResource, Renderable {
     }
 }

@@ -7,11 +7,15 @@ import net.minecraft.world.level.block.LeavesBlock
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBeginMode
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBlendEquation
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBlendingFactor
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
+import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlBlendShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
+import net.typho.big_shot_lib.api.client.rendering.opengl.util.BlendFunction
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.math.NeoDirection
@@ -38,6 +42,13 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
     companion object {
         @JvmField
         val meshBlitDrawState = GlDrawState.Basic(
+            blend = GlBlendShard.Enabled(
+                BlendFunction.Basic(
+                    GlBlendingFactor.DST_COLOR,
+                    GlBlendingFactor.ZERO
+                ),
+                GlBlendEquation.ADD
+            ),
             shader = GlShaderShard.FromLocation(
                 Vibrancy.id("sky/overworld/blit"),
                 { }
