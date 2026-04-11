@@ -8,16 +8,12 @@ layout(std430, binding = 0) buffer ShadowQuadBuffer {
 };
 
 uniform sampler2D Sampler0;
+uniform ivec2 Sampler0Size;
 
-uniform vec3 LightPos;
-uniform vec3 LightColor;
-uniform float LightRadius;
-uniform float LightBrightness;
+in vec2 texCoord0;
+flat in uint index;
 
-in vec3 vertexPos;
-in flat uint index;
-
-out vec3 fragColor;
+out vec4 fragColor;
 
 struct Ray {
     vec3 pos;
@@ -26,29 +22,13 @@ struct Ray {
 };
 
 void main() {
-    //vec2 step = 1 / (vec2(sprite.width, sprite.height) * 3);
-
-    vec3 delta = LightPos - vertexPos;
-    vec3 dir = normalize(delta);
-    float len = length(delta);
-
-    Ray ray = Ray(vertexPos, dir, len);
-    vec4 accum = vec4(0);
-    float denom = 0;
-
-    fragColor = vec3(1);
-
-    for (uint i = 0u; i < index; i++) {
-        float dist;
-        vec4 outColor;
-        Quad quad = shadowQuads[i];
-
-        if (sampleQuad(Sampler0, ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor)) {
-            discard;
-        }
-
-        if (outColor.a > 0) {
-            fragColor = fragColor * (1 - outColor.a) * outColor.rgb;
-        }
+    if (texCoord0.x < 0 || texCoord0.x > 1 || texCoord0.y < 0 || texCoord0.y > 1) {
+        discard;
     }
+
+    Quad q = shadowQuads[index];
+
+    vec2 texUv = mix(mix(q.uv1, q.uv2, texCoord0.x), mix(q.uv4, q.uv3, texCoord0.x), texCoord0.y);
+    vec4 color = mix(mix(unpackUnorm4x8(q.color1), unpackUnorm4x8(q.color2), texCoord0.x), mix(unpackUnorm4x8(q.color4), unpackUnorm4x8(q.color3), texCoord0.x), texCoord0.y);
+    fragColor = texelFetch(Sampler0, ivec2(texUv * Sampler0Size), 0) * color;
 }
