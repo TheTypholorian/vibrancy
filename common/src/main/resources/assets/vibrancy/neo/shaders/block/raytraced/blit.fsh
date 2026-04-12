@@ -22,13 +22,16 @@ struct Ray {
 };
 
 void main() {
-    if (texCoord0.x < 0 || texCoord0.x > 1 || texCoord0.y < 0 || texCoord0.y > 1) {
-        discard;
-    }
-
     Quad q = shadowQuads[index];
 
     vec2 texUv = mix(mix(q.uv1, q.uv2, texCoord0.x), mix(q.uv4, q.uv3, texCoord0.x), texCoord0.y);
     vec4 color = mix(mix(unpackUnorm4x8(q.color1), unpackUnorm4x8(q.color2), texCoord0.x), mix(unpackUnorm4x8(q.color4), unpackUnorm4x8(q.color3), texCoord0.x), texCoord0.y);
-    fragColor = vec4(0); //texelFetch(Sampler0, ivec2(texUv * Sampler0Size), 0) * color;
+
+    if (texCoord0.x < 0 || texCoord0.x > 1 || texCoord0.y < 0 || texCoord0.y > 1) {
+        fragColor = vec4(texCoord0, 1, 1);
+    } else {
+        fragColor = vec4(texCoord0, 0, 1);
+    }
+
+     //vec4(0); //texelFetch(Sampler0, ivec2(texUv * Sampler0Size), 0) * color;
 }

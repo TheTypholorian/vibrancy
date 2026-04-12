@@ -89,7 +89,7 @@ open class RayPointLight(
                         GlBufferUsage.STREAM_DRAW
                     ).use { mesh ->
                         LightMesh.initBlitMesh(mesh, info)
-                        mesh.drawInstanced(shadows.shadowMesh.size / 6)
+                        mesh.drawInstanced(1)//(shadows.shadowMesh.size / 6)
                     }
                 }
             }

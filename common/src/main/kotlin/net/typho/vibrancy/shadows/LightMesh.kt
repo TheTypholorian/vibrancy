@@ -6,7 +6,6 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBuffe
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.*
-import net.typho.big_shot_lib.api.client.rendering.opengl.util.BlendFunction
 import net.typho.big_shot_lib.api.client.rendering.opengl.util.PolygonOffset
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
@@ -42,6 +41,7 @@ open class LightMesh(
 
         @JvmStatic
         fun drawState(sampler0: GlTexture2D, shader: NeoIdentifier) = GlDrawState.Basic(
+            /*
             blend = GlBlendShard.Enabled(
                 BlendFunction.Basic(
                     GlBlendingFactor.ONE,
@@ -49,6 +49,7 @@ open class LightMesh(
                 ),
                 if (Vibrancy.config.limitLightBrightness) GlBlendEquation.MAX else GlBlendEquation.ADD
             ),
+            */
             cull = GlCullShard.Enabled(
                 GlCullFace.BACK
             ),

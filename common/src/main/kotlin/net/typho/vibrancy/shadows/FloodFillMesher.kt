@@ -74,7 +74,8 @@ class FloodFillMesher(
             newCursors = arrayListOf()
         } while (cursors.isNotEmpty())
 
-        for (pos in checked) {
+        // TODO
+        checked.sortedBy { it.distanceSquared(pos) }.forEach { pos ->
             val state = level.getBlockState(pos.blockPos)
             ShadowMesher.collectLightFaces(
                 manager,

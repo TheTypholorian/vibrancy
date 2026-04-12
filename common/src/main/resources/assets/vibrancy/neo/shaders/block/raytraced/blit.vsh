@@ -17,12 +17,12 @@ flat out uint index;
 
 void main() {
     gl_Position = vec4(UV0 * 2 - 1, 0.0, 1.0);
-    index = gl_InstanceID;
+    index = 10;
 
     vec3 delta = LightPos - Position;
     vec3 dir = normalize(delta);
     float len = length(delta);
-    Quad quad = shadowQuads[gl_InstanceID];
+    Quad quad = shadowQuads[index];
     float dist;
 
     raycastQuad(Position, dir, len, 1e-3, quad, texCoord0, dist);

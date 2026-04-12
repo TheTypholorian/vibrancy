@@ -13,5 +13,10 @@ void main() {
     vec4 light = texture(Sampler0, texCoord0);
     vec4 src = texture(Sampler1, texCoord0);
 
-    fragColor = src + light;
+    // TODO
+    if (light.r != 0 || light.g != 0 || light.b != 0) {
+        fragColor = light;
+    } else {
+        fragColor = src;
+    }
 }
