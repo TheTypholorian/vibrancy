@@ -8,6 +8,7 @@ layout(std430, binding = 0) buffer ShadowQuadBuffer {
 };
 
 uniform sampler2D Sampler0;
+uniform ivec2 Sampler0Size;
 
 uniform vec3 LightPos;
 uniform vec3 LightColor;
@@ -43,7 +44,7 @@ void main() {
         vec4 outColor;
         Quad quad = shadowQuads[i];
 
-        if (sampleQuad(Sampler0, ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor)) {
+        if (sampleQuad(Sampler0, Sampler0Size, ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor)) {
             discard;
         }
 

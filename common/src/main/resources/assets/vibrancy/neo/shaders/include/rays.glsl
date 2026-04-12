@@ -9,7 +9,8 @@ bool raycastQuad(vec3 origin, vec3 dir, float len, float margin, Quad q, out vec
     vec3 normal = normalize(cross(q.v2 - q.v1, q.v4 - q.v1));
 
     float denom = dot(dir, normal);
-    if (denom <= 0.0) return false;
+    // TODO
+    //if (denom <= 0.0) return false;
 
     float d = dot(normal, q.v1);
 
@@ -44,13 +45,13 @@ bool raycastQuad(vec3 origin, vec3 dir, float len, float margin, Quad q, out vec
     return true;
 }
 
-bool sampleQuad(sampler2D AtlasSampler, vec3 origin, vec3 dir, float len, float margin, Quad q, out float dist, out vec4 outColor) {
+bool sampleQuad(sampler2D Sampler0, ivec2 Sampler0Size, vec3 origin, vec3 dir, float len, float margin, Quad q, out float dist, out vec4 outColor) {
     vec2 uv;
 
     if (raycastQuad(origin, dir, len, margin, q, uv, dist)) {
         vec2 texUv = mix(mix(q.uv1, q.uv2, uv.x), mix(q.uv4, q.uv3, uv.x), uv.y);
         vec4 color = mix(mix(unpackUnorm4x8(q.color1), unpackUnorm4x8(q.color2), uv.x), mix(unpackUnorm4x8(q.color4), unpackUnorm4x8(q.color3), uv.x), uv.y);
-        vec4 pixel = texelFetch(AtlasSampler, ivec2(texUv * textureSize(AtlasSampler, 0)), 0) * color;
+        vec4 pixel = texelFetch(Sampler0, ivec2(texUv * Sampler0Size), 0) * color;
         outColor = pixel;
 
         if (pixel.a > 0.99) {

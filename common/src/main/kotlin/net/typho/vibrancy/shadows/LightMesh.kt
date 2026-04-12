@@ -49,9 +49,10 @@ open class LightMesh(
                 ),
                 if (Vibrancy.config.limitLightBrightness) GlBlendEquation.MAX else GlBlendEquation.ADD
             ),
-            cull = GlCullShard.Enabled(
-                GlCullFace.BACK
-            ),
+            // TODO
+            //cull = GlCullShard.Enabled(
+            //    GlCullFace.BACK
+            //),
             depth = GlDepthShard.Enabled(
                 GlAlphaFunction.LEQUAL
             ),

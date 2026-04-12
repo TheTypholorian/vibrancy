@@ -32,7 +32,7 @@ void main() {
         discard;
     }
 
-    vec3 lightColor = texelFetch(Sampler1, ivec2(texCoord1), 0).rgb * LightColor * attenuateNoCusp(distance(LightPos, vertexPosition), LightRadius);
+    vec3 lightColor = texelFetch(Sampler1, ivec2(texCoord1), 0).rgb * vec3(1, 0.5, 0.25);//LightColor * attenuateNoCusp(distance(LightPos, vertexPosition), LightRadius);
 
     if (SpecularReflectionsEnabled) {
         vec3 inputNormal = normalize(LightPos - vertexPosition);

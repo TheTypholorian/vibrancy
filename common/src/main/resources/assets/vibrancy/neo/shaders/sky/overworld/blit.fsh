@@ -8,6 +8,7 @@ layout(std430, binding = 0) buffer ShadowQuadBuffer {
 };
 
 uniform sampler2D Sampler0;
+uniform ivec2 Sampler0Size;
 
 uniform vec3 LightDirection;
 //uniform vec3 LightOffset;
@@ -25,7 +26,7 @@ struct Ray {
 vec4 test(Quad q, Ray check) {
     float dist;
 
-    return sampleQuad(Sampler0, check.pos, check.dir, check.len, 1e-3, q, dist);
+    return sampleQuad(Sampler0, Sampler0Size, check.pos, check.dir, check.len, 1e-3, q, dist);
 }
 
 void main() {
