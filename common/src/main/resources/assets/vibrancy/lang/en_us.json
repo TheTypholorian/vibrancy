@@ -46,5 +46,7 @@
 
   "error.vibrancy.no_ssbos": "Vibrancy requires the GPU extension GL_ARB_shader_storage_buffer_object (included in OpenGL 4.3), which your system does not support. This can typically be solved by updating your GPU drivers. The mod has been disabled.",
   "error.vibrancy.no_ssbos_mac": "Vibrancy requires the GPU extension GL_ARB_shader_storage_buffer_object (included in OpenGL 4.3), which MacOS does not support, and there is no way to fix it. The mod has been disabled.",
-  "error.vibrancy.amd": "Vibrancy currently does not work with AMD GPU drivers for an unknown reason. I can't debug this since I don't have a device with AMD drivers. If you are a rendering expert with AMD drivers and would like to help this get resolved, please join the discord server and notify me."
+  "error.vibrancy.amd": "Vibrancy currently does not work with AMD GPU drivers for an unknown reason. I can't debug this since I don't have a device with AMD drivers. If you are a rendering expert with AMD drivers and would like to help this get resolved, please join the discord server and notify me.",
+
+  "vibrancy.loading": "Loading Vibrancy lights..."
 }

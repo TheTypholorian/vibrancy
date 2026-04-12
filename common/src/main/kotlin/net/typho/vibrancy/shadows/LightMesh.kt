@@ -94,14 +94,14 @@ open class LightMesh(
 
         @JvmStatic
         fun initBlitMesh(mesh: Mesh, info: LightBlitInfo) {
-            val vertexBuffer = NeoBuffer.Native(info.lightFaces.size.toLong() * 4 * BLIT_VERTEX_FORMAT.vertexSizeBytes)
+            val vertexBuffer = NeoBuffer.GCNative(info.lightFaces.size.toLong() * 4 * BLIT_VERTEX_FORMAT.vertexSizeBytes)
             val indexCount = info.lightFaces.size * 6
             val indexType = when (indexCount) {
                 indexCount and BYTE_MASK -> GlIndexDataType.BYTE
                 indexCount and SHORT_MASK -> GlIndexDataType.SHORT
                 else -> GlIndexDataType.INT
             }
-            val indexBuffer = NeoBuffer.Native(indexCount.toLong() * VERTEX_FORMAT.vertexSizeBytes)
+            val indexBuffer = NeoBuffer.GCNative(indexCount.toLong() * VERTEX_FORMAT.vertexSizeBytes)
 
             vertexBuffer.write().run {
                 fun vertex(pos: AbstractVec3<Float>, texX: Float, texY: Float) {
@@ -173,10 +173,6 @@ open class LightMesh(
         }
     }
 
-    fun drawDebug() {
-        mesh.draw()
-    }
-
     fun build(
         lightFaces: List<LightFace>
     ): () -> TextureAtlas.Result {
@@ -185,14 +181,14 @@ open class LightMesh(
             NeoVec2i(face.width, face.height)
         }
         val result = TextureAtlas.pack(*textures)
-        val vertexBuffer = NeoBuffer.Native(lightFaces.size.toLong() * 4 * VERTEX_FORMAT.vertexSizeBytes)
+        val vertexBuffer = NeoBuffer.GCNative(lightFaces.size.toLong() * 4 * VERTEX_FORMAT.vertexSizeBytes)
         val indexCount = lightFaces.size * 6
         val indexType = when (indexCount) {
             indexCount and BYTE_MASK -> GlIndexDataType.BYTE
             indexCount and SHORT_MASK -> GlIndexDataType.SHORT
             else -> GlIndexDataType.INT
         }
-        val indexBuffer = NeoBuffer.Native(indexCount.toLong() * VERTEX_FORMAT.vertexSizeBytes)
+        val indexBuffer = NeoBuffer.GCNative(indexCount.toLong() * VERTEX_FORMAT.vertexSizeBytes)
 
         vertexBuffer.write().run {
             lightFaces.forEachIndexed { index, face ->

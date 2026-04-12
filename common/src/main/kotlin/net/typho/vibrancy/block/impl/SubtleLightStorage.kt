@@ -32,6 +32,7 @@ import net.typho.vibrancy.block.HashMapBlockLightStorage
 import net.typho.vibrancy.shadows.BasicMesher
 import net.typho.vibrancy.shadows.LightFace
 import net.typho.vibrancy.shadows.LightMesh
+import net.typho.vibrancy.util.VibrancyThreadPool
 import org.lwjgl.opengl.GL30.glBindBufferBase
 import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.system.NativeResource
@@ -171,7 +172,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                         faces::add
                     )
                     val task = chunk.mesh.build(faces)
-                    val buffer = NeoBuffer.Native(chunk.size.toLong() * 8 * Float.SIZE_BYTES)
+                    val buffer = NeoBuffer.GCNative(chunk.size.toLong() * 8 * Float.SIZE_BYTES)
 
                     buffer.write().run {
                         for (light in chunk.map.values) {
@@ -224,7 +225,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                 }
 
                 if (Vibrancy.config.useMultithreading) {
-                    tasks.add(CompletableFuture.supplyAsync(::impl))
+                    tasks.add(CompletableFuture.supplyAsync(::impl, VibrancyThreadPool))
                 } else {
                     impl()?.accept(data)
                 }

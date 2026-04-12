@@ -3,6 +3,7 @@ package net.typho.vibrancy.shadows
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
+import net.typho.vibrancy.util.VibrancyThreadPool
 import java.util.concurrent.CompletableFuture
 
 open class AsyncBlockShadowMesh<M : ShadowMesher>(
@@ -81,7 +82,7 @@ open class AsyncBlockShadowMesh<M : ShadowMesher>(
             }
              */
             asyncTask?.cancel(true)
-            asyncTask = CompletableFuture.supplyAsync { rebuildAsyncImpl(manager, predicate, shadowPredicate) }
+            asyncTask = CompletableFuture.supplyAsync({ rebuildAsyncImpl(manager, predicate, shadowPredicate) }, VibrancyThreadPool)
         } else {
             val info = rebuildAsyncImpl(manager, predicate, shadowPredicate)()
 

@@ -47,8 +47,6 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
     const val MOD_NAME = "Vibrancy"
     @JvmField
     val LOGGER: Logger = LoggerFactory.getLogger(MOD_NAME)
-    @JvmField
-    val DEBUG = false // TODO
 
     val config: VibrancyConfig
         get() = AutoConfig.getConfigHolder(VibrancyConfig::class.java).config

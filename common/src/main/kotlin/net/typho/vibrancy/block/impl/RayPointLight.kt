@@ -68,7 +68,7 @@ open class RayPointLight(
                 fbo.checkStatus().throwIfError()
 
                 fbo.clear(GlClearBit.Color(NeoColor.FULL_OFF))
-                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, shadows.shadowMesh.vbo.glId)
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, shadows.shadowBuffer.glId)
 
                 drawState.bind().use { drawState ->
                     drawState.shader.setUniform("LightPos") { set(absolutePos) }
