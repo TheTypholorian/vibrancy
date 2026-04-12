@@ -2,15 +2,16 @@ package net.typho.vibrancy.block.impl
 
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBeginMode
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlClearBit
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureTarget
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlFramebuffer
-import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlBlendShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
-import net.typho.big_shot_lib.api.client.rendering.opengl.util.BlendFunction
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
@@ -48,14 +49,14 @@ open class RayPointLight(
 ) : PointLight, LightFacePredicate, NativeResource {
     companion object {
         @JvmField
-        val drawState = GlDrawState.Basic(
-            blend = GlBlendShard.Enabled(
+        val blitDrawState = GlDrawState.Basic(
+            /*blend = GlBlendShard.Enabled(
                 BlendFunction.Basic(
                     GlBlendingFactor.ONE,
                     GlBlendingFactor.ONE_MINUS_SRC_ALPHA
                 ),
                 GlBlendEquation.ADD
-            ),
+            ),*/
             shader = GlShaderShard.FromLocation(
                 Vibrancy.id("block/raytraced/blit"),
                 { },
@@ -76,7 +77,7 @@ open class RayPointLight(
                 fbo.clear(GlClearBit.Color(NeoColor.FULL_ON))
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, shadows.shadowMesh.vbo.glId)
 
-                drawState.bind().use { drawState ->
+                blitDrawState.bind().use { drawState ->
                     drawState.shader.setUniform("LightPos") { set(absolutePos) }
                     drawState.shader.setUniform("LightColor") { set(color * Vibrancy.config.blockLights.raytraced.brightness) }
                     drawState.shader.setUniform("LightRadius") { set(radius) }
