@@ -75,7 +75,7 @@ open class RayPointLight(
                 fbo.checkStatus().throwIfError()
 
                 fbo.clear(GlClearBit.Color(NeoColor.FULL_ON))
-                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, shadows.shadowMesh.vbo.glId)
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, shadows.shadowBuffer.glId)
 
                 blitDrawState.bind().use { drawState ->
                     drawState.shader.setUniform("LightPos") { set(absolutePos) }
@@ -89,7 +89,7 @@ open class RayPointLight(
                         GlBufferUsage.STREAM_DRAW
                     ).use { mesh ->
                         LightMesh.initBlitMesh(mesh, info)
-                        mesh.drawInstanced(shadows.shadowMesh.size / 6)
+                        mesh.drawInstanced(shadows.numShadows / 6)
                     }
                 }
             }

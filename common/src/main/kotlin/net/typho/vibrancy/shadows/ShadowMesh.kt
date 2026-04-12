@@ -1,14 +1,11 @@
 package net.typho.vibrancy.shadows
 
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBeginMode
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferTarget
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlIndexDataType
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
-import net.typho.big_shot_lib.api.client.rendering.util.Mesh
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlBuffer
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
-import net.typho.big_shot_lib.api.util.buffer.BYTE_MASK
+import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.toJOML
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
-import net.typho.big_shot_lib.api.util.buffer.SHORT_MASK
 import net.typho.vibrancy.TextureAtlas
 import org.lwjgl.system.NativeResource
 
@@ -25,21 +22,15 @@ open class ShadowMesh : NativeResource {
     }
 
     @JvmField
-    val shadowMesh = Mesh(
-        VERTEX_FORMAT,
-        GlBeginMode.QUADS,
-        GlBufferWriter.Mode.REGULAR,
-        GlBufferUsage.STATIC_DRAW
-    )
+    val shadowBuffer = NeoGlBuffer()
+    var numShadows: Int = 0
+        protected set
     @JvmField
     val lightMesh = LightMesh(GlBufferUsage.STATIC_DRAW)
 
     override fun free() {
+        shadowBuffer.free()
         lightMesh.free()
-    }
-
-    fun drawDebug() {
-        shadowMesh.draw()
     }
 
     fun build(
@@ -50,20 +41,14 @@ open class ShadowMesh : NativeResource {
 
         if (shadowFaces.isEmpty()) {
             return {
-                shadowMesh.builder(0)?.build()
+                shadowBuffer.bind(GlBufferTarget.ARRAY_BUFFER).use { it.bufferData(0, GlBufferUsage.STATIC_DRAW) }
+                numShadows = 0
                 light()
             }
         } else {
-            val vertexBuffer = NeoBuffer.Native(shadowFaces.size.toLong() * 4 * VERTEX_FORMAT.vertexSizeBytes)
-            val indexCount = shadowFaces.size * 6
-            val indexType = when (indexCount) {
-                indexCount and BYTE_MASK -> GlIndexDataType.BYTE
-                indexCount and SHORT_MASK -> GlIndexDataType.SHORT
-                else -> GlIndexDataType.INT
-            }
-            val indexBuffer = NeoBuffer.Native(indexCount.toLong() * VERTEX_FORMAT.vertexSizeBytes)
+            val buffer = NeoBuffer.Native(shadowFaces.size.toLong() * (4 * VERTEX_FORMAT.vertexSizeBytes + 8 * Float.SIZE_BYTES))
 
-            vertexBuffer.write().run {
+            buffer.write().run {
                 shadowFaces.forEachIndexed { index, face ->
                     for (vertex in face.quad.vertices) {
                         writeFloat(vertex.pos.x)
@@ -76,26 +61,32 @@ open class ShadowMesh : NativeResource {
                         writeInt(vertex.color!!.toRGBA())
                         writeInt(0)
                     }
-                }
-            }
-            indexBuffer.write().run {
-                var vertex = 0
 
-                repeat(shadowFaces.size) {
-                    indexType.write(this, vertex)
-                    indexType.write(this, vertex + 1)
-                    indexType.write(this, vertex + 2)
-                    indexType.write(this, vertex + 2)
-                    indexType.write(this, vertex + 3)
-                    indexType.write(this, vertex)
-                    vertex += 4
+                    writeFloat(face.quad.v0.normal!!.x)
+                    writeFloat(face.quad.v0.normal!!.y)
+                    writeFloat(face.quad.v0.normal!!.z)
+                    writeInt(0)
+
+                    writeFloat(face.quad.v0.normal!!.toJOML().dot(face.quad.v0.pos.toJOML()))
+
+                    val diagonal1 = face.quad.v1.pos - face.quad.v0.pos
+                    val diagonal2 = face.quad.v3.pos - face.quad.v0.pos
+
+                    val d11 = diagonal1.toJOML().dot(diagonal1.toJOML())
+                    val d12 = diagonal1.toJOML().dot(diagonal2.toJOML())
+                    val d22 = diagonal2.toJOML().dot(diagonal2.toJOML())
+                    val invDet = 1 / (d11 * d22 - d12 * d12)
+
+                    writeFloat(d22 * invDet)
+                    writeFloat(-d12 * invDet)
+                    writeFloat(d11 * invDet)
                 }
             }
 
             return {
-                shadowMesh.rawUpload(indexCount, indexType, vertexBuffer, indexBuffer)
-                vertexBuffer.free()
-                indexBuffer.free()
+                shadowBuffer.bind(GlBufferTarget.ARRAY_BUFFER).use { it.bufferData(buffer, GlBufferUsage.STATIC_DRAW) }
+                buffer.free()
+                numShadows = shadowFaces.size
                 light()
             }
         }

@@ -57,15 +57,6 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                 lights.forEach { it.update(manager, data) }
                 lights.forEach { light -> light.render(settings.shader, debugOut) }
             }
-
-            if (Vibrancy.DEBUG) {
-                LightMesh.debugDrawState.bind().use { settings ->
-                    settings.shader.setUniform("ProjMat") { set(data.projMat) }
-                    settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((-data.camera.pos).toJOML(), Matrix4f())) }
-
-                    lights.forEach { it.shadows.drawDebug() }
-                }
-            }
         }
     }
 }

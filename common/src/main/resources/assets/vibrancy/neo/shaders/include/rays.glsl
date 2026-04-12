@@ -3,18 +3,22 @@ struct Quad {
     vec3 v2; vec2 uv2; uint color2;
     vec3 v3; vec2 uv3; uint color3;
     vec3 v4; vec2 uv4; uint color4;
+
+    vec3 normal;
+
+    float d;
+
+    float inv11;
+    float inv12;
+    float inv22;
 };
 
-bool raycastQuad(vec3 origin, vec3 dir, float len, float margin, Quad q, out vec2 uv, out float tt) {
-    vec3 normal = normalize(cross(q.v2 - q.v1, q.v4 - q.v1));
-
-    float denom = dot(dir, normal);
+bool raycastQuad(vec3 origin, vec3 dir, float margin, Quad q, out vec2 uv, out float tt) {
+    float denom = dot(dir, q.normal);
     if (denom <= 0.0) return false;
 
-    float d = dot(normal, q.v1);
-
-    tt = (d - dot(origin, normal)) / denom;
-    if (tt < margin || tt > len - margin) return false;
+    tt = (q.d - dot(origin, q.normal)) / denom;
+    if (tt < margin) return false;
 
     vec3 p = origin + tt * dir;
     vec3 vp = p - q.v1;
@@ -25,6 +29,7 @@ bool raycastQuad(vec3 origin, vec3 dir, float len, float margin, Quad q, out vec
     float d1p = dot(diagonal1, vp);
     float d2p = dot(diagonal2, vp);
 
+    /*
     float d11 = dot(diagonal1, diagonal1);
     float d12 = dot(diagonal1, diagonal2);
     float d22 = dot(diagonal2, diagonal2);
@@ -33,9 +38,10 @@ bool raycastQuad(vec3 origin, vec3 dir, float len, float margin, Quad q, out vec
     float inv11 = d22 * invDet;
     float inv12 = -d12 * invDet;
     float inv22 = d11 * invDet;
+    */
 
-    float a = inv11 * d1p + inv12 * d2p;
-    float b = inv12 * d1p + inv22 * d2p;
+    float a = q.inv11 * d1p + q.inv12 * d2p;
+    float b = q.inv12 * d1p + q.inv22 * d2p;
 
     uv = vec2(a, b);
 
@@ -44,10 +50,43 @@ bool raycastQuad(vec3 origin, vec3 dir, float len, float margin, Quad q, out vec
     return true;
 }
 
-bool sampleQuad(sampler2D AtlasSampler, vec3 origin, vec3 dir, float len, float margin, Quad q, out float dist, out vec4 outColor) {
+bool raycastQuad(float tt, vec3 origin, vec3 dir, float margin, Quad q, out vec2 uv) {
+    if (tt < margin) return false;
+
+    vec3 p = origin + tt * dir;
+    vec3 vp = p - q.v1;
+
+    vec3 diagonal1 = q.v2 - q.v1;
+    vec3 diagonal2 = q.v4 - q.v1;
+
+    float d1p = dot(diagonal1, vp);
+    float d2p = dot(diagonal2, vp);
+
+    /*
+    float d11 = dot(diagonal1, diagonal1);
+    float d12 = dot(diagonal1, diagonal2);
+    float d22 = dot(diagonal2, diagonal2);
+    float invDet = 1 / (d11 * d22 - d12 * d12);
+
+    float inv11 = d22 * invDet;
+    float inv12 = -d12 * invDet;
+    float inv22 = d11 * invDet;
+    */
+
+    float a = q.inv11 * d1p + q.inv12 * d2p;
+    float b = q.inv12 * d1p + q.inv22 * d2p;
+
+    uv = vec2(a, b);
+
+    if (a < 0 || b < 0 || a > 1 || b > 1) return false;
+
+    return true;
+}
+
+bool sampleQuad(sampler2D AtlasSampler, vec3 origin, vec3 dir, float margin, Quad q, out float dist, out vec4 outColor) {
     vec2 uv;
 
-    if (raycastQuad(origin, dir, len, margin, q, uv, dist)) {
+    if (raycastQuad(origin, dir, margin, q, uv, dist)) {
         vec2 texUv = mix(mix(q.uv1, q.uv2, uv.x), mix(q.uv4, q.uv3, uv.x), uv.y);
         vec4 color = mix(mix(unpackUnorm4x8(q.color1), unpackUnorm4x8(q.color2), uv.x), mix(unpackUnorm4x8(q.color4), unpackUnorm4x8(q.color3), uv.x), uv.y);
         vec4 pixel = texelFetch(AtlasSampler, ivec2(texUv * textureSize(AtlasSampler, 0)), 0) * color;

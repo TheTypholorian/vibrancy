@@ -9,8 +9,10 @@ layout(std430, binding = 0) buffer ShadowQuadBuffer {
 
 uniform sampler2D Sampler0;
 uniform ivec2 Sampler0Size;
+uniform vec3 LightPos;
 
-in vec2 texCoord0;
+in float denom;
+in vec3 fragPos;
 flat in uint index;
 
 out vec4 fragColor;
@@ -22,13 +24,14 @@ struct Ray {
 };
 
 void main() {
-    if (texCoord0.x < 0 || texCoord0.x > 1 || texCoord0.y < 0 || texCoord0.y > 1) {
+    Quad q = shadowQuads[index];
+    vec2 texCoord0;
+
+    if (!raycastQuad((q.d - denom) / (dot(LightPos, q.normal) - denom), fragPos, LightPos - fragPos, 1e-3, q, texCoord0)) {
         discard;
     }
 
-    Quad q = shadowQuads[index];
-
     vec2 texUv = mix(mix(q.uv1, q.uv2, texCoord0.x), mix(q.uv4, q.uv3, texCoord0.x), texCoord0.y);
     vec4 color = mix(mix(unpackUnorm4x8(q.color1), unpackUnorm4x8(q.color2), texCoord0.x), mix(unpackUnorm4x8(q.color4), unpackUnorm4x8(q.color3), texCoord0.x), texCoord0.y);
-    fragColor = vec4(0); //texelFetch(Sampler0, ivec2(texUv * Sampler0Size), 0) * color;
+    fragColor = texelFetch(Sampler0, ivec2(texUv * Sampler0Size), 0) * color;
 }
