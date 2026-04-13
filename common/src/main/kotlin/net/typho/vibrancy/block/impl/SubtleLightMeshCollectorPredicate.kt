@@ -4,14 +4,15 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.typho.big_shot_lib.api.math.NeoDirection
 import net.typho.big_shot_lib.api.math.vec.AbstractVec3
+import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.blockPos
 import net.typho.big_shot_lib.api.util.BlockUtil
-import net.typho.vibrancy.shadows.LightFacePredicate
+import net.typho.vibrancy.collectors.BlockMeshCollector
 
-object SubtleLightFacePredicate : LightFacePredicate {
+object SubtleLightMeshCollectorPredicate : BlockMeshCollector.Predicate {
     override fun shouldCastBlock(
         level: Level,
         pos: AbstractVec3<Int>,
-        state: BlockState
+        state: BlockState?
     ): Boolean {
         return true
     }
@@ -20,12 +21,12 @@ object SubtleLightFacePredicate : LightFacePredicate {
         face: NeoDirection?,
         level: Level,
         pos: AbstractVec3<Int>,
-        state: BlockState
+        state: BlockState?
     ): Boolean {
         if (face == null) {
             return true
         }
 
-        return BlockUtil.INSTANCE.shouldRenderFace(level, pos, face, state)
+        return BlockUtil.INSTANCE.shouldRenderFace(level, pos, face, state ?: level.getBlockState(pos.blockPos))
     }
 }

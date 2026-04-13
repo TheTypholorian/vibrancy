@@ -10,7 +10,6 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.util.BlendFunction
 import net.typho.big_shot_lib.api.client.rendering.opengl.util.PolygonOffset
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
-import net.typho.big_shot_lib.api.client.rendering.util.Renderable
 import net.typho.big_shot_lib.api.math.vec.AbstractVec3
 import net.typho.big_shot_lib.api.math.vec.NeoVec2i
 import net.typho.big_shot_lib.api.util.buffer.BYTE_MASK
@@ -49,10 +48,9 @@ open class LightMesh(
                 ),
                 if (Vibrancy.config.limitLightBrightness) GlBlendEquation.MAX else GlBlendEquation.ADD
             ),
-            // TODO
-            //cull = GlCullShard.Enabled(
-            //    GlCullFace.BACK
-            //),
+            cull = GlCullShard.Enabled(
+                GlCullFace.BACK
+            ),
             depth = GlDepthShard.Enabled(
                 GlAlphaFunction.LEQUAL
             ),
@@ -76,27 +74,10 @@ open class LightMesh(
             )
         )
 
-        @JvmField
-        val debugDrawState = GlDrawState.Basic(
-            depth = GlDepthShard.Enabled(
-                GlAlphaFunction.LEQUAL
-            ),
-            polygonOffset = GlPolygonOffsetShard.Enabled(
-                PolygonOffset(
-                    -1f,
-                    -4f
-                )
-            ),
-            shader = GlShaderShard.FromLocation(
-                Vibrancy.id("light_mesh_debug"),
-                { }
-            )
-        )
-
         @JvmStatic
-        fun initBlitMesh(mesh: Mesh, info: LightBlitInfo) {
-            val vertexBuffer = NeoBuffer.GCNative(info.lightFaces.size.toLong() * 4 * BLIT_VERTEX_FORMAT.vertexSizeBytes)
-            val indexCount = info.lightFaces.size * 6
+        fun initBlitMesh(mesh: Mesh, info: MeshData) {
+            val vertexBuffer = NeoBuffer.GCNative(info.faces.size.toLong() * 4 * BLIT_VERTEX_FORMAT.vertexSizeBytes)
+            val indexCount = info.faces.size * 6
             val indexType = when (indexCount) {
                 indexCount and BYTE_MASK -> GlIndexDataType.BYTE
                 indexCount and SHORT_MASK -> GlIndexDataType.SHORT
@@ -109,12 +90,12 @@ open class LightMesh(
                     writeFloat(pos.x)
                     writeFloat(pos.y)
                     writeFloat(pos.z)
-                    writeFloat(texX / info.atlasResult.size.x.toFloat())
-                    writeFloat(texY / info.atlasResult.size.y.toFloat())
+                    writeFloat(texX / info.sections.size.x.toFloat())
+                    writeFloat(texY / info.sections.size.y.toFloat())
                 }
 
-                info.lightFaces.forEachIndexed { index, face ->
-                    val texture = info.atlasResult.textures[index]
+                info.faces.forEachIndexed { index, face ->
+                    val texture = info.sections.textures[index]
 
                     vertex(face.quad.v0.pos, texture.min.x.toFloat(), texture.min.y.toFloat())
                     vertex(face.quad.v1.pos, texture.max.x.toFloat(), texture.min.y.toFloat())
@@ -125,7 +106,7 @@ open class LightMesh(
             indexBuffer.write().run {
                 var vertex = 0
 
-                repeat(info.lightFaces.size) {
+                repeat(info.faces.size) {
                     indexType.write(this, vertex)
                     indexType.write(this, vertex + 1)
                     indexType.write(this, vertex + 2)
@@ -141,13 +122,6 @@ open class LightMesh(
             indexBuffer.free()
         }
     }
-
-    data class LightBlitInfo(
-        @JvmField
-        val atlasResult: TextureAtlas.Result,
-        @JvmField
-        val lightFaces: List<LightFace>
-    )
 
     @JvmField
     val mesh = Mesh(
@@ -174,7 +148,7 @@ open class LightMesh(
         }
     }
 
-    fun build(
+    fun lazyUpload(
         lightFaces: List<LightFace>
     ): () -> TextureAtlas.Result {
         val textures = Array(lightFaces.size) {
@@ -244,11 +218,19 @@ open class LightMesh(
         }
     }
 
+    fun upload(faces: List<LightFace>): TextureAtlas.Result {
+        return lazyUpload(faces)()
+    }
+
     override fun free() {
         mesh.free()
         texture.free()
     }
 
-    interface Layer : NativeResource, Renderable {
-    }
+    data class MeshData(
+        @JvmField
+        val faces: List<LightFace>,
+        @JvmField
+        val sections: TextureAtlas.Result
+    )
 }

@@ -1,4 +1,4 @@
-package net.typho.vibrancy.shadows
+package net.typho.vibrancy.collectors
 
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
@@ -11,28 +11,25 @@ import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.blockPos
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.vibrancy.LightManager
 
-class SkyLightMesher(
+class SkyLightBlockMeshCollector(
     @JvmField
     val pos: ChunkPos
-) : ShadowMesher {
+) : BlockMeshCollector {
     override fun submit(
         manager: LightManager,
         level: Level,
         atlas: NeoAtlas,
-        predicate: LightFacePredicate,
-        out: (face: LightFace) -> Unit
+        vararg consumers: BlockMeshCollector.Consumer
     ) {
-        val faces = arrayListOf<LightFace>()
-
         fun collect(pos: AbstractVec3<Int>, state: BlockState) {
-            ShadowMesher.collectLightFaces(
+            BlockMeshCollector.collectLightFaces(
                 manager,
                 state,
                 level,
                 pos,
                 atlas,
-                { predicate.shouldCastFace(it, level, pos, state) },
-                { dir, face -> faces.add(face) }
+                true,
+                *consumers
             )
         }
 
@@ -47,7 +44,7 @@ class SkyLightMesher(
                     val pos = NeoVec3i(x + pos.minBlockX, y, z + pos.minBlockZ)
                     val state = chunk.getBlockState(pos.blockPos)
 
-                    if (predicate.shouldCastBlock(level, pos, state)) {
+                    if (consumers.any { it.predicate.shouldCastBlock(level, pos, state) }) {
                         collect(pos, state)
                     }
 
@@ -84,9 +81,5 @@ class SkyLightMesher(
             }
         }
          */
-
-        faces.forEach {
-            out(it)
-        }
     }
 }

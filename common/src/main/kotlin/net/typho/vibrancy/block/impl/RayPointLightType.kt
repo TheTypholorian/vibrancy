@@ -32,15 +32,12 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
     ) {
         if (Vibrancy.config.blockLights.raytraced.enabled) {
             val lights = lights.map.values
-                // TODO
-                /*
                 .filter { light ->
                     data.frustum.testAab(
-                        light.boundingBox.min.toFloat().toJOML(),
-                        light.boundingBox.max.toFloat().toJOML(),
+                        (light.boundingBox.min.toFloat() - data.camera.pos).toJOML(),
+                        (light.boundingBox.max.toFloat() - data.camera.pos).toJOML(),
                     )
                 }
-                 */
                 .sortedBy { light -> manager.getSortingOrder(data, light.pos) }
                 .take(Vibrancy.config.blockLights.raytraced.maxRendered)
                 .toList()
@@ -54,7 +51,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                 settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((-data.camera.pos).toJOML(), Matrix4f())) }
                 settings.shader.setUniform("CameraPos") { set(data.camera.pos) }
 
-                lights.forEach { it.update(manager, data) }
+                lights.forEach { it.update(manager) }
                 lights.forEach { light -> light.render(settings.shader, debugOut) }
             }
         }

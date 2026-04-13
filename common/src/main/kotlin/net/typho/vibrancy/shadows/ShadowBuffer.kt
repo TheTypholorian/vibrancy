@@ -5,10 +5,11 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlBuffer
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
-import net.typho.vibrancy.TextureAtlas
-import org.lwjgl.system.NativeResource
 
-open class ShadowMesh : NativeResource {
+open class ShadowBuffer(
+    @JvmField
+    val usage: GlBufferUsage
+) : NeoGlBuffer() {
     companion object {
         @JvmField
         val VERTEX_FORMAT = NeoVertexFormat.builder()
@@ -20,32 +21,16 @@ open class ShadowMesh : NativeResource {
             .build()
     }
 
-    @JvmField
-    val shadowBuffer = NeoGlBuffer()
-    @JvmField
-    val lightMesh = LightMesh(GlBufferUsage.STATIC_DRAW)
-
-    override fun free() {
-        shadowBuffer.free()
-        lightMesh.free()
-    }
-
-    fun build(
-        shadowFaces: List<LightFace>,
-        lightFaces: List<LightFace>
-    ): () -> TextureAtlas.Result {
-        val light = lightMesh.build(lightFaces)
-
-        if (shadowFaces.isEmpty()) {
+    fun lazyUpload(faces: List<LightFace>): () -> Unit {
+        if (faces.isEmpty()) {
             return {
-                shadowBuffer.bind(GlBufferTarget.ARRAY_BUFFER).use { it.bufferData(0, GlBufferUsage.STATIC_DRAW) }
-                light()
+                bind(GlBufferTarget.ARRAY_BUFFER).use { it.bufferData(0L, usage) }
             }
         } else {
-            val vertexBuffer = NeoBuffer.GCNative(shadowFaces.size.toLong() * 4 * VERTEX_FORMAT.vertexSizeBytes)
+            val buffer = NeoBuffer.GCNative(faces.size.toLong() * 4 * VERTEX_FORMAT.vertexSizeBytes)
 
-            vertexBuffer.write().run {
-                shadowFaces.forEachIndexed { index, face ->
+            buffer.write().run {
+                faces.forEachIndexed { index, face ->
                     for (vertex in face.quad.vertices) {
                         writeFloat(vertex.pos.x)
                         writeFloat(vertex.pos.y)
@@ -61,10 +46,13 @@ open class ShadowMesh : NativeResource {
             }
 
             return {
-                shadowBuffer.bind(GlBufferTarget.ARRAY_BUFFER).use { it.bufferData(vertexBuffer, GlBufferUsage.STATIC_DRAW) }
-                vertexBuffer.free()
-                light()
+                bind(GlBufferTarget.ARRAY_BUFFER).use { it.bufferData(buffer, usage) }
+                buffer.free()
             }
         }
+    }
+
+    fun upload(faces: List<LightFace>) {
+        lazyUpload(faces)()
     }
 }

@@ -12,9 +12,9 @@ import kotlin.math.ceil
 @JvmRecord
 data class LightFace(
     @JvmField
-    val blockPos: AbstractVec3<Int>,
+    val blockPos: AbstractVec3<Int>?,
     @JvmField
-    val state: BlockState,
+    val state: BlockState?,
     @JvmField
     val quad: NeoBakedQuad,
     @JvmField
@@ -23,8 +23,8 @@ data class LightFace(
     val height: Int
 ) {
     constructor(
-        blockPos: AbstractVec3<Int>,
-        state: BlockState,
+        blockPos: AbstractVec3<Int>?,
+        state: BlockState?,
         quad: NeoBakedQuad,
         atlas: NeoAtlas
     ) : this(

@@ -31,7 +31,7 @@ import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.block.BlockLightInfoLoader
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.shadows.LightMesh
-import net.typho.vibrancy.shadows.ShadowMesh
+import net.typho.vibrancy.shadows.ShadowBuffer
 import net.typho.vibrancy.sky.SkyLightInfoLoader
 import net.typho.vibrancy.sky.SkyLightRegistry
 import org.lwjgl.opengl.GL
@@ -224,7 +224,7 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
         SkyLightRegistry.registerBuiltins(factory)
 
         factory.begin(NeoVertexFormat.REGISTRY_KEY)?.run {
-            register(id("shadow_mesh")) { ShadowMesh.VERTEX_FORMAT }
+            register(id("shadow_mesh")) { ShadowBuffer.VERTEX_FORMAT }
             register(id("light_mesh")) { LightMesh.VERTEX_FORMAT }
             register(id("light_mesh_blit")) { LightMesh.BLIT_VERTEX_FORMAT }
         }

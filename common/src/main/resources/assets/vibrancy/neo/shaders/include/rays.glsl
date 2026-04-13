@@ -9,8 +9,7 @@ bool raycastQuad(vec3 origin, vec3 dir, float len, float margin, Quad q, out vec
     vec3 normal = normalize(cross(q.v2 - q.v1, q.v4 - q.v1));
 
     float denom = dot(dir, normal);
-    // TODO
-    //if (denom <= 0.0) return false;
+    if (denom <= 0.0) return false;
 
     float d = dot(normal, q.v1);
 

@@ -1,4 +1,4 @@
-package net.typho.vibrancy.shadows
+package net.typho.vibrancy.collectors
 
 import net.minecraft.world.level.Level
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
@@ -6,28 +6,25 @@ import net.typho.big_shot_lib.api.math.vec.AbstractVec3
 import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.blockPos
 import net.typho.vibrancy.LightManager
 
-class BasicMesher(
+class IterationBlockMeshCollector(
     @JvmField
     val blocks: Iterable<AbstractVec3<Int>>
-) : ShadowMesher {
+) : BlockMeshCollector {
     override fun submit(
         manager: LightManager,
         level: Level,
         atlas: NeoAtlas,
-        predicate: LightFacePredicate,
-        out: (face: LightFace) -> Unit
+        vararg consumers: BlockMeshCollector.Consumer
     ) {
         for (pos in blocks) {
-            val state = level.getBlockState(pos.blockPos)
-
-            ShadowMesher.collectLightFaces(
+            BlockMeshCollector.collectLightFaces(
                 manager,
-                state,
+                level.getBlockState(pos.blockPos),
                 level,
                 pos,
                 atlas,
-                { predicate.shouldCastFace(it, level, pos, state) },
-                { dir, face -> out(face) }
+                true,
+                *consumers
             )
         }
     }

@@ -14,24 +14,23 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
-import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.math.NeoDirection
 import net.typho.big_shot_lib.api.math.rect.AbstractRect3
 import net.typho.big_shot_lib.api.math.rect.NeoRect2i
 import net.typho.big_shot_lib.api.math.rect.NeoRect3i
 import net.typho.big_shot_lib.api.math.vec.AbstractVec3
+import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.blockPos
 import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.plus
-import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.toJOML
 import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.Vibrancy.isPointingTowards
 import net.typho.vibrancy.block.BlockLightRegistry
-import net.typho.vibrancy.shadows.AsyncBlockShadowMesh
-import net.typho.vibrancy.shadows.FloodFillMesher
-import net.typho.vibrancy.shadows.LightFacePredicate
+import net.typho.vibrancy.collectors.BlockMeshCollector
+import net.typho.vibrancy.collectors.FloodFillBlockMeshCollector
 import net.typho.vibrancy.shadows.LightMesh
+import net.typho.vibrancy.shadows.StaticBlockLightMeshManager
 import net.typho.vibrancy.util.PointLight
 import org.lwjgl.opengl.GL30.glBindBufferBase
 import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
@@ -46,7 +45,7 @@ open class RayPointLight(
     @JvmField
     val offset: AbstractVec3<Float>,
     override val pos: AbstractVec3<Int>
-) : PointLight, LightFacePredicate, NativeResource {
+) : PointLight, NativeResource {
     companion object {
         @JvmField
         val drawState = GlDrawState.Basic(
@@ -61,14 +60,15 @@ open class RayPointLight(
         )
     }
 
-    val shadows: AsyncBlockShadowMesh<FloodFillMesher> = AsyncBlockShadowMesh(FloodFillMesher(pos)) { info ->
+    val meshCollector = FloodFillBlockMeshCollector(pos)
+    val mesh = StaticBlockLightMeshManager { mesh, info ->
         NeoGlFramebuffer().use { fbo ->
-            fbo.bind(NeoRect2i(0, 0, shadows.lightMesh.texture.width, shadows.lightMesh.texture.height)).use { fbo ->
-                fbo.colorAttachments[0] = shadows.lightMesh.texture
+            fbo.bind(NeoRect2i(0, 0, mesh.lightMesh.texture.width, mesh.lightMesh.texture.height)).use { fbo ->
+                fbo.colorAttachments[0] = mesh.lightMesh.texture
                 fbo.checkStatus().throwIfError()
 
                 fbo.clear(GlClearBit.Color(NeoColor.FULL_OFF))
-                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, shadows.shadowBuffer.glId)
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, mesh.shadowBuffer.glId)
 
                 drawState.bind().use { drawState ->
                     drawState.shader.setUniform("LightPos") { set(absolutePos) }
@@ -108,93 +108,131 @@ open class RayPointLight(
             val shadowRadius = ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.shadowRadius.toFloat())).toInt()
             return NeoRect3i(pos - shadowRadius, pos + shadowRadius)
         }
+    val shadowPredicate = object : BlockMeshCollector.Predicate {
+        override fun shouldCastBlock(
+            level: Level,
+            pos: AbstractVec3<Int>,
+            state: BlockState?
+        ): Boolean {
+            return shadowBox.contains(pos)
+        }
 
-    override fun shouldCastBlock(
-        level: Level,
-        pos: AbstractVec3<Int>,
-        state: BlockState
-    ): Boolean {
-        return boundingBox.contains(pos)
+        override fun shouldCastFace(
+            face: NeoDirection?,
+            level: Level,
+            pos: AbstractVec3<Int>,
+            state: BlockState?
+        ): Boolean {
+            if (face == null) {
+                return true
+            }
+
+            val sidePos = pos + face
+
+            if (sidePos == this@RayPointLight.pos) {
+                return true
+            }
+
+            if (!face.isPointingTowards(pos, this@RayPointLight.pos)) {
+                return false
+            }
+
+            if (
+                !BlockUtil.INSTANCE.shouldRenderFace(
+                    level,
+                    pos,
+                    face,
+                    state ?: level.getBlockState(pos.blockPos)
+                )
+            ) {
+                return false
+            }
+
+            return true
+        }
     }
+    val lightPredicate = object : BlockMeshCollector.Predicate {
+        override fun shouldCastBlock(
+            level: Level,
+            pos: AbstractVec3<Int>,
+            state: BlockState?
+        ): Boolean {
+            return boundingBox.contains(pos) && !BlockLightRegistry.has(state ?: level.getBlockState(pos.blockPos))
+        }
 
-    override fun shouldCastFace(
-        face: NeoDirection?,
-        level: Level,
-        pos: AbstractVec3<Int>,
-        state: BlockState
-    ): Boolean {
-        if (face == null) {
+        override fun shouldCastFace(
+            face: NeoDirection?,
+            level: Level,
+            pos: AbstractVec3<Int>,
+            state: BlockState?
+        ): Boolean {
+            if (face == null) {
+                return true
+            }
+
+            val sidePos = pos + face
+
+            if (sidePos == this@RayPointLight.pos) {
+                return true
+            }
+
+            if (!face.isPointingTowards(pos, this@RayPointLight.pos)) {
+                return false
+            }
+
+            if (
+                !BlockUtil.INSTANCE.shouldRenderFace(
+                    level,
+                    pos,
+                    face,
+                    state ?: level.getBlockState(pos.blockPos)
+                )
+            ) {
+                return false
+            }
+
             return true
         }
-
-        val sidePos = pos + face
-
-        if (sidePos == this@RayPointLight.pos) {
-            return true
-        }
-
-        if (!face.isPointingTowards(pos, this@RayPointLight.pos)) {
-            return false
-        }
-
-        if (
-            !BlockUtil.INSTANCE.shouldRenderFace(
-                level,
-                pos,
-                face,
-                state
-            )
-        ) {
-            return false
-        }
-
-        return true
     }
 
     fun reload() {
-        synchronized(shadows.mesher) {
-            shadows.mesher.markAllDirty()
+        synchronized(meshCollector) {
+            meshCollector.markAllDirty()
         }
         shadowsDirty = true
     }
 
     override fun free() {
-        shadows.free()
+        mesh.free()
     }
 
-    fun update(manager: LightManager, data: RenderEventData) {
-        synchronized(shadows.mesher) {
+    fun update(manager: LightManager) {
+        synchronized(meshCollector) {
             for (pos in manager.dirtyBlocks) {
                 if (boundingBox.contains(pos)) {
-                    shadowsDirty = shadowsDirty or shadows.mesher.markDirty(pos)
+                    shadowsDirty = shadowsDirty or meshCollector.markDirty(pos)
                 }
             }
         }
 
         if (shadowsDirty) {
-            shadows.rebuildAsync(manager, this) { face ->
-                (face.quad.v0.normal?.let { it.toJOML().dot((absolutePos - face.quad.v0.pos).toJOML()) > 0f } ?: true) &&
-                face.blockPos.inDistance(
-                    pos,
-                    Vibrancy.config.blockLights.raytraced.shadowRadius
-                ) && !BlockLightRegistry.has(face.state)
-            }
+            mesh.rebuildBlocksAsync(manager, meshCollector, shadowPredicate, lightPredicate)
             shadowsDirty = false
         }
 
-        shadows.checkIfFinished()
+        mesh.checkIfFinished()
     }
 
     fun render(shader: GlBoundProgram, debugOut: (key: String, value: Int) -> Unit) {
         debugOut("lightsRendered", 1)
 
-        if (shadows.isTaskActive()) {
+        if (mesh.isTaskActive()) {
             debugOut("numAsyncTasks", 1)
         }
 
         shader.setUniform("LightPos") { set(absolutePos) }
         shader.setUniform("LightColor") { set(color) }
         shader.setUniform("LightRadius") { set(radius) }
-        shadows.lightMesh.draw(shader)
+        mesh.lightMesh.draw(shader)
     }
 }

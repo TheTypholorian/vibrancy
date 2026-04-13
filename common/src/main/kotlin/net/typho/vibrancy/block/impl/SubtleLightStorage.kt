@@ -22,6 +22,7 @@ import net.typho.big_shot_lib.api.math.rect.NeoRect3i
 import net.typho.big_shot_lib.api.math.vec.AbstractVec3
 import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.blockPos
 import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.plus
+import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.toJOML
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
 import net.typho.vibrancy.LightManager
@@ -29,7 +30,8 @@ import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.block.ChunkedBlockLightStorage
 import net.typho.vibrancy.block.HashMapBlockLightStorage
-import net.typho.vibrancy.shadows.BasicMesher
+import net.typho.vibrancy.collectors.BlockMeshCollector
+import net.typho.vibrancy.collectors.IterationBlockMeshCollector
 import net.typho.vibrancy.shadows.LightFace
 import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.util.VibrancyThreadPool
@@ -163,15 +165,20 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                         }
                     }
 
-                    val faces = LinkedList<LightFace>()
-                    BasicMesher(blocks).submit(
+                    val lightFaces = LinkedList<LightFace>()
+                    IterationBlockMeshCollector(blocks).submit(
                         manager,
                         data.level,
                         NeoAtlas.blocks,
-                        SubtleLightFacePredicate,
-                        faces::add
+                        object : BlockMeshCollector.Consumer {
+                            override val predicate: BlockMeshCollector.Predicate = SubtleLightMeshCollectorPredicate
+
+                            override fun collect(faces: Iterable<LightFace>) {
+                                lightFaces.addAll(faces)
+                            }
+                        }
                     )
-                    val task = chunk.mesh.build(faces)
+                    val task = chunk.mesh.lazyUpload(lightFaces)
                     val buffer = NeoBuffer.GCNative(chunk.size.toLong() * 8 * Float.SIZE_BYTES)
 
                     buffer.write().run {
@@ -199,7 +206,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                             buffer.free()
                         }
 
-                        if (faces.isNotEmpty()) {
+                        if (lightFaces.isNotEmpty()) {
                             NeoGlFramebuffer().use { fbo ->
                                 fbo.bind(NeoRect2i(0, 0, chunk.mesh.texture.width, chunk.mesh.texture.height)).use { fbo ->
                                     fbo.colorAttachments[0] = chunk.mesh.texture
@@ -214,7 +221,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                                             GlBufferWriter.Mode.REGULAR,
                                             GlBufferUsage.STREAM_DRAW
                                         ).use { mesh ->
-                                            LightMesh.initBlitMesh(mesh, LightMesh.LightBlitInfo(atlasResult, faces))
+                                            LightMesh.initBlitMesh(mesh, LightMesh.MeshData(lightFaces, atlasResult))
                                             mesh.draw()
                                         }
                                     }
@@ -272,8 +279,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
         fun render(data: RenderEventData, shader: GlBoundProgram, debugOut: (key: String, value: Int) -> Unit) {
             if (
                 size > 0
-                // TODO
-                //&& box?.let { data.frustum.testAab(it.min.toFloat().toJOML(), it.max.toFloat().toJOML()) } ?: true
+                && box?.let { data.frustum.testAab((it.min.toFloat() - data.camera.pos).toJOML(), (it.max.toFloat() - data.camera.pos).toJOML()) } ?: true
             ) {
                 mesh.draw(shader)
                 debugOut("lightsRendered", size)
