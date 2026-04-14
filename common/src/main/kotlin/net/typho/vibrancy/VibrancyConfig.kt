@@ -11,6 +11,8 @@ class VibrancyConfig : ConfigData {
     @JvmField
     var useMultithreading = true
     @JvmField
+    var asyncThreads: Int = 2
+    @JvmField
     @ConfigEntry.Gui.Tooltip(count = 2)
     var limitLightBrightness = false
     @JvmField

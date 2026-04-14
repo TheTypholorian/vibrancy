@@ -7,11 +7,10 @@ import net.typho.big_shot_lib.api.client.rendering.util.quad.BasicBakedQuad
 import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
 import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoVertexData
 import net.typho.big_shot_lib.api.math.NeoDirection
-import net.typho.big_shot_lib.api.math.vec.AbstractVec3
-import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.blockPos
-import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.plus
+import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.NeoVec2f
 import net.typho.big_shot_lib.api.math.vec.NeoVec3f
+import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.vibrancy.LightManager
@@ -19,23 +18,23 @@ import net.typho.vibrancy.Vibrancy.isPointingTowardsInclusive
 
 class FloodFillBlockMeshCollector(
     @JvmField
-    val pos: AbstractVec3<Int>,
-    @JvmField
-    val dirty: MutableList<AbstractVec3<Int>> = arrayListOf(),
-    @JvmField
-    val checked: MutableSet<AbstractVec3<Int>> = hashSetOf()
+    val pos: IVec3<Int>
 ) : BlockMeshCollector {
-    init {
-        dirty.add(pos)
-    }
+    @JvmField
+    val dirty: MutableList<IVec3<Int>> = arrayListOf(pos)
+    @JvmField
+    val checked: MutableSet<IVec3<Int>> = hashSetOf()
+    @JvmField
+    val collect: MutableSet<IVec3<Int>> = hashSetOf()
 
     fun markAllDirty() {
         dirty.clear()
         dirty.add(pos)
         checked.clear()
+        collect.clear()
     }
 
-    fun markDirty(pos: AbstractVec3<Int>): Boolean {
+    fun markDirty(pos: IVec3<Int>): Boolean {
         if (checked.contains(pos)) {
             dirty.add(pos)
             return true
@@ -51,7 +50,7 @@ class FloodFillBlockMeshCollector(
         vararg consumers: BlockMeshCollector.Consumer
     ) {
         var cursors = dirty.toMutableList()
-        var newCursors = arrayListOf<AbstractVec3<Int>>()
+        var newCursors = arrayListOf<IVec3<Int>>()
 
         do {
             while (cursors.isNotEmpty()) {
@@ -59,6 +58,7 @@ class FloodFillBlockMeshCollector(
 
                 if (consumers.any { it.predicate.shouldCastBlock(level, cursor, null) }) {
                     checked.add(cursor)
+                    collect.add(cursor)
                 }
 
                 for (direction in NeoDirection.entries) {
@@ -68,6 +68,8 @@ class FloodFillBlockMeshCollector(
                         val state = level.getBlockState(pos.blockPos)
 
                         if (consumers.any { it.predicate.shouldCastBlock(level, pos, state) }) {
+                            collect.add(pos)
+
                             if (!BlockUtil.INSTANCE.isSolidRender(state, pos, level)) {
                                 newCursors.add(pos)
                             }
@@ -80,7 +82,7 @@ class FloodFillBlockMeshCollector(
             newCursors = arrayListOf()
         } while (cursors.isNotEmpty())
 
-        for (pos in checked) {
+        for (pos in collect) {
             BlockMeshCollector.collectLightFaces(
                 manager,
                 level.getBlockState(pos.blockPos),
@@ -236,7 +238,7 @@ class FloodFillBlockMeshCollector(
     companion object {
         @JvmStatic
         fun NeoDirection.createFace(
-            origin: AbstractVec3<Float>,
+            origin: IVec3<Float>,
             width: Float,
             height: Float,
             sprite: NeoAtlasSprite
@@ -248,25 +250,25 @@ class FloodFillBlockMeshCollector(
                             origin,
                             NeoColor.FULL_ON,
                             NeoVec2f(sprite.u0, sprite.v0),
-                            normal = inc.toFloat()
+                            normal = toFloat()
                         ),
                         NeoVertexData(
                             origin + NeoVec3f(width, 0f, 0f),
                             NeoColor.FULL_ON,
                             NeoVec2f(sprite.u1, sprite.v0),
-                            normal = inc.toFloat()
+                            normal = toFloat()
                         ),
                         NeoVertexData(
                             origin + NeoVec3f(width, height, 0f),
                             NeoColor.FULL_ON,
                             NeoVec2f(sprite.u1, sprite.v1),
-                            normal = inc.toFloat()
+                            normal = toFloat()
                         ),
                         NeoVertexData(
                             origin + NeoVec3f(0f, height, 0f),
                             NeoColor.FULL_ON,
                             NeoVec2f(sprite.u0, sprite.v1),
-                            normal = inc.toFloat()
+                            normal = toFloat()
                         )
                     )
 
@@ -275,25 +277,25 @@ class FloodFillBlockMeshCollector(
                             origin + NeoVec3f(width, 0f, 1f),
                             NeoColor.FULL_ON,
                             NeoVec2f(sprite.u0, sprite.v0),
-                            normal = inc.toFloat()
+                            normal = toFloat()
                         ),
                         NeoVertexData(
                             origin + NeoVec3f(0f, 0f, 1f),
                             NeoColor.FULL_ON,
                             NeoVec2f(sprite.u1, sprite.v0),
-                            normal = inc.toFloat()
+                            normal = toFloat()
                         ),
                         NeoVertexData(
                             origin + NeoVec3f(0f, height, 1f),
                             NeoColor.FULL_ON,
                             NeoVec2f(sprite.u1, sprite.v1),
-                            normal = inc.toFloat()
+                            normal = toFloat()
                         ),
                         NeoVertexData(
                             origin + NeoVec3f(width, height, 1f),
                             NeoColor.FULL_ON,
                             NeoVec2f(sprite.u0, sprite.v1),
-                            normal = inc.toFloat()
+                            normal = toFloat()
                         )
                     )
 
@@ -302,25 +304,25 @@ class FloodFillBlockMeshCollector(
                             origin + NeoVec3f(0f, 0f, width),
                             NeoColor.FULL_ON,
                             NeoVec2f(sprite.u0, sprite.v0),
-                            normal = inc.toFloat()
+                            normal = toFloat()
                         ),
                         NeoVertexData(
                             origin,
                             NeoColor.FULL_ON,
                             NeoVec2f(sprite.u1, sprite.v0),
-                            normal = inc.toFloat()
+                            normal = toFloat()
                         ),
                         NeoVertexData(
                             origin + NeoVec3f(0f, height, 0f),
                             NeoColor.FULL_ON,
                             NeoVec2f(sprite.u1, sprite.v1),
-                            normal = inc.toFloat()
+                            normal = toFloat()
                         ),
                         NeoVertexData(
                             origin + NeoVec3f(0f, height, width),
                             NeoColor.FULL_ON,
                             NeoVec2f(sprite.u0, sprite.v1),
-                            normal = inc.toFloat()
+                            normal = toFloat()
                         )
                     )
 
@@ -329,25 +331,25 @@ class FloodFillBlockMeshCollector(
                             origin + NeoVec3f(1f, 0f, 0f),
                             NeoColor.FULL_ON,
                             NeoVec2f(sprite.u0, sprite.v0),
-                            normal = inc.toFloat()
+                            normal = toFloat()
                         ),
                         NeoVertexData(
                             origin + NeoVec3f(1f, 0f, width),
                             NeoColor.FULL_ON,
                             NeoVec2f(sprite.u1, sprite.v0),
-                            normal = inc.toFloat()
+                            normal = toFloat()
                         ),
                         NeoVertexData(
                             origin + NeoVec3f(1f, height, width),
                             NeoColor.FULL_ON,
                             NeoVec2f(sprite.u1, sprite.v1),
-                            normal = inc.toFloat()
+                            normal = toFloat()
                         ),
                         NeoVertexData(
                             origin + NeoVec3f(1f, height, 0f),
                             NeoColor.FULL_ON,
                             NeoVec2f(sprite.u0, sprite.v1),
-                            normal = inc.toFloat()
+                            normal = toFloat()
                         )
                     )
 
@@ -356,25 +358,25 @@ class FloodFillBlockMeshCollector(
                             origin + NeoVec3f(0f, 0f, height),
                             NeoColor.FULL_ON,
                             NeoVec2f(sprite.u0, sprite.v0),
-                            normal = inc.toFloat()
+                            normal = toFloat()
                         ),
                         NeoVertexData(
                             origin + NeoVec3f(width, 0f, height),
                             NeoColor.FULL_ON,
                             NeoVec2f(sprite.u1, sprite.v0),
-                            normal = inc.toFloat()
+                            normal = toFloat()
                         ),
                         NeoVertexData(
                             origin + NeoVec3f(width, 0f, 0f),
                             NeoColor.FULL_ON,
                             NeoVec2f(sprite.u1, sprite.v1),
-                            normal = inc.toFloat()
+                            normal = toFloat()
                         ),
                         NeoVertexData(
                             origin,
                             NeoColor.FULL_ON,
                             NeoVec2f(sprite.u0, sprite.v1),
-                            normal = inc.toFloat()
+                            normal = toFloat()
                         )
                     )
 
@@ -383,25 +385,25 @@ class FloodFillBlockMeshCollector(
                             origin + NeoVec3f(0f, 1f, 0f),
                             NeoColor.FULL_ON,
                             NeoVec2f(sprite.u0, sprite.v0),
-                            normal = inc.toFloat()
+                            normal = toFloat()
                         ),
                         NeoVertexData(
                             origin + NeoVec3f(width, 1f, 0f),
                             NeoColor.FULL_ON,
                             NeoVec2f(sprite.u1, sprite.v0),
-                            normal = inc.toFloat()
+                            normal = toFloat()
                         ),
                         NeoVertexData(
                             origin + NeoVec3f(width, 1f, height),
                             NeoColor.FULL_ON,
                             NeoVec2f(sprite.u1, sprite.v1),
-                            normal = inc.toFloat()
+                            normal = toFloat()
                         ),
                         NeoVertexData(
                             origin + NeoVec3f(0f, 1f, height),
                             NeoColor.FULL_ON,
                             NeoVec2f(sprite.u0, sprite.v1),
-                            normal = inc.toFloat()
+                            normal = toFloat()
                         )
                     )
                 },

@@ -18,9 +18,8 @@ import net.typho.big_shot_lib.api.math.NeoDirection
 import net.typho.big_shot_lib.api.math.rect.AbstractRect3
 import net.typho.big_shot_lib.api.math.rect.NeoRect2i
 import net.typho.big_shot_lib.api.math.rect.NeoRect3i
-import net.typho.big_shot_lib.api.math.vec.AbstractVec3
-import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.blockPos
-import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.plus
+import net.typho.big_shot_lib.api.math.vec.IVec3
+import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.vibrancy.LightManager
@@ -39,12 +38,12 @@ import kotlin.math.ceil
 
 open class RayPointLight(
     @JvmField
-    val color: AbstractVec3<Float>,
+    val color: IVec3<Float>,
     @JvmField
     val radius: Float,
     @JvmField
-    val offset: AbstractVec3<Float>,
-    override val pos: AbstractVec3<Int>
+    val offset: IVec3<Float>,
+    override val pos: IVec3<Int>
 ) : PointLight, NativeResource {
     companion object {
         @JvmField
@@ -90,19 +89,17 @@ open class RayPointLight(
     }
     var shadowsDirty = true
 
-    constructor(info: RayPointLightInfo, state: BlockState, pos: AbstractVec3<Int>) : this(
+    constructor(info: RayPointLightInfo, state: BlockState, pos: IVec3<Int>) : this(
         info.color.apply(state) * info.brightness.apply(state),
         info.radius.apply(state),
         info.offset.apply(state),
         pos
     )
 
-    override val absolutePos: AbstractVec3<Float>
+    override val absolutePos: IVec3<Float>
         get() = pos.toFloat() + offset
     override val boundingBox: AbstractRect3<Int>
-        get() {
-            return NeoRect3i(pos - radius.toInt(), pos + radius.toInt())
-        }
+        get() = NeoRect3i(pos - radius.toInt(), pos + radius.toInt())
     override val shadowBox: AbstractRect3<Int>
         get() {
             val shadowRadius = ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.shadowRadius.toFloat())).toInt()
@@ -111,7 +108,7 @@ open class RayPointLight(
     val shadowPredicate = object : BlockMeshCollector.Predicate {
         override fun shouldCastBlock(
             level: Level,
-            pos: AbstractVec3<Int>,
+            pos: IVec3<Int>,
             state: BlockState?
         ): Boolean {
             return shadowBox.contains(pos)
@@ -120,7 +117,7 @@ open class RayPointLight(
         override fun shouldCastFace(
             face: NeoDirection?,
             level: Level,
-            pos: AbstractVec3<Int>,
+            pos: IVec3<Int>,
             state: BlockState?
         ): Boolean {
             if (face == null) {
@@ -154,7 +151,7 @@ open class RayPointLight(
     val lightPredicate = object : BlockMeshCollector.Predicate {
         override fun shouldCastBlock(
             level: Level,
-            pos: AbstractVec3<Int>,
+            pos: IVec3<Int>,
             state: BlockState?
         ): Boolean {
             return boundingBox.contains(pos) && !BlockLightRegistry.has(state ?: level.getBlockState(pos.blockPos))
@@ -163,7 +160,7 @@ open class RayPointLight(
         override fun shouldCastFace(
             face: NeoDirection?,
             level: Level,
-            pos: AbstractVec3<Int>,
+            pos: IVec3<Int>,
             state: BlockState?
         ): Boolean {
             if (face == null) {

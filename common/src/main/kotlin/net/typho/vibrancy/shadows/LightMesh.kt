@@ -10,7 +10,7 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.util.BlendFunction
 import net.typho.big_shot_lib.api.client.rendering.opengl.util.PolygonOffset
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
-import net.typho.big_shot_lib.api.math.vec.AbstractVec3
+import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.NeoVec2i
 import net.typho.big_shot_lib.api.util.buffer.BYTE_MASK
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
@@ -86,7 +86,7 @@ open class LightMesh(
             val indexBuffer = NeoBuffer.GCNative(indexCount.toLong() * VERTEX_FORMAT.vertexSizeBytes)
 
             vertexBuffer.write().run {
-                fun vertex(pos: AbstractVec3<Float>, texX: Float, texY: Float) {
+                fun vertex(pos: IVec3<Float>, texX: Float, texY: Float) {
                     writeFloat(pos.x)
                     writeFloat(pos.y)
                     writeFloat(pos.z)

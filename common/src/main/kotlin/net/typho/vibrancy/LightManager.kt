@@ -8,8 +8,7 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
-import net.typho.big_shot_lib.api.math.vec.AbstractVec3
-import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.center
+import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.NeoVec2i
 import net.typho.big_shot_lib.api.util.resource.NeoResourceKey
 import net.typho.vibrancy.block.BlockLightInfo
@@ -24,7 +23,7 @@ import java.util.function.Consumer
 
 open class LightManager {
     @JvmField
-    val dirtyBlocks = LinkedList<AbstractVec3<Int>>()
+    val dirtyBlocks = LinkedList<IVec3<Int>>()
     @JvmField
     val blockLights = HashMap<BlockLightType<*, *>, BlockLightStorage<*>>()
     @JvmField
@@ -57,7 +56,7 @@ open class LightManager {
 
     @Suppress("UNCHECKED_CAST")
     protected fun <I : BlockLightInfo> addBlockLight(
-        pos: AbstractVec3<Int>,
+        pos: IVec3<Int>,
         level: Level,
         state: BlockState,
         type: BlockLightType<I, *>,
@@ -68,7 +67,7 @@ open class LightManager {
 
     fun blockChanged(
         level: Level,
-        pos: AbstractVec3<Int>,
+        pos: IVec3<Int>,
         old: BlockState,
         new: BlockState
     ) {
@@ -160,16 +159,16 @@ open class LightManager {
         return distance.coerceAtMost(Minecraft.getInstance().options.effectiveRenderDistance)
     }
 
-    fun inRenderDistance(data: RenderEventData, pos: AbstractVec3<Int>, distance: Int): Boolean {
-        return pos.center.inDistance(data.camera.pos, clampToChunkRenderDistance(distance) * 16f)
+    fun inRenderDistance(data: RenderEventData, pos: IVec3<Int>, distance: Int): Boolean {
+        return (pos.toFloat() + 0.5f).inDistance(data.camera.pos, clampToChunkRenderDistance(distance) * 16f)
     }
 
     fun inRenderDistance(data: RenderEventData, pos: ChunkPos, distance: Int): Boolean {
         return data.camera.pos.xz.inDistance(pos.middleBlockX.toFloat(), pos.middleBlockZ.toFloat(), clampToChunkRenderDistance(distance) * 16f)
     }
 
-    fun getSortingOrder(data: RenderEventData, pos: AbstractVec3<Int>): Float {
-        return pos.center.distanceSquared(data.camera.pos)
+    fun getSortingOrder(data: RenderEventData, pos: IVec3<Int>): Float {
+        return (pos.toFloat() + 0.5f).distanceSquared(data.camera.pos)
     }
 
     fun getSortingOrder(data: RenderEventData, pos: ChunkPos): Float {

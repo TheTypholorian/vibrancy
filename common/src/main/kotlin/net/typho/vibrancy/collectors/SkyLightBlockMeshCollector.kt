@@ -6,9 +6,9 @@ import net.minecraft.world.level.block.LeavesBlock
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.Heightmap
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
-import net.typho.big_shot_lib.api.math.vec.AbstractVec3
-import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.blockPos
+import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
+import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.vibrancy.LightManager
 
 class SkyLightBlockMeshCollector(
@@ -21,7 +21,7 @@ class SkyLightBlockMeshCollector(
         atlas: NeoAtlas,
         vararg consumers: BlockMeshCollector.Consumer
     ) {
-        fun collect(pos: AbstractVec3<Int>, state: BlockState) {
+        fun collect(pos: IVec3<Int>, state: BlockState) {
             BlockMeshCollector.collectLightFaces(
                 manager,
                 state,

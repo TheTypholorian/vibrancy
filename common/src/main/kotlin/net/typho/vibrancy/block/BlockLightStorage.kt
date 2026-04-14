@@ -4,7 +4,7 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
-import net.typho.big_shot_lib.api.math.vec.AbstractVec3
+import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.vibrancy.LightManager
 
 interface BlockLightStorage<I> {
@@ -14,14 +14,14 @@ interface BlockLightStorage<I> {
         manager: LightManager,
         level: Level,
         state: BlockState,
-        pos: AbstractVec3<Int>,
+        pos: IVec3<Int>,
         info: I
     )
 
     fun removeLight(
         manager: LightManager,
         level: Level,
-        pos: AbstractVec3<Int>
+        pos: IVec3<Int>
     ): Boolean
 
     fun reload(manager: LightManager, chunk: ChunkPos?)

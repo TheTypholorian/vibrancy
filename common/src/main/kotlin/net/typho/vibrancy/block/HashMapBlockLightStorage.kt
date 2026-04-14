@@ -4,21 +4,21 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
-import net.typho.big_shot_lib.api.math.vec.AbstractVec3
-import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.blockPos
+import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
+import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.vibrancy.LightManager
 import org.lwjgl.system.NativeResource
 import java.util.concurrent.ConcurrentHashMap
 
 abstract class HashMapBlockLightStorage<I : BlockLightInfo, L>(val type: BlockLightType<I, *>) : BlockLightStorage<I> {
-    var map = ConcurrentHashMap<AbstractVec3<Int>, L & Any>()
+    var map = ConcurrentHashMap<IVec3<Int>, L & Any>()
     override val size: Int
         get() = map.size
 
-    abstract fun createLight(manager: LightManager, state: BlockState, pos: AbstractVec3<Int>, info: I): L?
+    abstract fun createLight(manager: LightManager, state: BlockState, pos: IVec3<Int>, info: I): L?
 
-    override fun addLight(manager: LightManager, level: Level, state: BlockState, pos: AbstractVec3<Int>, info: I) {
+    override fun addLight(manager: LightManager, level: Level, state: BlockState, pos: IVec3<Int>, info: I) {
         val light = createLight(manager, state, pos, info)
 
         if (light == null) {
@@ -28,7 +28,7 @@ abstract class HashMapBlockLightStorage<I : BlockLightInfo, L>(val type: BlockLi
         }
     }
 
-    override fun removeLight(manager: LightManager, level: Level, pos: AbstractVec3<Int>): Boolean {
+    override fun removeLight(manager: LightManager, level: Level, pos: IVec3<Int>): Boolean {
         val removed = map.remove(pos)
         (removed as? NativeResource)?.free()
         return removed != null

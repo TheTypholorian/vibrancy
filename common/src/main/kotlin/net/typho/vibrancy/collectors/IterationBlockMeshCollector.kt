@@ -2,13 +2,13 @@ package net.typho.vibrancy.collectors
 
 import net.minecraft.world.level.Level
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
-import net.typho.big_shot_lib.api.math.vec.AbstractVec3
-import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.blockPos
+import net.typho.big_shot_lib.api.math.vec.IVec3
+import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.vibrancy.LightManager
 
 class IterationBlockMeshCollector(
     @JvmField
-    val blocks: Iterable<AbstractVec3<Int>>
+    val blocks: Iterable<IVec3<Int>>
 ) : BlockMeshCollector {
     override fun submit(
         manager: LightManager,

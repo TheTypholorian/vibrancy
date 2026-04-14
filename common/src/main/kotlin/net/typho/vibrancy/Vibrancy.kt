@@ -24,7 +24,7 @@ import net.typho.big_shot_lib.api.client.util.event.ClientEventFactory
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.math.NeoDirection
 import net.typho.big_shot_lib.api.math.rect.NeoRect2i
-import net.typho.big_shot_lib.api.math.vec.AbstractVec3
+import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.util.*
 import net.typho.big_shot_lib.api.util.event.CommonEventFactory
 import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
@@ -34,6 +34,7 @@ import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.shadows.ShadowBuffer
 import net.typho.vibrancy.sky.SkyLightInfoLoader
 import net.typho.vibrancy.sky.SkyLightRegistry
+import net.typho.vibrancy.util.VibrancyThreadPool
 import org.lwjgl.opengl.GL
 import org.lwjgl.opengl.GL11.GL_VENDOR
 import org.lwjgl.opengl.GL11.glGetString
@@ -100,12 +101,18 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
                 lightManager.reload()
             }
 
+            VibrancyThreadPool.maximumPoolSize = config.asyncThreads
+            VibrancyThreadPool.corePoolSize = config.asyncThreads
+
             return@registerLoadListener null
         }
         holder.registerSaveListener { holder, config ->
             GlQueue.INSTANCE.runOrQueue {
                 lightManager.reload()
             }
+
+            VibrancyThreadPool.maximumPoolSize = config.asyncThreads
+            VibrancyThreadPool.corePoolSize = config.asyncThreads
 
             return@registerSaveListener null
         }
@@ -171,7 +178,7 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
     fun id(path: String): NeoIdentifier = NeoIdentifier(MOD_ID, path)
 
     @JvmStatic
-    fun NeoDirection.isPointingTowards(from: AbstractVec3<Int>, to: AbstractVec3<Int>): Boolean = when (this) {
+    fun NeoDirection.isPointingTowards(from: IVec3<Int>, to: IVec3<Int>): Boolean = when (this) {
         NeoDirection.DOWN -> to.y < from.y
         NeoDirection.UP -> to.y > from.y
         NeoDirection.NORTH -> to.z < from.z
@@ -181,7 +188,7 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
     }
 
     @JvmStatic
-    fun NeoDirection.isPointingTowardsInclusive(from: AbstractVec3<Int>, to: AbstractVec3<Int>): Boolean = when (this) {
+    fun NeoDirection.isPointingTowardsInclusive(from: IVec3<Int>, to: IVec3<Int>): Boolean = when (this) {
         NeoDirection.DOWN -> to.y <= from.y
         NeoDirection.UP -> to.y >= from.y
         NeoDirection.NORTH -> to.z <= from.z

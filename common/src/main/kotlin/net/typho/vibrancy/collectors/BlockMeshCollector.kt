@@ -6,8 +6,8 @@ import net.minecraft.world.level.block.state.BlockState
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoVertexData
 import net.typho.big_shot_lib.api.math.NeoDirection
-import net.typho.big_shot_lib.api.math.vec.AbstractVec3
-import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.blockPos
+import net.typho.big_shot_lib.api.math.vec.IVec3
+import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.vibrancy.LightManager
@@ -24,14 +24,14 @@ interface BlockMeshCollector {
     interface Predicate {
         fun shouldCastBlock(
             level: Level,
-            pos: AbstractVec3<Int>,
+            pos: IVec3<Int>,
             state: BlockState?
         ): Boolean
 
         fun shouldCastFace(
             face: NeoDirection?,
             level: Level,
-            pos: AbstractVec3<Int>,
+            pos: IVec3<Int>,
             state: BlockState?
         ): Boolean
     }
@@ -48,7 +48,7 @@ interface BlockMeshCollector {
             manager: LightManager,
             state: BlockState,
             level: Level,
-            pos: AbstractVec3<Int>,
+            pos: IVec3<Int>,
             atlas: NeoAtlas,
             collectFluid: Boolean,
             vararg consumers: Consumer
@@ -66,7 +66,7 @@ interface BlockMeshCollector {
                                     vertex,
                                     pos = vertex.pos + pos.toFloat(),
                                     color = tintColor,
-                                    normal = quad.direction?.inc?.toFloat()
+                                    normal = quad.direction?.toFloat()
                                 )
                             },
                             atlas

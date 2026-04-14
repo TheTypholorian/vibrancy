@@ -19,11 +19,10 @@ import net.typho.big_shot_lib.api.math.rect.AbstractRect3
 import net.typho.big_shot_lib.api.math.rect.AbstractRect3.Companion.iterator
 import net.typho.big_shot_lib.api.math.rect.NeoRect2i
 import net.typho.big_shot_lib.api.math.rect.NeoRect3i
-import net.typho.big_shot_lib.api.math.vec.AbstractVec3
-import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.blockPos
-import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.plus
-import net.typho.big_shot_lib.api.math.vec.AbstractVec3.Companion.toJOML
+import net.typho.big_shot_lib.api.math.vec.IVec3
+import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
+import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
@@ -56,7 +55,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
         manager: LightManager,
         level: Level,
         state: BlockState,
-        pos: AbstractVec3<Int>,
+        pos: IVec3<Int>,
         info: SubtleLightInfo
     ) {
         val chunks = hashSetOf(
@@ -77,7 +76,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
     override fun removeLight(
         manager: LightManager,
         level: Level,
-        pos: AbstractVec3<Int>,
+        pos: IVec3<Int>,
     ): Boolean {
         val chunks = hashSetOf(
             ChunkPos(pos.blockPos),
@@ -152,7 +151,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                         return null
                     }
 
-                    val blocks = HashSet<AbstractVec3<Int>>()
+                    val blocks = HashSet<IVec3<Int>>()
 
                     chunk.map.values.forEach { light ->
                         light.shadowBox.iterator().forEach { block ->
@@ -290,7 +289,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
         override fun createLight(
             manager: LightManager,
             state: BlockState,
-            pos: AbstractVec3<Int>,
+            pos: IVec3<Int>,
             info: SubtleLightInfo
         ): SubtleLight? = if (info.enabled.apply(state)) SubtleLight(info, state, pos) else null
 
@@ -302,7 +301,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
             manager: LightManager,
             level: Level,
             state: BlockState,
-            pos: AbstractVec3<Int>,
+            pos: IVec3<Int>,
             info: SubtleLightInfo
         ) {
             super.addLight(manager, level, state, pos, info)
@@ -312,14 +311,14 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
             manager: LightManager,
             level: Level,
             state: BlockState,
-            pos: AbstractVec3<Int>,
+            pos: IVec3<Int>,
             info: SubtleLightInfo
         ) {
             super.addLight(manager, level, state, pos, info)
             dirty.add(this.pos)
         }
 
-        override fun removeLight(manager: LightManager, level: Level, pos: AbstractVec3<Int>): Boolean {
+        override fun removeLight(manager: LightManager, level: Level, pos: IVec3<Int>): Boolean {
             if (super.removeLight(manager, level, pos)) {
                 dirty.add(this.pos)
                 return true

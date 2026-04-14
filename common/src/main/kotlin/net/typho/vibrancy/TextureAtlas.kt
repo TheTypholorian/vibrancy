@@ -2,7 +2,7 @@ package net.typho.vibrancy
 
 import net.typho.big_shot_lib.api.math.rect.AbstractRect2
 import net.typho.big_shot_lib.api.math.rect.NeoRect2i
-import net.typho.big_shot_lib.api.math.vec.AbstractVec2
+import net.typho.big_shot_lib.api.math.vec.IVec2
 import net.typho.big_shot_lib.api.math.vec.NeoVec2i
 import kotlin.math.ceil
 import kotlin.math.sqrt
@@ -13,12 +13,12 @@ object TextureAtlas {
         @JvmField
         val textures: List<AbstractRect2<Int>>,
         @JvmField
-        val size: AbstractVec2<Int>
+        val size: IVec2<Int>
     )
 
     @JvmStatic
-    fun pack(vararg textures: AbstractVec2<Int>): Result {
-        val max: AbstractVec2<Int> = textures.fold(null) { accum, texture -> accum?.max(texture) ?: texture }
+    fun pack(vararg textures: IVec2<Int>): Result {
+        val max: IVec2<Int> = textures.fold(null) { accum, texture -> accum?.max(texture) ?: texture }
             ?: return Result(listOf(), NeoVec2i(0, 0))
 
         val numSectionsX = ceil(sqrt(textures.size.toFloat())).toInt()

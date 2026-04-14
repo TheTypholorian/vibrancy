@@ -5,14 +5,14 @@ import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
 import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoVertexData
 import net.typho.big_shot_lib.api.math.rect.AbstractRect2
-import net.typho.big_shot_lib.api.math.vec.AbstractVec3
+import net.typho.big_shot_lib.api.math.vec.IVec3
 import kotlin.math.abs
 import kotlin.math.ceil
 
 @JvmRecord
 data class LightFace(
     @JvmField
-    val blockPos: AbstractVec3<Int>?,
+    val blockPos: IVec3<Int>?,
     @JvmField
     val state: BlockState?,
     @JvmField
@@ -23,7 +23,7 @@ data class LightFace(
     val height: Int
 ) {
     constructor(
-        blockPos: AbstractVec3<Int>?,
+        blockPos: IVec3<Int>?,
         state: BlockState?,
         quad: NeoBakedQuad,
         atlas: NeoAtlas
@@ -52,7 +52,7 @@ data class LightFace(
     /*
     open class Consumer(
         @JvmField
-        val pos: AbstractVec3<Int>
+        val pos: IVec3<Int>
     ) : NeoVertexConsumer {
         @JvmField
         protected val faces = LinkedList<LightFace>()
