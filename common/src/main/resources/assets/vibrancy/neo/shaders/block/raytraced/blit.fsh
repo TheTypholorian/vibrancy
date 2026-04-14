@@ -16,7 +16,6 @@ uniform float LightRadius;
 uniform float LightBrightness;
 
 in vec3 vertexPos;
-in flat uint index;
 
 out vec3 fragColor;
 
@@ -39,7 +38,7 @@ void main() {
 
     fragColor = vec3(1);
 
-    for (uint i = 0u; i < index; i++) {
+    for (uint i = 0u; i < shadowQuads.length(); i++) {
         float dist;
         vec4 outColor;
         Quad quad = shadowQuads[i];

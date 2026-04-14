@@ -82,7 +82,7 @@ class FloodFillBlockMeshCollector(
             newCursors = arrayListOf()
         } while (cursors.isNotEmpty())
 
-        for (pos in collect) {
+        collect.sortedBy { it.distanceSquared(pos) }.forEach { pos ->
             BlockMeshCollector.collectLightFaces(
                 manager,
                 level.getBlockState(pos.blockPos),
