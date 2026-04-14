@@ -54,6 +54,8 @@ interface BlockMeshCollector {
             vararg consumers: Consumer
         ) {
             if (!state.isAir) {
+                val consumers = consumers.filter { it.predicate.shouldCastBlock(level, pos, state) }
+
                 BlockUtil.INSTANCE.getBlockQuads(state, level, pos) { dir, quads ->
                     val faces = quads.map { quad ->
                         val tintColor = if (quad.tintIndex != null) NeoColor.RGB(Minecraft.getInstance().blockColors.getColor(state, level, pos.blockPos, quad.tintIndex!!)) else null

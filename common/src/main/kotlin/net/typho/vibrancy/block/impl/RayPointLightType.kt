@@ -31,28 +31,30 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
         debugOut: (String, Int) -> Unit
     ) {
         if (Vibrancy.config.blockLights.raytraced.enabled) {
-            val lights = lights.map.values
-                .filter { light ->
-                    data.frustum.testAab(
-                        (light.boundingBox.min.toFloat() - data.camera.pos).toJOML(),
-                        (light.boundingBox.max.toFloat() - data.camera.pos).toJOML(),
-                    )
+            synchronized(lights.map) {
+                val lights = lights.map.values
+                    .filter { light ->
+                        data.frustum.testAab(
+                            (light.boundingBox.min.toFloat() - data.camera.pos).toJOML(),
+                            (light.boundingBox.max.toFloat() - data.camera.pos).toJOML(),
+                        )
+                    }
+                    .sortedBy { light -> manager.getSortingOrder(data, light.pos) }
+                    .take(Vibrancy.config.blockLights.raytraced.maxRendered)
+                    .toList()
+
+                LightMesh.drawState(NeoAtlas.blocks, Vibrancy.id("block/raytraced/mesh")).bind().use { settings ->
+                    settings.shader.setTexture(2, GlTextureBinding.FromInstance(
+                        ReflectionAtlases[NeoIdentifier("blocks")], //NeoAtlas.blocks.location
+                        GlTextureTarget.TEXTURE_2D
+                    ))
+                    settings.shader.setUniform("ProjMat") { set(data.projMat) }
+                    settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((-data.camera.pos).toJOML(), Matrix4f())) }
+                    settings.shader.setUniform("CameraPos") { set(data.camera.pos) }
+
+                    lights.forEach { it.update(manager) }
+                    lights.forEach { light -> light.render(settings.shader, debugOut) }
                 }
-                .sortedBy { light -> manager.getSortingOrder(data, light.pos) }
-                .take(Vibrancy.config.blockLights.raytraced.maxRendered)
-                .toList()
-
-            LightMesh.drawState(NeoAtlas.blocks, Vibrancy.id("block/raytraced/mesh")).bind().use { settings ->
-                settings.shader.setTexture(2, GlTextureBinding.FromInstance(
-                    ReflectionAtlases[NeoIdentifier("blocks")], //NeoAtlas.blocks.location
-                    GlTextureTarget.TEXTURE_2D
-                ))
-                settings.shader.setUniform("ProjMat") { set(data.projMat) }
-                settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((-data.camera.pos).toJOML(), Matrix4f())) }
-                settings.shader.setUniform("CameraPos") { set(data.camera.pos) }
-
-                lights.forEach { it.update(manager) }
-                lights.forEach { light -> light.render(settings.shader, debugOut) }
             }
         }
     }

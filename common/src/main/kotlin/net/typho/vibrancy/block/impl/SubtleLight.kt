@@ -14,8 +14,8 @@ open class SubtleLight(
     override val pos: IVec3<Int>
 ) : PointLight {
     constructor(info: SubtleLightInfo, state: BlockState, pos: IVec3<Int>) : this(
-        info.color.apply(state) * info.brightness.apply(state),
-        info.offset.apply(state),
+        info.color(state) * info.brightness(state),
+        info.offset(state),
         pos
     )
 
@@ -23,8 +23,8 @@ open class SubtleLight(
         get() = pos.toFloat() + offset
     override val boundingBox: AbstractRect3<Int>
         get() = NeoRect3i(
-            pos - 3,
-            pos + 3,
+            pos - 1,
+            pos + 1,
         )
     override val shadowBox: AbstractRect3<Int>
         get() = NeoRect3i(

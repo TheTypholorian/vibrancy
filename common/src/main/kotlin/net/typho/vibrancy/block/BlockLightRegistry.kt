@@ -27,7 +27,7 @@ object BlockLightRegistry {
     fun has(block: Block): Boolean = blockMap.containsKey(block)
 
     @JvmStatic
-    fun has(state: BlockState): Boolean = blockMap[state.block]?.enabled?.apply(state) ?: false
+    fun has(state: BlockState): Boolean = blockMap[state.block]?.enabled?.invoke(state) ?: false
 
     @JvmStatic
     fun registerBuiltins(factory: RegistrationFactory) {

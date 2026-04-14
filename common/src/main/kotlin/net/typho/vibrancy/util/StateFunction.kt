@@ -9,12 +9,14 @@ import net.minecraft.world.level.block.state.StateDefinition
 import net.minecraft.world.level.block.state.properties.Property
 
 data class StateFunction<T>(
+    @JvmField
     val entries: List<Entry<T>>,
+    @JvmField
     val default: T
 ) {
     constructor(default: T, vararg entries: Entry<T>) : this(entries.toList(), default)
 
-    fun apply(state: BlockState): T {
+    operator fun invoke(state: BlockState): T {
         for (entry in entries) {
             if (entry.test(state)) {
                 return entry.value
@@ -25,7 +27,9 @@ data class StateFunction<T>(
     }
 
     data class Entry<T>(
+        @JvmField
         val map: Map<Property<*>, Comparable<*>>,
+        @JvmField
         val value: T
     ) {
         constructor(property: Property<*>, comparable: Comparable<*>, value: T) : this(mapOf(Pair(property, comparable)), value)

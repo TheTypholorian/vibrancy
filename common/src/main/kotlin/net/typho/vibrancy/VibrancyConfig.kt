@@ -3,6 +3,7 @@ package net.typho.vibrancy
 import me.shedaniel.autoconfig.ConfigData
 import me.shedaniel.autoconfig.annotation.Config
 import me.shedaniel.autoconfig.annotation.ConfigEntry
+import net.typho.vibrancy.block.impl.SubtleLightCullingMode
 
 @Config(name = Vibrancy.MOD_ID)
 class VibrancyConfig : ConfigData {
@@ -64,6 +65,9 @@ class VibrancyConfig : ConfigData {
             @JvmField
             @ConfigEntry.Gui.Tooltip(count = 2)
             var brightness = 1f // 0.25 to 2.5 + 0.25 (%)
+            @JvmField
+            @ConfigEntry.Gui.EnumHandler(option = ConfigEntry.Gui.EnumHandler.EnumDisplayOption.DROPDOWN)
+            var cullingMode = SubtleLightCullingMode.SOLID_NEIGHBOR
         }
     }
 }

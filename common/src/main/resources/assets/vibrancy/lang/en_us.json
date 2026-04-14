@@ -5,7 +5,7 @@
   "text.autoconfig.vibrancy.option.useMultithreading": "Use Multithreading",
   "text.autoconfig.vibrancy.option.limitLightBrightness": "Limit Light Brightness",
   "text.autoconfig.vibrancy.option.limitLightBrightness.@Tooltip[0]": "Limits how bright Vibrancy lights can make each pixel.",
-  "text.autoconfig.vibrancy.option.limitLightBrightness.@Tooltip[1]": "Better for videos in some situations, but looses some detail and quality.",
+  "text.autoconfig.vibrancy.option.limitLightBrightness.@Tooltip[1]": "Better for videos in some situations, but loses some detail and quality.",
 
   "text.autoconfig.vibrancy.option.specularReflections": "Specular Reflections",
   "text.autoconfig.vibrancy.option.specularReflections.enabled": "Enabled",

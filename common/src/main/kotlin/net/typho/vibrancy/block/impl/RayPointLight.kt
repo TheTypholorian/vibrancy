@@ -90,9 +90,9 @@ open class RayPointLight(
     var shadowsDirty = true
 
     constructor(info: RayPointLightInfo, state: BlockState, pos: IVec3<Int>) : this(
-        info.color.apply(state) * info.brightness.apply(state),
-        info.radius.apply(state),
-        info.offset.apply(state),
+        info.color(state) * info.brightness(state),
+        info.radius(state),
+        info.offset(state),
         pos
     )
 
@@ -111,7 +111,7 @@ open class RayPointLight(
             pos: IVec3<Int>,
             state: BlockState?
         ): Boolean {
-            return shadowBox.contains(pos)
+            return shadowBox.contains(pos) && !BlockLightRegistry.has(state ?: level.getBlockState(pos.blockPos))
         }
 
         override fun shouldCastFace(
@@ -154,7 +154,7 @@ open class RayPointLight(
             pos: IVec3<Int>,
             state: BlockState?
         ): Boolean {
-            return boundingBox.contains(pos) && !BlockLightRegistry.has(state ?: level.getBlockState(pos.blockPos))
+            return boundingBox.contains(pos)
         }
 
         override fun shouldCastFace(
