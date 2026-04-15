@@ -23,7 +23,7 @@ dependencies {
     annotationProcessor(libs.mixinExtras.common)
     implementation(libs.sodium)
     implementation(libs.bigShot)
-    implementation(libs.clothConfig)
+    implementation(libs.yacl)
     implementation(libs.modmenu)
 }
 

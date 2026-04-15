@@ -78,5 +78,5 @@ dependencies {
     implementation(libs.kff)
     implementation(libs.sodium)
     implementation(libs.bigShot)
-    implementation(libs.clothConfig)
+    implementation(libs.yacl)
 }

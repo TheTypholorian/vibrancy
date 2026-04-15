@@ -60,7 +60,7 @@ dependencies {
     modImplementation(libs.flk)
     modImplementation(libs.sodium)
     modCompileOnly(libs.bigShot)
-    modImplementation(libs.clothConfig)
+    modImplementation(libs.yacl)
     modImplementation(libs.modmenu)
 }
 

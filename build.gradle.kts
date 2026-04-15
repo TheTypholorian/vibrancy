@@ -11,6 +11,9 @@ subprojects {
             name = "Modrinth"
             url = uri("https://api.modrinth.com/maven")
         }
+        maven("https://maven.isxander.dev/releases") {
+            name = "Xander Maven"
+        }
 
         ivy {
             url = uri("https://github.com/TheTypholorian/big_shot_lib/releases/download")
