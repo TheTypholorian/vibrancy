@@ -168,12 +168,6 @@ open class RayPointLight(
                 return true
             }
 
-            val sidePos = pos + face
-
-            if (sidePos == this@RayPointLight.pos) {
-                return true
-            }
-
             if (!face.isPointingTowards(pos, this@RayPointLight.pos)) {
                 return false
             }
