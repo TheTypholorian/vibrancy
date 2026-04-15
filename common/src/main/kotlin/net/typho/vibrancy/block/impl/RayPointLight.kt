@@ -1,7 +1,12 @@
 package net.typho.vibrancy.block.impl
 
+import com.mojang.blaze3d.vertex.PoseStack
+import net.minecraft.client.Minecraft
+import net.minecraft.util.Mth
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.phys.AABB
+import net.minecraft.world.phys.Vec3
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBeginMode
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlClearBit
@@ -14,14 +19,17 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
+import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
 import net.typho.big_shot_lib.api.math.NeoDirection
 import net.typho.big_shot_lib.api.math.rect.AbstractRect3
 import net.typho.big_shot_lib.api.math.rect.NeoRect2i
 import net.typho.big_shot_lib.api.math.rect.NeoRect3i
 import net.typho.big_shot_lib.api.math.vec.IVec3
+import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
 import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.big_shot_lib.api.util.NeoColor
+import net.typho.big_shot_lib.api.util.WrapperUtil
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.Vibrancy.isPointingTowards
@@ -30,6 +38,8 @@ import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.collectors.BlockMeshCollector
 import net.typho.vibrancy.collectors.FloodFillBlockMeshCollector
 import net.typho.vibrancy.shadows.LightMesh
+import net.typho.vibrancy.shadows.LightTexture
+import net.typho.vibrancy.shadows.ShadowBuffer
 import net.typho.vibrancy.shadows.StaticBlockLightMeshManager
 import net.typho.vibrancy.util.PointLight
 import org.lwjgl.opengl.GL30.glBindBufferBase
@@ -60,34 +70,50 @@ open class RayPointLight(
         )
     }
 
-    val meshCollector = FloodFillBlockMeshCollector(pos)
-    val mesh = StaticBlockLightMeshManager { mesh, info ->
+    val blitMesh = Mesh(
+        LightMesh.BLIT_VERTEX_FORMAT,
+        GlBeginMode.QUADS,
+        GlBufferWriter.Mode.REGULAR,
+        GlBufferUsage.STREAM_DRAW
+    )
+
+    fun blit(texture: LightTexture, shadowBuffer: ShadowBuffer) {
         NeoGlFramebuffer().use { fbo ->
-            fbo.bind(NeoRect2i(0, 0, mesh.lightMesh.texture.width, mesh.lightMesh.texture.height)).use { fbo ->
-                fbo.colorAttachments[0] = mesh.lightMesh.texture
+            fbo.bind(NeoRect2i(0, 0, texture.width, texture.height)).use { fbo ->
+                fbo.colorAttachments[0] = texture
                 fbo.checkStatus().throwIfError()
 
                 fbo.clear(GlClearBit.Color(NeoColor.FULL_OFF))
-                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, mesh.shadowBuffer.glId)
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, shadowBuffer.glId)
 
                 drawState.bind().use { drawState ->
                     drawState.shader.setUniform("LightPos") { set(absolutePos) }
                     drawState.shader.setUniform("LightColor") { set(color * VibrancyConfig().rayLightBrightness) }
                     drawState.shader.setUniform("LightRadius") { set(radius) }
 
-                    Mesh(
-                        LightMesh.BLIT_VERTEX_FORMAT,
-                        GlBeginMode.QUADS,
-                        GlBufferWriter.Mode.REGULAR,
-                        GlBufferUsage.STREAM_DRAW
-                    ).use { mesh ->
-                        LightMesh.initBlitMesh(mesh, info)
-                        mesh.draw()
-                    }
+                    blitMesh.draw()
                 }
             }
         }
     }
+
+    val meshCollector = FloodFillBlockMeshCollector(pos)
+
+    var meshData: LightMesh.MeshData? = null
+        protected set
+
+    val dynamicTexture = LightTexture()
+    val dynamicBuffer = ShadowBuffer(GlBufferUsage.STREAM_DRAW)
+
+    val staticTexture = LightTexture()
+    val mesh = StaticBlockLightMeshManager { mesh, info ->
+        meshData = info
+        staticTexture.resize(info.sections.size.x, info.sections.size.y)
+        dynamicTexture.resize(info.sections.size.x, info.sections.size.y)
+        LightMesh.initBlitMesh(blitMesh, info)
+        blit(staticTexture, mesh.shadowBuffer)
+    }
+
     var shadowsDirty = true
 
     constructor(info: RayPointLightInfo, state: BlockState, pos: IVec3<Int>) : this(
@@ -213,6 +239,33 @@ open class RayPointLight(
         }
 
         mesh.checkIfFinished()
+
+        manager.getLevel()?.getEntities(null, AABB.ofSize(Vec3(absolutePos.toJOML()), radius.toDouble() * 2, radius.toDouble() * 2, radius.toDouble() * 2))?.let { entities ->
+            val quads = arrayListOf<NeoBakedQuad>()
+            val builder = object : NeoBakedQuad.Consumer() {
+                override fun take(quad: NeoBakedQuad) {
+                    quads.add(quad)
+                }
+            }
+            val tickDelta = Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(true)
+
+            for (entity in entities) {
+                Minecraft.getInstance().entityRenderDispatcher.render(
+                    entity,
+                    entity.x,
+                    entity.y,
+                    entity.z,
+                    Mth.lerp(tickDelta, entity.yRotO, entity.yRot),
+                    tickDelta,
+                    PoseStack(),
+                    { WrapperUtil.INSTANCE.unwrap(builder) },
+                    net.minecraft.client.renderer.LightTexture.FULL_BRIGHT
+                )
+            }
+
+            dynamicBuffer.lazyUploadQuads(quads)()
+            blit(dynamicTexture, dynamicBuffer)
+        }
     }
 
     fun render(shader: GlBoundProgram, debugOut: (key: String, value: Int) -> Unit) {
@@ -225,6 +278,14 @@ open class RayPointLight(
         shader.setUniform("LightPos") { set(absolutePos) }
         shader.setUniform("LightColor") { set(color) }
         shader.setUniform("LightRadius") { set(radius) }
-        mesh.lightMesh.draw(shader)
+        shader.setTexture(1, GlTextureBinding.FromInstance(
+            staticTexture,
+            GlTextureTarget.TEXTURE_2D
+        ))
+        shader.setTexture(2, GlTextureBinding.FromInstance(
+            dynamicTexture,
+            GlTextureTarget.TEXTURE_2D
+        ))
+        mesh.lightMesh.draw()
     }
 }

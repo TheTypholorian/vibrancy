@@ -1,9 +1,7 @@
 package net.typho.vibrancy.shadows
 
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.*
 import net.typho.big_shot_lib.api.client.rendering.opengl.util.BlendFunction
@@ -130,20 +128,11 @@ open class LightMesh(
         GlBufferWriter.Mode.REGULAR,
         usage
     )
-    @JvmField
-    val texture = NeoGlTexture2D().also {
-        it.bind(GlTextureTarget.TEXTURE_2D).use { texture ->
-            texture.textureDataMutable(1, 1, GlTextureFormat.RGB8)
-            texture.minFilter = GlTextureMinFilter.NEAREST
-            texture.magFilter = GlTextureMagFilter.NEAREST
-        }
-    }
     var empty = true
         protected set
 
-    fun draw(shader: GlBoundProgram) {
+    fun draw() {
         if (!empty) {
-            shader.setTexture(1, GlTextureBinding.FromInstance(texture, GlTextureTarget.TEXTURE_2D))
             mesh.draw()
         }
     }
@@ -157,13 +146,6 @@ open class LightMesh(
         }
         val result = TextureAtlas.pack(*textures)
         val vertexBuffer = NeoBuffer.GCNative(lightFaces.size.toLong() * 4 * VERTEX_FORMAT.vertexSizeBytes)
-        val indexCount = lightFaces.size * 6
-        val indexType = when (indexCount) {
-            indexCount and BYTE_MASK -> GlIndexDataType.BYTE
-            indexCount and SHORT_MASK -> GlIndexDataType.SHORT
-            else -> GlIndexDataType.INT
-        }
-        val indexBuffer = NeoBuffer.GCNative(indexCount.toLong() * VERTEX_FORMAT.vertexSizeBytes)
 
         vertexBuffer.write().run {
             lightFaces.forEachIndexed { index, face ->
@@ -182,37 +164,15 @@ open class LightMesh(
                 }
             }
         }
-        indexBuffer.write().run {
-            var vertex = 0
 
-            repeat(lightFaces.size) {
-                indexType.write(this, vertex)
-                indexType.write(this, vertex + 1)
-                indexType.write(this, vertex + 2)
-                indexType.write(this, vertex + 2)
-                indexType.write(this, vertex + 3)
-                indexType.write(this, vertex)
-                vertex += 4
-            }
-        }
+        val indices = mesh.generateIndices(lightFaces.size * 4)
 
         return {
             empty = lightFaces.isEmpty()
 
-            mesh.rawUpload(indexCount, indexType, vertexBuffer, indexBuffer)
+            mesh.rawUpload(lightFaces.size * 6, indices.second, vertexBuffer, indices.first)
             vertexBuffer.free()
-            indexBuffer.free()
-
-            if (!empty) {
-                val width = result.size.x.coerceAtLeast(1)
-                val height = result.size.y.coerceAtLeast(1)
-
-                if (width != texture.width || height != texture.height) {
-                    texture.bind(GlTextureTarget.TEXTURE_2D).use {
-                        it.textureDataMutable(width, height, GlTextureFormat.RGB8)
-                    }
-                }
-            }
+            indices.first.free()
 
             result
         }
@@ -224,7 +184,6 @@ open class LightMesh(
 
     override fun free() {
         mesh.free()
-        texture.free()
     }
 
     data class MeshData(

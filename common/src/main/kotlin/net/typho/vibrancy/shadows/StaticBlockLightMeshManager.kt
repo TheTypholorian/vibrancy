@@ -1,7 +1,6 @@
 package net.typho.vibrancy.shadows
 
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.VibrancyConfig
@@ -27,8 +26,8 @@ open class StaticBlockLightMeshManager(
         asyncTask?.cancel(true)
     }
 
-    fun draw(shader: GlBoundProgram) {
-        lightMesh.draw(shader)
+    fun draw() {
+        lightMesh.draw()
     }
 
     fun isTaskActive() = asyncTask?.let { task -> !task.isDone } ?: false

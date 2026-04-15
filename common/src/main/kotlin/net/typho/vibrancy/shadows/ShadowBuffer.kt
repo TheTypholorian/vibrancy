@@ -4,6 +4,7 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferTarge
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlBuffer
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
+import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
 
 open class ShadowBuffer(
@@ -52,7 +53,34 @@ open class ShadowBuffer(
         }
     }
 
-    fun upload(faces: List<LightFace>) {
-        lazyUpload(faces)()
+    fun lazyUploadQuads(faces: List<NeoBakedQuad>): () -> Unit {
+        if (faces.isEmpty()) {
+            return {
+                bind(GlBufferTarget.ARRAY_BUFFER).use { it.bufferData(0L, usage) }
+            }
+        } else {
+            val buffer = NeoBuffer.GCNative(faces.size.toLong() * 4 * VERTEX_FORMAT.vertexSizeBytes)
+
+            buffer.write().run {
+                faces.forEachIndexed { index, quad ->
+                    for (vertex in quad.vertices) {
+                        writeFloat(vertex.pos.x)
+                        writeFloat(vertex.pos.y)
+                        writeFloat(vertex.pos.z)
+                        writeInt(0)
+
+                        writeFloat(vertex.textureUV!!.x)
+                        writeFloat(vertex.textureUV!!.y)
+                        writeInt(vertex.color!!.toRGBA())
+                        writeInt(0)
+                    }
+                }
+            }
+
+            return {
+                bind(GlBufferTarget.ARRAY_BUFFER).use { it.bufferData(buffer, usage) }
+                buffer.free()
+            }
+        }
     }
 }

@@ -31,32 +31,32 @@ open class DynamicLightMeshManager(
                 blit(this, it)
             }
 
-            lightMesh.draw(shader)
+            lightMesh.draw()
         }
     }
 
-    fun lazyUpload(
-        shadowFaces: List<LightFace>,
-        lightFaces: List<LightFace>
+    fun lazyUploadShadows(
+        shadowFaces: List<LightFace>
     ): () -> Unit {
         val shadows = shadowBuffer.lazyUpload(shadowFaces)
-        val light = lightMesh.lazyUpload(lightFaces)
 
         return {
             shadows()
+        }
+    }
+
+    fun lazyUploadLight(
+        lightFaces: List<LightFace>
+    ): () -> Unit {
+        val light = lightMesh.lazyUpload(lightFaces)
+
+        return {
             meshData = LightMesh.MeshData(
                 lightFaces,
                 light()
             )
             dirty = true
         }
-    }
-
-    fun upload(
-        shadowFaces: List<LightFace>,
-        lightFaces: List<LightFace>
-    ) {
-        lazyUpload(shadowFaces, lightFaces)()
     }
 
     fun upload(
@@ -82,6 +82,7 @@ open class DynamicLightMeshManager(
         shadowConsumer.flush()
         lightConsumer.flush()
 
-        upload(shadowFaces, lightFaces)
+        lazyUploadShadows(shadowFaces)()
+        lazyUploadLight(lightFaces)()
     }
 }

@@ -7,6 +7,7 @@ uniform sampler2D Sampler0;
 uniform ivec2 Sampler0Size;
 uniform sampler2D Sampler1;
 uniform sampler2D Sampler2;
+uniform sampler2D Sampler3;
 
 uniform vec3 CameraPos;
 uniform vec3 LightColor;
@@ -32,7 +33,7 @@ void main() {
         discard;
     }
 
-    vec3 lightColor = texelFetch(Sampler1, ivec2(texCoord1), 0).rgb * LightColor * attenuateNoCusp(distance(LightPos, vertexPosition), LightRadius);
+    vec3 lightColor = texelFetch(Sampler1, ivec2(texCoord1), 0).rgb * texelFetch(Sampler2, ivec2(texCoord1), 0).rgb * LightColor * attenuateNoCusp(distance(LightPos, vertexPosition), LightRadius);
 
     if (SpecularReflectionsEnabled) {
         vec3 inputNormal = normalize(LightPos - vertexPosition);
@@ -41,7 +42,7 @@ void main() {
         float multiplier = clamp(dot(outputNormal, reflectedNormal), 0, 1);
         multiplier = pow(multiplier, SpecularReflectionExponent) * SpecularReflectionStrength;
 
-        lightColor += lightColor * multiplier * texelFetch(Sampler2, ivec2(texCoord0 * Sampler0Size), 0).r;
+        lightColor += lightColor * multiplier * texelFetch(Sampler3, ivec2(texCoord0 * Sampler0Size), 0).r;
     }
 
     fragColor = block.rgb * block.a * lightColor;

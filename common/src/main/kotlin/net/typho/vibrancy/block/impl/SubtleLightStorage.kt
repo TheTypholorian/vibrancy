@@ -4,20 +4,15 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBeginMode
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferTarget
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlBuffer
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlFramebuffer
-import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.math.NeoDirection
 import net.typho.big_shot_lib.api.math.rect.AbstractRect3
 import net.typho.big_shot_lib.api.math.rect.AbstractRect3.Companion.iterator
-import net.typho.big_shot_lib.api.math.rect.NeoRect2i
 import net.typho.big_shot_lib.api.math.rect.NeoRect3i
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
@@ -35,8 +30,6 @@ import net.typho.vibrancy.collectors.IterationBlockMeshCollector
 import net.typho.vibrancy.shadows.LightFace
 import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.util.VibrancyThreadPool
-import org.lwjgl.opengl.GL30.glBindBufferBase
-import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.system.NativeResource
 import java.util.*
 import java.util.concurrent.CompletableFuture
@@ -242,6 +235,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                             }
 
                             if (lightFaces.isNotEmpty()) {
+                                /*
                                 NeoGlFramebuffer().use { fbo ->
                                     fbo.bind(NeoRect2i(0, 0, chunk.mesh.texture.width, chunk.mesh.texture.height)).use { fbo ->
                                         fbo.colorAttachments[0] = chunk.mesh.texture
@@ -262,6 +256,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                                         }
                                     }
                                 }
+                                 */
                             }
                         }
                     }
@@ -317,7 +312,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                 size > 0
                 && box?.let { data.frustum.testAab((it.min.toFloat() - data.camera.pos).toJOML(), (it.max.toFloat() - data.camera.pos).toJOML()) } ?: true
             ) {
-                mesh.draw(shader)
+                mesh.draw()
                 debugOut("lightsRendered", size)
                 debugOut("chunksRendered", 1)
             }
