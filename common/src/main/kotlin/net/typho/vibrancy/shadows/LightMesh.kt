@@ -17,7 +17,7 @@ import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
 import net.typho.big_shot_lib.api.util.buffer.SHORT_MASK
 import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.TextureAtlas
-import net.typho.vibrancy.Vibrancy
+import net.typho.vibrancy.VibrancyConfig
 import org.lwjgl.system.NativeResource
 
 open class LightMesh(
@@ -46,7 +46,7 @@ open class LightMesh(
                     GlBlendingFactor.ONE,
                     GlBlendingFactor.ONE
                 ),
-                if (Vibrancy.config.limitLightBrightness) GlBlendEquation.MAX else GlBlendEquation.ADD
+                if (VibrancyConfig.limitLightBrightness) GlBlendEquation.MAX else GlBlendEquation.ADD
             ),
             cull = GlCullShard.Enabled(
                 GlCullFace.BACK
@@ -63,9 +63,9 @@ open class LightMesh(
             shader = GlShaderShard.FromLocation(
                 shader,
                 {
-                    setUniform("SpecularReflectionsEnabled") { set(if (Vibrancy.config.specularReflections.enabled) 1 else 0) }
-                    setUniform("SpecularReflectionStrength") { set(Vibrancy.config.specularReflections.strength) }
-                    setUniform("SpecularReflectionExponent") { set(Vibrancy.config.specularReflections.exponent) }
+                    setUniform("SpecularReflectionsEnabled") { set(if (VibrancyConfig.SpecularReflections.enabled) 1 else 0) }
+                    setUniform("SpecularReflectionStrength") { set(VibrancyConfig.SpecularReflections.strength) }
+                    setUniform("SpecularReflectionExponent") { set(VibrancyConfig.SpecularReflections.exponent) }
                 },
                 GlTextureBinding.FromInstance(
                     sampler0,

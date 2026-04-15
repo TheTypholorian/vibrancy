@@ -25,6 +25,7 @@ import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.Vibrancy.isPointingTowards
+import net.typho.vibrancy.VibrancyConfig
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.collectors.BlockMeshCollector
 import net.typho.vibrancy.collectors.FloodFillBlockMeshCollector
@@ -71,7 +72,7 @@ open class RayPointLight(
 
                 drawState.bind().use { drawState ->
                     drawState.shader.setUniform("LightPos") { set(absolutePos) }
-                    drawState.shader.setUniform("LightColor") { set(color * Vibrancy.config.blockLights.raytraced.brightness) }
+                    drawState.shader.setUniform("LightColor") { set(color * VibrancyConfig.BlockLights.Raytraced.brightness) }
                     drawState.shader.setUniform("LightRadius") { set(radius) }
 
                     Mesh(
@@ -102,7 +103,7 @@ open class RayPointLight(
         get() = NeoRect3i(pos - radius.toInt(), pos + radius.toInt())
     override val shadowBox: AbstractRect3<Int>
         get() {
-            val shadowRadius = ceil(radius.coerceAtMost(Vibrancy.config.blockLights.raytraced.shadowRadius.toFloat())).toInt()
+            val shadowRadius = ceil(radius.coerceAtMost(VibrancyConfig.BlockLights.Raytraced.shadowRadius.toFloat())).toInt()
             return NeoRect3i(pos - shadowRadius, pos + shadowRadius)
         }
     val shadowPredicate = object : BlockMeshCollector.Predicate {

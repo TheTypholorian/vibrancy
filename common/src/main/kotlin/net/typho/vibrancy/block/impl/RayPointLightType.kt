@@ -9,6 +9,7 @@ import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
 import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
+import net.typho.vibrancy.VibrancyConfig
 import net.typho.vibrancy.block.BlockLightType
 import net.typho.vibrancy.block.HashMapBlockLightStorage
 import net.typho.vibrancy.shadows.LightMesh
@@ -30,7 +31,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
         lights: HashMapBlockLightStorage<RayPointLightInfo, RayPointLight>,
         debugOut: (String, Int) -> Unit
     ) {
-        if (Vibrancy.config.blockLights.raytraced.enabled) {
+        if (VibrancyConfig.BlockLights.Raytraced.enabled) {
             synchronized(lights.map) {
                 val lights = lights.map.values
                     .filter { light ->
@@ -40,7 +41,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                         )
                     }
                     .sortedBy { light -> manager.getSortingOrder(data, light.pos) }
-                    .take(Vibrancy.config.blockLights.raytraced.maxRendered)
+                    .take(VibrancyConfig.BlockLights.Raytraced.maxRendered)
                     .toList()
 
                 LightMesh.drawState(NeoAtlas.blocks, Vibrancy.id("block/raytraced/mesh")).bind().use { settings ->

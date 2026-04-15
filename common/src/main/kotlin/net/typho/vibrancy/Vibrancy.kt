@@ -1,8 +1,6 @@
 package net.typho.vibrancy
 
 import com.mojang.serialization.Lifecycle
-import me.shedaniel.autoconfig.AutoConfig
-import me.shedaniel.autoconfig.serializer.GsonConfigSerializer
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
 import net.minecraft.network.chat.Component
@@ -34,7 +32,6 @@ import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.shadows.ShadowBuffer
 import net.typho.vibrancy.sky.SkyLightInfoLoader
 import net.typho.vibrancy.sky.SkyLightRegistry
-import net.typho.vibrancy.util.VibrancyThreadPool
 import org.lwjgl.opengl.GL
 import org.lwjgl.opengl.GL11.GL_VENDOR
 import org.lwjgl.opengl.GL11.glGetString
@@ -49,8 +46,6 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
     @JvmField
     val LOGGER: Logger = LoggerFactory.getLogger(MOD_NAME)
 
-    val config: VibrancyConfig
-        get() = AutoConfig.getConfigHolder(VibrancyConfig::class.java).config
     @JvmField
     val lightManager = LightManager()
 
@@ -91,36 +86,9 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
         }
     }
 
-    init {
-        val holder = AutoConfig.register(
-            VibrancyConfig::class.java,
-            ::GsonConfigSerializer
-        )
-        holder.registerLoadListener { holder, config ->
-            GlQueue.INSTANCE.runOrQueue {
-                lightManager.reload()
-            }
-
-            VibrancyThreadPool.maximumPoolSize = config.asyncThreads
-            VibrancyThreadPool.corePoolSize = config.asyncThreads
-
-            return@registerLoadListener null
-        }
-        holder.registerSaveListener { holder, config ->
-            GlQueue.INSTANCE.runOrQueue {
-                lightManager.reload()
-            }
-
-            VibrancyThreadPool.maximumPoolSize = config.asyncThreads
-            VibrancyThreadPool.corePoolSize = config.asyncThreads
-
-            return@registerSaveListener null
-        }
-    }
-
     @JvmStatic
     fun render(data: RenderEventData) {
-        if (config.modEnabled) {
+        if (VibrancyConfig.modEnabled) {
             val targetAttachment = data.target.colorAttachments[0] as GlTexture2D
             val width = targetAttachment.width.coerceAtLeast(1)
             val height = targetAttachment.height.coerceAtLeast(1)
@@ -198,16 +166,14 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
     }
 
     override fun displayInitialScreens(factory: InitialScreenFactory) {
-        if (config.modEnabled) {
+        if (VibrancyConfig.modEnabled) {
             if (!GL.getCapabilities().GL_ARB_shader_storage_buffer_object) {
-                config.modEnabled = false
-                AutoConfig.getConfigHolder(VibrancyConfig::class.java).save()
+                VibrancyConfig.modEnabled = false
                 factory.display(Component.translatable(if (Platform.get() == Platform.MACOSX) "error.vibrancy.no_ssbos_mac" else "error.vibrancy.no_ssbos"))
             }
 
             if (glGetString(GL_VENDOR)?.lowercase()?.contains("amd") == true) {
-                config.modEnabled = false
-                AutoConfig.getConfigHolder(VibrancyConfig::class.java).save()
+                VibrancyConfig.modEnabled = false
                 factory.display(Component.translatable("error.vibrancy.amd"))
             }
         }
@@ -239,7 +205,7 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
 
     override fun registerEvents(factory: CommonEventFactory) {
         factory.blockChanged.add { level, pos, old, new ->
-            if (config.modEnabled && level.isClientSide()) {
+            if (VibrancyConfig.modEnabled && level.isClientSide()) {
                 GlQueue.INSTANCE.runOrQueue {
                     lightManager.blockChanged(level, pos, old, new)
                 }
@@ -264,7 +230,7 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
     override fun registerEvents(factory: ClientEventFactory) {
         factory.levelRenderEnd.add(Vibrancy::render)
         factory.levelChanged.add { old, new ->
-            if (config.modEnabled) {
+            if (VibrancyConfig.modEnabled) {
                 lightManager.clear()
 
                 if (new == null) {
@@ -346,7 +312,7 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
         }
          */
         factory.chunkChanged.add { level, old, new ->
-            if (config.modEnabled && level.isClientSide()) {
+            if (VibrancyConfig.modEnabled && level.isClientSide()) {
                 GlQueue.INSTANCE.runOrQueue {
                     if (old != null) {
                         lightManager.deloadChunk(old)

@@ -1,26 +1,24 @@
 {
-  "text.autoconfig.vibrancy.title": "Налаштування Vibrancy",
+  "config.vibrancy.title": "Налаштування Vibrancy",
 
-  "text.autoconfig.vibrancy.option.blockLights": "Світло блоків",
+  "config.vibrancy.blockLights": "Світло блоків",
 
-  "text.autoconfig.vibrancy.option.blockLights.raytraced": "Трасоване",
-  "text.autoconfig.vibrancy.option.blockLights.raytraced.enabled": "Увімкнено",
-  "text.autoconfig.vibrancy.option.blockLights.raytraced.maxRendered": "Максимально промальовано",
-  "text.autoconfig.vibrancy.option.blockLights.raytraced.maxRendered.@Tooltip": "Макисмально кількість блоків світла, що будуть промальовані, найближче світло має пріоритет.",
-  "text.autoconfig.vibrancy.option.blockLights.raytraced.brightness": "Яскравість",
-  "text.autoconfig.vibrancy.option.blockLights.raytraced.brightness.@Tooltip[0]": "Лінійний множник для яскравости всіх блоків світла.",
-  "text.autoconfig.vibrancy.option.blockLights.raytraced.brightness.@Tooltip[1]": "Не впливає на їхній радіус.",
-  "text.autoconfig.vibrancy.option.blockLights.raytraced.lightRadius": "Радіус світла",
-  "text.autoconfig.vibrancy.option.blockLights.raytraced.lightRadius.@Tooltip": "Максимальний радіус (у блоках) від кожного блока світла, до якого буде застосовано світло.",
-  "text.autoconfig.vibrancy.option.blockLights.raytraced.shadowRadius": "Радіус тіні",
-  "text.autoconfig.vibrancy.option.blockLights.raytraced.shadowRadius.@Tooltip": "Максимальний радіус (у блоках) від кожного блока світла, де блоки відкидають тінь.",
+  "config.vibrancy.blockLights.raytraced": "Трасоване",
+  "config.vibrancy.blockLights.raytraced.enabled": "Увімкнено",
+  "config.vibrancy.blockLights.raytraced.maxRendered": "Максимально промальовано",
+  "config.vibrancy.blockLights.raytraced.maxRendered.tooltip": "Макисмально кількість блоків світла, що будуть промальовані, найближче світло має пріоритет.",
+  "config.vibrancy.blockLights.raytraced.brightness": "Яскравість",
+  "config.vibrancy.blockLights.raytraced.brightness.tooltip0": "Лінійний множник для яскравости всіх блоків світла.",
+  "config.vibrancy.blockLights.raytraced.brightness.tooltip1": "Не впливає на їхній радіус.",
+  "config.vibrancy.blockLights.raytraced.shadowRadius": "Радіус тіні",
+  "config.vibrancy.blockLights.raytraced.shadowRadius.tooltip": "Максимальний радіус (у блоках) від кожного блока світла, де блоки відкидають тінь.",
 
-  "text.autoconfig.vibrancy.option.blockLights.subtle": "Тонке",
-  "text.autoconfig.vibrancy.option.blockLights.subtle.enabled": "Увімкнено",
-  "text.autoconfig.vibrancy.option.blockLights.subtle.renderDistance": "Дальність промальовування",
-  "text.autoconfig.vibrancy.option.blockLights.subtle.brightness": "Яскравість",
-  "text.autoconfig.vibrancy.option.blockLights.subtle.brightness.@Tooltip[0]": "Лінійний множник для яскравости всіх блоків світла.",
-  "text.autoconfig.vibrancy.option.blockLights.subtle.brightness.@Tooltip[1]": "Не впливає на їхній радіус.",
+  "config.vibrancy.blockLights.subtle": "Тонке",
+  "config.vibrancy.blockLights.subtle.enabled": "Увімкнено",
+  "config.vibrancy.blockLights.subtle.renderDistance": "Дальність промальовування",
+  "config.vibrancy.blockLights.subtle.brightness": "Яскравість",
+  "config.vibrancy.blockLights.subtle.brightness.tooltip0": "Лінійний множник для яскравости всіх блоків світла.",
+  "config.vibrancy.blockLights.subtle.brightness.tooltip1": "Не впливає на їхній радіус.",
 
   "key.category.vibrancy.keys": "Vibrancy",
   "key.vibrancy.debug": "Ключ-модифікатор",
@@ -34,7 +32,7 @@
   "debug.vibrancy.disable_raytraced_block_lights": "[%s] Вимкнено трасоване світло блоків",
   "debug.vibrancy.enable_subtle_block_lights": "[%s] Увімкнуто тонке світло блоків",
   "debug.vibrancy.disable_subtle_block_lights": "[%s] Вимкнено тонке світло блоків",
-  
+
   "modmenu.descriptionTranslation.vibrancy": "Візуальний мод Minecraft, який додає динамічне світло/тіні від блоків, предметів і сонця.",
   "fml.menu.mods.info.description.vibrancy": "Візуальний мод Minecraft, який додає динамічне світло/тіні від блоків, предметів і сонця."
 }

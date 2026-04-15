@@ -8,6 +8,7 @@ import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
+import net.typho.vibrancy.VibrancyConfig
 import net.typho.vibrancy.block.BlockLightType
 import net.typho.vibrancy.shadows.LightMesh
 import org.joml.Matrix4f
@@ -17,9 +18,7 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
     val meshBlitDrawState = GlDrawState.Basic(
         shader = GlShaderShard.FromLocation(
             Vibrancy.id("block/subtle/blit"),
-            {
-                setUniform("LightBrightness") { set(Vibrancy.config.blockLights.subtle.brightness) }
-            }
+            { }
         )
     )
 
@@ -37,16 +36,17 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
         lights: SubtleLightStorage,
         debugOut: (String, Int) -> Unit
     ) {
-        if (Vibrancy.config.blockLights.subtle.enabled) {
+        if (VibrancyConfig.BlockLights.Subtle.enabled) {
             lights.checkDirty(manager, data)
 
             LightMesh.drawState(NeoAtlas.blocks, Vibrancy.id("block/subtle/mesh")).bind().use { settings ->
                 settings.shader.setUniform("ProjMat") { set(data.projMat) }
                 settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((-data.camera.pos).toJOML(), Matrix4f())) }
+                settings.shader.setUniform("LightBrightness") { set(VibrancyConfig.BlockLights.Subtle.brightness) }
 
                 lights.chunks.values
                     .filter {
-                        manager.inRenderDistance(data, it.pos, Vibrancy.config.blockLights.subtle.renderDistance)
+                        manager.inRenderDistance(data, it.pos, VibrancyConfig.BlockLights.Subtle.renderDistance)
                     }
                     .forEach {
                         it.render(data, settings.shader, debugOut)

@@ -33,8 +33,7 @@
       "1.21.1"
     ],
     "fabric-language-kotlin": ">=${flk_version}",
-    "big_shot_lib": ">=${big_shot_version}",
-    "cloth-config": "*"
+    "big_shot_lib": ">=${big_shot_version}"
   },
   "breaks": {
     "iris": "*"

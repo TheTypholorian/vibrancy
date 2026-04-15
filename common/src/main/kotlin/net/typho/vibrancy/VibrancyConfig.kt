@@ -1,30 +1,38 @@
 package net.typho.vibrancy
 
 import dev.isxander.yacl3.api.*
-import dev.isxander.yacl3.api.controller.FloatSliderControllerBuilder
-import dev.isxander.yacl3.api.controller.IntegerFieldControllerBuilder
-import dev.isxander.yacl3.api.controller.IntegerSliderControllerBuilder
-import dev.isxander.yacl3.api.controller.TickBoxControllerBuilder
+import dev.isxander.yacl3.api.controller.*
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
+import net.typho.big_shot_lib.api.client.rendering.opengl.GlQueue
 import net.typho.vibrancy.block.impl.SubtleLightCullingMode
+import net.typho.vibrancy.util.VibrancyThreadPool
 import kotlin.reflect.KMutableProperty0
 
-fun <T : Any> Option.Builder<T>.binding(property: KMutableProperty0<T>): Option.Builder<T> {
+internal fun <T : Any> Option.Builder<T>.binding(property: KMutableProperty0<T>): Option.Builder<T> {
     return binding(property.get(), { property.get() }, { property.set(it) })
 }
 
 object VibrancyConfig {
-    @JvmField
     var modEnabled = true
+        set(value) {
+            field = value
+            GlQueue.INSTANCE.runOrQueue {
+                Vibrancy.lightManager.reload()
+            }
+        }
     @JvmField
     var useMultithreading = true
-    @JvmField
     var asyncThreads: Int = 2
+        set(value) {
+            field = value
+            VibrancyThreadPool.maximumPoolSize = value
+            VibrancyThreadPool.corePoolSize = value
+        }
     @JvmField
     var limitLightBrightness = false
 
-    object SpecularReflectionsSection {
+    object SpecularReflections {
         @JvmField
         var enabled = true
         @JvmField
@@ -33,10 +41,15 @@ object VibrancyConfig {
         var exponent = 3f
     }
 
-    object BlockLightsSection {
-        object RaytracedSection {
-            @JvmField
+    object BlockLights {
+        object Raytraced {
             var enabled = true
+                set(value) {
+                    field = value
+                    GlQueue.INSTANCE.runOrQueue {
+                        Vibrancy.lightManager.reload()
+                    }
+                }
             @JvmField
             var maxRendered: Int = 400
             @JvmField
@@ -45,39 +58,49 @@ object VibrancyConfig {
             var shadowRadius: Int = 6
         }
 
-        object SubtleSection {
-            @JvmField
+        object Subtle {
             var enabled = true
+                set(value) {
+                    field = value
+                    GlQueue.INSTANCE.runOrQueue {
+                        Vibrancy.lightManager.reload()
+                    }
+                }
             @JvmField
-            var renderDistance: Int = 6 // 50_000 to inf + 50_000
+            var renderDistance: Int = 6
             @JvmField
-            var brightness = 1f // 0.25 to 2.5 + 0.25 (%)
-            @JvmField
+            var brightness = 1f
             var cullingMode = SubtleLightCullingMode.SOLID_NEIGHBOR
+                set(value) {
+                    field = value
+                    GlQueue.INSTANCE.runOrQueue {
+                        Vibrancy.lightManager.reload()
+                    }
+                }
         }
     }
 
-    fun openScreen(parent: Screen?) {
-        YetAnotherConfigLib.createBuilder()
-            .title(Component.literal("config.vibrancy.title"))
+    fun createScreen(parent: Screen?): Screen {
+        return YetAnotherConfigLib.createBuilder()
+            .title(Component.translatable("config.vibrancy.title"))
 
             .category(ConfigCategory.createBuilder()
-                .name(Component.literal("config.vibrancy.general"))
+                .name(Component.translatable("config.vibrancy.general"))
 
                 .option(Option.createBuilder<Boolean>()
-                    .name(Component.literal("config.vibrancy.general.modEnabled"))
+                    .name(Component.translatable("config.vibrancy.general.modEnabled"))
                     .binding(VibrancyConfig::modEnabled)
                     .controller(TickBoxControllerBuilder::create)
                     .build())
 
                 .option(Option.createBuilder<Boolean>()
-                    .name(Component.literal("config.vibrancy.general.useMultithreading"))
+                    .name(Component.translatable("config.vibrancy.general.useMultithreading"))
                     .binding(VibrancyConfig::useMultithreading)
                     .controller(TickBoxControllerBuilder::create)
                     .build())
 
                 .option(Option.createBuilder<Int>()
-                    .name(Component.literal("config.vibrancy.general.asyncThreads"))
+                    .name(Component.translatable("config.vibrancy.general.asyncThreads"))
                     .binding(VibrancyConfig::asyncThreads)
                     .controller { opt ->
                         IntegerSliderControllerBuilder.create(opt)
@@ -87,10 +110,10 @@ object VibrancyConfig {
                     .build())
 
                 .option(Option.createBuilder<Boolean>()
-                    .name(Component.literal("config.vibrancy.general.limitLightBrightness"))
+                    .name(Component.translatable("config.vibrancy.general.limitLightBrightness"))
                     .description(OptionDescription.of(
-                        Component.literal("config.vibrancy.general.limitLightBrightness.tooltip0"),
-                        Component.literal("config.vibrancy.general.limitLightBrightness.tooltip1")
+                        Component.translatable("config.vibrancy.general.limitLightBrightness.tooltip0"),
+                        Component.translatable("config.vibrancy.general.limitLightBrightness.tooltip1")
                     ))
                     .binding(VibrancyConfig::limitLightBrightness)
                     .controller(TickBoxControllerBuilder::create)
@@ -98,17 +121,17 @@ object VibrancyConfig {
                 .build())
 
             .category(ConfigCategory.createBuilder()
-                .name(Component.literal("config.vibrancy.specularReflections"))
+                .name(Component.translatable("config.vibrancy.specularReflections"))
 
                 .option(Option.createBuilder<Boolean>()
-                    .name(Component.literal("config.vibrancy.specularReflections.enabled"))
-                    .binding(SpecularReflectionsSection::enabled)
+                    .name(Component.translatable("config.vibrancy.specularReflections.enabled"))
+                    .binding(SpecularReflections::enabled)
                     .controller(TickBoxControllerBuilder::create)
                     .build())
 
                 .option(Option.createBuilder<Float>()
-                    .name(Component.literal("config.vibrancy.specularReflections.strength"))
-                    .binding(SpecularReflectionsSection::strength)
+                    .name(Component.translatable("config.vibrancy.specularReflections.strength"))
+                    .binding(SpecularReflections::strength)
                     .controller { opt ->
                         FloatSliderControllerBuilder.create(opt)
                             .range(0.5f, 10f)
@@ -117,8 +140,8 @@ object VibrancyConfig {
                     .build())
 
                 .option(Option.createBuilder<Float>()
-                    .name(Component.literal("config.vibrancy.specularReflections.exponent"))
-                    .binding(SpecularReflectionsSection::exponent)
+                    .name(Component.translatable("config.vibrancy.specularReflections.exponent"))
+                    .binding(SpecularReflections::exponent)
                     .controller { opt ->
                         FloatSliderControllerBuilder.create(opt)
                             .range(0.5f, 10f)
@@ -128,23 +151,95 @@ object VibrancyConfig {
                 .build())
 
             .category(ConfigCategory.createBuilder()
-                .name(Component.literal("config.vibrancy.blockLights"))
+                .name(Component.translatable("config.vibrancy.blockLights"))
 
                 .group(OptionGroup.createBuilder()
-                    .name(Component.literal("config.vibrancy.blockLights.raytraced"))
+                    .name(Component.translatable("config.vibrancy.blockLights.raytraced"))
 
                     .option(Option.createBuilder<Boolean>()
-                        .name(Component.literal("config.vibrancy.blockLights.raytraced.enabled"))
-                        .binding(BlockLightsSection.RaytracedSection::enabled)
+                        .name(Component.translatable("config.vibrancy.blockLights.raytraced.enabled"))
+                        .binding(BlockLights.Raytraced::enabled)
                         .controller(TickBoxControllerBuilder::create)
                         .build())
 
                     .option(Option.createBuilder<Int>()
-                        .name(Component.literal("config.vibrancy.blockLights.raytraced.maxRendered"))
-                        .binding(BlockLightsSection.RaytracedSection::maxRendered)
+                        .name(Component.translatable("config.vibrancy.blockLights.raytraced.maxRendered"))
+                        .binding(BlockLights.Raytraced::maxRendered)
+                        .description(OptionDescription.of(
+                            Component.translatable("config.vibrancy.blockLights.raytraced.maxRendered.tooltip")
+                        ))
                         .controller { opt ->
                             IntegerFieldControllerBuilder.create(opt)
                                 .min(0)
+                        }
+                        .build())
+
+                    .option(Option.createBuilder<Float>()
+                        .name(Component.translatable("config.vibrancy.blockLights.raytraced.brightness"))
+                        .binding(BlockLights.Raytraced::brightness)
+                        .description(OptionDescription.of(
+                            Component.translatable("config.vibrancy.blockLights.raytraced.brightness.tooltip0"),
+                            Component.translatable("config.vibrancy.blockLights.raytraced.brightness.tooltip1")
+                        ))
+                        .controller { opt ->
+                            FloatSliderControllerBuilder.create(opt)
+                                .range(0.1f, 2f)
+                                .step(0.1f)
+                        }
+                        .build())
+
+                    .option(Option.createBuilder<Int>()
+                        .name(Component.translatable("config.vibrancy.blockLights.raytraced.shadowRadius"))
+                        .binding(BlockLights.Raytraced::shadowRadius)
+                        .description(OptionDescription.of(
+                            Component.translatable("config.vibrancy.blockLights.raytraced.brightness.tooltip")
+                        ))
+                        .controller { opt ->
+                            IntegerSliderControllerBuilder.create(opt)
+                                .range(1, 16)
+                                .step(1)
+                        }
+                        .build())
+                    .build())
+
+                .group(OptionGroup.createBuilder()
+                    .name(Component.translatable("config.vibrancy.blockLights.subtle"))
+
+                    .option(Option.createBuilder<Boolean>()
+                        .name(Component.translatable("config.vibrancy.blockLights.subtle.enabled"))
+                        .binding(BlockLights.Subtle::enabled)
+                        .controller(TickBoxControllerBuilder::create)
+                        .build())
+
+                    .option(Option.createBuilder<Int>()
+                        .name(Component.translatable("config.vibrancy.blockLights.subtle.renderDistance"))
+                        .binding(BlockLights.Subtle::renderDistance)
+                        .controller { opt ->
+                            IntegerSliderControllerBuilder.create(opt)
+                                .range(1, 16)
+                                .step(1)
+                        }
+                        .build())
+
+                    .option(Option.createBuilder<Float>()
+                        .name(Component.translatable("config.vibrancy.blockLights.subtle.brightness"))
+                        .binding(BlockLights.Subtle::brightness)
+                        .description(OptionDescription.of(
+                            Component.translatable("config.vibrancy.blockLights.raytraced.brightness.tooltip0"),
+                            Component.translatable("config.vibrancy.blockLights.raytraced.brightness.tooltip1")
+                        ))
+                        .controller { opt ->
+                            FloatSliderControllerBuilder.create(opt)
+                                .range(0.1f, 2f)
+                                .step(0.1f)
+                        }
+                        .build())
+
+                    .option(Option.createBuilder<SubtleLightCullingMode>()
+                        .name(Component.translatable("config.vibrancy.blockLights.subtle.cullingMode"))
+                        .binding(BlockLights.Subtle::cullingMode)
+                        .controller { opt ->
+                            EnumDropdownControllerBuilder.create(opt)
                         }
                         .build())
                     .build())

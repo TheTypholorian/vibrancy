@@ -35,7 +35,7 @@ versionRange = "[${big_shot_version},)"
 ordering = "BEFORE"
 side = "BOTH"
 [[dependencies."${mod_id}"]]
-modId = "cloth_config"
+modId = "yet_another_config_lib_v3"
 type="required"
 versionRange = "*"
 ordering = "NONE"

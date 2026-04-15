@@ -26,7 +26,7 @@ import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
 import net.typho.vibrancy.LightManager
-import net.typho.vibrancy.Vibrancy
+import net.typho.vibrancy.VibrancyConfig
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.block.ChunkedBlockLightStorage
 import net.typho.vibrancy.block.HashMapBlockLightStorage
@@ -267,7 +267,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                     }
                 }
 
-                if (Vibrancy.config.useMultithreading) {
+                if (VibrancyConfig.useMultithreading) {
                     tasks.add(CompletableFuture.supplyAsync(::impl, VibrancyThreadPool))
                 } else {
                     impl()?.accept(data)
@@ -331,7 +331,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
             info: SubtleLightInfo
         ): SubtleLight? {
             if (info.enabled(state)) {
-                val cullingMode = Vibrancy.config.blockLights.subtle.cullingMode
+                val cullingMode = VibrancyConfig.BlockLights.Subtle.cullingMode
 
                 if (
                     NeoDirection.entries.all { dir ->

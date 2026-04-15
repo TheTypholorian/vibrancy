@@ -5,6 +5,7 @@
 uniform sampler2D Sampler0;
 uniform sampler2D Sampler1;
 uniform ivec2 Sampler0Size;
+uniform float LightBrightness;
 
 in vec2 texCoord0;
 in vec2 texCoord1;
@@ -19,5 +20,5 @@ void main() {
         discard;
     }
 
-    fragColor = block.rgb * texelFetch(Sampler1, ivec2(texCoord1), 0).rgb * block.a;
+    fragColor = block.rgb * block.a * texelFetch(Sampler1, ivec2(texCoord1), 0).rgb * LightBrightness;
 }

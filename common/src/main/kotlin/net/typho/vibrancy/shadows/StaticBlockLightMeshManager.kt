@@ -4,7 +4,7 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.vibrancy.LightManager
-import net.typho.vibrancy.Vibrancy
+import net.typho.vibrancy.VibrancyConfig
 import net.typho.vibrancy.collectors.BlockMeshCollector
 import net.typho.vibrancy.util.VibrancyThreadPool
 import org.lwjgl.system.NativeResource
@@ -98,7 +98,7 @@ open class StaticBlockLightMeshManager(
         shadowPredicate: BlockMeshCollector.Predicate,
         lightPredicate: BlockMeshCollector.Predicate
     ) {
-        if (Vibrancy.config.useMultithreading) {
+        if (VibrancyConfig.useMultithreading) {
             /*
             GlThreadPool.submit {
                 val info = rebuildAsyncImpl(manager, collector, shadowPredicate, lightPredicate)()
