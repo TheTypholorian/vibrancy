@@ -13,7 +13,6 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlClearBit
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureTarget
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlFramebuffer
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
@@ -78,21 +77,16 @@ open class RayPointLight(
     )
 
     fun blit(texture: LightTexture, shadowBuffer: ShadowBuffer) {
-        NeoGlFramebuffer().use { fbo ->
-            fbo.bind(NeoRect2i(0, 0, texture.width, texture.height)).use { fbo ->
-                fbo.colorAttachments[0] = texture
-                fbo.checkStatus().throwIfError()
+        texture.framebuffer.bind(NeoRect2i(0, 0, texture.width, texture.height)).use { fbo ->
+            fbo.clear(GlClearBit.Color(NeoColor.FULL_OFF))
+            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, shadowBuffer.glId)
 
-                fbo.clear(GlClearBit.Color(NeoColor.FULL_OFF))
-                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, shadowBuffer.glId)
+            drawState.bind().use { drawState ->
+                drawState.shader.setUniform("LightPos") { set(absolutePos) }
+                drawState.shader.setUniform("LightColor") { set(color * VibrancyConfig().rayLightBrightness) }
+                drawState.shader.setUniform("LightRadius") { set(radius) }
 
-                drawState.bind().use { drawState ->
-                    drawState.shader.setUniform("LightPos") { set(absolutePos) }
-                    drawState.shader.setUniform("LightColor") { set(color * VibrancyConfig().rayLightBrightness) }
-                    drawState.shader.setUniform("LightRadius") { set(radius) }
-
-                    blitMesh.draw()
-                }
+                blitMesh.draw()
             }
         }
     }
@@ -247,7 +241,7 @@ open class RayPointLight(
                     quads.add(quad)
                 }
             }
-            val tickDelta = Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(true)
+            val tickDelta = Minecraft.getInstance().timer.gameTimeDeltaTicks
 
             for (entity in entities) {
                 Minecraft.getInstance().entityRenderDispatcher.render(
