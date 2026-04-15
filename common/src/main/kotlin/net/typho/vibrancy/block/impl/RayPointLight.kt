@@ -56,15 +56,12 @@ open class RayPointLight(
     override val pos: IVec3<Int>
 ) : PointLight, NativeResource {
     companion object {
-        @JvmField
-        val drawState = GlDrawState.Basic(
+        @JvmStatic
+        fun drawState(texture: GlTextureBinding) = GlDrawState.Basic(
             shader = GlShaderShard.FromLocation(
                 Vibrancy.id("block/raytraced/blit"),
                 { },
-                GlTextureBinding.FromInstance(
-                    NeoAtlas.blocks,
-                    GlTextureTarget.TEXTURE_2D
-                )
+                texture
             )
         )
     }
@@ -76,12 +73,12 @@ open class RayPointLight(
         GlBufferUsage.STREAM_DRAW
     )
 
-    fun blit(texture: LightTexture, shadowBuffer: ShadowBuffer) {
-        texture.framebuffer.bind(NeoRect2i(0, 0, texture.width, texture.height)).use { fbo ->
+    fun blit(target: LightTexture, shadowBuffer: ShadowBuffer, materialTexture: GlTextureBinding) {
+        target.framebuffer.bind(NeoRect2i(0, 0, target.width, target.height)).use { fbo ->
             fbo.clear(GlClearBit.Color(NeoColor.FULL_OFF))
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, shadowBuffer.glId)
 
-            drawState.bind().use { drawState ->
+            drawState(materialTexture).bind().use { drawState ->
                 drawState.shader.setUniform("LightPos") { set(absolutePos) }
                 drawState.shader.setUniform("LightColor") { set(color * VibrancyConfig().rayLightBrightness) }
                 drawState.shader.setUniform("LightRadius") { set(radius) }
@@ -105,7 +102,14 @@ open class RayPointLight(
         staticTexture.resize(info.sections.size.x, info.sections.size.y)
         dynamicTexture.resize(info.sections.size.x, info.sections.size.y)
         LightMesh.initBlitMesh(blitMesh, info)
-        blit(staticTexture, mesh.shadowBuffer)
+        blit(
+            staticTexture,
+            mesh.shadowBuffer,
+            GlTextureBinding.FromInstance(
+                NeoAtlas.blocks,
+                GlTextureTarget.TEXTURE_2D
+            )
+        )
     }
 
     var shadowsDirty = true
@@ -257,8 +261,17 @@ open class RayPointLight(
                 )
             }
 
-            dynamicBuffer.lazyUploadQuads(quads)()
-            blit(dynamicTexture, dynamicBuffer)
+            if (quads.isNotEmpty()) {
+                dynamicBuffer.lazyUploadQuads(quads)()
+                blit(
+                    dynamicTexture,
+                    dynamicBuffer,
+                    GlTextureBinding.FromInstance(
+                        NeoAtlas.blocks, // TODO
+                        GlTextureTarget.TEXTURE_2D
+                    )
+                )
+            }
         }
     }
 

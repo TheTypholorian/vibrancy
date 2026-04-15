@@ -45,7 +45,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                     .toList()
 
                 LightMesh.drawState(NeoAtlas.blocks, Vibrancy.id("block/raytraced/mesh")).bind().use { settings ->
-                    settings.shader.setTexture(2, GlTextureBinding.FromInstance(
+                    settings.shader.setTexture(3, GlTextureBinding.FromInstance(
                         ReflectionAtlases[NeoIdentifier("blocks")], //NeoAtlas.blocks.location
                         GlTextureTarget.TEXTURE_2D
                     ))
