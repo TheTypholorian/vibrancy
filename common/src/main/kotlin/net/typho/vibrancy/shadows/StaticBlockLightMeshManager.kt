@@ -98,7 +98,7 @@ open class StaticBlockLightMeshManager(
         shadowPredicate: BlockMeshCollector.Predicate,
         lightPredicate: BlockMeshCollector.Predicate
     ) {
-        if (VibrancyConfig.useMultithreading) {
+        if (VibrancyConfig().useMultithreading) {
             /*
             GlThreadPool.submit {
                 val info = rebuildAsyncImpl(manager, collector, shadowPredicate, lightPredicate)()

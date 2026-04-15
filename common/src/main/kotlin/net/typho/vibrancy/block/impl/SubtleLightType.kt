@@ -36,17 +36,17 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
         lights: SubtleLightStorage,
         debugOut: (String, Int) -> Unit
     ) {
-        if (VibrancyConfig.BlockLights.Subtle.enabled) {
+        if (VibrancyConfig().subtleLightsEnabled) {
             lights.checkDirty(manager, data)
 
             LightMesh.drawState(NeoAtlas.blocks, Vibrancy.id("block/subtle/mesh")).bind().use { settings ->
                 settings.shader.setUniform("ProjMat") { set(data.projMat) }
                 settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((-data.camera.pos).toJOML(), Matrix4f())) }
-                settings.shader.setUniform("LightBrightness") { set(VibrancyConfig.BlockLights.Subtle.brightness) }
+                settings.shader.setUniform("LightBrightness") { set(VibrancyConfig().subtleLightBrightness) }
 
                 lights.chunks.values
                     .filter {
-                        manager.inRenderDistance(data, it.pos, VibrancyConfig.BlockLights.Subtle.renderDistance)
+                        manager.inRenderDistance(data, it.pos, VibrancyConfig().subtleLightsRenderDistance)
                     }
                     .forEach {
                         it.render(data, settings.shader, debugOut)

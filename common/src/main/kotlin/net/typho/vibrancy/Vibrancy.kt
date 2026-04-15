@@ -88,7 +88,7 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
 
     @JvmStatic
     fun render(data: RenderEventData) {
-        if (VibrancyConfig.modEnabled) {
+        if (VibrancyConfig().modEnabled) {
             val targetAttachment = data.target.colorAttachments[0] as GlTexture2D
             val width = targetAttachment.width.coerceAtLeast(1)
             val height = targetAttachment.height.coerceAtLeast(1)
@@ -166,14 +166,16 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
     }
 
     override fun displayInitialScreens(factory: InitialScreenFactory) {
-        if (VibrancyConfig.modEnabled) {
+        if (VibrancyConfig().modEnabled) {
             if (!GL.getCapabilities().GL_ARB_shader_storage_buffer_object) {
-                VibrancyConfig.modEnabled = false
+                VibrancyConfig().modEnabled = false
+                VibrancyConfig.HANDLER.save()
                 factory.display(Component.translatable(if (Platform.get() == Platform.MACOSX) "error.vibrancy.no_ssbos_mac" else "error.vibrancy.no_ssbos"))
             }
 
             if (glGetString(GL_VENDOR)?.lowercase()?.contains("amd") == true) {
-                VibrancyConfig.modEnabled = false
+                VibrancyConfig().modEnabled = false
+                VibrancyConfig.HANDLER.save()
                 factory.display(Component.translatable("error.vibrancy.amd"))
             }
         }
@@ -205,7 +207,7 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
 
     override fun registerEvents(factory: CommonEventFactory) {
         factory.blockChanged.add { level, pos, old, new ->
-            if (VibrancyConfig.modEnabled && level.isClientSide()) {
+            if (VibrancyConfig().modEnabled && level.isClientSide()) {
                 GlQueue.INSTANCE.runOrQueue {
                     lightManager.blockChanged(level, pos, old, new)
                 }
@@ -230,7 +232,7 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
     override fun registerEvents(factory: ClientEventFactory) {
         factory.levelRenderEnd.add(Vibrancy::render)
         factory.levelChanged.add { old, new ->
-            if (VibrancyConfig.modEnabled) {
+            if (VibrancyConfig().modEnabled) {
                 lightManager.clear()
 
                 if (new == null) {
@@ -312,7 +314,7 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
         }
          */
         factory.chunkChanged.add { level, old, new ->
-            if (VibrancyConfig.modEnabled && level.isClientSide()) {
+            if (VibrancyConfig().modEnabled && level.isClientSide()) {
                 GlQueue.INSTANCE.runOrQueue {
                     if (old != null) {
                         lightManager.deloadChunk(old)

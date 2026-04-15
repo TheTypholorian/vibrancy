@@ -72,7 +72,7 @@ open class RayPointLight(
 
                 drawState.bind().use { drawState ->
                     drawState.shader.setUniform("LightPos") { set(absolutePos) }
-                    drawState.shader.setUniform("LightColor") { set(color * VibrancyConfig.BlockLights.Raytraced.brightness) }
+                    drawState.shader.setUniform("LightColor") { set(color * VibrancyConfig().rayLightBrightness) }
                     drawState.shader.setUniform("LightRadius") { set(radius) }
 
                     Mesh(
@@ -103,7 +103,7 @@ open class RayPointLight(
         get() = NeoRect3i(pos - radius.toInt(), pos + radius.toInt())
     override val shadowBox: AbstractRect3<Int>
         get() {
-            val shadowRadius = ceil(radius.coerceAtMost(VibrancyConfig.BlockLights.Raytraced.shadowRadius.toFloat())).toInt()
+            val shadowRadius = ceil(radius.coerceAtMost(VibrancyConfig().rayLightShadowRadius.toFloat())).toInt()
             return NeoRect3i(pos - shadowRadius, pos + shadowRadius)
         }
     val shadowPredicate = object : BlockMeshCollector.Predicate {

@@ -31,7 +31,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
         lights: HashMapBlockLightStorage<RayPointLightInfo, RayPointLight>,
         debugOut: (String, Int) -> Unit
     ) {
-        if (VibrancyConfig.BlockLights.Raytraced.enabled) {
+        if (VibrancyConfig().rayLightsEnabled) {
             synchronized(lights.map) {
                 val lights = lights.map.values
                     .filter { light ->
@@ -41,7 +41,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                         )
                     }
                     .sortedBy { light -> manager.getSortingOrder(data, light.pos) }
-                    .take(VibrancyConfig.BlockLights.Raytraced.maxRendered)
+                    .take(VibrancyConfig().rayLightsMaxRendered)
                     .toList()
 
                 LightMesh.drawState(NeoAtlas.blocks, Vibrancy.id("block/raytraced/mesh")).bind().use { settings ->

@@ -34,6 +34,10 @@
   "config.vibrancy.blockLights.subtle.brightness": "Brightness",
   "config.vibrancy.blockLights.subtle.brightness.tooltip0": "Linear multiplier for the brightness of all block lights.",
   "config.vibrancy.blockLights.subtle.brightness.tooltip1": "Does not affect their radius.",
+  "config.vibrancy.blockLights.subtle.cullingMode": "Culling Mode",
+  "config.vibrancy.blockLights.subtle.cullingMode.tooltip0": "Same Block Type - If all neighbors are the same block type as the light, get rid of the light",
+  "config.vibrancy.blockLights.subtle.cullingMode.tooltip1": "Solid - If all neighbors are a full solid block, get rid of the light",
+  "config.vibrancy.blockLights.subtle.cullingMode.tooltip2": "Not Air - If all neighbors are not air, get rid of the light",
 
   "key.category.vibrancy.keys": "Vibrancy",
   "key.vibrancy.debug": "Modifier key",
