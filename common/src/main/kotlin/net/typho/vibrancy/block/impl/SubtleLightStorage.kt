@@ -262,7 +262,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                     }
                 }
 
-                if (VibrancyConfig().useMultithreading) {
+                if (VibrancyConfig.useMultithreading) {
                     tasks.add(CompletableFuture.supplyAsync(::impl, VibrancyThreadPool))
                 } else {
                     impl()?.accept(data)
@@ -326,7 +326,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
             info: SubtleLightInfo
         ): SubtleLight? {
             if (info.enabled(state)) {
-                val cullingMode = VibrancyConfig().subtleLightCullingMode
+                val cullingMode = VibrancyConfig.subtleLightCullingMode
 
                 if (
                     NeoDirection.entries.all { dir ->

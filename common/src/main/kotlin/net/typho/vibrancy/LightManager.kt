@@ -39,7 +39,7 @@ open class LightManager {
     }
 
     fun reload() {
-        if (VibrancyConfig().modEnabled) {
+        if (VibrancyConfig.modEnabled) {
             for (light in blockLights.values) {
                 light.reload(this, null)
             }

@@ -44,7 +44,7 @@ open class LightMesh(
                     GlBlendingFactor.ONE,
                     GlBlendingFactor.ONE
                 ),
-                if (VibrancyConfig().limitLightBrightness) GlBlendEquation.MAX else GlBlendEquation.ADD
+                if (VibrancyConfig.limitLightBrightness) GlBlendEquation.MAX else GlBlendEquation.ADD
             ),
             cull = GlCullShard.Enabled(
                 GlCullFace.BACK
@@ -61,9 +61,9 @@ open class LightMesh(
             shader = GlShaderShard.FromLocation(
                 shader,
                 {
-                    setUniform("SpecularReflectionsEnabled") { set(if (VibrancyConfig().reflectionsEnabled) 1 else 0) }
-                    setUniform("SpecularReflectionStrength") { set(VibrancyConfig().reflectionStrength) }
-                    setUniform("SpecularReflectionExponent") { set(VibrancyConfig().reflectionExponent) }
+                    setUniform("SpecularReflectionsEnabled") { set(if (VibrancyConfig.reflectionsEnabled) 1 else 0) }
+                    setUniform("SpecularReflectionStrength") { set(VibrancyConfig.reflectionStrength) }
+                    setUniform("SpecularReflectionExponent") { set(VibrancyConfig.reflectionExponent) }
                 },
                 GlTextureBinding.FromInstance(
                     sampler0,

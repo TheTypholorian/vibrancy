@@ -6,8 +6,8 @@ import java.util.concurrent.ThreadPoolExecutor
 import java.util.concurrent.TimeUnit
 
 object VibrancyThreadPool : ThreadPoolExecutor(
-    VibrancyConfig().asyncThreads,
-    VibrancyConfig().asyncThreads,
+    VibrancyConfig.asyncThreads,
+    VibrancyConfig.asyncThreads,
     10L,
     TimeUnit.MINUTES,
     LinkedBlockingQueue()

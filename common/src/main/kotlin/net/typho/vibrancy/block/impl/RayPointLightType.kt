@@ -31,7 +31,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
         lights: HashMapBlockLightStorage<RayPointLightInfo, RayPointLight>,
         debugOut: (String, Int) -> Unit
     ) {
-        if (VibrancyConfig().rayLightsEnabled) {
+        if (VibrancyConfig.rayLightsEnabled) {
             synchronized(lights.map) {
                 val lights = lights.map.values
                     .filter { light ->
@@ -42,7 +42,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                     }
                     .map { light -> light to manager.getSortingOrder(data, light.pos) }
                     .sortedBy { it.second }
-                    .take(VibrancyConfig().rayLightsMaxRendered)
+                    .take(VibrancyConfig.rayLightsMaxRendered)
                     .toList()
 
                 LightMesh.drawState(NeoAtlas.blocks, Vibrancy.id("block/raytraced/mesh")).bind().use { settings ->
@@ -54,7 +54,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                     settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((-data.camera.pos).toJOML(), Matrix4f())) }
                     settings.shader.setUniform("CameraPos") { set(data.camera.pos) }
 
-                    lights.forEachIndexed { index, light -> light.first.update(manager, VibrancyConfig().entityShadowsEnabled && index < VibrancyConfig().entityShadowMaxLights && manager.inRenderDistance(light.second, VibrancyConfig().entityShadowDistance)) }
+                    lights.forEachIndexed { index, light -> light.first.update(manager, VibrancyConfig.entityShadowsEnabled && index < VibrancyConfig.entityShadowMaxLights && manager.inRenderDistance(light.second, VibrancyConfig.entityShadowDistance)) }
                     lights.forEach { light -> light.first.render(settings.shader, debugOut) }
                 }
             }
