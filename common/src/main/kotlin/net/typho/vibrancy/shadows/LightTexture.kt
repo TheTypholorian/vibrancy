@@ -1,11 +1,9 @@
 package net.typho.vibrancy.shadows
 
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureFormat
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureMagFilter
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureMinFilter
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureTarget
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlFramebuffer
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlTexture2D
+import net.typho.big_shot_lib.api.util.NeoColor
 
 open class LightTexture : NeoGlTexture2D() {
     companion object {
@@ -24,6 +22,7 @@ open class LightTexture : NeoGlTexture2D() {
         framebuffer.bind().use { fbo ->
             fbo.colorAttachments[0] = this
             fbo.checkStatus().throwIfError()
+            fbo.clear(GlClearBit.Color(NeoColor.FULL_ON))
         }
     }
 

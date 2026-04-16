@@ -222,7 +222,7 @@ open class RayPointLight(
         mesh.free()
     }
 
-    fun update(manager: LightManager) {
+    fun update(manager: LightManager, dynamicShadows: Boolean) {
         synchronized(meshCollector) {
             for (pos in manager.dirtyBlocks) {
                 if (boundingBox.contains(pos)) {
@@ -238,39 +238,45 @@ open class RayPointLight(
 
         mesh.checkIfFinished()
 
-        manager.getLevel()?.getEntities(null, AABB.ofSize(Vec3(absolutePos.toJOML()), radius.toDouble() * 2, radius.toDouble() * 2, radius.toDouble() * 2))?.let { entities ->
-            val quads = arrayListOf<NeoBakedQuad>()
-            val builder = object : NeoBakedQuad.Consumer() {
-                override fun take(quad: NeoBakedQuad) {
-                    quads.add(quad)
+        if (dynamicShadows) {
+            manager.getLevel()?.getEntities(null, AABB.ofSize(Vec3(absolutePos.toJOML()), radius.toDouble() * 2, radius.toDouble() * 2, radius.toDouble() * 2))?.let { entities ->
+                val quads = arrayListOf<NeoBakedQuad>()
+                val builder = object : NeoBakedQuad.Consumer() {
+                    override fun take(quad: NeoBakedQuad) {
+                        quads.add(quad)
+                    }
+                }
+                val tickDelta = Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(true)
+
+                for (entity in entities) {
+                    Minecraft.getInstance().entityRenderDispatcher.render(
+                        entity,
+                        Mth.lerp(tickDelta.toDouble(), entity.xOld, entity.x),
+                        Mth.lerp(tickDelta.toDouble(), entity.yOld, entity.y),
+                        Mth.lerp(tickDelta.toDouble(), entity.zOld, entity.z),
+                        Mth.lerp(tickDelta, entity.yRotO, entity.yRot),
+                        tickDelta,
+                        PoseStack(),
+                        { WrapperUtil.INSTANCE.unwrap(builder) },
+                        net.minecraft.client.renderer.LightTexture.FULL_BRIGHT
+                    )
+                }
+
+                if (quads.isNotEmpty()) {
+                    dynamicBuffer.lazyUploadQuads(quads)()
+                    blit(
+                        dynamicTexture,
+                        dynamicBuffer,
+                        GlTextureBinding.FromInstance(
+                            NeoAtlas.blocks, // TODO
+                            GlTextureTarget.TEXTURE_2D
+                        )
+                    )
                 }
             }
-            val tickDelta = Minecraft.getInstance().timer.gameTimeDeltaTicks
-
-            for (entity in entities) {
-                Minecraft.getInstance().entityRenderDispatcher.render(
-                    entity,
-                    entity.x,
-                    entity.y,
-                    entity.z,
-                    Mth.lerp(tickDelta, entity.yRotO, entity.yRot),
-                    tickDelta,
-                    PoseStack(),
-                    { WrapperUtil.INSTANCE.unwrap(builder) },
-                    net.minecraft.client.renderer.LightTexture.FULL_BRIGHT
-                )
-            }
-
-            if (quads.isNotEmpty()) {
-                dynamicBuffer.lazyUploadQuads(quads)()
-                blit(
-                    dynamicTexture,
-                    dynamicBuffer,
-                    GlTextureBinding.FromInstance(
-                        NeoAtlas.blocks, // TODO
-                        GlTextureTarget.TEXTURE_2D
-                    )
-                )
+        } else {
+            dynamicTexture.framebuffer.bind(NeoRect2i(0, 0, dynamicTexture.width, dynamicTexture.height)).use { fbo ->
+                fbo.clear(GlClearBit.Color(NeoColor.FULL_ON))
             }
         }
     }

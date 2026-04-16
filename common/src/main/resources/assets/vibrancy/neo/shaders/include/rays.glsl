@@ -53,11 +53,11 @@ bool sampleQuad(sampler2D Sampler0, ivec2 Sampler0Size, vec3 origin, vec3 dir, f
         vec4 pixel = texelFetch(Sampler0, ivec2(texUv * Sampler0Size), 0) * color;
         outColor = pixel;
 
-        //if (pixel.a > 0.99) {
+        if (pixel.a > 0.99) {
             return true;
-        //}
+        }
 
-        //return false;
+        return false;
     } else {
         outColor = vec4(0);
         return false;

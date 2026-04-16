@@ -40,7 +40,8 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                             (light.boundingBox.max.toFloat() - data.camera.pos).toJOML(),
                         )
                     }
-                    .sortedBy { light -> manager.getSortingOrder(data, light.pos) }
+                    .map { light -> light to manager.getSortingOrder(data, light.pos) }
+                    .sortedBy { it.second }
                     .take(VibrancyConfig().rayLightsMaxRendered)
                     .toList()
 
@@ -53,8 +54,8 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                     settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((-data.camera.pos).toJOML(), Matrix4f())) }
                     settings.shader.setUniform("CameraPos") { set(data.camera.pos) }
 
-                    lights.forEach { it.update(manager) }
-                    lights.forEach { light -> light.render(settings.shader, debugOut) }
+                    lights.forEachIndexed { index, light -> light.first.update(manager, VibrancyConfig().entityShadowsEnabled && index < VibrancyConfig().entityShadowMaxLights && manager.inRenderDistance(light.second, VibrancyConfig().entityShadowDistance)) }
+                    lights.forEach { light -> light.first.render(settings.shader, debugOut) }
                 }
             }
         }

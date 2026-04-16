@@ -25,7 +25,6 @@ class VibrancyConfig {
                 Vibrancy.lightManager.reload()
             }
         }
-
     @JvmField
     var useMultithreading = true
     var asyncThreads: Int = 2
@@ -34,18 +33,22 @@ class VibrancyConfig {
             VibrancyThreadPool.maximumPoolSize = value
             VibrancyThreadPool.corePoolSize = value
         }
-
     @JvmField
     var limitLightBrightness = false
 
     @JvmField
     var reflectionsEnabled = true
-
     @JvmField
     var reflectionStrength = 3.5f
-
     @JvmField
     var reflectionExponent = 3f
+
+    @JvmField
+    var entityShadowsEnabled = true
+    @JvmField
+    var entityShadowDistance = 2
+    @JvmField
+    var entityShadowMaxLights = 50
 
     var rayLightsEnabled = true
         set(value) {
@@ -54,13 +57,10 @@ class VibrancyConfig {
                 Vibrancy.lightManager.reload()
             }
         }
-
     @JvmField
     var rayLightsMaxRendered: Int = 400
-
     @JvmField
     var rayLightBrightness: Float = 1f
-
     @JvmField
     var rayLightShadowRadius: Int = 6
 
@@ -71,10 +71,8 @@ class VibrancyConfig {
                 Vibrancy.lightManager.reload()
             }
         }
-
     @JvmField
     var subtleLightsRenderDistance: Int = 6
-
     @JvmField
     var subtleLightBrightness = 1f
     var subtleLightCullingMode = SubtleLightCullingMode.SOLID_NEIGHBOR

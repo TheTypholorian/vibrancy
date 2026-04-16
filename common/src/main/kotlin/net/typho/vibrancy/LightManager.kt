@@ -159,6 +159,11 @@ open class LightManager {
         return distance.coerceAtMost(Minecraft.getInstance().options.effectiveRenderDistance)
     }
 
+    fun inRenderDistance(testDistanceSquared: Float, renderDistance: Int): Boolean {
+        val x = clampToChunkRenderDistance(renderDistance) * 16f
+        return testDistanceSquared <= x * x
+    }
+
     fun inRenderDistance(data: RenderEventData, pos: IVec3<Int>, distance: Int): Boolean {
         return (pos.toFloat() + 0.5f).inDistance(data.camera.pos, clampToChunkRenderDistance(distance) * 16f)
     }

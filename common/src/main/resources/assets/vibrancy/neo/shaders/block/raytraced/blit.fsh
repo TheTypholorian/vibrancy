@@ -25,14 +25,17 @@ struct Ray {
     float len;
 };
 
+Ray ray(vec3 pos) {
+    vec3 delta = LightPos - pos;
+    vec3 dir = normalize(delta);
+    float len = length(delta);
+    return Ray(pos, dir, len);
+}
+
 void main() {
     //vec2 step = 1 / (vec2(sprite.width, sprite.height) * 3);
 
-    vec3 delta = LightPos - vertexPos;
-    vec3 dir = normalize(delta);
-    float len = length(delta);
-
-    Ray ray = Ray(vertexPos, dir, len);
+    Ray ray = ray(vertexPos);
     vec4 accum = vec4(0);
     float denom = 0;
 
