@@ -3,6 +3,7 @@ package net.typho.vibrancy
 import dev.isxander.yacl3.api.*
 import dev.isxander.yacl3.api.controller.*
 import dev.isxander.yacl3.config.v2.api.ConfigClassHandler
+import dev.isxander.yacl3.config.v2.api.SerialEntry
 import dev.isxander.yacl3.config.v2.api.serializer.GsonConfigSerializerBuilder
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
@@ -18,6 +19,7 @@ internal fun <T : Any> Option.Builder<T>.binding(property: KMutableProperty0<T>)
 }
 
 class VibrancyConfig {
+    @SerialEntry
     var modEnabled = true
         set(value) {
             field = value
@@ -25,31 +27,41 @@ class VibrancyConfig {
                 Vibrancy.lightManager.reload()
             }
         }
+    @SerialEntry
     @JvmField
     var useMultithreading = true
+    @SerialEntry
     var asyncThreads: Int = 2
         set(value) {
             field = value
             VibrancyThreadPool.maximumPoolSize = value
             VibrancyThreadPool.corePoolSize = value
         }
+    @SerialEntry
     @JvmField
     var limitLightBrightness = false
 
+    @SerialEntry
     @JvmField
     var reflectionsEnabled = true
+    @SerialEntry
     @JvmField
     var reflectionStrength = 3.5f
+    @SerialEntry
     @JvmField
     var reflectionExponent = 3f
 
+    @SerialEntry
     @JvmField
     var entityShadowsEnabled = true
+    @SerialEntry
     @JvmField
     var entityShadowDistance = 2
+    @SerialEntry
     @JvmField
     var entityShadowMaxLights = 50
 
+    @SerialEntry
     var rayLightsEnabled = true
         set(value) {
             field = value
@@ -57,13 +69,17 @@ class VibrancyConfig {
                 Vibrancy.lightManager.reload()
             }
         }
+    @SerialEntry
     @JvmField
     var rayLightsMaxRendered: Int = 400
+    @SerialEntry
     @JvmField
     var rayLightBrightness: Float = 1f
+    @SerialEntry
     @JvmField
     var rayLightShadowRadius: Int = 6
 
+    @SerialEntry
     var subtleLightsEnabled = true
         set(value) {
             field = value
@@ -71,10 +87,13 @@ class VibrancyConfig {
                 Vibrancy.lightManager.reload()
             }
         }
+    @SerialEntry
     @JvmField
     var subtleLightsRenderDistance: Int = 6
+    @SerialEntry
     @JvmField
     var subtleLightBrightness = 1f
+    @SerialEntry
     var subtleLightCullingMode = SubtleLightCullingMode.SOLID_NEIGHBOR
         set(value) {
             field = value
