@@ -26,9 +26,9 @@ import net.typho.big_shot_lib.api.math.rect.NeoRect2i
 import net.typho.big_shot_lib.api.math.rect.NeoRect3i
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
+import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.BlockUtil
-import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.big_shot_lib.api.util.WrapperUtil
 import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.LightManager
@@ -111,7 +111,7 @@ open class RayPointLight(
         dynamicTexture.resize(info.sections.size.x, info.sections.size.y)
         LightMesh.initBlitMesh(blitMesh, info)
         staticTexture.framebuffer.bind(NeoRect2i(0, 0, staticTexture.width, staticTexture.height)).use { fbo ->
-            fbo.clear(GlClearBit.Color(NeoColor.FULL_ON))
+            staticTexture.clear()
             blit(
                 staticTexture,
                 mesh.shadowBuffer,
@@ -120,6 +120,7 @@ open class RayPointLight(
                     GlTextureTarget.TEXTURE_2D
                 )
             )
+            staticTexture.clear = false
         }
     }
 
@@ -237,7 +238,7 @@ open class RayPointLight(
         mesh.free()
     }
 
-    fun update(manager: LightManager, dynamicShadows: Boolean) {
+    fun update(manager: LightManager, debugOut: (String, Int) -> Unit, dynamicShadows: Boolean) {
         synchronized(meshCollector) {
             for (pos in manager.dirtyBlocks) {
                 if (boundingBox.contains(pos)) {
@@ -254,29 +255,52 @@ open class RayPointLight(
         mesh.checkIfFinished()
 
         if (dynamicShadows) {
-            manager.getLevel()?.getEntities(null, AABB.ofSize(Vec3(absolutePos.toJOML()), radius.toDouble() * 2, radius.toDouble() * 2, radius.toDouble() * 2))?.let { entities ->
+            manager.getLevel()?.let { level ->
                 val builders = hashMapOf<NeoIdentifier, MutableList<NeoBakedQuad>>()
-                val tickDelta = Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(true)
+                val tickDelta = Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(false)
+                val poseStack = PoseStack()
+                val buffers = WrapperUtil.INSTANCE.unwrap { settings: NeoRenderSettings ->
+                    val quads = builders.computeIfAbsent(settings.drawState.shader.textures[0].location!!) { texture -> arrayListOf() }
+                    object : NeoBakedQuad.Consumer() {
+                        override fun take(quad: NeoBakedQuad) {
+                            quads.add(quad)
+                        }
+                    }
+                }
 
-                for (entity in entities) {
-                    Minecraft.getInstance().entityRenderDispatcher.render(
-                        entity,
-                        Mth.lerp(tickDelta.toDouble(), entity.xOld, entity.x),
-                        Mth.lerp(tickDelta.toDouble(), entity.yOld, entity.y),
-                        Mth.lerp(tickDelta.toDouble(), entity.zOld, entity.z),
-                        Mth.lerp(tickDelta, entity.yRotO, entity.yRot),
-                        tickDelta,
-                        PoseStack(),
-                        WrapperUtil.INSTANCE.unwrap { settings: NeoRenderSettings ->
-                            val quads = builders.computeIfAbsent(settings.drawState.shader.textures[0].location!!) { texture -> arrayListOf() }
-                            object : NeoBakedQuad.Consumer() {
-                                override fun take(quad: NeoBakedQuad) {
-                                    quads.add(quad)
-                                }
-                            }
-                        },
-                        net.minecraft.client.renderer.LightTexture.FULL_BRIGHT
-                    )
+                for (entity in level.getEntities(null, AABB.ofSize(Vec3(absolutePos.toJOML()), radius.toDouble() * 2, radius.toDouble() * 2, radius.toDouble() * 2))) {
+                    if (meshCollector.checked.contains(NeoVec3i(entity.blockPosition()))) {
+                        debugOut("entityShadows", 1)
+                        Minecraft.getInstance().entityRenderDispatcher.render(
+                            entity,
+                            Mth.lerp(tickDelta.toDouble(), entity.xOld, entity.x),
+                            Mth.lerp(tickDelta.toDouble(), entity.yOld, entity.y),
+                            Mth.lerp(tickDelta.toDouble(), entity.zOld, entity.z),
+                            Mth.lerp(tickDelta, entity.yRotO, entity.yRot),
+                            tickDelta,
+                            poseStack,
+                            buffers,
+                            net.minecraft.client.renderer.LightTexture.FULL_BRIGHT
+                        )
+                    }
+                }
+
+                for (pos in meshCollector.blockEntities) {
+                    level.getBlockEntity(pos.blockPos)?.let { blockEntity ->
+                        debugOut("blockEntityShadows", 1)
+
+                        poseStack.pushPose()
+                        poseStack.translate(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
+
+                        Minecraft.getInstance().blockEntityRenderDispatcher.render(
+                            blockEntity,
+                            tickDelta,
+                            poseStack,
+                            buffers
+                        )
+
+                        poseStack.popPose()
+                    }
                 }
 
                 var cleared = false
@@ -285,7 +309,7 @@ open class RayPointLight(
                     for (builder in builders) {
                         if (builder.value.isNotEmpty()) {
                             if (!cleared) {
-                                fbo.clear(GlClearBit.Color(NeoColor.FULL_ON))
+                                fbo.clear()
                                 cleared = true
                             }
 
@@ -301,11 +325,11 @@ open class RayPointLight(
                         }
                     }
                 }
+
+                debugOut("lightsWithEntityShadows", 1)
             }
         } else {
-            dynamicTexture.framebuffer.bind(NeoRect2i(0, 0, dynamicTexture.width, dynamicTexture.height)).use { fbo ->
-                fbo.clear(GlClearBit.Color(NeoColor.FULL_ON))
-            }
+            dynamicTexture.clear()
         }
     }
 

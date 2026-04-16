@@ -16,6 +16,14 @@
   "config.vibrancy.specularReflections.strength": "Strength",
   "config.vibrancy.specularReflections.exponent": "Exponent",
 
+  "config.vibrancy.entityShadows": "Entity Shadows",
+
+  "config.vibrancy.entityShadows.enabled": "Enabled",
+  "config.vibrancy.entityShadows.distance": "Distance",
+  "config.vibrancy.entityShadows.distance.tooltip": "The distance from camera in chunks where lights can have entity shadows.",
+  "config.vibrancy.entityShadows.maxLights": "Max Lights",
+  "config.vibrancy.entityShadows.maxLights.tooltip": "The maximum number of lights that can have entity shadows, closest to camera first.",
+
   "config.vibrancy.blockLights": "Block Lights",
 
   "config.vibrancy.blockLights.raytraced": "Raytraced",

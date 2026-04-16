@@ -12,6 +12,7 @@ open class LightTexture : NeoGlTexture2D() {
     }
 
     val framebuffer = NeoGlFramebuffer()
+    var clear = false
 
     init {
         bind(GlTextureTarget.TEXTURE_2D).use { texture ->
@@ -22,13 +23,23 @@ open class LightTexture : NeoGlTexture2D() {
         framebuffer.bind().use { fbo ->
             fbo.colorAttachments[0] = this
             fbo.checkStatus().throwIfError()
-            fbo.clear(GlClearBit.Color(NeoColor.FULL_ON))
+            clear()
         }
     }
 
     override fun free() {
         super.free()
         framebuffer.free()
+    }
+
+    fun clear() {
+        if (!clear) {
+            framebuffer.bind().use { fbo ->
+                fbo.clear(GlClearBit.Color(NeoColor.FULL_ON))
+            }
+
+            clear = true
+        }
     }
 
     fun resize(width: Int, height: Int) {

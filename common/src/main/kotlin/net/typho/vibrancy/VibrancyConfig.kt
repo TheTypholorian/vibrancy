@@ -48,7 +48,7 @@ object VibrancyConfig {
     @JvmField
     var entityShadowDistance = 2
     @JvmField
-    var entityShadowMaxLights = 50
+    var entityShadowMaxLights = 10
 
     var rayLightsEnabled = true
         set(value) {
@@ -246,6 +246,36 @@ object VibrancyConfig {
                         FloatSliderControllerBuilder.create(opt)
                             .range(0.5f, 10f)
                             .step(0.5f)
+                    }
+                    .build())
+                .build())
+
+            .category(ConfigCategory.createBuilder()
+                .name(Component.translatable("config.vibrancy.entityShadows"))
+
+                .option(Option.createBuilder<Boolean>()
+                    .name(Component.translatable("config.vibrancy.entityShadows.enabled"))
+                    .binding(VibrancyConfig::entityShadowsEnabled)
+                    .controller(TickBoxControllerBuilder::create)
+                    .build())
+
+                .option(Option.createBuilder<Int>()
+                    .name(Component.translatable("config.vibrancy.entityShadows.distance"))
+                    .binding(VibrancyConfig::entityShadowDistance)
+                    .controller { opt ->
+                        IntegerSliderControllerBuilder.create(opt)
+                            .range(1, 16)
+                            .step(1)
+                    }
+                    .build())
+
+                .option(Option.createBuilder<Int>()
+                    .name(Component.translatable("config.vibrancy.entityShadows.maxLights"))
+                    .binding(VibrancyConfig::entityShadowMaxLights)
+                    .controller { opt ->
+                        IntegerSliderControllerBuilder.create(opt)
+                            .range(10, 100)
+                            .step(10)
                     }
                     .build())
                 .build())

@@ -36,10 +36,10 @@ void main() {
     //vec2 step = 1 / (vec2(sprite.width, sprite.height) * 3);
 
     Ray ray = ray(vertexPos);
-    vec4 accum = vec4(0);
-    float denom = 0;
 
     fragColor = vec3(1);
+    vec3 tint = vec3(0);
+    float denom = 0;
 
     for (uint i = 0u; i < shadowQuads.length(); i++) {
         float dist;
@@ -48,8 +48,16 @@ void main() {
 
         sampleQuad(Sampler0, Sampler0Size, ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor);
 
-        if (outColor.a > 0) {
-            fragColor = fragColor * (1 - outColor.a) * outColor.rgb;
+        if (outColor.a == 1) {
+            fragColor = vec3(0);
+            break;
+        } else if (outColor.a != 0) {
+            tint += outColor.rgb * outColor.a;
+            denom += outColor.a;
         }
+    }
+
+    if (denom > 0) {
+        fragColor *= tint / denom;
     }
 }
