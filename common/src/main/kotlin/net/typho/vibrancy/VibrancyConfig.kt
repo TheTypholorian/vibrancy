@@ -86,6 +86,7 @@ object VibrancyConfig {
     @JvmStatic
     fun save() {
         JsonWriter(Files.newBufferedWriter(PlatformUtil.INSTANCE.configPath.resolve("vibrancy.json"))).use { writer ->
+            writer.setIndent("    ")
             writer.beginObject()
 
                 .name("modEnabled").value(modEnabled)

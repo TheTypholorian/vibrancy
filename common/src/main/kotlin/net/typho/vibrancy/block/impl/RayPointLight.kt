@@ -7,17 +7,18 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBeginMode
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlClearBit
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureTarget
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
+import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlBlendShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
+import net.typho.big_shot_lib.api.client.rendering.opengl.util.BlendFunction
+import net.typho.big_shot_lib.api.client.rendering.util.BlockChunkLayer
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
+import net.typho.big_shot_lib.api.client.rendering.util.NeoRenderSettings
 import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
 import net.typho.big_shot_lib.api.math.NeoDirection
 import net.typho.big_shot_lib.api.math.rect.AbstractRect3
@@ -29,6 +30,7 @@ import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.big_shot_lib.api.util.WrapperUtil
+import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.Vibrancy.isPointingTowards
@@ -58,6 +60,13 @@ open class RayPointLight(
     companion object {
         @JvmStatic
         fun drawState(texture: GlTextureBinding) = GlDrawState.Basic(
+            blend = GlBlendShard.Enabled(
+                BlendFunction.Basic(
+                    GlBlendingFactor.DST_COLOR,
+                    GlBlendingFactor.ZERO
+                ),
+                GlBlendEquation.ADD
+            ),
             shader = GlShaderShard.FromLocation(
                 Vibrancy.id("block/raytraced/blit"),
                 { },
@@ -75,7 +84,6 @@ open class RayPointLight(
 
     fun blit(target: LightTexture, shadowBuffer: ShadowBuffer, materialTexture: GlTextureBinding) {
         target.framebuffer.bind(NeoRect2i(0, 0, target.width, target.height)).use { fbo ->
-            fbo.clear(GlClearBit.Color(NeoColor.FULL_OFF))
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, shadowBuffer.glId)
 
             drawState(materialTexture).bind().use { drawState ->
@@ -102,14 +110,17 @@ open class RayPointLight(
         staticTexture.resize(info.sections.size.x, info.sections.size.y)
         dynamicTexture.resize(info.sections.size.x, info.sections.size.y)
         LightMesh.initBlitMesh(blitMesh, info)
-        blit(
-            staticTexture,
-            mesh.shadowBuffer,
-            GlTextureBinding.FromInstance(
-                NeoAtlas.blocks,
-                GlTextureTarget.TEXTURE_2D
+        staticTexture.framebuffer.bind(NeoRect2i(0, 0, staticTexture.width, staticTexture.height)).use { fbo ->
+            fbo.clear(GlClearBit.Color(NeoColor.FULL_ON))
+            blit(
+                staticTexture,
+                mesh.shadowBuffer,
+                GlTextureBinding.FromInstance(
+                    NeoAtlas.blocks,
+                    GlTextureTarget.TEXTURE_2D
+                )
             )
-        )
+        }
     }
 
     var shadowsDirty = true
@@ -155,7 +166,9 @@ open class RayPointLight(
                 return true
             }
 
-            if (!face.isPointingTowards(pos, this@RayPointLight.pos)) {
+            val state = state ?: level.getBlockState(pos.blockPos)
+
+            if (BlockUtil.INSTANCE.getBlockChunkLayer(state) == BlockChunkLayer.SOLID && !face.isPointingTowards(pos, this@RayPointLight.pos)) {
                 return false
             }
 
@@ -164,7 +177,7 @@ open class RayPointLight(
                     level,
                     pos,
                     face,
-                    state ?: level.getBlockState(pos.blockPos)
+                    state
                 )
             ) {
                 return false
@@ -192,7 +205,9 @@ open class RayPointLight(
                 return true
             }
 
-            if (!face.isPointingTowards(pos, this@RayPointLight.pos)) {
+            val state = state ?: level.getBlockState(pos.blockPos)
+
+            if (BlockUtil.INSTANCE.getBlockChunkLayer(state) == BlockChunkLayer.SOLID && !face.isPointingTowards(pos, this@RayPointLight.pos)) {
                 return false
             }
 
@@ -201,7 +216,7 @@ open class RayPointLight(
                     level,
                     pos,
                     face,
-                    state ?: level.getBlockState(pos.blockPos)
+                    state
                 )
             ) {
                 return false
@@ -240,12 +255,7 @@ open class RayPointLight(
 
         if (dynamicShadows) {
             manager.getLevel()?.getEntities(null, AABB.ofSize(Vec3(absolutePos.toJOML()), radius.toDouble() * 2, radius.toDouble() * 2, radius.toDouble() * 2))?.let { entities ->
-                val quads = arrayListOf<NeoBakedQuad>()
-                val builder = object : NeoBakedQuad.Consumer() {
-                    override fun take(quad: NeoBakedQuad) {
-                        quads.add(quad)
-                    }
-                }
+                val builders = hashMapOf<NeoIdentifier, MutableList<NeoBakedQuad>>()
                 val tickDelta = Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(true)
 
                 for (entity in entities) {
@@ -257,21 +267,39 @@ open class RayPointLight(
                         Mth.lerp(tickDelta, entity.yRotO, entity.yRot),
                         tickDelta,
                         PoseStack(),
-                        { WrapperUtil.INSTANCE.unwrap(builder) },
+                        WrapperUtil.INSTANCE.unwrap { settings: NeoRenderSettings ->
+                            val quads = builders.computeIfAbsent(settings.drawState.shader.textures[0].location!!) { texture -> arrayListOf() }
+                            object : NeoBakedQuad.Consumer() {
+                                override fun take(quad: NeoBakedQuad) {
+                                    quads.add(quad)
+                                }
+                            }
+                        },
                         net.minecraft.client.renderer.LightTexture.FULL_BRIGHT
                     )
                 }
 
-                if (quads.isNotEmpty()) {
-                    dynamicBuffer.lazyUploadQuads(quads)()
-                    blit(
-                        dynamicTexture,
-                        dynamicBuffer,
-                        GlTextureBinding.FromInstance(
-                            NeoAtlas.blocks, // TODO
-                            GlTextureTarget.TEXTURE_2D
-                        )
-                    )
+                var cleared = false
+
+                dynamicTexture.framebuffer.bind(NeoRect2i(0, 0, dynamicTexture.width, dynamicTexture.height)).use { fbo ->
+                    for (builder in builders) {
+                        if (builder.value.isNotEmpty()) {
+                            if (!cleared) {
+                                fbo.clear(GlClearBit.Color(NeoColor.FULL_ON))
+                                cleared = true
+                            }
+
+                            dynamicBuffer.lazyUploadQuads(builder.value)()
+                            blit(
+                                dynamicTexture,
+                                dynamicBuffer,
+                                GlTextureBinding.FromLocation(
+                                    builder.key,
+                                    GlTextureTarget.TEXTURE_2D
+                                )
+                            )
+                        }
+                    }
                 }
             }
         } else {

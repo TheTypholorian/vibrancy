@@ -46,9 +46,7 @@ void main() {
         vec4 outColor;
         Quad quad = shadowQuads[i];
 
-        if (sampleQuad(Sampler0, Sampler0Size, ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor)) {
-            discard;
-        }
+        sampleQuad(Sampler0, Sampler0Size, ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor);
 
         if (outColor.a > 0) {
             fragColor = fragColor * (1 - outColor.a) * outColor.rgb;

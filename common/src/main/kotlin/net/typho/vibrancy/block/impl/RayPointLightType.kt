@@ -45,6 +45,8 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                     .take(VibrancyConfig.rayLightsMaxRendered)
                     .toList()
 
+                lights.forEachIndexed { index, light -> light.first.update(manager, VibrancyConfig.entityShadowsEnabled && index < VibrancyConfig.entityShadowMaxLights && manager.inRenderDistance(light.second, VibrancyConfig.entityShadowDistance)) }
+
                 LightMesh.drawState(NeoAtlas.blocks, Vibrancy.id("block/raytraced/mesh")).bind().use { settings ->
                     settings.shader.setTexture(3, GlTextureBinding.FromInstance(
                         ReflectionAtlases[NeoIdentifier("blocks")], //NeoAtlas.blocks.location
@@ -54,7 +56,6 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                     settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((-data.camera.pos).toJOML(), Matrix4f())) }
                     settings.shader.setUniform("CameraPos") { set(data.camera.pos) }
 
-                    lights.forEachIndexed { index, light -> light.first.update(manager, VibrancyConfig.entityShadowsEnabled && index < VibrancyConfig.entityShadowMaxLights && manager.inRenderDistance(light.second, VibrancyConfig.entityShadowDistance)) }
                     lights.forEach { light -> light.first.render(settings.shader, debugOut) }
                 }
             }
