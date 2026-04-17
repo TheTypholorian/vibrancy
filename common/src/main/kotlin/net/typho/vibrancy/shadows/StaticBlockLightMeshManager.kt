@@ -34,15 +34,20 @@ open class StaticBlockLightMeshManager(
 
     fun checkIfFinished(): Boolean {
         asyncTask?.let { task ->
-            if (task.isDone) {
-                val info = task.get()()
+            try {
+                if (task.isDone) {
+                    val info = task.get()()
 
-                if (!lightMesh.empty) {
-                    blit(this, info)
+                    if (!lightMesh.empty) {
+                        blit(this, info)
+                    }
+
+                    asyncTask = null
+                    return true
                 }
-
+            } catch (e: NullPointerException) {
+                e.printStackTrace()
                 asyncTask = null
-                return true
             }
         }
 
