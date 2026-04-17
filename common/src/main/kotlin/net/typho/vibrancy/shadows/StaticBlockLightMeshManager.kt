@@ -79,7 +79,7 @@ open class StaticBlockLightMeshManager(
             }
         )
 
-        val shadows = shadowBuffer.lazyUpload(shadowFaces)
+        val shadows = shadowBuffer.lazyUpload(NeoAtlas.blocks.width, NeoAtlas.blocks.height, shadowFaces)
         val light = lightMesh.lazyUpload(lightFaces)
 
         return {

@@ -36,9 +36,11 @@ open class DynamicLightMeshManager(
     }
 
     fun lazyUploadShadows(
+        texWidth: Int,
+        texHeight: Int,
         shadowFaces: List<LightFace>
     ): () -> Unit {
-        val shadows = shadowBuffer.lazyUpload(shadowFaces)
+        val shadows = shadowBuffer.lazyUpload(texWidth, texHeight, shadowFaces)
 
         return {
             shadows()
@@ -82,7 +84,7 @@ open class DynamicLightMeshManager(
         shadowConsumer.flush()
         lightConsumer.flush()
 
-        lazyUploadShadows(shadowFaces)()
+        lazyUploadShadows(atlas.width, atlas.height, shadowFaces)()
         lazyUploadLight(lightFaces)()
     }
 }

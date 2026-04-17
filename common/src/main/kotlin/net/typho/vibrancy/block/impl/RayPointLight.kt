@@ -10,6 +10,7 @@ import net.minecraft.world.phys.Vec3
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlBlendShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
@@ -315,12 +316,14 @@ open class RayPointLight(
                                 cleared = true
                             }
 
-                            dynamicBuffer.lazyUploadQuads(builder.value)()
+                            val texture = GlTexture2D[builder.key]!!
+
+                            dynamicBuffer.lazyUploadQuads(texture.width, texture.height, builder.value)()
                             blit(
                                 dynamicTexture,
                                 dynamicBuffer,
-                                GlTextureBinding.FromLocation(
-                                    builder.key,
+                                GlTextureBinding.FromInstance(
+                                    texture,
                                     GlTextureTarget.TEXTURE_2D
                                 )
                             )

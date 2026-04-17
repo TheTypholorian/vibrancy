@@ -1,9 +1,13 @@
 struct Quad {
-    vec3 v1; vec2 uv1; uint color1;
-    vec3 v2; vec2 uv2; uint color2;
-    vec3 v3; vec2 uv3; uint color3;
-    vec3 v4; vec2 uv4; uint color4;
+    vec3 v1; uint uv1;
+    vec3 v2; uint uv2;
+    vec3 v3; uint uv3;
+    vec3 v4; uint uv4;
 };
+
+ivec2 unpackUV(uint uv) {
+    return ivec2(uv >> 16, uv & 0xFFFFu);
+}
 
 bool raycastQuad(vec3 origin, vec3 dir, float len, float margin, Quad q, out vec2 uv, out float tt) {
     vec3 normal = normalize(cross(q.v2 - q.v1, q.v4 - q.v1));
@@ -48,9 +52,8 @@ bool sampleQuad(sampler2D Sampler0, ivec2 Sampler0Size, vec3 origin, vec3 dir, f
     vec2 uv;
 
     if (raycastQuad(origin, dir, len, margin, q, uv, dist)) {
-        vec2 texUv = mix(mix(q.uv1, q.uv2, uv.x), mix(q.uv4, q.uv3, uv.x), uv.y);
-        vec4 color = mix(mix(unpackUnorm4x8(q.color1), unpackUnorm4x8(q.color2), uv.x), mix(unpackUnorm4x8(q.color4), unpackUnorm4x8(q.color3), uv.x), uv.y);
-        vec4 pixel = texture(Sampler0, texUv) * color;
+        ivec2 texUv = ivec2(mix(mix(unpackUV(q.uv1), unpackUV(q.uv2), uv.x), mix(unpackUV(q.uv4), unpackUV(q.uv3), uv.x), uv.y));
+        vec4 pixel = texelFetch(Sampler0, texUv, 0);
         outColor = pixel;
 
         return true;

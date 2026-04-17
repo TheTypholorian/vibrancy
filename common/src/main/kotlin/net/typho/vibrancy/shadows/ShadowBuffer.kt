@@ -15,14 +15,11 @@ open class ShadowBuffer(
         @JvmField
         val VERTEX_FORMAT = NeoVertexFormat.builder()
             .add("Position", NeoVertexFormat.Element.POSITION)
-            .padding(4)
-            .add("UV0", NeoVertexFormat.Element.TEXTURE_UV)
-            .add("Color", NeoVertexFormat.Element.COLOR)
-            .padding(4)
+            .add("UV0", NeoVertexFormat.Element.OVERLAY_UV)
             .build()
     }
 
-    fun lazyUpload(faces: List<LightFace>): () -> Unit {
+    fun lazyUpload(texWidth: Int, texHeight: Int, faces: List<LightFace>): () -> Unit {
         if (faces.isEmpty()) {
             return {
                 bind(GlBufferTarget.ARRAY_BUFFER).use { it.bufferData(0L, usage) }
@@ -36,12 +33,7 @@ open class ShadowBuffer(
                         writeFloat(vertex.pos.x)
                         writeFloat(vertex.pos.y)
                         writeFloat(vertex.pos.z)
-                        writeInt(0)
-
-                        writeFloat(vertex.textureUV!!.x)
-                        writeFloat(vertex.textureUV!!.y)
-                        writeInt(vertex.color!!.toRGBA())
-                        writeInt(0)
+                        writeInt(((vertex.textureUV!!.x * texWidth).toInt() shl 16) or (vertex.textureUV!!.y * texHeight).toInt())
                     }
                 }
             }
@@ -53,7 +45,7 @@ open class ShadowBuffer(
         }
     }
 
-    fun lazyUploadQuads(faces: List<NeoBakedQuad>): () -> Unit {
+    fun lazyUploadQuads(texWidth: Int, texHeight: Int, faces: List<NeoBakedQuad>): () -> Unit {
         if (faces.isEmpty()) {
             return {
                 bind(GlBufferTarget.ARRAY_BUFFER).use { it.bufferData(0L, usage) }
@@ -67,12 +59,7 @@ open class ShadowBuffer(
                         writeFloat(vertex.pos.x)
                         writeFloat(vertex.pos.y)
                         writeFloat(vertex.pos.z)
-                        writeInt(0)
-
-                        writeFloat(vertex.textureUV!!.x)
-                        writeFloat(vertex.textureUV!!.y)
-                        writeInt(vertex.color!!.toRGBA())
-                        writeInt(0)
+                        writeInt(((vertex.textureUV!!.x * texWidth).toInt() shl 16) or (vertex.textureUV!!.y * texHeight).toInt())
                     }
                 }
             }
