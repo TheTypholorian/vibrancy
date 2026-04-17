@@ -1,7 +1,0 @@
-{
-  "sources": {
-    "vertex": "vibrancy:light_mesh_debug",
-    "fragment": "vibrancy:light_mesh_debug"
-  },
-  "format": "vibrancy:shadow_mesh"
-}

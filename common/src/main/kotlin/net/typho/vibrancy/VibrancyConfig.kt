@@ -46,6 +46,8 @@ object VibrancyConfig {
     @JvmField
     var entityShadowsEnabled = true
     @JvmField
+    var blockEntityShadows = true
+    @JvmField
     var entityShadowDistance = 2
     @JvmField
     var entityShadowMaxLights = 10
@@ -105,6 +107,7 @@ object VibrancyConfig {
                 .name("entityShadows").beginObject()
 
                 .name("enabled").value(entityShadowsEnabled)
+                .name("blockEntities").value(blockEntityShadows)
                 .name("distance").value(entityShadowDistance)
                 .name("maxLights").value(entityShadowMaxLights)
 
@@ -153,6 +156,7 @@ object VibrancyConfig {
 
         json.getAsJsonObject("entityShadows")?.let { entityShadows ->
             entityShadows.getAsJsonPrimitive("enabled")?.let { entityShadowsEnabled = it.asBoolean }
+            entityShadows.getAsJsonPrimitive("blockEntities")?.let { blockEntityShadows = it.asBoolean }
             entityShadows.getAsJsonPrimitive("distance")?.let { entityShadowDistance = it.asInt }
             entityShadows.getAsJsonPrimitive("maxLights")?.let { entityShadowMaxLights = it.asInt }
         }
@@ -256,6 +260,12 @@ object VibrancyConfig {
                 .option(Option.createBuilder<Boolean>()
                     .name(Component.translatable("config.vibrancy.entityShadows.enabled"))
                     .binding(VibrancyConfig::entityShadowsEnabled)
+                    .controller(TickBoxControllerBuilder::create)
+                    .build())
+
+                .option(Option.createBuilder<Boolean>()
+                    .name(Component.translatable("config.vibrancy.entityShadows.blockEntityShadows"))
+                    .binding(VibrancyConfig::blockEntityShadows)
                     .controller(TickBoxControllerBuilder::create)
                     .build())
 

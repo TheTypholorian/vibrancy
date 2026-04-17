@@ -19,6 +19,7 @@
   "config.vibrancy.entityShadows": "Entity Shadows",
 
   "config.vibrancy.entityShadows.enabled": "Enabled",
+  "config.vibrancy.entityShadows.blockEntityShadows": "Block Entity Shadows",
   "config.vibrancy.entityShadows.distance": "Distance",
   "config.vibrancy.entityShadows.distance.tooltip": "The distance from camera in chunks where lights can have entity shadows.",
   "config.vibrancy.entityShadows.maxLights": "Max Lights",

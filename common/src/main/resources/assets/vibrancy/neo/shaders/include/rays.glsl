@@ -1,3 +1,23 @@
+struct AABB {
+    vec3 min;
+    vec3 max;
+};
+
+bool raycastAABB(vec3 origin, vec3 dir, float len, AABB aabb) {
+    vec3 invDir = 1 / dir;
+
+    vec3 t0 = (aabb.min - origin) * invDir;
+    vec3 t1 = (aabb.max - origin) * invDir;
+
+    vec3 ts = min(t0, t1);
+    vec3 tb = max(t0, t1);
+
+    float tmin = max(max(ts.x, ts.y), ts.z);
+    float tmax = min(min(tb.x, tb.y), tb.z);
+
+    return tmax >= 0 && tmin <= tmax && tmin <= len;
+}
+
 struct Quad {
     vec3 v1; uint uv1;
     vec3 v2; uint uv2;

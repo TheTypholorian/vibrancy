@@ -2,6 +2,7 @@ package net.typho.vibrancy.block.impl
 
 import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.Minecraft
+import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.util.Mth
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
@@ -10,6 +11,7 @@ import net.minecraft.world.phys.Vec3
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlBuffer
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlBlendShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
@@ -24,6 +26,7 @@ import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
 import net.typho.big_shot_lib.api.math.NeoDirection
 import net.typho.big_shot_lib.api.math.rect.AbstractRect3
 import net.typho.big_shot_lib.api.math.rect.NeoRect2i
+import net.typho.big_shot_lib.api.math.rect.NeoRect3f
 import net.typho.big_shot_lib.api.math.rect.NeoRect3i
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
@@ -31,6 +34,7 @@ import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.big_shot_lib.api.util.WrapperUtil
+import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
 import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
@@ -60,7 +64,7 @@ open class RayPointLight(
 ) : PointLight, NativeResource {
     companion object {
         @JvmStatic
-        fun drawState(texture: GlTextureBinding) = GlDrawState.Basic(
+        fun drawState(texture: GlTextureBinding, shader: NeoIdentifier) = GlDrawState.Basic(
             blend = GlBlendShard.Enabled(
                 BlendFunction.Basic(
                     GlBlendingFactor.DST_COLOR,
@@ -69,7 +73,7 @@ open class RayPointLight(
                 GlBlendEquation.ADD
             ),
             shader = GlShaderShard.FromLocation(
-                Vibrancy.id("block/raytraced/blit"),
+                shader,
                 { },
                 texture
             )
@@ -83,11 +87,11 @@ open class RayPointLight(
         GlBufferUsage.STREAM_DRAW
     )
 
-    fun blit(target: LightTexture, shadowBuffer: ShadowBuffer, materialTexture: GlTextureBinding) {
+    fun blit(target: LightTexture, shadowBuffer: ShadowBuffer, materialTexture: GlTextureBinding, shader: NeoIdentifier) {
         target.framebuffer.bind(NeoRect2i(0, 0, target.width, target.height)).use { fbo ->
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, shadowBuffer.glId)
 
-            drawState(materialTexture).bind().use { drawState ->
+            drawState(materialTexture, shader).bind().use { drawState ->
                 drawState.shader.setUniform("LightPos") { set(absolutePos) }
                 drawState.shader.setUniform("LightColor") { set(color * VibrancyConfig.rayLightBrightness) }
                 drawState.shader.setUniform("LightRadius") { set(radius) }
@@ -104,6 +108,7 @@ open class RayPointLight(
 
     val dynamicTexture = LightTexture()
     val dynamicBuffer = ShadowBuffer(GlBufferUsage.STREAM_DRAW)
+    val dynamicBVHBuffer = NeoGlBuffer()
     protected var dynamicCleared = true
 
     val staticTexture = LightTexture()
@@ -120,7 +125,8 @@ open class RayPointLight(
                 GlTextureBinding.FromInstance(
                     NeoAtlas.blocks,
                     GlTextureTarget.TEXTURE_2D
-                )
+                ),
+                Vibrancy.id("block/raytraced/blit")
             )
         }
         dynamicTexture.clear()
@@ -237,6 +243,10 @@ open class RayPointLight(
     }
 
     override fun free() {
+        dynamicTexture.free()
+        dynamicBuffer.free()
+        dynamicBVHBuffer.free()
+        staticTexture.free()
         mesh.free()
     }
 
@@ -259,20 +269,47 @@ open class RayPointLight(
         if (dynamicShadows) {
             manager.getLevel()?.let { level ->
                 dynamicCleared = false
-                val builders = hashMapOf<NeoIdentifier, MutableList<NeoBakedQuad>>()
-                val tickDelta = Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(false)
-                val poseStack = PoseStack()
-                val buffers = WrapperUtil.INSTANCE.unwrap { settings: NeoRenderSettings ->
-                    val quads = builders.computeIfAbsent(settings.drawState.shader.textures[0].location!!) { texture -> arrayListOf() }
-                    object : NeoBakedQuad.Consumer() {
-                        override fun take(quad: NeoBakedQuad) {
-                            quads.add(quad)
+
+                val allTextures = hashSetOf<NeoIdentifier>()
+
+                data class Node(
+                    val quads: MutableMap<NeoIdentifier, MutableList<NeoBakedQuad>> = hashMapOf(),
+                    val buffers: MutableMap<NeoIdentifier, NeoBakedQuad.Consumer> = hashMapOf(),
+                    val bufferSource: MultiBufferSource = WrapperUtil.INSTANCE.unwrap { settings: NeoRenderSettings ->
+                        val texture = settings.drawState.shader.textures[0].location!!
+                        allTextures.add(texture)
+
+                        buffers.computeIfAbsent(texture) {
+                            val quads = quads.computeIfAbsent(texture) { texture -> arrayListOf() }
+                            object : NeoBakedQuad.Consumer() {
+                                override fun take(quad: NeoBakedQuad) {
+                                    quads.add(quad)
+                                }
+                            }
                         }
+                    }
+                ) {
+                    fun computeBox(texture: NeoIdentifier): AbstractRect3<Float> {
+                        quads[texture]?.let { builder ->
+                            val min = builder.fold(null) { accum: IVec3<Float>?, quad -> quad.v0.pos.min(quad.v1.pos.min(quad.v2.pos.min(if (accum == null) quad.v3.pos else quad.v3.pos.min(accum)))) }
+                            val max = builder.fold(null) { accum: IVec3<Float>?, quad -> quad.v0.pos.max(quad.v1.pos.max(quad.v2.pos.max(if (accum == null) quad.v3.pos else quad.v3.pos.max(accum)))) }
+
+                            if (min != null && max != null) {
+                                return NeoRect3f(min, max)
+                            }
+                        }
+
+                        throw NullPointerException()
                     }
                 }
 
+                val nodes = arrayListOf<Node>()
+                val tickDelta = Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(false)
+                val poseStack = PoseStack()
+
                 for (entity in level.getEntities(null, AABB.ofSize(Vec3(absolutePos.toJOML()), radius.toDouble() * 2, radius.toDouble() * 2, radius.toDouble() * 2))) {
                     if (meshCollector.checked.contains(NeoVec3i(entity.blockPosition()))) {
+                        val node = Node()
                         debugOut("entityShadows", 1)
                         Minecraft.getInstance().entityRenderDispatcher.render(
                             entity,
@@ -282,34 +319,94 @@ open class RayPointLight(
                             Mth.lerp(tickDelta, entity.yRotO, entity.yRot),
                             tickDelta,
                             poseStack,
-                            buffers,
+                            node.bufferSource,
                             net.minecraft.client.renderer.LightTexture.FULL_BRIGHT
                         )
+                        nodes.add(node)
                     }
                 }
 
-                for (pos in meshCollector.blockEntities) {
-                    level.getBlockEntity(pos.blockPos)?.let { blockEntity ->
-                        debugOut("blockEntityShadows", 1)
+                if (VibrancyConfig.blockEntityShadows) {
+                    for (pos in meshCollector.blockEntities) {
+                        level.getBlockEntity(pos.blockPos)?.let { blockEntity ->
+                            val node = Node()
+                            debugOut("blockEntityShadows", 1)
 
-                        poseStack.pushPose()
-                        poseStack.translate(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
+                            poseStack.pushPose()
+                            poseStack.translate(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
 
-                        Minecraft.getInstance().blockEntityRenderDispatcher.render(
-                            blockEntity,
-                            tickDelta,
-                            poseStack,
-                            buffers
-                        )
+                            Minecraft.getInstance().blockEntityRenderDispatcher.render(
+                                blockEntity,
+                                tickDelta,
+                                poseStack,
+                                node.bufferSource
+                            )
 
-                        poseStack.popPose()
+                            poseStack.popPose()
+                            nodes.add(node)
+                        }
                     }
                 }
-
-                var cleared = false
 
                 dynamicTexture.framebuffer.bind(NeoRect2i(0, 0, dynamicTexture.width, dynamicTexture.height)).use { fbo ->
-                    for (builder in builders) {
+                    var cleared = false
+
+                    nodes.forEach { it.buffers.forEach { (texture, consumer) -> consumer.flush() } }
+
+                    for (texture in allTextures) {
+                        val nodes = nodes.filter { it.quads.containsKey(texture) }
+
+                        if (nodes.isNotEmpty()) {
+                            val bvhBuffer = NeoBuffer.Native(nodes.size * 32L)
+
+                            bvhBuffer.write().run {
+                                var index = 0
+
+                                for (node in nodes) {
+                                    val box = node.computeBox(texture)
+
+                                    writeFloat(box.min.x)
+                                    writeFloat(box.min.y)
+                                    writeFloat(box.min.z)
+                                    writeInt(index)
+
+                                    writeFloat(box.max.x)
+                                    writeFloat(box.max.y)
+                                    writeFloat(box.max.z)
+                                    index += node.quads[texture]!!.size
+                                    writeInt(index)
+
+                                    //println("${node.builders[texture]!!.size} $texture")
+                                }
+                            }
+
+                            dynamicBVHBuffer.bind(GlBufferTarget.ARRAY_BUFFER).use {
+                                it.bufferData(bvhBuffer, GlBufferUsage.STREAM_DRAW)
+                            }
+                            bvhBuffer.free()
+
+                            if (!cleared) {
+                                dynamicTexture.clear()
+                                cleared = true
+                            }
+
+                            val quads = nodes.flatMap { it.quads[texture]!! }
+                            val texture = GlTexture2D[texture]!!
+
+                            dynamicBuffer.lazyUploadQuads(texture.width, texture.height, quads)()
+                            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, dynamicBVHBuffer.glId)
+                            blit(
+                                dynamicTexture,
+                                dynamicBuffer,
+                                GlTextureBinding.FromInstance(
+                                    texture,
+                                    GlTextureTarget.TEXTURE_2D
+                                ),
+                                Vibrancy.id("block/raytraced/dynamic_blit")
+                            )
+                        }
+
+                        /*
                         if (builder.value.isNotEmpty()) {
                             if (!cleared) {
                                 dynamicTexture.clear()
@@ -325,9 +422,11 @@ open class RayPointLight(
                                 GlTextureBinding.FromInstance(
                                     texture,
                                     GlTextureTarget.TEXTURE_2D
-                                )
+                                ),
+                                Vibrancy.id("block/raytraced/dynamic_blit")
                             )
                         }
+                         */
                     }
                 }
 
