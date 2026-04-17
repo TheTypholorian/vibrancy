@@ -103,6 +103,7 @@ open class RayPointLight(
 
     val dynamicTexture = LightTexture()
     val dynamicBuffer = ShadowBuffer(GlBufferUsage.STREAM_DRAW)
+    protected var dynamicCleared = true
 
     val staticTexture = LightTexture()
     val mesh = StaticBlockLightMeshManager { mesh, info ->
@@ -120,8 +121,8 @@ open class RayPointLight(
                     GlTextureTarget.TEXTURE_2D
                 )
             )
-            staticTexture.clear = false
         }
+        dynamicTexture.clear()
     }
 
     var shadowsDirty = true
@@ -256,6 +257,7 @@ open class RayPointLight(
 
         if (dynamicShadows) {
             manager.getLevel()?.let { level ->
+                dynamicCleared = false
                 val builders = hashMapOf<NeoIdentifier, MutableList<NeoBakedQuad>>()
                 val tickDelta = Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(false)
                 val poseStack = PoseStack()
@@ -309,7 +311,7 @@ open class RayPointLight(
                     for (builder in builders) {
                         if (builder.value.isNotEmpty()) {
                             if (!cleared) {
-                                fbo.clear()
+                                dynamicTexture.clear()
                                 cleared = true
                             }
 
@@ -329,7 +331,10 @@ open class RayPointLight(
                 debugOut("lightsWithEntityShadows", 1)
             }
         } else {
-            dynamicTexture.clear()
+            if (!dynamicCleared) {
+                dynamicTexture.clear()
+                dynamicCleared = true
+            }
         }
     }
 

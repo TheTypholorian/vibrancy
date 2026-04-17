@@ -46,14 +46,14 @@ void main() {
         vec4 outColor;
         Quad quad = shadowQuads[i];
 
-        sampleQuad(Sampler0, Sampler0Size, ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor);
-
-        if (outColor.a == 1) {
-            fragColor = vec3(0);
-            break;
-        } else if (outColor.a != 0) {
-            tint += outColor.rgb * outColor.a;
-            denom += outColor.a;
+        if (sampleQuad(Sampler0, Sampler0Size, ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor)) {
+            if (outColor.a == 1) {
+                fragColor = vec3(0);
+                break;
+            } else if (outColor.a != 0) {
+                tint += outColor.rgb * outColor.a;
+                denom += outColor.a;
+            }
         }
     }
 

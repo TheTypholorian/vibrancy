@@ -26,15 +26,15 @@ class FloodFillBlockMeshCollector(
     val checked: MutableSet<IVec3<Int>> = hashSetOf()
     @JvmField
     val collect: MutableSet<IVec3<Int>> = hashSetOf()
-    @JvmField
-    val blockEntities: MutableSet<IVec3<Int>> = hashSetOf()
+    var blockEntities: MutableSet<IVec3<Int>> = hashSetOf()
+        private set
 
     fun markAllDirty() {
         dirty.clear()
         dirty.add(pos)
         checked.clear()
         collect.clear()
-        blockEntities.clear()
+        blockEntities = hashSetOf()
     }
 
     fun markDirty(pos: IVec3<Int>): Boolean {
@@ -85,7 +85,7 @@ class FloodFillBlockMeshCollector(
             newCursors = arrayListOf()
         } while (cursors.isNotEmpty())
 
-        blockEntities.clear()
+        val blockEntities = hashSetOf<IVec3<Int>>()
 
         collect.sortedBy { it.distanceSquared(pos) }.forEach { pos ->
             BlockMeshCollector.collectLightFaces(
@@ -102,6 +102,8 @@ class FloodFillBlockMeshCollector(
                 blockEntities.add(pos)
             }
         }
+
+        this.blockEntities = blockEntities
 
         /*
         val directions = arrayOf(

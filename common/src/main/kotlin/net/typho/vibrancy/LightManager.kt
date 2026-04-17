@@ -29,7 +29,7 @@ open class LightManager {
     @JvmField
     var skyLight: Pair<SkyLightType<*, *>, SkyLightStorage<*>>? = null
     @JvmField
-    protected val debugInfo = HashMap<NeoResourceKey<*>, HashMap<String, Int>>()
+    protected val debugInfo = HashMap<NeoResourceKey<*>?, HashMap<String, Int>>()
 
     fun getLevel(): ClientLevel? = Minecraft.getInstance().level
 
@@ -112,7 +112,7 @@ open class LightManager {
         }
     }
 
-    protected fun getDebugOutput(key: NeoResourceKey<*>): (String, Int) -> Unit {
+    protected fun getDebugOutput(key: NeoResourceKey<*>?): (String, Int) -> Unit {
         val debugMap = debugInfo.computeIfAbsent(key) { HashMap() }
         return { key, value -> debugMap.compute(key) { k, v -> if (v == null) value else v + value } }
     }
@@ -140,6 +140,8 @@ open class LightManager {
     }
 
     fun getDebugOutput(out: Consumer<String>) {
+        debugInfo[null]?.forEach { (key, value) -> out.accept("$key: $value") }
+
         for (entry in blockLights) {
             val key = BlockLightRegistry.registry!!.getKey(entry.key)
             out.accept(ChatFormatting.UNDERLINE.toString() + key.location.toString())

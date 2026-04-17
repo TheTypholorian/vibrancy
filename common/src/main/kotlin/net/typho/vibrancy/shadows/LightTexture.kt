@@ -12,7 +12,6 @@ open class LightTexture : NeoGlTexture2D() {
     }
 
     val framebuffer = NeoGlFramebuffer()
-    var clear = false
 
     init {
         bind(GlTextureTarget.TEXTURE_2D).use { texture ->
@@ -33,12 +32,8 @@ open class LightTexture : NeoGlTexture2D() {
     }
 
     fun clear() {
-        if (!clear) {
-            framebuffer.bind().use { fbo ->
-                fbo.clear(GlClearBit.Color(NeoColor.FULL_ON))
-            }
-
-            clear = true
+        framebuffer.bind().use { fbo ->
+            fbo.clear(GlClearBit.Color(NeoColor.FULL_ON))
         }
     }
 
