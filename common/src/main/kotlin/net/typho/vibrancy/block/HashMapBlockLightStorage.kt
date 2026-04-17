@@ -40,7 +40,6 @@ abstract class HashMapBlockLightStorage<I : BlockLightInfo, L>(val type: BlockLi
     @Suppress("UNCHECKED_CAST")
     override fun loadChunk(manager: LightManager, chunk: LevelChunk) {
         deloadChunk(manager, chunk)
-        //println("Load chunk ${chunk.pos} for $type")
 
         chunk.findBlocks(BlockLightRegistry::has) { pos, state ->
             val pos = NeoVec3i(pos)

@@ -375,8 +375,6 @@ open class RayPointLight(
                                     writeFloat(box.max.z)
                                     index += node.quads[texture]!!.size
                                     writeInt(index)
-
-                                    //println("${node.builders[texture]!!.size} $texture")
                                 }
                             }
 
