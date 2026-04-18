@@ -49,6 +49,7 @@ import net.typho.vibrancy.shadows.ShadowBuffer
 import net.typho.vibrancy.shadows.StaticBlockLightMeshManager
 import net.typho.vibrancy.util.EmptyVertexConsumer
 import net.typho.vibrancy.util.PointLight
+import net.typho.vibrancy.util.QuadListVertexConsumer
 import org.lwjgl.opengl.GL30.glBindBufferBase
 import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.system.NativeResource
@@ -285,11 +286,7 @@ open class RayPointLight(
 
                         buffers.computeIfAbsent(texture) {
                             val quads = quads.computeIfAbsent(texture) { texture -> arrayListOf() }
-                            object : NeoBakedQuad.Consumer() {
-                                override fun take(quad: NeoBakedQuad) {
-                                    quads.add(quad)
-                                }
-                            }
+                            QuadListVertexConsumer(quads)
                         }
                     }
                 ) {
