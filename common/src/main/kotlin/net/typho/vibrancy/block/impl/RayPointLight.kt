@@ -47,6 +47,7 @@ import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.shadows.LightTexture
 import net.typho.vibrancy.shadows.ShadowBuffer
 import net.typho.vibrancy.shadows.StaticBlockLightMeshManager
+import net.typho.vibrancy.util.EmptyVertexConsumer
 import net.typho.vibrancy.util.PointLight
 import org.lwjgl.opengl.GL30.glBindBufferBase
 import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
@@ -279,7 +280,7 @@ open class RayPointLight(
                     val quads: MutableMap<NeoIdentifier, MutableList<NeoBakedQuad>> = hashMapOf(),
                     val buffers: MutableMap<NeoIdentifier, NeoBakedQuad.Consumer> = hashMapOf(),
                     val bufferSource: MultiBufferSource = WrapperUtil.INSTANCE.unwrap { settings: NeoRenderSettings ->
-                        val texture = settings.drawState.shader.textures[0].location!!
+                        val texture = settings.drawState.shader.textures.getOrNull(0)?.location ?: return@unwrap EmptyVertexConsumer
                         allTextures.add(texture)
 
                         buffers.computeIfAbsent(texture) {
