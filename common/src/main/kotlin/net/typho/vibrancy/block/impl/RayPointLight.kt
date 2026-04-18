@@ -64,7 +64,7 @@ open class RayPointLight(
 ) : PointLight, NativeResource {
     companion object {
         @JvmStatic
-        fun drawState(texture: GlTextureBinding, shader: NeoIdentifier) = GlDrawState.Basic(
+        fun drawState(uniforms: GlBoundProgram.() -> Unit, shader: NeoIdentifier) = GlDrawState.Basic(
             blend = GlBlendShard.Enabled(
                 BlendFunction.Basic(
                     GlBlendingFactor.DST_COLOR,
@@ -74,8 +74,7 @@ open class RayPointLight(
             ),
             shader = GlShaderShard.FromLocation(
                 shader,
-                { },
-                texture
+                uniforms
             )
         )
     }
@@ -87,17 +86,17 @@ open class RayPointLight(
         GlBufferUsage.STREAM_DRAW
     )
 
-    fun blit(target: LightTexture, shadowBuffer: ShadowBuffer, materialTexture: GlTextureBinding, shader: NeoIdentifier) {
+    fun blit(target: LightTexture, shadowBuffer: ShadowBuffer, uniforms: GlBoundProgram.() -> Unit, shader: NeoIdentifier) {
         target.framebuffer.bind(NeoRect2i(0, 0, target.width, target.height)).use { fbo ->
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, shadowBuffer.glId)
 
-            drawState(materialTexture, shader).bind().use { drawState ->
-                drawState.shader.setUniform("LightPos") { set(absolutePos) }
-                drawState.shader.setUniform("LightColor") { set(color * VibrancyConfig.rayLightBrightness) }
-                drawState.shader.setUniform("LightRadius") { set(radius) }
+            drawState({
+                uniforms(this)
 
-                blitMesh.draw()
-            }
+                setUniform("LightPos") { setFloatVec(absolutePos) }
+                setUniform("LightColor") { setFloatVec(color * VibrancyConfig.rayLightBrightness) }
+                setUniform("LightRadius") { set(radius) }
+            }, shader).bind().use { blitMesh.draw() }
         }
     }
 
@@ -109,6 +108,7 @@ open class RayPointLight(
     val dynamicTexture = LightTexture()
     val dynamicBuffer = ShadowBuffer(GlBufferUsage.STREAM_DRAW)
     val dynamicBVHBuffer = NeoGlBuffer()
+    val dynamicTextureInfoBuffer = NeoGlBuffer()
     protected var dynamicCleared = true
 
     val staticTexture = LightTexture()
@@ -122,10 +122,12 @@ open class RayPointLight(
             blit(
                 staticTexture,
                 mesh.shadowBuffer,
-                GlTextureBinding.FromInstance(
-                    NeoAtlas.blocks,
-                    GlTextureTarget.TEXTURE_2D
-                ),
+                {
+                    setTexture(0, GlTextureBinding.FromInstance(
+                        NeoAtlas.blocks,
+                        GlTextureTarget.TEXTURE_2D
+                    ))
+                },
                 Vibrancy.id("block/raytraced/blit")
             )
         }
@@ -246,6 +248,7 @@ open class RayPointLight(
         dynamicTexture.free()
         dynamicBuffer.free()
         dynamicBVHBuffer.free()
+        dynamicTextureInfoBuffer.free()
         staticTexture.free()
         mesh.free()
     }
@@ -289,14 +292,21 @@ open class RayPointLight(
                         }
                     }
                 ) {
-                    fun computeBox(texture: NeoIdentifier): AbstractRect3<Float>? {
-                        quads[texture]?.let { builder ->
-                            val min = builder.fold(null) { accum: IVec3<Float>?, quad -> quad.v0.pos.min(quad.v1.pos.min(quad.v2.pos.min(if (accum == null) quad.v3.pos else quad.v3.pos.min(accum)))) }
-                            val max = builder.fold(null) { accum: IVec3<Float>?, quad -> quad.v0.pos.max(quad.v1.pos.max(quad.v2.pos.max(if (accum == null) quad.v3.pos else quad.v3.pos.max(accum)))) }
+                    fun getQuads(textures: List<NeoIdentifier>) = textures.mapIndexedNotNull { index, texture -> quads[texture]?.map { it to index } }.flatten()
 
-                            if (min != null && max != null) {
-                                return NeoRect3f(min, max)
+                    fun computeBox(textures: List<NeoIdentifier>): AbstractRect3<Float>? {
+                        var min: IVec3<Float>? = null
+                        var max: IVec3<Float>? = null
+
+                        for (texture in textures) {
+                            quads[texture]?.let { builder ->
+                                min = builder.fold(min) { accum: IVec3<Float>?, quad -> quad.v0.pos.min(quad.v1.pos.min(quad.v2.pos.min(if (accum == null) quad.v3.pos else quad.v3.pos.min(accum)))) }
+                                max = builder.fold(max) { accum: IVec3<Float>?, quad -> quad.v0.pos.max(quad.v1.pos.max(quad.v2.pos.max(if (accum == null) quad.v3.pos else quad.v3.pos.max(accum)))) }
                             }
+                        }
+
+                        if (min != null && max != null) {
+                            return NeoRect3f(min, max)
                         }
 
                         return null
@@ -353,8 +363,10 @@ open class RayPointLight(
 
                     nodes.forEach { it.buffers.forEach { (texture, consumer) -> consumer.flush() } }
 
-                    for (texture in allTextures) {
-                        val nodes = nodes.mapNotNull { node -> node.computeBox(texture)?.let { node to it } }
+                    val chunkedTextures = allTextures.chunked(8)
+
+                    for (textures in chunkedTextures) {
+                        val nodes = nodes.mapNotNull { node -> node.computeBox(textures)?.let { node to it } }
 
                         if (nodes.isNotEmpty()) {
                             val bvhBuffer = NeoBuffer.Native(nodes.size * 32L)
@@ -371,7 +383,7 @@ open class RayPointLight(
                                     writeFloat(node.second.max.x)
                                     writeFloat(node.second.max.y)
                                     writeFloat(node.second.max.z)
-                                    index += node.first.quads[texture]!!.size
+                                    index += node.first.getQuads(textures).size
                                     writeInt(index)
                                 }
                             }
@@ -386,43 +398,34 @@ open class RayPointLight(
                                 cleared = true
                             }
 
-                            val quads = nodes.flatMap { it.first.quads[texture]!! }
-                            val texture = GlTexture2D[texture]!!
+                            val quads = nodes.flatMap { it.first.getQuads(textures) }
+                            val textures = textures.map { GlTexture2D[it]!! }
 
-                            dynamicBuffer.lazyUploadQuads(texture.width, texture.height, quads)()
-                            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, dynamicBVHBuffer.glId)
-                            blit(
-                                dynamicTexture,
-                                dynamicBuffer,
-                                GlTextureBinding.FromInstance(
-                                    texture,
-                                    GlTextureTarget.TEXTURE_2D
-                                ),
-                                Vibrancy.id("block/raytraced/dynamic_blit")
-                            )
-                        }
+                            val texBuffer = NeoBuffer.Native(quads.size * 4L)
 
-                        /*
-                        if (builder.value.isNotEmpty()) {
-                            if (!cleared) {
-                                dynamicTexture.clear()
-                                cleared = true
+                            texBuffer.write().run {
+                                for (quad in quads) {
+                                    writeInt(quad.second)
+                                }
                             }
 
-                            val texture = GlTexture2D[builder.key]!!
+                            dynamicTextureInfoBuffer.bind(GlBufferTarget.ARRAY_BUFFER).use {
+                                it.bufferData(texBuffer, GlBufferUsage.STREAM_DRAW)
+                            }
+                            texBuffer.free()
 
-                            dynamicBuffer.lazyUploadQuads(texture.width, texture.height, builder.value)()
+                            dynamicBuffer.lazyUploadQuads(textures, quads)()
+                            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, dynamicBVHBuffer.glId)
+                            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, dynamicTextureInfoBuffer.glId)
                             blit(
                                 dynamicTexture,
                                 dynamicBuffer,
-                                GlTextureBinding.FromInstance(
-                                    texture,
-                                    GlTextureTarget.TEXTURE_2D
-                                ),
+                                {
+                                    setTextureArray(0, "Samplers", *textures.map { GlTextureBinding.FromInstance(it, GlTextureTarget.TEXTURE_2D) }.toTypedArray())
+                                },
                                 Vibrancy.id("block/raytraced/dynamic_blit")
                             )
                         }
-                         */
                     }
                 }
 
@@ -443,8 +446,8 @@ open class RayPointLight(
             debugOut("numAsyncTasks", 1)
         }
 
-        shader.setUniform("LightPos") { set(absolutePos) }
-        shader.setUniform("LightColor") { set(color) }
+        shader.setUniform("LightPos") { setFloatVec(absolutePos) }
+        shader.setUniform("LightColor") { setFloatVec(color) }
         shader.setUniform("LightRadius") { set(radius) }
         shader.setTexture(1, GlTextureBinding.FromInstance(
             staticTexture,

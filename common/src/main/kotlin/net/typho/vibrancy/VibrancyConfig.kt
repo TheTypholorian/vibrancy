@@ -48,9 +48,9 @@ object VibrancyConfig {
     @JvmField
     var blockEntityShadows = true
     @JvmField
-    var entityShadowDistance = 2
+    var entityShadowDistance = 3
     @JvmField
-    var entityShadowMaxLights = 10
+    var entityShadowMaxLights = 30
 
     var rayLightsEnabled = true
         set(value) {

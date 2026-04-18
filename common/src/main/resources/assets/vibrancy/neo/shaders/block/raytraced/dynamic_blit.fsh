@@ -16,9 +16,12 @@ layout(std430, binding = 0) buffer ShadowQuadBuffer {
 layout(std430, binding = 1) buffer BVHBuffer {
     BVH boundingVolumes[];
 };
+layout(std430, binding = 2) buffer TextureInfoBuffer {
+    uint textureIndices[];
+};
 
-uniform sampler2D Sampler0;
-uniform ivec2 Sampler0Size;
+uniform sampler2D Samplers[8];
+uniform ivec2 SamplersSizes[8];
 
 uniform vec3 LightPos;
 uniform vec3 LightColor;
@@ -59,8 +62,9 @@ void main() {
                 float dist;
                 vec4 outColor;
                 Quad quad = shadowQuads[j];
+                uint texture = textureIndices[j];
 
-                if (sampleQuad(Sampler0, Sampler0Size, ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor)) {
+                if (sampleQuad(Samplers[texture], SamplersSizes[texture], ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor)) {
                     if (outColor.a == 1) {
                         fragColor = vec3(0);
                         break;

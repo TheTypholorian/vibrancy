@@ -54,7 +54,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                     ))
                     settings.shader.setUniform("ProjMat") { set(data.projMat) }
                     settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((-data.camera.pos).toJOML(), Matrix4f())) }
-                    settings.shader.setUniform("CameraPos") { set(data.camera.pos) }
+                    settings.shader.setUniform("CameraPos") { setFloatVec(data.camera.pos) }
 
                     lights.forEach { light -> light.first.render(settings.shader, debugOut) }
                 }
