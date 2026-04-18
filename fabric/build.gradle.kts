@@ -35,7 +35,7 @@ modrinth {
         required.project("fabric-api")
         required.project("fabric-language-kotlin")
         required.project("big-shot-lib")
-        required.project("cloth-config")
+        required.project("yacl")
         required.project("modmenu")
     }
 }

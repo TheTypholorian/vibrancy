@@ -35,7 +35,7 @@ modrinth {
     dependencies {
         required.project("kotlin-for-forge")
         required.project("big-shot-lib")
-        required.project("cloth-config")
+        required.project("yacl")
     }
 }
 

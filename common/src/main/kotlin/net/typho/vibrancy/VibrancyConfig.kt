@@ -141,40 +141,47 @@ object VibrancyConfig {
 
     @JvmStatic
     fun load() {
-        val json = Files.newBufferedReader(PlatformUtil.INSTANCE.configPath.resolve("vibrancy.json")).use { JsonParser.parseReader(it) }.asJsonObject
+        val path = PlatformUtil.INSTANCE.configPath.resolve("vibrancy.json")
 
-        json.getAsJsonPrimitive("modEnabled")?.let { modEnabled = it.asBoolean }
-        json.getAsJsonPrimitive("useMultithreading")?.let { useMultithreading = it.asBoolean }
-        json.getAsJsonPrimitive("asyncThreads")?.let { asyncThreads = it.asInt }
-        json.getAsJsonPrimitive("limitLightBrightness")?.let { limitLightBrightness = it.asBoolean }
+        if (Files.exists(path)) {
+            val json = Files.newBufferedReader(path).use { JsonParser.parseReader(it) }.asJsonObject
 
-        json.getAsJsonObject("specularReflections")?.let { reflections ->
-            reflections.getAsJsonPrimitive("enabled")?.let { reflectionsEnabled = it.asBoolean }
-            reflections.getAsJsonPrimitive("strength")?.let { reflectionStrength = it.asFloat }
-            reflections.getAsJsonPrimitive("exponent")?.let { reflectionExponent = it.asFloat }
-        }
+            json.getAsJsonPrimitive("modEnabled")?.let { modEnabled = it.asBoolean }
+            json.getAsJsonPrimitive("useMultithreading")?.let { useMultithreading = it.asBoolean }
+            json.getAsJsonPrimitive("asyncThreads")?.let { asyncThreads = it.asInt }
+            json.getAsJsonPrimitive("limitLightBrightness")?.let { limitLightBrightness = it.asBoolean }
 
-        json.getAsJsonObject("entityShadows")?.let { entityShadows ->
-            entityShadows.getAsJsonPrimitive("enabled")?.let { entityShadowsEnabled = it.asBoolean }
-            entityShadows.getAsJsonPrimitive("blockEntities")?.let { blockEntityShadows = it.asBoolean }
-            entityShadows.getAsJsonPrimitive("distance")?.let { entityShadowDistance = it.asInt }
-            entityShadows.getAsJsonPrimitive("maxLights")?.let { entityShadowMaxLights = it.asInt }
-        }
-
-        json.getAsJsonObject("blockLights")?.let { blockLights ->
-            blockLights.getAsJsonObject("raytraced")?.let { raytraced ->
-                raytraced.getAsJsonPrimitive("enabled")?.let { rayLightsEnabled = it.asBoolean }
-                raytraced.getAsJsonPrimitive("maxRendered")?.let { rayLightsMaxRendered = it.asInt }
-                raytraced.getAsJsonPrimitive("brightness")?.let { rayLightBrightness = it.asFloat }
-                raytraced.getAsJsonPrimitive("shadowRadius")?.let { rayLightShadowRadius = it.asInt }
+            json.getAsJsonObject("specularReflections")?.let { reflections ->
+                reflections.getAsJsonPrimitive("enabled")?.let { reflectionsEnabled = it.asBoolean }
+                reflections.getAsJsonPrimitive("strength")?.let { reflectionStrength = it.asFloat }
+                reflections.getAsJsonPrimitive("exponent")?.let { reflectionExponent = it.asFloat }
             }
 
-            blockLights.getAsJsonObject("subtle")?.let { subtle ->
-                subtle.getAsJsonPrimitive("enabled")?.let { subtleLightsEnabled = it.asBoolean }
-                subtle.getAsJsonPrimitive("renderDistance")?.let { subtleLightsRenderDistance = it.asInt }
-                subtle.getAsJsonPrimitive("brightness")?.let { subtleLightBrightness = it.asFloat }
-                subtle.getAsJsonPrimitive("cullingMode")?.let { subtleLightCullingMode = SubtleLightCullingMode.valueOf(it.asString.uppercase()) }
+            json.getAsJsonObject("entityShadows")?.let { entityShadows ->
+                entityShadows.getAsJsonPrimitive("enabled")?.let { entityShadowsEnabled = it.asBoolean }
+                entityShadows.getAsJsonPrimitive("blockEntities")?.let { blockEntityShadows = it.asBoolean }
+                entityShadows.getAsJsonPrimitive("distance")?.let { entityShadowDistance = it.asInt }
+                entityShadows.getAsJsonPrimitive("maxLights")?.let { entityShadowMaxLights = it.asInt }
             }
+
+            json.getAsJsonObject("blockLights")?.let { blockLights ->
+                blockLights.getAsJsonObject("raytraced")?.let { raytraced ->
+                    raytraced.getAsJsonPrimitive("enabled")?.let { rayLightsEnabled = it.asBoolean }
+                    raytraced.getAsJsonPrimitive("maxRendered")?.let { rayLightsMaxRendered = it.asInt }
+                    raytraced.getAsJsonPrimitive("brightness")?.let { rayLightBrightness = it.asFloat }
+                    raytraced.getAsJsonPrimitive("shadowRadius")?.let { rayLightShadowRadius = it.asInt }
+                }
+
+                blockLights.getAsJsonObject("subtle")?.let { subtle ->
+                    subtle.getAsJsonPrimitive("enabled")?.let { subtleLightsEnabled = it.asBoolean }
+                    subtle.getAsJsonPrimitive("renderDistance")?.let { subtleLightsRenderDistance = it.asInt }
+                    subtle.getAsJsonPrimitive("brightness")?.let { subtleLightBrightness = it.asFloat }
+                    subtle.getAsJsonPrimitive("cullingMode")?.let { subtleLightCullingMode = SubtleLightCullingMode.valueOf(it.asString.uppercase()) }
+                }
+            }
+        } else {
+            Files.createFile(path)
+            save()
         }
     }
 
