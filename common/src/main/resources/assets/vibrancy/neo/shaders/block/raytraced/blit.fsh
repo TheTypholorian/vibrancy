@@ -1,7 +1,7 @@
 #version 430
 
-#include "vibrancy:fragment.glsl"
-#include "vibrancy:rays.glsl"
+#include "vibrancy:fragment"
+#include "vibrancy:rays"
 
 layout(std430, binding = 0) buffer ShadowQuadBuffer {
     Quad shadowQuads[];

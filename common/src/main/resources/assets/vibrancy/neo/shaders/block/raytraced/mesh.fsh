@@ -1,7 +1,7 @@
-#version 150
+#version 430
 
 //#include "big_shot_lib:fog"
-#include "vibrancy:fragment.glsl"
+#include "vibrancy:fragment"
 
 uniform sampler2D Sampler0;
 uniform ivec2 Sampler0Size;
