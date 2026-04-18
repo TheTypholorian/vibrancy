@@ -1,7 +1,7 @@
 #version 430
 
-#include "vibrancy:include/fragment.glsl"
-#include "vibrancy:include/rays.glsl"
+#include "vibrancy:fragment.glsl"
+#include "vibrancy:rays.glsl"
 
 struct BVH {
     vec3 min;

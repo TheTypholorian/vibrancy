@@ -3,6 +3,12 @@ plugins {
     alias(libs.plugins.moddev)
 }
 
+kotlin {
+    compilerOptions {
+        freeCompilerArgs.add("-Xjvm-default=all")
+    }
+}
+
 neoForge {
     neoFormVersion = libs.versions.neoForm.get()
     // Automatically enable AccessTransformers if the file exists

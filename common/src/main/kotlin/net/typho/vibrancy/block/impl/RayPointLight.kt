@@ -289,7 +289,7 @@ open class RayPointLight(
                         }
                     }
                 ) {
-                    fun computeBox(texture: NeoIdentifier): AbstractRect3<Float> {
+                    fun computeBox(texture: NeoIdentifier): AbstractRect3<Float>? {
                         quads[texture]?.let { builder ->
                             val min = builder.fold(null) { accum: IVec3<Float>?, quad -> quad.v0.pos.min(quad.v1.pos.min(quad.v2.pos.min(if (accum == null) quad.v3.pos else quad.v3.pos.min(accum)))) }
                             val max = builder.fold(null) { accum: IVec3<Float>?, quad -> quad.v0.pos.max(quad.v1.pos.max(quad.v2.pos.max(if (accum == null) quad.v3.pos else quad.v3.pos.max(accum)))) }
@@ -299,7 +299,7 @@ open class RayPointLight(
                             }
                         }
 
-                        throw NullPointerException()
+                        return null
                     }
                 }
 
@@ -354,7 +354,7 @@ open class RayPointLight(
                     nodes.forEach { it.buffers.forEach { (texture, consumer) -> consumer.flush() } }
 
                     for (texture in allTextures) {
-                        val nodes = nodes.filter { it.quads.containsKey(texture) }
+                        val nodes = nodes.mapNotNull { node -> node.computeBox(texture)?.let { node to it } }
 
                         if (nodes.isNotEmpty()) {
                             val bvhBuffer = NeoBuffer.Native(nodes.size * 32L)
@@ -363,17 +363,15 @@ open class RayPointLight(
                                 var index = 0
 
                                 for (node in nodes) {
-                                    val box = node.computeBox(texture)
-
-                                    writeFloat(box.min.x)
-                                    writeFloat(box.min.y)
-                                    writeFloat(box.min.z)
+                                    writeFloat(node.second.min.x)
+                                    writeFloat(node.second.min.y)
+                                    writeFloat(node.second.min.z)
                                     writeInt(index)
 
-                                    writeFloat(box.max.x)
-                                    writeFloat(box.max.y)
-                                    writeFloat(box.max.z)
-                                    index += node.quads[texture]!!.size
+                                    writeFloat(node.second.max.x)
+                                    writeFloat(node.second.max.y)
+                                    writeFloat(node.second.max.z)
+                                    index += node.first.quads[texture]!!.size
                                     writeInt(index)
                                 }
                             }
@@ -388,7 +386,7 @@ open class RayPointLight(
                                 cleared = true
                             }
 
-                            val quads = nodes.flatMap { it.quads[texture]!! }
+                            val quads = nodes.flatMap { it.first.quads[texture]!! }
                             val texture = GlTexture2D[texture]!!
 
                             dynamicBuffer.lazyUploadQuads(texture.width, texture.height, quads)()
