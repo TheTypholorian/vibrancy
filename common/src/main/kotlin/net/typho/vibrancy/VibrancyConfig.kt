@@ -30,8 +30,8 @@ object VibrancyConfig {
     var asyncThreads: Int = 2
         set(value) {
             field = value
-            VibrancyThreadPool.maximumPoolSize = value
             VibrancyThreadPool.corePoolSize = value
+            VibrancyThreadPool.maximumPoolSize = value
         }
     @JvmField
     var limitLightBrightness = false
