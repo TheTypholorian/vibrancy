@@ -29,11 +29,11 @@ ivec2 unpackUV(uint uv) {
     return ivec2(uv >> 16, uv & 0xFFFFu);
 }
 
-bool raycastQuad(vec3 origin, vec3 dir, float len, float margin, Quad q, out vec2 uv, out float tt) {
+bool raycastQuad(bool checkDir, vec3 origin, vec3 dir, float len, float margin, Quad q, out vec2 uv, out float tt) {
     vec3 normal = normalize(cross(q.v2 - q.v1, q.v4 - q.v1));
 
     float denom = dot(dir, normal);
-    //if (denom <= 0.0) return false;
+    if (checkDir && denom <= 0.0) return false;
 
     float d = dot(normal, q.v1);
 
@@ -68,10 +68,10 @@ bool raycastQuad(vec3 origin, vec3 dir, float len, float margin, Quad q, out vec
     return true;
 }
 
-bool sampleQuad(sampler2D Sampler0, ivec2 Sampler0Size, vec3 origin, vec3 dir, float len, float margin, Quad q, out float dist, out vec4 outColor) {
+bool sampleQuad(bool checkDir, sampler2D Sampler0, ivec2 Sampler0Size, vec3 origin, vec3 dir, float len, float margin, Quad q, out float dist, out vec4 outColor) {
     vec2 uv;
 
-    if (raycastQuad(origin, dir, len, margin, q, uv, dist)) {
+    if (raycastQuad(checkDir, origin, dir, len, margin, q, uv, dist)) {
         ivec2 texUv = ivec2(mix(mix(unpackUV(q.uv1), unpackUV(q.uv2), uv.x), mix(unpackUV(q.uv4), unpackUV(q.uv3), uv.x), uv.y));
         vec4 pixel = texelFetch(Sampler0, texUv, 0);
         outColor = pixel;

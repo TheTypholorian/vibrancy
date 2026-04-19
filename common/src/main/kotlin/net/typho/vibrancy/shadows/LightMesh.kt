@@ -1,6 +1,7 @@
 package net.typho.vibrancy.shadows
 
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.*
@@ -32,25 +33,37 @@ open class LightMesh(
             .add("Normal", NeoVertexFormat.Element.NORMAL)
             .build()
         @JvmField
+        val INVENTORY_VERTEX_FORMAT = NeoVertexFormat.builder()
+            .add("Position", NeoVertexFormat.Element.POSITION)
+            .add("UV0", NeoVertexFormat.Element.TEXTURE_UV)
+            //.add("Color", NeoVertexFormat.Element.COLOR)
+            //.add("Normal", NeoVertexFormat.Element.NORMAL)
+            .build()
+        @JvmField
         val BLIT_VERTEX_FORMAT = NeoVertexFormat.builder()
             .add("Position", NeoVertexFormat.Element.POSITION)
             .add("UV0", NeoVertexFormat.Element.TEXTURE_UV)
             .build()
 
         @JvmStatic
-        fun drawState(sampler0: GlTexture2D, shader: NeoIdentifier) = GlDrawState.Basic(
+        fun drawState(sampler0: GlTexture2D, shader: NeoIdentifier, lightLimited: Boolean = VibrancyConfig.limitLightBrightness, uniforms: GlBoundProgram.() -> Unit = {
+            setUniform("SpecularReflectionsEnabled") { set(if (VibrancyConfig.reflectionsEnabled) 1 else 0) }
+            setUniform("SpecularReflectionStrength") { set(VibrancyConfig.reflectionStrength) }
+            setUniform("SpecularReflectionExponent") { set(VibrancyConfig.reflectionExponent) }
+        }) = GlDrawState.Basic(
             blend = GlBlendShard.Enabled(
                 BlendFunction.Basic(
                     GlBlendingFactor.ONE,
                     GlBlendingFactor.ONE
                 ),
-                if (VibrancyConfig.limitLightBrightness) GlBlendEquation.MAX else GlBlendEquation.ADD
+                if (lightLimited) GlBlendEquation.MAX else GlBlendEquation.ADD
             ),
             cull = GlCullShard.Enabled(
                 GlCullFace.BACK
             ),
             depth = GlDepthShard.Enabled(
-                GlAlphaFunction.LEQUAL
+                GlAlphaFunction.LEQUAL,
+                false
             ),
             polygonOffset = GlPolygonOffsetShard.Enabled(
                 PolygonOffset(
@@ -60,11 +73,7 @@ open class LightMesh(
             ),
             shader = GlShaderShard.FromLocation(
                 shader,
-                {
-                    setUniform("SpecularReflectionsEnabled") { set(if (VibrancyConfig.reflectionsEnabled) 1 else 0) }
-                    setUniform("SpecularReflectionStrength") { set(VibrancyConfig.reflectionStrength) }
-                    setUniform("SpecularReflectionExponent") { set(VibrancyConfig.reflectionExponent) }
-                },
+                uniforms,
                 GlTextureBinding.FromInstance(
                     sampler0,
                     GlTextureTarget.TEXTURE_2D

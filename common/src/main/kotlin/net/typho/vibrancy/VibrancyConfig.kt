@@ -52,6 +52,15 @@ object VibrancyConfig {
     @JvmField
     var entityShadowMaxLights = 30
 
+    @JvmField
+    var inventoryLightsEnabled = false
+    @JvmField
+    var inventoryLightScale = 8
+    @JvmField
+    var inventoryLightBrightness = 0.5f
+    @JvmField
+    var inventoryLightsShadows = true
+
     var rayLightsEnabled = true
         set(value) {
             field = value
@@ -113,6 +122,15 @@ object VibrancyConfig {
 
                 .endObject()
 
+                .name("inventoryLights").beginObject()
+
+                .name("enabled").value(inventoryLightsEnabled)
+                .name("scale").value(inventoryLightScale)
+                .name("brightness").value(inventoryLightBrightness)
+                .name("shadows").value(inventoryLightsShadows)
+
+                .endObject()
+
                 .name("blockLights").beginObject()
 
                 .name("raytraced").beginObject()
@@ -162,6 +180,13 @@ object VibrancyConfig {
                 entityShadows.getAsJsonPrimitive("blockEntities")?.let { blockEntityShadows = it.asBoolean }
                 entityShadows.getAsJsonPrimitive("distance")?.let { entityShadowDistance = it.asInt }
                 entityShadows.getAsJsonPrimitive("maxLights")?.let { entityShadowMaxLights = it.asInt }
+            }
+
+            json.getAsJsonObject("inventoryLights")?.let { inventoryLights ->
+                inventoryLights.getAsJsonPrimitive("enabled")?.let { inventoryLightsEnabled = it.asBoolean }
+                inventoryLights.getAsJsonPrimitive("scale")?.let { inventoryLightScale = it.asInt }
+                inventoryLights.getAsJsonPrimitive("brightness")?.let { inventoryLightBrightness = it.asFloat }
+                inventoryLights.getAsJsonPrimitive("shadows")?.let { inventoryLightsShadows = it.asBoolean }
             }
 
             json.getAsJsonObject("blockLights")?.let { blockLights ->
@@ -294,6 +319,42 @@ object VibrancyConfig {
                             .range(10, 100)
                             .step(10)
                     }
+                    .build())
+                .build())
+
+            .category(ConfigCategory.createBuilder()
+                .name(Component.translatable("config.vibrancy.inventoryLights"))
+
+                .option(Option.createBuilder<Boolean>()
+                    .name(Component.translatable("config.vibrancy.inventoryLights.enabled"))
+                    .binding(VibrancyConfig::inventoryLightsEnabled)
+                    .controller(TickBoxControllerBuilder::create)
+                    .build())
+
+                .option(Option.createBuilder<Int>()
+                    .name(Component.translatable("config.vibrancy.inventoryLights.scale"))
+                    .binding(VibrancyConfig::inventoryLightScale)
+                    .controller { opt ->
+                        IntegerSliderControllerBuilder.create(opt)
+                            .range(4, 32)
+                            .step(4)
+                    }
+                    .build())
+
+                .option(Option.createBuilder<Float>()
+                    .name(Component.translatable("config.vibrancy.inventoryLights.brightness"))
+                    .binding(VibrancyConfig::inventoryLightBrightness)
+                    .controller { opt ->
+                        FloatSliderControllerBuilder.create(opt)
+                            .range(0.1f, 2f)
+                            .step(0.1f)
+                    }
+                    .build())
+
+                .option(Option.createBuilder<Boolean>()
+                    .name(Component.translatable("config.vibrancy.inventoryLights.shadows"))
+                    .binding(VibrancyConfig::inventoryLightsShadows)
+                    .controller(TickBoxControllerBuilder::create)
                     .build())
                 .build())
 

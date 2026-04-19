@@ -1,0 +1,7 @@
+{
+  "sources": {
+    "vertex": "vibrancy:block/raytraced/inventory",
+    "fragment": "vibrancy:block/raytraced/inventory"
+  },
+  "format": "vibrancy:light_mesh_inventory"
+}

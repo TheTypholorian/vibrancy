@@ -1,5 +1,6 @@
 #version 430
 
+//#include "big_shot_lib:fog"
 #include "vibrancy:fragment"
 #include "vibrancy:rays"
 
@@ -8,16 +9,23 @@ layout(std430, binding = 0) buffer ShadowQuadBuffer {
 };
 
 uniform sampler2D Sampler0;
-uniform ivec2 Sampler0Size;
+uniform sampler2D Sampler1;
+uniform ivec2 Sampler1Size;
 
-uniform vec3 LightPos;
 uniform vec3 LightColor;
+uniform ivec2 LightCoords;
+uniform vec3 LightPos;
 uniform float LightRadius;
 uniform float LightBrightness;
 
-in vec3 vertexPos;
+uniform ivec2 ScreenSize;
 
-out vec3 fragColor;
+in vec2 texCoord0;
+//in vec4 vertexColor;
+in vec3 vertexPosition;
+//in vec3 vertexNormal;
+
+out vec4 fragColor;
 
 struct Ray {
     vec3 pos;
@@ -33,11 +41,17 @@ Ray ray(vec3 pos) {
 }
 
 void main() {
-    //vec2 step = 1 / (vec2(sprite.width, sprite.height) * 3);
+    ivec2 coords = ivec2(gl_FragCoord.xy);
+    coords.y = ScreenSize.y - coords.y;
 
-    Ray ray = ray(vertexPos);
+    ivec2 relative = coords - LightCoords;
+    float len = clamp(1 - length(relative) / LightRadius, 0, 1);
 
-    fragColor = vec3(1);
+    vec4 block = texture(Sampler0, texCoord0);
+    fragColor = vec4(block.rgb * block.a * LightColor * len * len * LightBrightness, 1);
+
+    Ray ray = ray(vertexPosition);
+
     vec3 tint = vec3(0);
     float denom = 0;
 
@@ -46,9 +60,9 @@ void main() {
         vec4 outColor;
         Quad quad = shadowQuads[i];
 
-        if (sampleQuad(false, Sampler0, Sampler0Size, ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor)) {
+        if (sampleQuad(true, Sampler1, Sampler1Size, ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor)) {
             if (outColor.a == 1) {
-                fragColor = vec3(0);
+                fragColor = vec4(0);
                 break;
             } else if (outColor.a != 0) {
                 tint += outColor.rgb * outColor.a;
@@ -58,6 +72,6 @@ void main() {
     }
 
     if (denom > 0) {
-        fragColor *= tint / denom;
+        fragColor.rgb *= tint / denom;
     }
 }

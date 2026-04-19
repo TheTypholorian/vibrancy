@@ -6,8 +6,10 @@ import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
 import net.minecraft.client.renderer.GameRenderer;
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D;
 import net.typho.big_shot_lib.api.client.rendering.util.NeoRenderSettings;
 import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad;
+import net.typho.vibrancy.VibrancyConfig;
 import net.typho.vibrancy.shadows.RaytracedGuiGraphics;
 import net.typho.vibrancy.util.QuadListVertexConsumer;
 import org.jetbrains.annotations.NotNull;
@@ -42,16 +44,27 @@ public class GameRendererMixin {
             float partialTick,
             Operation<Void> original
     ) {
-        Map<NeoRenderSettings, List<NeoBakedQuad>> quads = new HashMap<>();
+        if (VibrancyConfig.inventoryLightsEnabled) {
+            Map<NeoRenderSettings, List<NeoBakedQuad>> quads = new HashMap<>();
+            Map<GlTexture2D, List<NeoBakedQuad>> blitQuads = new HashMap<>();
 
-        try (RaytracedGuiGraphics raytraced = new RaytracedGuiGraphics(minecraft, guiGraphics.bufferSource()) {
-            @Override
-            public NeoBakedQuad.Consumer createConsumer(@NotNull NeoRenderSettings settings) {
-                return new QuadListVertexConsumer(quads.computeIfAbsent(settings, key -> new ArrayList<>()));
-            }
-        }) {
+            RaytracedGuiGraphics raytraced = new RaytracedGuiGraphics(minecraft, guiGraphics.bufferSource()) {
+                @Override
+                public NeoBakedQuad.Consumer createConsumer(@NotNull NeoRenderSettings settings) {
+                    return new QuadListVertexConsumer(quads.computeIfAbsent(settings, key -> new ArrayList<>()), () -> collect);
+                }
+
+                @Override
+                public NeoBakedQuad.Consumer createConsumer(@NotNull GlTexture2D texture) {
+                    return new QuadListVertexConsumer(blitQuads.computeIfAbsent(texture, key -> new ArrayList<>()), () -> collect);
+                }
+            };
+
             original.call(instance, raytraced, mouseX, mouseY, partialTick);
-            raytraced.renderRaytraced();
+            raytraced.end();
+            raytraced.renderRaytraced(quads, blitQuads);
+        } else {
+            original.call(instance, guiGraphics, mouseX, mouseY, partialTick);
         }
     }
 }

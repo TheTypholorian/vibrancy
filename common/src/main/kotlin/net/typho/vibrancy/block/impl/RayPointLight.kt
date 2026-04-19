@@ -66,7 +66,7 @@ open class RayPointLight(
 ) : PointLight, NativeResource {
     companion object {
         @JvmStatic
-        fun drawState(uniforms: GlBoundProgram.() -> Unit, shader: NeoIdentifier) = GlDrawState.Basic(
+        fun drawState(shader: NeoIdentifier, uniforms: GlBoundProgram.() -> Unit) = GlDrawState.Basic(
             blend = GlBlendShard.Enabled(
                 BlendFunction.Basic(
                     GlBlendingFactor.DST_COLOR,
@@ -92,13 +92,13 @@ open class RayPointLight(
         target.framebuffer.bind(NeoRect2i(0, 0, target.width, target.height)).use { fbo ->
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, shadowBuffer.glId)
 
-            drawState({
+            drawState(shader) {
                 uniforms(this)
 
                 setUniform("LightPos") { setFloatVec(absolutePos) }
                 setUniform("LightColor") { setFloatVec(color * VibrancyConfig.rayLightBrightness) }
                 setUniform("LightRadius") { set(radius) }
-            }, shader).bind().use { blitMesh.draw() }
+            }.bind().use { blitMesh.draw() }
         }
     }
 
@@ -160,7 +160,7 @@ open class RayPointLight(
             pos: IVec3<Int>,
             state: BlockState?
         ): Boolean {
-            return shadowBox.contains(pos) && !BlockLightRegistry.has(state ?: level.getBlockState(pos.blockPos))
+            return shadowBox.contains(pos) && BlockLightRegistry.get((state ?: level.getBlockState(pos.blockPos)).block, RayPointLightType) == null
         }
 
         override fun shouldCastFace(

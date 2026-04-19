@@ -25,6 +25,13 @@
   "config.vibrancy.entityShadows.maxLights": "Max Lights",
   "config.vibrancy.entityShadows.maxLights.tooltip": "The maximum number of lights that can have entity shadows, closest to camera first.",
 
+  "config.vibrancy.inventoryLights": "Inventory Lights",
+
+  "config.vibrancy.inventoryLights.enabled": "Enabled",
+  "config.vibrancy.inventoryLights.scale": "Scale",
+  "config.vibrancy.inventoryLights.brightness": "Brightness",
+  "config.vibrancy.inventoryLights.shadows": "Shadows",
+
   "config.vibrancy.blockLights": "Block Lights",
 
   "config.vibrancy.blockLights.raytraced": "Raytraced",

@@ -64,7 +64,7 @@ void main() {
                 Quad quad = shadowQuads[j];
                 uint texture = textureIndices[j];
 
-                if (sampleQuad(Samplers[texture], SamplersSizes[texture], ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor)) {
+                if (sampleQuad(false, Samplers[texture], SamplersSizes[texture], ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor)) {
                     if (outColor.a == 1) {
                         fragColor = vec3(0);
                         break;

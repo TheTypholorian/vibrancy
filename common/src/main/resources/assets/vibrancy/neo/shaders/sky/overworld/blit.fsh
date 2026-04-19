@@ -26,7 +26,7 @@ struct Ray {
 vec4 test(Quad q, Ray check) {
     float dist;
 
-    return sampleQuad(Sampler0, Sampler0Size, check.pos, check.dir, check.len, 1e-3, q, dist);
+    return sampleQuad(false, Sampler0, Sampler0Size, check.pos, check.dir, check.len, 1e-3, q, dist);
 }
 
 void main() {
