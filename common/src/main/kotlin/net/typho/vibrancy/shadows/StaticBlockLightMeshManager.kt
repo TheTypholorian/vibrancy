@@ -46,7 +46,6 @@ open class StaticBlockLightMeshManager(
                     return true
                 }
             } catch (e: NullPointerException) {
-                e.printStackTrace()
                 asyncTask = null
             }
         }
