@@ -3,8 +3,6 @@
 uniform mat4 ModelViewMat;
 uniform mat4 ProjMat;
 
-uniform vec3 LightOffset;
-
 in vec3 Position;
 in vec2 UV0;
 in ivec2 UV1;
@@ -18,7 +16,7 @@ out vec3 vertexPosition;
 out vec3 vertexNormal;
 
 void main() {
-    gl_Position = ProjMat * ModelViewMat * vec4(LightOffset + Position, 1);
+    gl_Position = ProjMat * ModelViewMat * vec4(Position, 1);
     texCoord0 = UV0;
     texCoord1 = vec2(UV1);
     vertexColor = Color;

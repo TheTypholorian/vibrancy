@@ -454,18 +454,21 @@ open class RayPointLight(
             debugOut("numAsyncTasks", 1)
         }
 
-        val subLevel = SableCompanion.INSTANCE.getContaining(data.level!!, pos.toDouble().toJOML())
+        val subLevel = SableCompanion.INSTANCE.getContainingClient(pos.toDouble().toJOML())
 
         if (subLevel == null) {
-            shader.setUniform("ModelViewMat") { set(data.modelViewMat) }
+            shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((-data.camera.pos).toJOML(), Matrix4f())) }
         } else {
-            val point = Vector3d(subLevel.logicalPose().rotationPoint()).sub(pos.toDouble().toJOML())
-            shader.setUniform("ModelViewMat") { set(data.modelViewMat.rotateAround(Quaternionf(subLevel.logicalPose().orientation()), point.x().toFloat(), point.y().toFloat(), point.z().toFloat(), Matrix4f())) }
+            val tickDelta = Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(false)
+            val pose = subLevel.renderPose(tickDelta)
+            //val point = Vector3d(pose.rotationPoint()).sub(pos.toDouble().toJOML()) // local to sublevel
+            val orientation = Quaternionf(pose.orientation())
+            val pos = NeoVec3d(SableCompanion.INSTANCE.projectOutOfSubLevel(data.level!!, pos.toDouble().toJOML())).toFloat()
+            val rotOrigin = NeoVec3d(SableCompanion.INSTANCE.projectOutOfSubLevel(data.level!!, Vector3d(pose.rotationPoint()))).toFloat()
+            shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate(pos.toJOML(), Matrix4f()).rotateAround(orientation, rotOrigin.x, rotOrigin.y, rotOrigin.z, Matrix4f()).translate((-data.camera.pos).toJOML(), Matrix4f())) }
         }
 
-        val pos = NeoVec3d(SableCompanion.INSTANCE.projectOutOfSubLevel(data.level!!, pos.toDouble().toJOML())).toFloat()
         shader.setUniform("LightPos") { setFloatVec(offset) }
-        shader.setUniform("LightOffset") { setFloatVec(pos - data.camera.pos) }
         shader.setUniform("LightColor") { setFloatVec(color) }
         shader.setUniform("LightRadius") { set(radius) }
         shader.setTexture(1, GlTextureBinding.FromInstance(
