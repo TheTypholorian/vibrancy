@@ -22,6 +22,7 @@ class IterationBlockMeshCollector(
                 level.getBlockState(pos.blockPos),
                 level,
                 pos,
+                pos,
                 atlas,
                 true,
                 *consumers

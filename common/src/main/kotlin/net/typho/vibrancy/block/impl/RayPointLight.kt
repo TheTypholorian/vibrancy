@@ -1,6 +1,7 @@
 package net.typho.vibrancy.block.impl
 
 import com.mojang.blaze3d.vertex.PoseStack
+import dev.ryanhcode.sable.companion.SableCompanion
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.util.Mth
@@ -23,6 +24,7 @@ import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.rendering.util.NeoRenderSettings
 import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
+import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.math.NeoDirection
 import net.typho.big_shot_lib.api.math.rect.AbstractRect3
 import net.typho.big_shot_lib.api.math.rect.NeoRect2i
@@ -30,6 +32,7 @@ import net.typho.big_shot_lib.api.math.rect.NeoRect3f
 import net.typho.big_shot_lib.api.math.rect.NeoRect3i
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
+import net.typho.big_shot_lib.api.math.vec.NeoVec3d
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.BlockUtil
@@ -50,6 +53,9 @@ import net.typho.vibrancy.shadows.StaticBlockLightMeshManager
 import net.typho.vibrancy.util.EmptyVertexConsumer
 import net.typho.vibrancy.util.PointLight
 import net.typho.vibrancy.util.QuadListVertexConsumer
+import org.joml.Matrix4f
+import org.joml.Quaternionf
+import org.joml.Vector3d
 import org.lwjgl.opengl.GL30.glBindBufferBase
 import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.system.NativeResource
@@ -95,7 +101,7 @@ open class RayPointLight(
             drawState(shader) {
                 uniforms(this)
 
-                setUniform("LightPos") { setFloatVec(absolutePos) }
+                setUniform("LightPos") { setFloatVec(offset) }
                 setUniform("LightColor") { setFloatVec(color * VibrancyConfig.rayLightBrightness) }
                 setUniform("LightRadius") { set(radius) }
             }.bind().use { blitMesh.draw() }
@@ -441,14 +447,25 @@ open class RayPointLight(
         }
     }
 
-    fun render(shader: GlBoundProgram, debugOut: (key: String, value: Int) -> Unit) {
+    fun render(data: RenderEventData, shader: GlBoundProgram, debugOut: (key: String, value: Int) -> Unit) {
         debugOut("lightsRendered", 1)
 
         if (mesh.isTaskActive()) {
             debugOut("numAsyncTasks", 1)
         }
 
-        shader.setUniform("LightPos") { setFloatVec(absolutePos) }
+        val subLevel = SableCompanion.INSTANCE.getContaining(data.level!!, pos.toDouble().toJOML())
+
+        if (subLevel == null) {
+            shader.setUniform("ModelViewMat") { set(data.modelViewMat) }
+        } else {
+            val point = Vector3d(subLevel.logicalPose().rotationPoint()).sub(pos.toDouble().toJOML())
+            shader.setUniform("ModelViewMat") { set(data.modelViewMat.rotateAround(Quaternionf(subLevel.logicalPose().orientation()), point.x().toFloat(), point.y().toFloat(), point.z().toFloat(), Matrix4f())) }
+        }
+
+        val pos = NeoVec3d(SableCompanion.INSTANCE.projectOutOfSubLevel(data.level!!, pos.toDouble().toJOML())).toFloat()
+        shader.setUniform("LightPos") { setFloatVec(offset) }
+        shader.setUniform("LightOffset") { setFloatVec(pos - data.camera.pos) }
         shader.setUniform("LightColor") { setFloatVec(color) }
         shader.setUniform("LightRadius") { set(radius) }
         shader.setTexture(1, GlTextureBinding.FromInstance(

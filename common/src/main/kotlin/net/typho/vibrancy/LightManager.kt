@@ -1,5 +1,6 @@
 package net.typho.vibrancy
 
+import dev.ryanhcode.sable.companion.SableCompanion
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
@@ -9,7 +10,6 @@ import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunk
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.math.vec.IVec3
-import net.typho.big_shot_lib.api.math.vec.NeoVec2i
 import net.typho.big_shot_lib.api.util.resource.NeoResourceKey
 import net.typho.vibrancy.block.BlockLightInfo
 import net.typho.vibrancy.block.BlockLightRegistry
@@ -166,19 +166,14 @@ open class LightManager {
         return testDistanceSquared <= x * x
     }
 
-    fun inRenderDistance(data: RenderEventData, pos: IVec3<Int>, distance: Int): Boolean {
-        return (pos.toFloat() + 0.5f).inDistance(data.camera.pos, clampToChunkRenderDistance(distance) * 16f)
-    }
-
     fun inRenderDistance(data: RenderEventData, pos: ChunkPos, distance: Int): Boolean {
+        // TODO
         return data.camera.pos.xz.inDistance(pos.middleBlockX.toFloat(), pos.middleBlockZ.toFloat(), clampToChunkRenderDistance(distance) * 16f)
     }
 
     fun getSortingOrder(data: RenderEventData, pos: IVec3<Int>): Float {
-        return (pos.toFloat() + 0.5f).distanceSquared(data.camera.pos)
-    }
-
-    fun getSortingOrder(data: RenderEventData, pos: ChunkPos): Float {
-        return NeoVec2i(pos.x, pos.z).toFloat().distanceSquared(data.camera.pos.x / 16, data.camera.pos.z / 16)
+        val a = pos.toFloat() + 0.5f
+        val b = data.camera.pos
+        return SableCompanion.INSTANCE.distanceSquaredWithSubLevels(data.level!!, a.x.toDouble(), a.y.toDouble(), a.z.toDouble(), b.x.toDouble(), b.y.toDouble(), b.z.toDouble()).toFloat()
     }
 }

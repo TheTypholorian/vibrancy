@@ -92,6 +92,7 @@ class FloodFillBlockMeshCollector(
                 level.getBlockState(pos.blockPos),
                 level,
                 pos,
+                pos - this.pos,
                 atlas,
                 true,
                 *consumers
