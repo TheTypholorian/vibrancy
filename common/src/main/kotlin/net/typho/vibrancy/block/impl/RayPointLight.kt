@@ -155,6 +155,10 @@ open class RayPointLight(
             return NeoRect3i(pos - shadowRadius, pos + shadowRadius)
         }
     val shadowPredicate = object : BlockMeshCollector.Predicate {
+        override fun isBlockTransparent(level: Level, pos: IVec3<Int>, state: BlockState): Boolean {
+            return super.isBlockTransparent(level, pos, state) || BlockLightRegistry.get(state.block, RayPointLightType) != null
+        }
+
         override fun shouldCastBlock(
             level: Level,
             pos: IVec3<Int>,
@@ -191,7 +195,7 @@ open class RayPointLight(
                     pos,
                     face,
                     state
-                )
+                ) && BlockLightRegistry.get(level.getBlockState(sidePos.blockPos).block, RayPointLightType) == null
             ) {
                 return false
             }

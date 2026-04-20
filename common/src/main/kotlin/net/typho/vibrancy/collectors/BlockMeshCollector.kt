@@ -22,6 +22,12 @@ interface BlockMeshCollector {
     )
 
     interface Predicate {
+        fun isBlockTransparent(
+            level: Level,
+            pos: IVec3<Int>,
+            state: BlockState
+        ): Boolean = !BlockUtil.INSTANCE.isSolidRender(state, pos, level)
+
         fun shouldCastBlock(
             level: Level,
             pos: IVec3<Int>,

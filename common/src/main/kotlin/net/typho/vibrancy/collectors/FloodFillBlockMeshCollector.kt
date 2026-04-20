@@ -11,7 +11,6 @@ import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.NeoVec2f
 import net.typho.big_shot_lib.api.math.vec.NeoVec3f
 import net.typho.big_shot_lib.api.math.vec.blockPos
-import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy.isPointingTowardsInclusive
@@ -73,7 +72,7 @@ class FloodFillBlockMeshCollector(
                         if (consumers.any { it.predicate.shouldCastBlock(level, pos, state) }) {
                             collect.add(pos)
 
-                            if (!BlockUtil.INSTANCE.isSolidRender(state, pos, level)) {
+                            if (consumers.any { it.predicate.isBlockTransparent(level, pos, state) }) {
                                 newCursors.add(pos)
                             }
                         }

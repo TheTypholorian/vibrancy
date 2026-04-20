@@ -6,7 +6,6 @@
   "compatibilityLevel": "JAVA_${java_version}",
   "mixins": [],
   "client": [
-    "GameRendererMixin",
     "GuiGraphicsMixin",
     "NativeImageAccessor",
     "ReceivingLevelScreenMixin"
