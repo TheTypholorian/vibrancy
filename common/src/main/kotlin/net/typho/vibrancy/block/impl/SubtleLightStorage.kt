@@ -177,7 +177,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
 
         synchronized(dirty) {
             for (pos in dirty) {
-                val chunk = getOrCreateChunk(manager, data.level, pos)
+                val chunk = getOrCreateChunk(manager, data.level!!, pos)
 
                 fun impl(): Consumer<RenderEventData>? {
                     synchronized(chunk.map) {
@@ -205,7 +205,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                         val lightFaces = arrayListOf<LightFace>()
                         IterationBlockMeshCollector(blocks).submit(
                             manager,
-                            data.level,
+                            data.level!!,
                             NeoAtlas.blocks,
                             object : BlockMeshCollector.Consumer {
                                 override val predicate: BlockMeshCollector.Predicate = SubtleLightMeshCollectorPredicate
