@@ -461,7 +461,7 @@ open class RayPointLight(
             val tickDelta = Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(false)
             val pose = subLevel.renderPose(tickDelta)
             val orientation = Quaternionf(pose.orientation())
-            val pos = NeoVec3d(SableCompanion.INSTANCE.projectOutOfSubLevel(data.level!!, pos.toDouble().toJOML()))
+            val pos = NeoVec3d(pose.transformPosition(pos.toDouble().toJOML()))
             shader.setUniform("ModelViewMat") {
                 set(
                     data.modelViewMat
