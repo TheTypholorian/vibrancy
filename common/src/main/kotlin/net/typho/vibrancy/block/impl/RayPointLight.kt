@@ -19,10 +19,7 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
 import net.typho.big_shot_lib.api.client.rendering.opengl.util.BlendFunction
-import net.typho.big_shot_lib.api.client.rendering.util.BlockChunkLayer
-import net.typho.big_shot_lib.api.client.rendering.util.Mesh
-import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
-import net.typho.big_shot_lib.api.client.rendering.util.NeoRenderSettings
+import net.typho.big_shot_lib.api.client.rendering.util.*
 import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.math.NeoDirection
@@ -151,7 +148,9 @@ open class RayPointLight(
     )
 
     override val absolutePos: IVec3<Float>
-        get() = pos.toFloat() + offset
+        get() = SableCompanion.INSTANCE.getContainingClient((pos.toDouble() + offset.toDouble()).toJOML())?.let { NeoVec3d(it.renderPose(Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(false)).transformPosition((pos.toDouble() + offset.toDouble()).toJOML())).toFloat() } ?: (pos.toFloat() + offset)
+    val absoluteBlockPos: IVec3<Float>
+        get() = SableCompanion.INSTANCE.getContainingClient(pos.toDouble().toJOML())?.let { NeoVec3d(it.renderPose(Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(false)).transformPosition(pos.toDouble().toJOML())).toFloat() } ?: pos.toFloat()
     override val boundingBox: AbstractRect3<Int>
         get() = NeoRect3i(pos - radius.toInt(), pos + radius.toInt())
     override val shadowBox: AbstractRect3<Int>
@@ -284,6 +283,9 @@ open class RayPointLight(
             manager.getLevel()?.let { level ->
                 dynamicCleared = false
 
+                val absolutePos = absolutePos
+                val absoluteBlockPos = absoluteBlockPos
+                val subLevel = SableCompanion.INSTANCE.getContainingClient(pos.toDouble().toJOML())
                 val allTextures = hashSetOf<NeoIdentifier>()
 
                 data class Node(
@@ -295,7 +297,15 @@ open class RayPointLight(
 
                         buffers.computeIfAbsent(texture) {
                             val quads = quads.computeIfAbsent(texture) { texture -> arrayListOf() }
-                            QuadListVertexConsumer(quads)
+                            object : QuadListVertexConsumer(quads) {
+                                override fun vertex(
+                                    x: Float,
+                                    y: Float,
+                                    z: Float
+                                ): NeoVertexConsumer {
+                                    return super.vertex(x - absoluteBlockPos.x, y - absoluteBlockPos.y, z - absoluteBlockPos.z)
+                                }
+                            }
                         }
                     }
                 ) {
@@ -325,7 +335,7 @@ open class RayPointLight(
                 val poseStack = PoseStack()
 
                 for (entity in level.getEntities(null, AABB.ofSize(Vec3(absolutePos.toJOML()), radius.toDouble() * 2, radius.toDouble() * 2, radius.toDouble() * 2))) {
-                    if (meshCollector.checked.contains(NeoVec3i(entity.blockPosition()))) {
+                    if (subLevel != null || meshCollector.checked.contains(NeoVec3i(entity.blockPosition()))) {
                         val node = Node()
                         debugOut("entityShadows", 1)
                         Minecraft.getInstance().entityRenderDispatcher.render(
