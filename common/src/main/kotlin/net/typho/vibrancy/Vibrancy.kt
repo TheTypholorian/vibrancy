@@ -33,8 +33,6 @@ import net.typho.vibrancy.shadows.ShadowBuffer
 import net.typho.vibrancy.sky.SkyLightInfoLoader
 import net.typho.vibrancy.sky.SkyLightRegistry
 import org.lwjgl.opengl.GL
-import org.lwjgl.opengl.GL11.GL_VENDOR
-import org.lwjgl.opengl.GL11.glGetString
 import org.lwjgl.system.NativeResource
 import org.lwjgl.system.Platform
 import org.slf4j.Logger
@@ -173,11 +171,13 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
                 factory.display(Component.translatable(if (Platform.get() == Platform.MACOSX) "error.vibrancy.no_ssbos_mac" else "error.vibrancy.no_ssbos"))
             }
 
+            /*
             if (glGetString(GL_VENDOR)?.lowercase()?.contains("amd") == true) {
                 VibrancyConfig.modEnabled = false
                 VibrancyConfig.save()
                 factory.display(Component.translatable("error.vibrancy.amd"))
             }
+             */
         }
     }
 
