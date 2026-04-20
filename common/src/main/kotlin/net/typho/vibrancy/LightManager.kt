@@ -7,7 +7,7 @@ import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
-import net.minecraft.world.level.chunk.LevelChunk
+import net.minecraft.world.level.chunk.ChunkAccess
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.util.resource.NeoResourceKey
@@ -82,33 +82,25 @@ open class LightManager {
         dirtyBlocks.add(pos)
     }
 
-    fun loadChunk(chunk: LevelChunk) {
+    fun loadChunk(chunk: ChunkAccess) {
         ensureStorageInitialized()
 
         blockLights.values.forEach { storage -> storage.loadChunk(this, chunk) }
         skyLight?.second?.loadChunk(this, chunk)
 
         for (light in blockLights.values) {
-            for (x in chunk.pos.x - 1..chunk.pos.x + 1) {
-                for (z in chunk.pos.z - 1..chunk.pos.z + 1) {
-                    light.reload(this, ChunkPos(x, z))
-                }
-            }
+            light.reload(this, chunk.pos)
         }
     }
 
-    fun deloadChunk(chunk: LevelChunk) {
+    fun deloadChunk(chunk: ChunkAccess) {
         ensureStorageInitialized()
 
         blockLights.values.forEach { storage -> storage.deloadChunk(this, chunk) }
         skyLight?.second?.deloadChunk(this, chunk)
 
         for (light in blockLights.values) {
-            for (x in chunk.pos.x - 1..chunk.pos.x + 1) {
-                for (z in chunk.pos.z - 1..chunk.pos.z + 1) {
-                    light.reload(this, ChunkPos(x, z))
-                }
-            }
+            light.reload(this, chunk.pos)
         }
     }
 

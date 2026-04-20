@@ -3,7 +3,7 @@ package net.typho.vibrancy.block.impl
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
-import net.minecraft.world.level.chunk.LevelChunk
+import net.minecraft.world.level.chunk.ChunkAccess
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBeginMode
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferTarget
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
@@ -50,7 +50,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
     @JvmField
     val tasks = LinkedList<CompletableFuture<Consumer<RenderEventData>?>>()
 
-    override fun createChunk(manager: LightManager, level: Level, pos: ChunkPos): Chunk {
+    override fun createChunk(manager: LightManager, pos: ChunkPos): Chunk {
         return Chunk(pos)
     }
 
@@ -107,7 +107,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
             ChunkPos((pos + NeoDirection.WEST + NeoDirection.NORTH).blockPos)
         )
 
-        chunks.forEach { getOrCreateChunk(manager, level, it).addLight(manager, level, state, pos, info) }
+        chunks.forEach { getOrCreateChunk(manager, it).addLight(manager, level, state, pos, info) }
     }
 
     override fun removeLight(
@@ -127,7 +127,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
             ChunkPos((pos + NeoDirection.WEST + NeoDirection.NORTH).blockPos)
         )
 
-        return chunks.fold(false) { accum, chunkPos -> accum or getOrCreateChunk(manager, level, chunkPos).removeLight(manager, level, pos) }
+        return chunks.fold(false) { accum, chunkPos -> accum or getOrCreateChunk(manager, chunkPos).removeLight(manager, level, pos) }
     }
 
     override fun clear(manager: LightManager) {
@@ -148,14 +148,14 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
         }
     }
 
-    override fun loadChunk(manager: LightManager, chunk: LevelChunk) {
+    override fun loadChunk(manager: LightManager, chunk: ChunkAccess) {
         super.loadChunk(manager, chunk)
         synchronized(dirty) {
             dirty.add(chunk.pos)
         }
     }
 
-    override fun deloadChunk(manager: LightManager, chunk: LevelChunk) {
+    override fun deloadChunk(manager: LightManager, chunk: ChunkAccess) {
         super.deloadChunk(manager, chunk)
         synchronized(dirty) {
             dirty.add(chunk.pos)
@@ -177,7 +177,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
 
         synchronized(dirty) {
             for (pos in dirty) {
-                val chunk = getOrCreateChunk(manager, data.level!!, pos)
+                val chunk = getOrCreateChunk(manager, pos)
 
                 fun impl(): Consumer<RenderEventData>? {
                     synchronized(chunk.map) {
@@ -349,8 +349,8 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
             }
         }
 
-        override fun loadChunk(manager: LightManager, chunk: LevelChunk) {
-            scan(chunk.level!!, manager)
+        override fun loadChunk(manager: LightManager, chunk: ChunkAccess) {
+            scan(manager.getLevel()!!, manager)
         }
 
         override fun addLight(

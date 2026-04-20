@@ -55,7 +55,6 @@ import net.typho.vibrancy.util.PointLight
 import net.typho.vibrancy.util.QuadListVertexConsumer
 import org.joml.Matrix4f
 import org.joml.Quaternionf
-import org.joml.Vector3d
 import org.lwjgl.opengl.GL30.glBindBufferBase
 import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.system.NativeResource
@@ -457,15 +456,19 @@ open class RayPointLight(
         val subLevel = SableCompanion.INSTANCE.getContainingClient(pos.toDouble().toJOML())
 
         if (subLevel == null) {
-            shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((-data.camera.pos).toJOML(), Matrix4f())) }
+            shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((pos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
         } else {
             val tickDelta = Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(false)
             val pose = subLevel.renderPose(tickDelta)
-            //val point = Vector3d(pose.rotationPoint()).sub(pos.toDouble().toJOML()) // local to sublevel
             val orientation = Quaternionf(pose.orientation())
-            val pos = NeoVec3d(SableCompanion.INSTANCE.projectOutOfSubLevel(data.level!!, pos.toDouble().toJOML())).toFloat()
-            val rotOrigin = NeoVec3d(SableCompanion.INSTANCE.projectOutOfSubLevel(data.level!!, Vector3d(pose.rotationPoint()))).toFloat()
-            shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate(pos.toJOML(), Matrix4f()).rotateAround(orientation, rotOrigin.x, rotOrigin.y, rotOrigin.z, Matrix4f()).translate((-data.camera.pos).toJOML(), Matrix4f())) }
+            val pos = NeoVec3d(SableCompanion.INSTANCE.projectOutOfSubLevel(data.level!!, pos.toDouble().toJOML()))
+            shader.setUniform("ModelViewMat") {
+                set(
+                    data.modelViewMat
+                        .translate((pos - data.camera.pos.toDouble()).toFloat().toJOML(), Matrix4f())
+                        .rotate(orientation)
+                )
+            }
         }
 
         shader.setUniform("LightPos") { setFloatVec(offset) }

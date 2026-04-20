@@ -3,7 +3,7 @@ package net.typho.vibrancy.block
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
-import net.minecraft.world.level.chunk.LevelChunk
+import net.minecraft.world.level.chunk.ChunkAccess
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.vibrancy.LightManager
 
@@ -28,12 +28,12 @@ interface BlockLightStorage<I> {
 
     fun loadChunk(
         manager: LightManager,
-        chunk: LevelChunk
+        chunk: ChunkAccess
     )
 
     fun deloadChunk(
         manager: LightManager,
-        chunk: LevelChunk
+        chunk: ChunkAccess
     )
 
     fun clear(manager: LightManager)
