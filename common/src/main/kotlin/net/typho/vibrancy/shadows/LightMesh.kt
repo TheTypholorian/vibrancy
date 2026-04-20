@@ -187,8 +187,37 @@ open class LightMesh(
         }
     }
 
-    fun upload(faces: List<LightFace>): TextureAtlas.Result {
-        return lazyUpload(faces)()
+    fun lazyUploadNoAtlas(
+        lightFaces: List<LightFace>
+    ): () -> Unit {
+        val vertexBuffer = NeoBuffer.GCNative(lightFaces.size.toLong() * 4 * VERTEX_FORMAT.vertexSizeBytes)
+
+        vertexBuffer.write().run {
+            lightFaces.forEachIndexed { index, face ->
+                for (vertex in face.quad.vertices) {
+                    writeFloat(vertex.pos.x)
+                    writeFloat(vertex.pos.y)
+                    writeFloat(vertex.pos.z)
+                    writeFloat(vertex.textureUV!!.x)
+                    writeFloat(vertex.textureUV!!.y)
+                    writeInt(0) // overlay uv
+                    writeInt(vertex.color!!.toRGBA())
+                    writeByte((vertex.normal!!.x * 127).toInt())
+                    writeByte((vertex.normal!!.y * 127).toInt())
+                    writeByte((vertex.normal!!.z * 127).toInt())
+                }
+            }
+        }
+
+        val indices = mesh.generateIndices(lightFaces.size * 4)
+
+        return {
+            empty = lightFaces.isEmpty()
+
+            mesh.rawUpload(lightFaces.size * 6, indices.second, vertexBuffer, indices.first)
+            vertexBuffer.free()
+            indices.first.free()
+        }
     }
 
     override fun free() {
