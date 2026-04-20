@@ -12,7 +12,7 @@ minecraftRange = "[1.21, 1.21.1]"
 parchment = "2024.11.10"
 parchmentMC = "1.21"
 
-neoforge = "21.1.218"
+neoforge = "21.1.219"
 neoforgeRange = "[21.1, 21.2)"
 ## This is the version of minecraft that the 'common' project uses, you can find a list of all versions here
 ## https://projects.neoforged.net/neoforged/neoform
@@ -34,6 +34,7 @@ bigShot="4.5.4"
 
 yacl = "3.6.1+1.21-neoforge"
 modmenu = "11.0.3"
+sableCompanion = "1.4.2"
 
 [libraries]
 minecraft = { group = "com.mojang", name = "minecraft", version.ref = "minecraft" }
@@ -48,6 +49,8 @@ sodium = { group = "maven.modrinth", name = "sodium", version.ref = "sodium" }
 bigShot = { group = "net.typho", name = "big_shot_lib", version.ref = "bigShot" }
 yacl = { group = "dev.isxander", name = "yet-another-config-lib", version.ref = "yacl" }
 modmenu = { group = "maven.modrinth", name = "modmenu", version.ref = "modmenu" }
+sableCompanion = { group = "dev.ryanhcode.sable-companion", name = "sable-companion-common-1.21.1", version.ref = "sableCompanion" }
+sableCompanionFabric = { group = "dev.ryanhcode.sable-companion", name = "sable-companion-fabric-1.21.1", version.ref = "sableCompanion" }
 
 [plugins]
 kotlin = { id = "org.jetbrains.kotlin.jvm", version.ref = "kotlin" }

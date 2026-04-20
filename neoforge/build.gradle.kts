@@ -85,4 +85,6 @@ dependencies {
     implementation(libs.sodium)
     implementation(libs.bigShot)
     implementation(libs.yacl)
+    api(libs.sableCompanion)
+    jarJar(libs.sableCompanion)
 }

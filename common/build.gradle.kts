@@ -31,6 +31,7 @@ dependencies {
     implementation(libs.bigShot)
     implementation(libs.yacl)
     implementation(libs.modmenu)
+    api(libs.sableCompanion)
 }
 
 configurations {

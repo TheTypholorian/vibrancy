@@ -68,6 +68,8 @@ dependencies {
     modCompileOnly(libs.bigShot)
     modImplementation(libs.yacl)
     modImplementation(libs.modmenu)
+    include(libs.sableCompanionFabric)
+    modApi(libs.sableCompanionFabric)
 }
 
 loom {
