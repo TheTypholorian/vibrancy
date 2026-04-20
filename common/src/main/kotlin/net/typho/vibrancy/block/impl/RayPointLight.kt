@@ -286,6 +286,11 @@ open class RayPointLight(
                     val buffers: MutableMap<NeoIdentifier, NeoBakedQuad.Consumer> = hashMapOf(),
                     val bufferSource: MultiBufferSource = WrapperUtil.INSTANCE.unwrap { settings: NeoRenderSettings ->
                         val texture = settings.drawState.shader.textures.getOrNull(0)?.location ?: return@unwrap EmptyVertexConsumer
+
+                        if (GlTexture2D[texture] == null) {
+                            return@unwrap EmptyVertexConsumer
+                        }
+
                         allTextures.add(texture)
 
                         buffers.computeIfAbsent(texture) {
