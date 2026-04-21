@@ -376,9 +376,9 @@ open class RayPointLight(
                             if (subLevelPose == null) {
                                 poseStack.translate(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
                             } else {
-                                poseStack.mulPose(Quaternionf(subLevelPose.orientation()).invert())
-                                val pos = SableCompanion.INSTANCE.projectOutOfSubLevel(level, pos.toDouble().toJOML())
+                                val pos = subLevelPose.transformPosition(pos.toDouble().toJOML())
                                 poseStack.translate(pos.x, pos.y, pos.z)
+                                poseStack.mulPose(Quaternionf(subLevelPose.orientation()))
                             }
 
                             Minecraft.getInstance().blockEntityRenderDispatcher.getRenderer(blockEntity)?.render(
