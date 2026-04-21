@@ -285,9 +285,17 @@ open class RayPointLight(
                 dynamicCleared = false
 
                 val absolutePos = absolutePos
+                val absoluteBlockPos = absoluteBlockPos
                 val subLevel = SableCompanion.INSTANCE.getContainingClient(pos.toDouble().toJOML())
                 val subLevelPose = subLevel?.renderPose()
-                val subLevelTransform = subLevelPose?.let { Matrix4f().translate((-absoluteBlockPos).toJOML()).rotate(Quaternionf(it.orientation())) }
+                val transform = if (subLevelPose == null) {
+                    Matrix4f().translate((-absoluteBlockPos).toJOML())
+                } else {
+                    //val pos = subLevelPose.rotationPoint().sub(subLevelPose.position(), Vector3d())
+                    //Vibrancy.LOGGER.info("${subLevelPose.rotationPoint()} ${subLevelPose.position()}")
+                    //Matrix4f(subLevelPose.bakeIntoMatrix(Matrix4d()).invert())
+                    Matrix4f().rotate(Quaternionf(subLevelPose.orientation()).invert()).translate((-absoluteBlockPos).toJOML()) //pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat()
+                }
                 val allTextures = hashSetOf<NeoIdentifier>()
 
                 data class Node(
@@ -299,18 +307,14 @@ open class RayPointLight(
 
                         buffers.computeIfAbsent(texture) {
                             val quads = quads.computeIfAbsent(texture) { texture -> arrayListOf() }
-                            if (subLevelTransform == null) {
-                                QuadListVertexConsumer(quads)
-                            } else {
-                                object : QuadListVertexConsumer(quads) {
-                                    override fun vertex(
-                                        x: Float,
-                                        y: Float,
-                                        z: Float
-                                    ): NeoVertexConsumer {
-                                        val pos = subLevelTransform.transform(Vector4f(x, y, z, 0f))
-                                        return super.vertex(pos.x, pos.y, pos.z)
-                                    }
+                            object : QuadListVertexConsumer(quads) {
+                                override fun vertex(
+                                    x: Float,
+                                    y: Float,
+                                    z: Float
+                                ): NeoVertexConsumer {
+                                    val pos = transform.transform(Vector4f(x, y, z, 1f))
+                                    return super.vertex(pos.x, pos.y, pos.z)
                                 }
                             }
                         }
