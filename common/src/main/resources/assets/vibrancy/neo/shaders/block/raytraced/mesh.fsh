@@ -3,6 +3,19 @@
 //#include "big_shot_lib:fog"
 #include "vibrancy:fragment"
 
+float linear_fog_fade(float vertexDistance, float fogStart, float fogEnd) {
+    if (vertexDistance <= fogStart) {
+        return 1.0;
+    } else if (vertexDistance >= fogEnd) {
+        return 0.0;
+    }
+
+    return smoothstep(fogEnd, fogStart, vertexDistance);
+}
+
+uniform float FogStart;
+uniform float FogEnd;
+
 uniform sampler2D Sampler0;
 uniform ivec2 Sampler0Size;
 uniform sampler2D Sampler1;
@@ -22,6 +35,7 @@ in vec2 texCoord0;
 in vec2 texCoord1;
 in vec4 vertexColor;
 in vec3 vertexPosition;
+in float vertexDistance;
 in vec3 vertexNormal;
 
 out vec3 fragColor;
@@ -45,5 +59,5 @@ void main() {
         lightColor += lightColor * multiplier * texelFetch(Sampler3, ivec2(texCoord0 * Sampler0Size), 0).r;
     }
 
-    fragColor = block.rgb * block.a * lightColor;
+    fragColor = block.rgb * block.a * lightColor * linear_fog_fade(vertexDistance, FogStart, FogEnd);
 }

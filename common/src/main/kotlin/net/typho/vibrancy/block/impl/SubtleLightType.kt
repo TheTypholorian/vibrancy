@@ -1,5 +1,6 @@
 package net.typho.vibrancy.block.impl
 
+import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.world.level.block.state.StateDefinition
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
@@ -43,6 +44,11 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
                 settings.shader.setUniform("ProjMat") { set(data.projMat) }
                 settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((-data.camera.pos).toJOML(), Matrix4f())) }
                 settings.shader.setUniform("LightBrightness") { set(VibrancyConfig.subtleLightBrightness) }
+                settings.shader.setUniform("CameraPos") { setFloatVec(data.camera.pos) }
+
+                settings.shader.setUniform("FogStart") { set(RenderSystem.getShaderFogStart()) }
+                settings.shader.setUniform("FogEnd") { set(RenderSystem.getShaderFogEnd()) }
+                settings.shader.setUniform("FogShape") { set(RenderSystem.getShaderFogShape().index) }
 
                 lights.chunks.values
                     .filter {
