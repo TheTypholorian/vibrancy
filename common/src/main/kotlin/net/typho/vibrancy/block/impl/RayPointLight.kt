@@ -52,6 +52,7 @@ import net.typho.vibrancy.util.PointLight
 import net.typho.vibrancy.util.QuadListVertexConsumer
 import org.joml.Matrix4f
 import org.joml.Quaternionf
+import org.joml.Vector4f
 import org.lwjgl.opengl.GL30.glBindBufferBase
 import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.system.NativeResource
@@ -284,8 +285,9 @@ open class RayPointLight(
                 dynamicCleared = false
 
                 val absolutePos = absolutePos
-                val absoluteBlockPos = absoluteBlockPos
                 val subLevel = SableCompanion.INSTANCE.getContainingClient(pos.toDouble().toJOML())
+                val subLevelPose = subLevel?.renderPose()
+                val subLevelTransform = subLevelPose?.let { Matrix4f().translate((-absoluteBlockPos).toJOML()).rotate(Quaternionf(it.orientation())) }
                 val allTextures = hashSetOf<NeoIdentifier>()
 
                 data class Node(
@@ -297,13 +299,18 @@ open class RayPointLight(
 
                         buffers.computeIfAbsent(texture) {
                             val quads = quads.computeIfAbsent(texture) { texture -> arrayListOf() }
-                            object : QuadListVertexConsumer(quads) {
-                                override fun vertex(
-                                    x: Float,
-                                    y: Float,
-                                    z: Float
-                                ): NeoVertexConsumer {
-                                    return super.vertex(x - absoluteBlockPos.x, y - absoluteBlockPos.y, z - absoluteBlockPos.z)
+                            if (subLevelTransform == null) {
+                                QuadListVertexConsumer(quads)
+                            } else {
+                                object : QuadListVertexConsumer(quads) {
+                                    override fun vertex(
+                                        x: Float,
+                                        y: Float,
+                                        z: Float
+                                    ): NeoVertexConsumer {
+                                        val pos = subLevelTransform.transform(Vector4f(x, y, z, 0f))
+                                        return super.vertex(pos.x, pos.y, pos.z)
+                                    }
                                 }
                             }
                         }
