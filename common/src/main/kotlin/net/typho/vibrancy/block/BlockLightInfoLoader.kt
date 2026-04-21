@@ -30,14 +30,27 @@ object BlockLightInfoLoader : NeoResourceManagerReloadListener {
             .first
         val codec = (BlockLightRegistry.registry!!.get(typeKey) ?: throw JsonParseException("No block light type $typeKey"))
                 .infoCodec(block.stateDefinition)
-        BlockLightRegistry.blockMap[block] = codec.codec()
-            .parse(JsonOps.INSTANCE, json)
-            .getOrThrow { message -> JsonParseException("Error parsing block light info for $key: $message") }
+        val result = codec.codec().parse(JsonOps.INSTANCE, json)
+
+        result.result().ifPresent { BlockLightRegistry.blockMap[block] = it }
+            result.error().ifPresent { Vibrancy.LOGGER.error("Error parsing block light info for $key: ${it.message()}") }
     }
 
     override fun onResourceManagerReload(manager: NeoResourceManager) {
         BlockLightRegistry.blockMap.clear()
         val blocks = WrapperUtil.INSTANCE.wrap(BuiltInRegistries.BLOCK)
+
+        for (entry in tagIdConverter.listMatchingResources(manager)) {
+            entry.value.openAsReader().use { jsonReader ->
+                blocks.getTag(NeoTagKey(blocks.key.location, tagIdConverter.fileToId(entry.key)))?.let { tag ->
+                    val json = JsonParser.parseReader(jsonReader)
+
+                    tag.forEach { block ->
+                        load(block, blocks.getKey(block).location, json, entry.key)
+                    }
+                }
+            }
+        }
 
         for (entry in singleIdConverter.listMatchingResources(manager)) {
             entry.value.openAsReader().use { jsonReader ->
@@ -50,18 +63,6 @@ object BlockLightInfoLoader : NeoResourceManagerReloadListener {
                     }
                 } else {
                     load(block, blockKey, JsonParser.parseReader(jsonReader), entry.key)
-                }
-            }
-        }
-
-        for (entry in tagIdConverter.listMatchingResources(manager)) {
-            entry.value.openAsReader().use { jsonReader ->
-                blocks.getTag(NeoTagKey(blocks.key.location, tagIdConverter.fileToId(entry.key)))?.let { tag ->
-                    val json = JsonParser.parseReader(jsonReader)
-
-                    tag.forEach { block ->
-                        load(block, blocks.getKey(block).location, json, entry.key)
-                    }
                 }
             }
         }
