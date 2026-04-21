@@ -314,10 +314,10 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
             }
         }
 
-        fun render(data: RenderEventData, shader: GlBoundProgram, debugOut: (key: String, value: Int) -> Unit) {
+        fun render(manager: LightManager, data: RenderEventData, shader: GlBoundProgram, debugOut: (key: String, value: Int) -> Unit) {
             if (
                 size > 0
-                //&& box?.let { data.frustum.testAab((it.min.toFloat() - data.camera.pos).toJOML(), (it.max.toFloat() - data.camera.pos).toJOML()) } ?: true
+                && box?.let { manager.testFrustum(pos, data, it) } ?: true
             ) {
                 val blockPos = NeoVec3i(pos.minBlockX, 0, pos.minBlockZ)
                 val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)

@@ -32,15 +32,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
         if (VibrancyConfig.rayLightsEnabled) {
             synchronized(lights.map) {
                 val lights = lights.map.values
-                    // TODO
-                    /*
-                    .filter { light ->
-                        data.frustum.testAab(
-                            (light.boundingBox.min.toFloat() - data.camera.pos).toJOML(),
-                            (light.boundingBox.max.toFloat() - data.camera.pos).toJOML(),
-                        )
-                    }
-                     */
+                    .filter { light -> manager.testFrustum(light.pos, data, light.boundingBox) }
                     .map { light -> light to manager.getSortingOrder(data, light.pos) }
                     .sortedBy { it.second }
                     .take(VibrancyConfig.rayLightsMaxRendered)

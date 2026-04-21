@@ -292,10 +292,7 @@ open class RayPointLight(
                 val transform = if (subLevelPose == null) {
                     Matrix4f().translate((-absoluteBlockPos).toJOML())
                 } else {
-                    //val pos = subLevelPose.rotationPoint().sub(subLevelPose.position(), Vector3d())
-                    //Vibrancy.LOGGER.info("${subLevelPose.rotationPoint()} ${subLevelPose.position()}")
-                    //Matrix4f(subLevelPose.bakeIntoMatrix(Matrix4d()).invert())
-                    Matrix4f().rotate(Quaternionf(subLevelPose.orientation()).invert()).translate((-absoluteBlockPos).toJOML()) //pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat()
+                    Matrix4f().rotate(Quaternionf(subLevelPose.orientation()).invert()).translate((-absoluteBlockPos).toJOML())
                 }
                 val allTextures = hashSetOf<NeoIdentifier>()
 

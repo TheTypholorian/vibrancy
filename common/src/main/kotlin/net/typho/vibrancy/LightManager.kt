@@ -1,5 +1,6 @@
 package net.typho.vibrancy
 
+import dev.ryanhcode.sable.companion.ClientSubLevelAccess
 import dev.ryanhcode.sable.companion.SableCompanion
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
@@ -9,7 +10,10 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkAccess
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
+import net.typho.big_shot_lib.api.math.rect.AbstractRect3
 import net.typho.big_shot_lib.api.math.vec.IVec3
+import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
+import net.typho.big_shot_lib.api.math.vec.NeoVec3d
 import net.typho.big_shot_lib.api.util.resource.NeoResourceKey
 import net.typho.vibrancy.block.BlockLightInfo
 import net.typho.vibrancy.block.BlockLightRegistry
@@ -131,6 +135,29 @@ open class LightManager {
         dirtyBlocks.clear()
     }
 
+    fun testFrustum(origin: IVec3<Int>, data: RenderEventData, box: AbstractRect3<Int>): Boolean {
+        return testFrustum(SableCompanion.INSTANCE.getContainingClient(origin.toDouble().toJOML()), data, box)
+    }
+
+    fun testFrustum(origin: ChunkPos, data: RenderEventData, box: AbstractRect3<Int>): Boolean {
+        return testFrustum(SableCompanion.INSTANCE.getContainingClient(origin), data, box)
+    }
+
+    fun testFrustum(subLevel: ClientSubLevelAccess?, data: RenderEventData, box: AbstractRect3<Int>): Boolean {
+        if (subLevel == null) {
+            return data.frustum.testAab(
+                (box.min.toFloat() - data.camera.pos).toJOML(),
+                (box.max.toFloat() - data.camera.pos).toJOML(),
+            )
+        } else {
+            val box = subLevel.boundingBox()
+            return data.frustum.testAab(
+                (NeoVec3d(box.minX(), box.minY(), box.minZ()).toFloat() - data.camera.pos).toJOML(),
+                (NeoVec3d(box.maxX(), box.maxY(), box.maxZ()).toFloat() - data.camera.pos).toJOML(),
+            )
+        }
+    }
+
     fun getDebugOutput(out: Consumer<String>) {
         debugInfo[null]?.forEach { (key, value) -> out.accept("$key: $value") }
 
@@ -159,8 +186,13 @@ open class LightManager {
     }
 
     fun inRenderDistance(data: RenderEventData, pos: ChunkPos, distance: Int): Boolean {
-        // TODO
-        return data.camera.pos.xz.inDistance(pos.middleBlockX.toFloat(), pos.middleBlockZ.toFloat(), clampToChunkRenderDistance(distance) * 16f)
+        val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
+
+        return if (subLevel == null) {
+            data.camera.pos.xz.inDistance(pos.middleBlockX.toFloat(), pos.middleBlockZ.toFloat(), clampToChunkRenderDistance(distance) * 16f)
+        } else {
+            data.camera.pos.inDistance(NeoVec3d(subLevel.renderPose().position()).toFloat(), clampToChunkRenderDistance(distance) * 16f)
+        }
     }
 
     fun getSortingOrder(data: RenderEventData, pos: IVec3<Int>): Float {
