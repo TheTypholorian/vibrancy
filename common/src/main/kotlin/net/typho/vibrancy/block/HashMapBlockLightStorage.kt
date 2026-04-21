@@ -3,7 +3,7 @@ package net.typho.vibrancy.block
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
-import net.minecraft.world.level.chunk.LevelChunk
+import net.minecraft.world.level.chunk.ChunkAccess
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.big_shot_lib.api.math.vec.blockPos
@@ -38,7 +38,7 @@ abstract class HashMapBlockLightStorage<I : BlockLightInfo, L>(val type: BlockLi
     }
 
     @Suppress("UNCHECKED_CAST")
-    override fun loadChunk(manager: LightManager, chunk: LevelChunk) {
+    override fun loadChunk(manager: LightManager, chunk: ChunkAccess) {
         deloadChunk(manager, chunk)
 
         chunk.findBlocks(BlockLightRegistry::has) { pos, state ->
@@ -48,7 +48,7 @@ abstract class HashMapBlockLightStorage<I : BlockLightInfo, L>(val type: BlockLi
                 type.castInfo(info)?.let {
                     addLight(
                         manager,
-                        chunk.level!!,
+                        manager.getLevel()!!,
                         state,
                         pos,
                         it
@@ -58,7 +58,7 @@ abstract class HashMapBlockLightStorage<I : BlockLightInfo, L>(val type: BlockLi
         }
     }
 
-    override fun deloadChunk(manager: LightManager, chunk: LevelChunk) {
+    override fun deloadChunk(manager: LightManager, chunk: ChunkAccess) {
         synchronized(map) {
             map.entries.removeIf { entry ->
                 val removed = ChunkPos(entry.key.blockPos) == chunk.pos

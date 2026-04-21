@@ -1,8 +1,10 @@
 package net.typho.vibrancy.block.impl
 
 import com.mojang.blaze3d.vertex.PoseStack
+import dev.ryanhcode.sable.companion.SableCompanion
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.MultiBufferSource
+import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.util.Mth
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
@@ -18,11 +20,9 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
 import net.typho.big_shot_lib.api.client.rendering.opengl.util.BlendFunction
-import net.typho.big_shot_lib.api.client.rendering.util.BlockChunkLayer
-import net.typho.big_shot_lib.api.client.rendering.util.Mesh
-import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
-import net.typho.big_shot_lib.api.client.rendering.util.NeoRenderSettings
+import net.typho.big_shot_lib.api.client.rendering.util.*
 import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
+import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.math.NeoDirection
 import net.typho.big_shot_lib.api.math.rect.AbstractRect3
 import net.typho.big_shot_lib.api.math.rect.NeoRect2i
@@ -30,6 +30,7 @@ import net.typho.big_shot_lib.api.math.rect.NeoRect3f
 import net.typho.big_shot_lib.api.math.rect.NeoRect3i
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
+import net.typho.big_shot_lib.api.math.vec.NeoVec3d
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.BlockUtil
@@ -50,6 +51,9 @@ import net.typho.vibrancy.shadows.StaticBlockLightMeshManager
 import net.typho.vibrancy.util.EmptyVertexConsumer
 import net.typho.vibrancy.util.PointLight
 import net.typho.vibrancy.util.QuadListVertexConsumer
+import org.joml.Matrix4f
+import org.joml.Quaternionf
+import org.joml.Vector4f
 import org.lwjgl.opengl.GL30.glBindBufferBase
 import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.system.NativeResource
@@ -95,7 +99,7 @@ open class RayPointLight(
             drawState(shader) {
                 uniforms(this)
 
-                setUniform("LightPos") { setFloatVec(absolutePos) }
+                setUniform("LightPos") { setFloatVec(offset) }
                 setUniform("LightColor") { setFloatVec(color * VibrancyConfig.rayLightBrightness) }
                 setUniform("LightRadius") { set(radius) }
             }.bind().use { blitMesh.draw() }
@@ -146,7 +150,9 @@ open class RayPointLight(
     )
 
     override val absolutePos: IVec3<Float>
-        get() = pos.toFloat() + offset
+        get() = SableCompanion.INSTANCE.getContainingClient((pos.toDouble() + offset.toDouble()).toJOML())?.let { NeoVec3d(it.renderPose(Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(false)).transformPosition((pos.toDouble() + offset.toDouble()).toJOML())).toFloat() } ?: (pos.toFloat() + offset)
+    val absoluteBlockPos: IVec3<Float>
+        get() = SableCompanion.INSTANCE.getContainingClient(pos.toDouble().toJOML())?.let { NeoVec3d(it.renderPose(Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(false)).transformPosition(pos.toDouble().toJOML())).toFloat() } ?: pos.toFloat()
     override val boundingBox: AbstractRect3<Int>
         get() = NeoRect3i(pos - radius.toInt(), pos + radius.toInt())
     override val shadowBox: AbstractRect3<Int>
@@ -279,6 +285,15 @@ open class RayPointLight(
             manager.getLevel()?.let { level ->
                 dynamicCleared = false
 
+                val absolutePos = absolutePos
+                val absoluteBlockPos = absoluteBlockPos
+                val subLevel = SableCompanion.INSTANCE.getContainingClient(pos.toDouble().toJOML())
+                val subLevelPose = subLevel?.renderPose()
+                val transform = if (subLevelPose == null) {
+                    Matrix4f().translate((-absoluteBlockPos).toJOML())
+                } else {
+                    Matrix4f().rotate(Quaternionf(subLevelPose.orientation()).invert()).translate((-absoluteBlockPos).toJOML())
+                }
                 val allTextures = hashSetOf<NeoIdentifier>()
 
                 data class Node(
@@ -295,7 +310,16 @@ open class RayPointLight(
 
                         buffers.computeIfAbsent(texture) {
                             val quads = quads.computeIfAbsent(texture) { texture -> arrayListOf() }
-                            QuadListVertexConsumer(quads)
+                            object : QuadListVertexConsumer(quads) {
+                                override fun vertex(
+                                    x: Float,
+                                    y: Float,
+                                    z: Float
+                                ): NeoVertexConsumer {
+                                    val pos = transform.transform(Vector4f(x, y, z, 1f))
+                                    return super.vertex(pos.x, pos.y, pos.z)
+                                }
+                            }
                         }
                     }
                 ) {
@@ -325,7 +349,7 @@ open class RayPointLight(
                 val poseStack = PoseStack()
 
                 for (entity in level.getEntities(null, AABB.ofSize(Vec3(absolutePos.toJOML()), radius.toDouble() * 2, radius.toDouble() * 2, radius.toDouble() * 2))) {
-                    if (meshCollector.checked.contains(NeoVec3i(entity.blockPosition()))) {
+                    if (subLevel != null || meshCollector.checked.contains(NeoVec3i(entity.blockPosition()))) {
                         val node = Node()
                         debugOut("entityShadows", 1)
                         Minecraft.getInstance().entityRenderDispatcher.render(
@@ -350,13 +374,22 @@ open class RayPointLight(
                             debugOut("blockEntityShadows", 1)
 
                             poseStack.pushPose()
-                            poseStack.translate(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
 
-                            Minecraft.getInstance().blockEntityRenderDispatcher.render(
+                            if (subLevelPose == null) {
+                                poseStack.translate(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
+                            } else {
+                                val pos = subLevelPose.transformPosition(pos.toDouble().toJOML())
+                                poseStack.translate(pos.x, pos.y, pos.z)
+                                poseStack.mulPose(Quaternionf(subLevelPose.orientation()))
+                            }
+
+                            Minecraft.getInstance().blockEntityRenderDispatcher.getRenderer(blockEntity)?.render(
                                 blockEntity,
                                 tickDelta,
                                 poseStack,
-                                node.bufferSource
+                                node.bufferSource,
+                                15728880,
+                                OverlayTexture.NO_OVERLAY
                             )
 
                             poseStack.popPose()
@@ -446,14 +479,32 @@ open class RayPointLight(
         }
     }
 
-    fun render(shader: GlBoundProgram, debugOut: (key: String, value: Int) -> Unit) {
+    fun render(data: RenderEventData, shader: GlBoundProgram, debugOut: (key: String, value: Int) -> Unit) {
         debugOut("lightsRendered", 1)
 
         if (mesh.isTaskActive()) {
             debugOut("numAsyncTasks", 1)
         }
 
-        shader.setUniform("LightPos") { setFloatVec(absolutePos) }
+        val subLevel = SableCompanion.INSTANCE.getContainingClient(pos.toDouble().toJOML())
+
+        if (subLevel == null) {
+            shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((pos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
+        } else {
+            val tickDelta = Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(false)
+            val pose = subLevel.renderPose(tickDelta)
+            val orientation = Quaternionf(pose.orientation())
+            val pos = NeoVec3d(pose.transformPosition(pos.toDouble().toJOML()))
+            shader.setUniform("ModelViewMat") {
+                set(
+                    data.modelViewMat
+                        .translate((pos - data.camera.pos.toDouble()).toFloat().toJOML(), Matrix4f())
+                        .rotate(orientation)
+                )
+            }
+        }
+
+        shader.setUniform("LightPos") { setFloatVec(offset) }
         shader.setUniform("LightColor") { setFloatVec(color) }
         shader.setUniform("LightRadius") { set(radius) }
         shader.setTexture(1, GlTextureBinding.FromInstance(

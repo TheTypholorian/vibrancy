@@ -27,6 +27,7 @@ class SkyLightBlockMeshCollector(
                 state,
                 level,
                 pos,
+                pos,
                 atlas,
                 true,
                 *consumers

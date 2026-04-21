@@ -55,6 +55,7 @@ interface BlockMeshCollector {
             state: BlockState,
             level: Level,
             pos: IVec3<Int>,
+            offset: IVec3<Int>,
             atlas: NeoAtlas,
             collectFluid: Boolean,
             vararg consumers: Consumer
@@ -72,7 +73,7 @@ interface BlockMeshCollector {
                             quad.withVertices { index, vertex ->
                                 NeoVertexData(
                                     vertex,
-                                    pos = vertex.pos + pos.toFloat(),
+                                    pos = vertex.pos + offset.toFloat(),
                                     color = tintColor,
                                     normal = quad.direction?.toFloat()
                                 )
@@ -102,11 +103,11 @@ interface BlockMeshCollector {
                                 quad.withVertices { index, vertex ->
                                     NeoVertexData(
                                         vertex,
-                                        pos = vertex.pos.plus(
-                                            (pos.x and 15.inv()).toFloat(),
-                                            (pos.y and 15.inv()).toFloat(),
-                                            (pos.z and 15.inv()).toFloat()
-                                        )
+                                        pos = vertex.pos.minus(
+                                            (pos.x and 15).toFloat(),
+                                            (pos.y and 15).toFloat(),
+                                            (pos.z and 15).toFloat()
+                                        ) + offset.toFloat()
                                     )
                                 },
                                 atlas

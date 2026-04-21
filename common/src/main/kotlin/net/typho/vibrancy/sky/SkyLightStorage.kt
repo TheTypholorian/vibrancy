@@ -1,6 +1,6 @@
 package net.typho.vibrancy.sky
 
-import net.minecraft.world.level.chunk.LevelChunk
+import net.minecraft.world.level.chunk.ChunkAccess
 import net.typho.vibrancy.LightManager
 
 interface SkyLightStorage<I : SkyLightInfo> {
@@ -10,12 +10,12 @@ interface SkyLightStorage<I : SkyLightInfo> {
 
     fun loadChunk(
         manager: LightManager,
-        chunk: LevelChunk
+        chunk: ChunkAccess
     )
 
     fun deloadChunk(
         manager: LightManager,
-        chunk: LevelChunk
+        chunk: ChunkAccess
     )
 
     fun clear(manager: LightManager)

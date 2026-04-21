@@ -49,7 +49,7 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
                         manager.inRenderDistance(data, it.pos, VibrancyConfig.subtleLightsRenderDistance)
                     }
                     .forEach {
-                        it.render(data, settings.shader, debugOut)
+                        it.render(manager, data, settings.shader, debugOut)
                     }
             }
         }

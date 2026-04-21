@@ -1,15 +1,19 @@
 package net.typho.vibrancy
 
+import dev.ryanhcode.sable.companion.ClientSubLevelAccess
+import dev.ryanhcode.sable.companion.SableCompanion
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
-import net.minecraft.world.level.chunk.LevelChunk
+import net.minecraft.world.level.chunk.ChunkAccess
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
+import net.typho.big_shot_lib.api.math.rect.AbstractRect3
 import net.typho.big_shot_lib.api.math.vec.IVec3
-import net.typho.big_shot_lib.api.math.vec.NeoVec2i
+import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
+import net.typho.big_shot_lib.api.math.vec.NeoVec3d
 import net.typho.big_shot_lib.api.util.resource.NeoResourceKey
 import net.typho.vibrancy.block.BlockLightInfo
 import net.typho.vibrancy.block.BlockLightRegistry
@@ -82,33 +86,25 @@ open class LightManager {
         dirtyBlocks.add(pos)
     }
 
-    fun loadChunk(chunk: LevelChunk) {
+    fun loadChunk(chunk: ChunkAccess) {
         ensureStorageInitialized()
 
         blockLights.values.forEach { storage -> storage.loadChunk(this, chunk) }
         skyLight?.second?.loadChunk(this, chunk)
 
         for (light in blockLights.values) {
-            for (x in chunk.pos.x - 1..chunk.pos.x + 1) {
-                for (z in chunk.pos.z - 1..chunk.pos.z + 1) {
-                    light.reload(this, ChunkPos(x, z))
-                }
-            }
+            light.reload(this, chunk.pos)
         }
     }
 
-    fun deloadChunk(chunk: LevelChunk) {
+    fun deloadChunk(chunk: ChunkAccess) {
         ensureStorageInitialized()
 
         blockLights.values.forEach { storage -> storage.deloadChunk(this, chunk) }
         skyLight?.second?.deloadChunk(this, chunk)
 
         for (light in blockLights.values) {
-            for (x in chunk.pos.x - 1..chunk.pos.x + 1) {
-                for (z in chunk.pos.z - 1..chunk.pos.z + 1) {
-                    light.reload(this, ChunkPos(x, z))
-                }
-            }
+            light.reload(this, chunk.pos)
         }
     }
 
@@ -139,6 +135,29 @@ open class LightManager {
         dirtyBlocks.clear()
     }
 
+    fun testFrustum(origin: IVec3<Int>, data: RenderEventData, box: AbstractRect3<Int>): Boolean {
+        return testFrustum(SableCompanion.INSTANCE.getContainingClient(origin.toDouble().toJOML()), data, box)
+    }
+
+    fun testFrustum(origin: ChunkPos, data: RenderEventData, box: AbstractRect3<Int>): Boolean {
+        return testFrustum(SableCompanion.INSTANCE.getContainingClient(origin), data, box)
+    }
+
+    fun testFrustum(subLevel: ClientSubLevelAccess?, data: RenderEventData, box: AbstractRect3<Int>): Boolean {
+        if (subLevel == null) {
+            return data.frustum.testAab(
+                (box.min.toFloat() - data.camera.pos).toJOML(),
+                (box.max.toFloat() - data.camera.pos).toJOML(),
+            )
+        } else {
+            val box = subLevel.boundingBox()
+            return data.frustum.testAab(
+                (NeoVec3d(box.minX(), box.minY(), box.minZ()).toFloat() - data.camera.pos).toJOML(),
+                (NeoVec3d(box.maxX(), box.maxY(), box.maxZ()).toFloat() - data.camera.pos).toJOML(),
+            )
+        }
+    }
+
     fun getDebugOutput(out: Consumer<String>) {
         debugInfo[null]?.forEach { (key, value) -> out.accept("$key: $value") }
 
@@ -166,19 +185,19 @@ open class LightManager {
         return testDistanceSquared <= x * x
     }
 
-    fun inRenderDistance(data: RenderEventData, pos: IVec3<Int>, distance: Int): Boolean {
-        return (pos.toFloat() + 0.5f).inDistance(data.camera.pos, clampToChunkRenderDistance(distance) * 16f)
-    }
-
     fun inRenderDistance(data: RenderEventData, pos: ChunkPos, distance: Int): Boolean {
-        return data.camera.pos.xz.inDistance(pos.middleBlockX.toFloat(), pos.middleBlockZ.toFloat(), clampToChunkRenderDistance(distance) * 16f)
+        val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
+
+        return if (subLevel == null) {
+            data.camera.pos.xz.inDistance(pos.middleBlockX.toFloat(), pos.middleBlockZ.toFloat(), clampToChunkRenderDistance(distance) * 16f)
+        } else {
+            data.camera.pos.inDistance(NeoVec3d(subLevel.renderPose().position()).toFloat(), clampToChunkRenderDistance(distance) * 16f)
+        }
     }
 
     fun getSortingOrder(data: RenderEventData, pos: IVec3<Int>): Float {
-        return (pos.toFloat() + 0.5f).distanceSquared(data.camera.pos)
-    }
-
-    fun getSortingOrder(data: RenderEventData, pos: ChunkPos): Float {
-        return NeoVec2i(pos.x, pos.z).toFloat().distanceSquared(data.camera.pos.x / 16, data.camera.pos.z / 16)
+        val a = pos.toFloat() + 0.5f
+        val b = data.camera.pos
+        return SableCompanion.INSTANCE.distanceSquaredWithSubLevels(data.level!!, a.x.toDouble(), a.y.toDouble(), a.z.toDouble(), b.x.toDouble(), b.y.toDouble(), b.z.toDouble()).toFloat()
     }
 }
