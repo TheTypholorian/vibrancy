@@ -8,6 +8,8 @@ import net.typho.vibrancy.LightManager
 
 class IterationBlockMeshCollector(
     @JvmField
+    val origin: IVec3<Int>,
+    @JvmField
     val blocks: Iterable<IVec3<Int>>
 ) : BlockMeshCollector {
     override fun submit(
@@ -22,7 +24,7 @@ class IterationBlockMeshCollector(
                 level.getBlockState(pos.blockPos),
                 level,
                 pos,
-                pos,
+                pos - origin,
                 atlas,
                 true,
                 *consumers

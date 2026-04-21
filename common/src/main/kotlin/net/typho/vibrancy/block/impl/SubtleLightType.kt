@@ -45,9 +45,9 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
                 settings.shader.setUniform("LightBrightness") { set(VibrancyConfig.subtleLightBrightness) }
 
                 lights.chunks.values
-                    .filter {
-                        manager.inRenderDistance(data, it.pos, VibrancyConfig.subtleLightsRenderDistance)
-                    }
+                    //.filter {
+                    //    manager.inRenderDistance(data, it.pos, VibrancyConfig.subtleLightsRenderDistance)
+                    //}
                     .forEach {
                         it.render(data, settings.shader, debugOut)
                     }

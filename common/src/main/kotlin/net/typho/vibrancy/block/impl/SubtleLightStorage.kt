@@ -1,5 +1,7 @@
 package net.typho.vibrancy.block.impl
 
+import dev.ryanhcode.sable.companion.SableCompanion
+import net.minecraft.client.Minecraft
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
@@ -20,11 +22,8 @@ import net.typho.big_shot_lib.api.math.rect.AbstractRect3
 import net.typho.big_shot_lib.api.math.rect.AbstractRect3.Companion.iterator
 import net.typho.big_shot_lib.api.math.rect.NeoRect2i
 import net.typho.big_shot_lib.api.math.rect.NeoRect3i
-import net.typho.big_shot_lib.api.math.vec.IVec3
+import net.typho.big_shot_lib.api.math.vec.*
 import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
-import net.typho.big_shot_lib.api.math.vec.NeoVec2i
-import net.typho.big_shot_lib.api.math.vec.NeoVec3i
-import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.VibrancyConfig
@@ -37,6 +36,8 @@ import net.typho.vibrancy.shadows.LightFace
 import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.shadows.LightTexture
 import net.typho.vibrancy.util.VibrancyThreadPool
+import org.joml.Matrix4f
+import org.joml.Quaternionf
 import org.lwjgl.opengl.GL30.glBindBufferBase
 import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.system.NativeResource
@@ -203,7 +204,8 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                         }
 
                         val lightFaces = arrayListOf<LightFace>()
-                        IterationBlockMeshCollector(blocks).submit(
+                        val origin = NeoVec3i(pos.minBlockX, 0, pos.minBlockZ)
+                        IterationBlockMeshCollector(origin, blocks).submit(
                             manager,
                             data.level!!,
                             NeoAtlas.blocks,
@@ -221,7 +223,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                         buffer.write().run {
                             for (light in chunk.map.values) {
                                 val color = light.color
-                                val pos = light.absolutePos
+                                val pos = (light.pos - origin).toFloat() + light.offset
 
                                 writeFloat(pos.x)
                                 writeFloat(pos.y)
@@ -315,8 +317,27 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
         fun render(data: RenderEventData, shader: GlBoundProgram, debugOut: (key: String, value: Int) -> Unit) {
             if (
                 size > 0
-                && box?.let { data.frustum.testAab((it.min.toFloat() - data.camera.pos).toJOML(), (it.max.toFloat() - data.camera.pos).toJOML()) } ?: true
+                //&& box?.let { data.frustum.testAab((it.min.toFloat() - data.camera.pos).toJOML(), (it.max.toFloat() - data.camera.pos).toJOML()) } ?: true
             ) {
+                val blockPos = NeoVec3i(pos.minBlockX, 0, pos.minBlockZ)
+                val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
+
+                if (subLevel == null) {
+                    shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((blockPos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
+                } else {
+                    val tickDelta = Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(false)
+                    val pose = subLevel.renderPose(tickDelta)
+                    val orientation = Quaternionf(pose.orientation())
+                    val pos = NeoVec3d(pose.transformPosition(blockPos.toDouble().toJOML()))
+                    shader.setUniform("ModelViewMat") {
+                        set(
+                            data.modelViewMat
+                                .translate((pos - data.camera.pos.toDouble()).toFloat().toJOML(), Matrix4f())
+                                .rotate(orientation)
+                        )
+                    }
+                }
+
                 shader.setTexture(1, GlTextureBinding.FromInstance(lightTexture, GlTextureTarget.TEXTURE_2D))
                 mesh.draw()
                 debugOut("lightsRendered", size)

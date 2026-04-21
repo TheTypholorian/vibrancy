@@ -4,6 +4,7 @@ import com.mojang.blaze3d.vertex.PoseStack
 import dev.ryanhcode.sable.companion.SableCompanion
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.MultiBufferSource
+import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.util.Mth
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
@@ -371,13 +372,22 @@ open class RayPointLight(
                             debugOut("blockEntityShadows", 1)
 
                             poseStack.pushPose()
-                            poseStack.translate(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
 
-                            Minecraft.getInstance().blockEntityRenderDispatcher.render(
+                            if (subLevelPose == null) {
+                                poseStack.translate(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
+                            } else {
+                                poseStack.mulPose(Quaternionf(subLevelPose.orientation()).invert())
+                                val pos = SableCompanion.INSTANCE.projectOutOfSubLevel(level, pos.toDouble().toJOML())
+                                poseStack.translate(pos.x, pos.y, pos.z)
+                            }
+
+                            Minecraft.getInstance().blockEntityRenderDispatcher.getRenderer(blockEntity)?.render(
                                 blockEntity,
                                 tickDelta,
                                 poseStack,
-                                node.bufferSource
+                                node.bufferSource,
+                                15728880,
+                                OverlayTexture.NO_OVERLAY
                             )
 
                             poseStack.popPose()
