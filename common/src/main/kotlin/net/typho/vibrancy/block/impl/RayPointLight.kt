@@ -265,7 +265,7 @@ open class RayPointLight(
         mesh.free()
     }
 
-    fun update(manager: LightManager, debugOut: (String, Int) -> Unit, dynamicShadows: Boolean) {
+    fun update(data: RenderEventData, manager: LightManager, debugOut: (String, Int) -> Unit, dynamicShadows: Boolean) {
         synchronized(meshCollector) {
             for (pos in manager.dirtyBlocks) {
                 if (boundingBox.contains(pos)) {
@@ -275,7 +275,7 @@ open class RayPointLight(
         }
 
         if (shadowsDirty) {
-            mesh.rebuildBlocksAsync(manager, meshCollector, shadowPredicate, lightPredicate)
+            mesh.rebuildBlocksAsync(data, pos, manager, meshCollector, shadowPredicate, lightPredicate)
             shadowsDirty = false
         }
 

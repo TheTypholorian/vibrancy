@@ -268,7 +268,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                 }
 
                 if (VibrancyConfig.useMultithreading) {
-                    tasks.add(CompletableFuture.supplyAsync(::impl, VibrancyThreadPool))
+                    tasks.add(VibrancyThreadPool.submit(data, pos, manager, ::impl))
                 } else {
                     impl()?.accept(data)
                 }

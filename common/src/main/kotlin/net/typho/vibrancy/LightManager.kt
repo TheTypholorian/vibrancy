@@ -200,4 +200,14 @@ open class LightManager {
         val b = data.camera.pos
         return SableCompanion.INSTANCE.distanceSquaredWithSubLevels(data.level!!, a.x.toDouble(), a.y.toDouble(), a.z.toDouble(), b.x.toDouble(), b.y.toDouble(), b.z.toDouble()).toFloat()
     }
+
+    fun getSortingOrder(data: RenderEventData, pos: ChunkPos): Float {
+        val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
+
+        return if (subLevel == null) {
+            data.camera.pos.xz.distanceSquared(pos.middleBlockX.toFloat(), pos.middleBlockZ.toFloat())
+        } else {
+            data.camera.pos.distanceSquared(NeoVec3d(subLevel.renderPose().position()).toFloat())
+        }
+    }
 }

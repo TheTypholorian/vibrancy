@@ -24,11 +24,11 @@ object BlockLightInfoLoader : NeoResourceManagerReloadListener {
     private val warned = HashSet<NeoIdentifier>()
 
     @JvmStatic
-    fun load(block: Block, key: NeoIdentifier, json: JsonElement, file: NeoIdentifier) {
+    fun load(block: Block, key: NeoIdentifier, json: JsonElement) {
         val typeKey = NeoIdentifier.CODEC.decode(JsonOps.INSTANCE, json.asJsonObject.get("type"))
-            .getOrThrow { JsonParseException("Error while parsing block light info $file: $it") }
+            .getOrThrow { JsonParseException("Block light type for $key is not a valid Identifier: $it") }
             .first
-        val codec = (BlockLightRegistry.registry!!.get(typeKey) ?: throw JsonParseException("No block light type $typeKey"))
+        val codec = (BlockLightRegistry.registry!!.get(typeKey) ?: return Vibrancy.LOGGER.error("No block light type $typeKey for $key"))
                 .infoCodec(block.stateDefinition)
         val result = codec.codec().parse(JsonOps.INSTANCE, json)
 
@@ -46,7 +46,7 @@ object BlockLightInfoLoader : NeoResourceManagerReloadListener {
                     val json = JsonParser.parseReader(jsonReader)
 
                     tag.forEach { block ->
-                        load(block, blocks.getKey(block).location, json, entry.key)
+                        load(block, blocks.getKey(block).location, json)
                     }
                 }
             }
@@ -62,7 +62,7 @@ object BlockLightInfoLoader : NeoResourceManagerReloadListener {
                         Vibrancy.LOGGER.warn("Couldn't find block $blockKey to give a block light to")
                     }
                 } else {
-                    load(block, blockKey, JsonParser.parseReader(jsonReader), entry.key)
+                    load(block, blockKey, JsonParser.parseReader(jsonReader))
                 }
             }
         }

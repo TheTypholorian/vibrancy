@@ -39,7 +39,12 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                     .take(VibrancyConfig.rayLightsMaxRendered)
                     .toList()
 
-                lights.forEachIndexed { index, light -> light.first.update(manager, debugOut, VibrancyConfig.entityShadowsEnabled && index < VibrancyConfig.entityShadowMaxLights && manager.inRenderDistance(light.second, VibrancyConfig.entityShadowDistance)) }
+                lights.forEachIndexed { index, light -> light.first.update(
+                    data,
+                    manager,
+                    debugOut,
+                    VibrancyConfig.entityShadowsEnabled && index < VibrancyConfig.entityShadowMaxLights && manager.inRenderDistance(light.second, VibrancyConfig.entityShadowDistance)
+                ) }
 
                 LightMesh.drawState(NeoAtlas.blocks, Vibrancy.id("block/raytraced/mesh")).bind().use { settings ->
                     settings.shader.setTexture(3, GlTextureBinding.FromInstance(

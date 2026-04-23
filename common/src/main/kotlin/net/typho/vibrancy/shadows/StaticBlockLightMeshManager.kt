@@ -2,6 +2,8 @@ package net.typho.vibrancy.shadows
 
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
+import net.typho.big_shot_lib.api.client.util.event.RenderEventData
+import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.VibrancyConfig
 import net.typho.vibrancy.collectors.BlockMeshCollector
@@ -96,6 +98,8 @@ open class StaticBlockLightMeshManager(
     }
 
     fun rebuildBlocksAsync(
+        data: RenderEventData,
+        pos: IVec3<Int>,
         manager: LightManager,
         collector: BlockMeshCollector,
         shadowPredicate: BlockMeshCollector.Predicate,
@@ -112,7 +116,7 @@ open class StaticBlockLightMeshManager(
             }
              */
             asyncTask?.cancel(true)
-            asyncTask = CompletableFuture.supplyAsync({ rebuildBlocksAsyncImpl(manager, collector, shadowPredicate, lightPredicate) }, VibrancyThreadPool)
+            asyncTask = VibrancyThreadPool.submit(data, pos, manager, { rebuildBlocksAsyncImpl(manager, collector, shadowPredicate, lightPredicate) })
         } else {
             val info = rebuildBlocksAsyncImpl(manager, collector, shadowPredicate, lightPredicate)()
 

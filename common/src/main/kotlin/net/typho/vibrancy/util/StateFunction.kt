@@ -2,6 +2,7 @@ package net.typho.vibrancy.util
 
 import com.mojang.datafixers.util.Either
 import com.mojang.serialization.Codec
+import com.mojang.serialization.DataResult
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.world.level.block.state.BlockState
@@ -51,9 +52,9 @@ data class StateFunction<T>(
             val entryCodec: MapCodec<Entry<T>> = RecordCodecBuilder.mapCodec {
                 it.group(
                     Codec.dispatchedMap(
-                        Codec.STRING.xmap(
-                            { name -> stateDefinition.getProperty(name) ?: throw NullPointerException("Couldn't find property $name in ${stateDefinition.owner}") },
-                            { property -> property.name }
+                        Codec.STRING.flatXmap(
+                            { name -> DataResult.success(stateDefinition.getProperty(name) ?: return@flatXmap DataResult.error { "Couldn't find property $name in ${stateDefinition.owner}" }) },
+                            { property -> DataResult.success(property.name) }
                         ),
                         { property -> property.codec() }
                     ).fieldOf("matches")
