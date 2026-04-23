@@ -5,6 +5,7 @@ import dev.ryanhcode.sable.companion.SableCompanion
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
+import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
@@ -114,25 +115,31 @@ open class LightManager {
     }
 
     @Suppress("UNCHECKED_CAST")
-    protected fun <S : BlockLightStorage<*>> castAndRender(data: RenderEventData, type: BlockLightType<*, S>, storage: BlockLightStorage<*>) {
-        type.render(this, data, storage as S, getDebugOutput(BlockLightRegistry.registry!!.getKey(type)))
+    protected fun <S : BlockLightStorage<*>> castAndRender(data: RenderEventData, type: BlockLightType<*, S>, storage: BlockLightStorage<*>, profiler: ProfilerFiller) {
+        profiler.push(BlockLightRegistry.registry!!.getKey(type).location.toString())
+        type.render(this, data, storage as S, getDebugOutput(BlockLightRegistry.registry!!.getKey(type)), profiler)
+        profiler.pop()
     }
 
     @Suppress("UNCHECKED_CAST")
-    protected fun <S : SkyLightStorage<*>> castAndRender(data: RenderEventData, type: SkyLightType<*, S>, storage: SkyLightStorage<*>) {
-        type.render(this, data, storage as S, getDebugOutput(SkyLightRegistry.registry!!.getKey(type)))
+    protected fun <S : SkyLightStorage<*>> castAndRender(data: RenderEventData, type: SkyLightType<*, S>, storage: SkyLightStorage<*>, profiler: ProfilerFiller) {
+        profiler.push(SkyLightRegistry.registry!!.getKey(type).location.toString())
+        type.render(this, data, storage as S, getDebugOutput(SkyLightRegistry.registry!!.getKey(type)), profiler)
+        profiler.pop()
     }
 
-    fun render(data: RenderEventData) {
+    fun render(data: RenderEventData, profiler: ProfilerFiller = Minecraft.getInstance().profiler) {
+        profiler.push("vibrancy")
         debugInfo.clear()
 
         for (entry in blockLights) {
-            castAndRender(data, entry.key, entry.value)
+            castAndRender(data, entry.key, entry.value, profiler)
         }
 
-        skyLight?.let { castAndRender(data, it.first, it.second) }
+        skyLight?.let { castAndRender(data, it.first, it.second, profiler) }
 
         dirtyBlocks.clear()
+        profiler.pop()
     }
 
     fun testFrustum(origin: IVec3<Int>, data: RenderEventData, box: AbstractRect3<Int>): Boolean {

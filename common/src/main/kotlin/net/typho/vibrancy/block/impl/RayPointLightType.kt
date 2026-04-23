@@ -1,6 +1,7 @@
 package net.typho.vibrancy.block.impl
 
 import com.mojang.blaze3d.systems.RenderSystem
+import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.block.state.StateDefinition
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureTarget
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
@@ -28,24 +29,31 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
         manager: LightManager,
         data: RenderEventData,
         lights: HashMapBlockLightStorage<RayPointLightInfo, RayPointLight>,
-        debugOut: (String, Int) -> Unit
+        debugOut: (String, Int) -> Unit,
+        profiler: ProfilerFiller
     ) {
         if (VibrancyConfig.rayLightsEnabled) {
             synchronized(lights.map) {
+                profiler.push("cull")
                 val lights = lights.map.values
                     .filter { light -> manager.testFrustum(light.pos, data, light.boundingBox) }
                     .map { light -> light to manager.getSortingOrder(data, light.pos) }
                     .sortedBy { it.second }
                     .take(VibrancyConfig.rayLightsMaxRendered)
                     .toList()
+                profiler.pop()
 
+                profiler.push("update")
                 lights.forEachIndexed { index, light -> light.first.update(
                     data,
                     manager,
                     debugOut,
-                    VibrancyConfig.entityShadowsEnabled && index < VibrancyConfig.entityShadowMaxLights && manager.inRenderDistance(light.second, VibrancyConfig.entityShadowDistance)
+                    VibrancyConfig.entityShadowsEnabled && index < VibrancyConfig.entityShadowMaxLights && manager.inRenderDistance(light.second, VibrancyConfig.entityShadowDistance),
+                    profiler
                 ) }
+                profiler.pop()
 
+                profiler.push("draw")
                 LightMesh.drawState(NeoAtlas.blocks, Vibrancy.id("block/raytraced/mesh")).bind().use { settings ->
                     settings.shader.setTexture(3, GlTextureBinding.FromInstance(
                         ReflectionAtlases[NeoIdentifier("blocks")], //NeoAtlas.blocks.location
@@ -61,6 +69,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
 
                     lights.forEach { light -> light.first.render(data, settings.shader, debugOut) }
                 }
+                profiler.pop()
             }
         }
     }

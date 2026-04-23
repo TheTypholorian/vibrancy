@@ -1,6 +1,7 @@
 package net.typho.vibrancy.block.impl
 
 import com.mojang.blaze3d.systems.RenderSystem
+import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.block.state.StateDefinition
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
@@ -35,11 +36,15 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
         manager: LightManager,
         data: RenderEventData,
         lights: SubtleLightStorage,
-        debugOut: (String, Int) -> Unit
+        debugOut: (String, Int) -> Unit,
+        profiler: ProfilerFiller
     ) {
         if (VibrancyConfig.subtleLightsEnabled) {
-            lights.checkDirty(manager, data)
+            profiler.push("checkDirty")
+            lights.checkDirty(manager, data, profiler)
+            profiler.pop()
 
+            profiler.push("render")
             LightMesh.drawState(NeoAtlas.blocks, Vibrancy.id("block/subtle/mesh")).bind().use { settings ->
                 settings.shader.setUniform("ProjMat") { set(data.projMat) }
                 settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((-data.camera.pos).toJOML(), Matrix4f())) }
@@ -58,6 +63,7 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
                         it.render(manager, data, settings.shader, debugOut)
                     }
             }
+            profiler.pop()
         }
     }
 }

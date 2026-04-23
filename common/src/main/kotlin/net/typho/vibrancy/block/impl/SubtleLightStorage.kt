@@ -2,6 +2,7 @@ package net.typho.vibrancy.block.impl
 
 import dev.ryanhcode.sable.companion.SableCompanion
 import net.minecraft.client.Minecraft
+import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
@@ -165,8 +166,10 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
 
     fun checkDirty(
         manager: LightManager,
-        data: RenderEventData
+        data: RenderEventData,
+        profiler: ProfilerFiller
     ) {
+        profiler.push("finish")
         tasks.removeIf { task ->
             if (task.isDone) {
                 task.get()?.accept(data)
@@ -175,7 +178,9 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                 return@removeIf false
             }
         }
+        profiler.pop()
 
+        profiler.push("submit")
         synchronized(dirty) {
             for (pos in dirty) {
                 val chunk = getOrCreateChunk(manager, pos)
@@ -276,6 +281,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
 
             dirty.clear()
         }
+        profiler.pop()
     }
 
     inner class Chunk(

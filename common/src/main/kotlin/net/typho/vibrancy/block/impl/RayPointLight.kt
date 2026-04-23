@@ -6,6 +6,7 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.util.Mth
+import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.AABB
@@ -265,7 +266,8 @@ open class RayPointLight(
         mesh.free()
     }
 
-    fun update(data: RenderEventData, manager: LightManager, debugOut: (String, Int) -> Unit, dynamicShadows: Boolean) {
+    fun update(data: RenderEventData, manager: LightManager, debugOut: (String, Int) -> Unit, dynamicShadows: Boolean, profiler: ProfilerFiller) {
+        profiler.push("rebuildBlocks")
         synchronized(meshCollector) {
             for (pos in manager.dirtyBlocks) {
                 if (boundingBox.contains(pos)) {
@@ -278,11 +280,17 @@ open class RayPointLight(
             mesh.rebuildBlocksAsync(data, pos, manager, meshCollector, shadowPredicate, lightPredicate)
             shadowsDirty = false
         }
+        profiler.pop()
 
+        profiler.push("finish")
         mesh.checkIfFinished()
+        profiler.pop()
 
         if (dynamicShadows) {
+            profiler.push("dynamicShadows")
             manager.getLevel()?.let { level ->
+                profiler.push("collect")
+
                 dynamicCleared = false
 
                 val absolutePos = absolutePos
@@ -397,7 +405,9 @@ open class RayPointLight(
                         }
                     }
                 }
+                profiler.pop()
 
+                profiler.push("calculate")
                 dynamicTexture.framebuffer.bind(NeoRect2i(0, 0, dynamicTexture.width, dynamicTexture.height)).use { fbo ->
                     var cleared = false
 
@@ -468,9 +478,11 @@ open class RayPointLight(
                         }
                     }
                 }
+                profiler.pop()
 
                 debugOut("lightsWithEntityShadows", 1)
             }
+            profiler.pop()
         } else {
             if (!dynamicCleared) {
                 dynamicTexture.clear()
