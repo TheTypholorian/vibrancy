@@ -1,0 +1,31 @@
+{
+  "type": "vibrancy:subtle",
+  "color": {
+    "default": [ 0.85, 0.57, 0.06 ],
+    "entries": [
+      {
+        "matches": {
+          "blaze": "seething"
+        },
+        "value": [ 0.48, 1, 1 ]
+      }
+    ]
+  },
+  "brightness": {
+    "default": 0.5,
+    "entries": [
+      {
+        "matches": {
+          "blaze": "none"
+        },
+        "value": 0
+      },
+      {
+        "matches": {
+          "blaze": "smouldering"
+        },
+        "value": 0.25
+      }
+    ]
+  }
+}

@@ -45,7 +45,7 @@ object BlockLightInfoLoader : NeoResourceManagerReloadListener {
                 blocks.getTag(NeoTagKey(blocks.key.location, tagIdConverter.fileToId(entry.key)))?.let { tag ->
                     val json = JsonParser.parseReader(jsonReader).asJsonObject
 
-                    if (!json.get("enabled").let { it.isJsonPrimitive && it.asJsonPrimitive.isBoolean && !it.asJsonPrimitive.asBoolean }) {
+                    if (!json.get("enabled").let { it != null && it.isJsonPrimitive && it.asJsonPrimitive.isBoolean && !it.asJsonPrimitive.asBoolean }) {
                         tag.forEach { block ->
                             load(block, blocks.getKey(block).location, json)
                         }
@@ -66,7 +66,7 @@ object BlockLightInfoLoader : NeoResourceManagerReloadListener {
                 } else {
                     val json = JsonParser.parseReader(jsonReader).asJsonObject
 
-                    if (!json.get("enabled").let { it.isJsonPrimitive && it.asJsonPrimitive.isBoolean && !it.asJsonPrimitive.asBoolean }) {
+                    if (!json.get("enabled").let { it != null && it.isJsonPrimitive && it.asJsonPrimitive.isBoolean && !it.asJsonPrimitive.asBoolean }) {
                         load(block, blockKey, json)
                     }
                 }
