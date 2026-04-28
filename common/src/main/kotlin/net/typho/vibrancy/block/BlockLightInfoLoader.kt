@@ -1,6 +1,6 @@
 package net.typho.vibrancy.block
 
-import com.google.gson.JsonElement
+import com.google.gson.JsonObject
 import com.google.gson.JsonParseException
 import com.google.gson.JsonParser
 import com.mojang.serialization.JsonOps
@@ -24,8 +24,8 @@ object BlockLightInfoLoader : NeoResourceManagerReloadListener {
     private val warned = HashSet<NeoIdentifier>()
 
     @JvmStatic
-    fun load(block: Block, key: NeoIdentifier, json: JsonElement) {
-        val typeKey = NeoIdentifier.CODEC.decode(JsonOps.INSTANCE, json.asJsonObject.get("type"))
+    fun load(block: Block, key: NeoIdentifier, json: JsonObject) {
+        val typeKey = NeoIdentifier.CODEC.decode(JsonOps.INSTANCE, json.get("type"))
             .getOrThrow { JsonParseException("Block light type for $key is not a valid Identifier: $it") }
             .first
         val codec = (BlockLightRegistry.registry!!.get(typeKey) ?: return Vibrancy.LOGGER.error("No block light type $typeKey for $key"))
@@ -43,10 +43,12 @@ object BlockLightInfoLoader : NeoResourceManagerReloadListener {
         for (entry in tagIdConverter.listMatchingResources(manager)) {
             entry.value.openAsReader().use { jsonReader ->
                 blocks.getTag(NeoTagKey(blocks.key.location, tagIdConverter.fileToId(entry.key)))?.let { tag ->
-                    val json = JsonParser.parseReader(jsonReader)
+                    val json = JsonParser.parseReader(jsonReader).asJsonObject
 
-                    tag.forEach { block ->
-                        load(block, blocks.getKey(block).location, json)
+                    if (!json.get("enabled").let { it.isJsonPrimitive && it.asJsonPrimitive.isBoolean && !it.asJsonPrimitive.asBoolean }) {
+                        tag.forEach { block ->
+                            load(block, blocks.getKey(block).location, json)
+                        }
                     }
                 }
             }
@@ -62,7 +64,11 @@ object BlockLightInfoLoader : NeoResourceManagerReloadListener {
                         Vibrancy.LOGGER.warn("Couldn't find block $blockKey to give a block light to")
                     }
                 } else {
-                    load(block, blockKey, JsonParser.parseReader(jsonReader))
+                    val json = JsonParser.parseReader(jsonReader).asJsonObject
+
+                    if (!json.get("enabled").let { it.isJsonPrimitive && it.asJsonPrimitive.isBoolean && !it.asJsonPrimitive.asBoolean }) {
+                        load(block, blockKey, json)
+                    }
                 }
             }
         }
