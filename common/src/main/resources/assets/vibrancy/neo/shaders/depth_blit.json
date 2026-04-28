@@ -1,0 +1,7 @@
+{
+  "sources": {
+    "vertex": "big_shot_lib:blit",
+    "fragment": "vibrancy:depth_blit"
+  },
+  "format": "minecraft:position_tex"
+}

@@ -9,9 +9,8 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlFramebuffer
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D
-import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
-import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
-import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
+import net.typho.big_shot_lib.api.client.rendering.opengl.state.*
+import net.typho.big_shot_lib.api.client.rendering.opengl.util.ColorMask
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
 import net.typho.big_shot_lib.api.client.util.BigShotClientEntrypoint
@@ -85,6 +84,20 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
     }
 
     @JvmStatic
+    fun depthBlitState(from: GlTexture2D) = GlDrawState.Basic(
+        colorMask = GlColorMaskShard(ColorMask(false, false, false, false)),
+        depth = GlDepthShard.Enabled(
+            GlAlphaFunction.ALWAYS,
+            true
+        ),
+        shader = GlShaderShard.FromLocation(
+            id("depth_blit"),
+            { },
+            GlTextureBinding.FromInstance(from, GlTextureTarget.TEXTURE_2D)
+        )
+    )
+
+    @JvmStatic
     fun render(data: RenderEventData) {
         if (VibrancyConfig.modEnabled) {
             val targetAttachment = data.target.colorAttachments[0] as GlTexture2D
@@ -106,13 +119,10 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
                 }
 
                 fbo.clear(GlClearBit.Color(NeoColor.FULL_OFF), GlClearBit.Depth(1f))
-                fbo.blitFrom(
-                    data.target,
-                    NeoRect2i(0, 0, width, height),
-                    NeoRect2i(0, 0, width, height),
-                    GlTextureMinFilter.NEAREST,
-                    GlBufferBit.DEPTH
-                )
+
+                depthBlitState(data.target.depthAttachment as GlTexture2D).bind().use {
+                    Mesh.SCREEN_MESH.draw()
+                }
 
                 lightManager.render(
                     RenderEventData(
