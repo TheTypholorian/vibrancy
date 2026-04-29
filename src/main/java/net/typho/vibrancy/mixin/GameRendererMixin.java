@@ -33,7 +33,11 @@ public class GameRendererMixin {
             method = "render",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/neoforged/neoforge/client/ClientHooks;drawScreen(Lnet/minecraft/client/gui/screens/Screen;Lnet/minecraft/client/gui/GuiGraphics;IIF)V"
+                    //? fabric {
+                    target = "Lnet/minecraft/client/gui/screens/Screen;renderWithTooltip(Lnet/minecraft/client/gui/GuiGraphics;IIF)V"
+                    //? } neoforge {
+                    /*target = "Lnet/neoforged/neoforge/client/ClientHooks;drawScreen(Lnet/minecraft/client/gui/screens/Screen;Lnet/minecraft/client/gui/GuiGraphics;IIF)V"
+                    *///? }
             )
     )
     private void render(

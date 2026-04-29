@@ -9,6 +9,7 @@
   ],
   "client": [
     "EntityRenderDispatcherMixin",
+    "GameRendererMixin",
     "GuiGraphicsMixin",
     "NativeImageAccessor",
     "ReceivingLevelScreenMixin"
