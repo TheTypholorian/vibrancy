@@ -56,8 +56,9 @@ void main() {
         float multiplier = clamp(dot(outputNormal, reflectedNormal), 0, 1);
         multiplier = pow(multiplier, SpecularReflectionExponent) * SpecularReflectionStrength;
 
-        lightColor += lightColor * multiplier * texelFetch(Sampler3, ivec2(texCoord0 * Sampler0Size), 0).r;
+        lightColor += lightColor * texelFetch(Sampler3, ivec2(texCoord0 * Sampler0Size), 0).r * multiplier;
+        fragColor = mix(lightColor, block.rgb * block.a * lightColor, 1 - (1 - block.a) * (1 - block.a)) * linear_fog_fade(vertexDistance, FogStart, FogEnd);
+    } else {
+        fragColor = block.rgb * block.a * lightColor * linear_fog_fade(vertexDistance, FogStart, FogEnd);
     }
-
-    fragColor = block.rgb * block.a * lightColor * linear_fog_fade(vertexDistance, FogStart, FogEnd);
 }
