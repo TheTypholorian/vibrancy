@@ -10,7 +10,7 @@ import org.spongepowered.asm.mixin.injection.At;
 
 @Mixin(EntityRenderDispatcher.class)
 public class EntityRenderDispatcherMixin {
-    @SuppressWarnings("UNCHECKED_CAST")
+    @SuppressWarnings("unchecked")
     @WrapOperation(
             method = "render",
             at = @At(

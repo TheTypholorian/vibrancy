@@ -17,14 +17,16 @@ object SkyLightInfoLoader : NeoResourceManagerReloadListener {
 
     @JvmStatic
     fun load(key: NeoIdentifier, json: JsonElement, file: NeoIdentifier) {
-        val typeKey = NeoIdentifier.CODEC.decode(JsonOps.INSTANCE, json.asJsonObject.get("type"))
-            .getOrThrow { JsonParseException("Error while parsing sky light info $file: $it") }
-            .first
+        val typeResult = NeoIdentifier.CODEC.decode(JsonOps.INSTANCE, json.asJsonObject.get("type"))
+        typeResult.error().ifPresent { throw JsonParseException("Sky light type for $key is not a valid Identifier: $it") }
+        val typeKey = typeResult.result().get().first
+
         val codec = (SkyLightRegistry.registry!!.get(typeKey) ?: throw JsonParseException("No sky light type $typeKey"))
                 .infoCodec
-        SkyLightRegistry.dimensionMap[key] = codec.codec()
-            .parse(JsonOps.INSTANCE, json)
-            .getOrThrow { message -> JsonParseException("Error parsing sky light info for $key: $message") }
+        val result = codec.codec().parse(JsonOps.INSTANCE, json)
+
+        result.result().ifPresent { SkyLightRegistry.dimensionMap[key] = it }
+        result.error().ifPresent { Vibrancy.LOGGER.error("Error parsing sky light info for $key: ${it.message()}") }
     }
 
     override fun onResourceManagerReload(manager: NeoResourceManager) {

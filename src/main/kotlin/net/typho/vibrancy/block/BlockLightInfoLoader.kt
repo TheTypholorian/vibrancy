@@ -25,15 +25,16 @@ object BlockLightInfoLoader : NeoResourceManagerReloadListener {
 
     @JvmStatic
     fun load(block: Block, key: NeoIdentifier, json: JsonObject) {
-        val typeKey = NeoIdentifier.CODEC.decode(JsonOps.INSTANCE, json.get("type"))
-            .getOrThrow { JsonParseException("Block light type for $key is not a valid Identifier: $it") }
-            .first
+        val typeResult = NeoIdentifier.CODEC.decode(JsonOps.INSTANCE, json.get("type"))
+        typeResult.error().ifPresent { throw JsonParseException("Block light type for $key is not a valid Identifier: $it") }
+        val typeKey = typeResult.result().get().first
+
         val codec = (BlockLightRegistry.registry!!.get(typeKey) ?: return Vibrancy.LOGGER.error("No block light type $typeKey for $key"))
                 .infoCodec(block.stateDefinition)
         val result = codec.codec().parse(JsonOps.INSTANCE, json)
 
         result.result().ifPresent { BlockLightRegistry.blockMap[block] = it }
-            result.error().ifPresent { Vibrancy.LOGGER.error("Error parsing block light info for $key: ${it.message()}") }
+        result.error().ifPresent { Vibrancy.LOGGER.error("Error parsing block light info for $key: ${it.message()}") }
     }
 
     override fun onResourceManagerReload(manager: NeoResourceManager) {

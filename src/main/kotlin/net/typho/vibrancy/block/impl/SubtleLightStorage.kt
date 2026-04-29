@@ -1,7 +1,6 @@
 package net.typho.vibrancy.block.impl
 
 import dev.ryanhcode.sable.companion.SableCompanion
-import net.minecraft.client.Minecraft
 import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
@@ -23,6 +22,7 @@ import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.vibrancy.LightManager
+import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyConfig
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.block.ChunkedBlockLightStorage
@@ -249,8 +249,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                 if (subLevel == null) {
                     shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((blockPos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
                 } else {
-                    val tickDelta = Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(false)
-                    val pose = subLevel.renderPose(tickDelta)
+                    val pose = subLevel.renderPose(Vibrancy.tickDelta)
                     val orientation = Quaternionf(pose.orientation())
                     val pos = NeoVec3d(pose.transformPosition(blockPos.toDouble().toJOML()))
                     shader.setUniform("ModelViewMat") {

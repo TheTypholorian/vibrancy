@@ -151,9 +151,9 @@ open class RayPointLight(
     )
 
     override val absolutePos: IVec3<Float>
-        get() = SableCompanion.INSTANCE.getContainingClient((pos.toDouble() + offset.toDouble()).toJOML())?.let { NeoVec3d(it.renderPose(Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(false)).transformPosition((pos.toDouble() + offset.toDouble()).toJOML())).toFloat() } ?: (pos.toFloat() + offset)
+        get() = SableCompanion.INSTANCE.getContainingClient((pos.toDouble() + offset.toDouble()).toJOML())?.let { NeoVec3d(it.renderPose(Vibrancy.tickDelta).transformPosition((pos.toDouble() + offset.toDouble()).toJOML())).toFloat() } ?: (pos.toFloat() + offset)
     val absoluteBlockPos: IVec3<Float>
-        get() = SableCompanion.INSTANCE.getContainingClient(pos.toDouble().toJOML())?.let { NeoVec3d(it.renderPose(Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(false)).transformPosition(pos.toDouble().toJOML())).toFloat() } ?: pos.toFloat()
+        get() = SableCompanion.INSTANCE.getContainingClient(pos.toDouble().toJOML())?.let { NeoVec3d(it.renderPose(Vibrancy.tickDelta).transformPosition(pos.toDouble().toJOML())).toFloat() } ?: pos.toFloat()
     override val boundingBox: AbstractRect3<Int>
         get() = NeoRect3i(pos - radius.toInt(), pos + radius.toInt())
     override val shadowBox: AbstractRect3<Int>
@@ -353,7 +353,6 @@ open class RayPointLight(
                 }
 
                 val nodes = arrayListOf<Node>()
-                val tickDelta = Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(false)
                 val poseStack = PoseStack()
 
                 for (entity in level.getEntities(null, AABB.ofSize(Vec3(absolutePos.toJOML()), radius.toDouble() * 2, radius.toDouble() * 2, radius.toDouble() * 2))) {
@@ -362,11 +361,11 @@ open class RayPointLight(
                         debugOut("entityShadows", 1)
                         Minecraft.getInstance().entityRenderDispatcher.render(
                             entity,
-                            Mth.lerp(tickDelta.toDouble(), entity.xOld, entity.x),
-                            Mth.lerp(tickDelta.toDouble(), entity.yOld, entity.y),
-                            Mth.lerp(tickDelta.toDouble(), entity.zOld, entity.z),
-                            Mth.lerp(tickDelta, entity.yRotO, entity.yRot),
-                            tickDelta,
+                            Mth.lerp(Vibrancy.tickDelta.toDouble(), entity.xOld, entity.x),
+                            Mth.lerp(Vibrancy.tickDelta.toDouble(), entity.yOld, entity.y),
+                            Mth.lerp(Vibrancy.tickDelta.toDouble(), entity.zOld, entity.z),
+                            Mth.lerp(Vibrancy.tickDelta, entity.yRotO, entity.yRot),
+                            Vibrancy.tickDelta,
                             poseStack,
                             node.bufferSource,
                             net.minecraft.client.renderer.LightTexture.FULL_BRIGHT
@@ -396,7 +395,7 @@ open class RayPointLight(
 
                                 renderer.render(
                                     blockEntity,
-                                    tickDelta,
+                                    Vibrancy.tickDelta,
                                     poseStack,
                                     node.bufferSource,
                                     15728880,
@@ -509,8 +508,7 @@ open class RayPointLight(
         if (subLevel == null) {
             shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((pos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
         } else {
-            val tickDelta = Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(false)
-            val pose = subLevel.renderPose(tickDelta)
+            val pose = subLevel.renderPose(Vibrancy.tickDelta)
             val orientation = Quaternionf(pose.orientation())
             val pos = NeoVec3d(pose.transformPosition(pos.toDouble().toJOML()))
             shader.setUniform("ModelViewMat") {

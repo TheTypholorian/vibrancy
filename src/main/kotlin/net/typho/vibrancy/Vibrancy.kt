@@ -47,6 +47,8 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
     val lightManager = LightManager()
     @JvmField
     var disableFlywheelInstancing = false
+    @JvmField
+    var tickDelta = 0f
 
     /*
     @JvmField
@@ -102,6 +104,12 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
     @JvmStatic
     fun render(data: RenderEventData) {
         if (VibrancyConfig.modEnabled) {
+            //? if <1.21 {
+            tickDelta = Minecraft.getInstance().frameTime
+            //? } else {
+            /*tickDelta = Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(false)
+            *///? }
+
             val targetAttachment = data.target.colorAttachments[0] as GlTexture2D
             val width = targetAttachment.width.coerceAtLeast(1)
             val height = targetAttachment.height.coerceAtLeast(1)

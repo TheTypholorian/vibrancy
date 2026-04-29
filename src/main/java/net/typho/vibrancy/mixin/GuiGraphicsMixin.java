@@ -9,13 +9,15 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.client.resources.model.BakedModel;
-import net.minecraft.core.component.DataComponents;
+import net.minecraft.nbt.CompoundTag;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.item.component.BlockItemStateProperties;
+import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.BlockState;
+import net.minecraft.world.level.block.state.StateDefinition;
+import net.minecraft.world.level.block.state.properties.Property;
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D;
 import net.typho.big_shot_lib.api.math.vec.NeoVec2i;
 import net.typho.big_shot_lib.api.math.vec.NeoVec3f;
@@ -28,9 +30,14 @@ import org.joml.Vector4f;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+//? } else {
+/*import net.minecraft.core.component.DataComponents;
+import net.minecraft.world.item.component.BlockItemStateProperties;
+*///? }
 
 @Mixin(GuiGraphics.class)
 public class GuiGraphicsMixin {
@@ -41,6 +48,13 @@ public class GuiGraphicsMixin {
     @Shadow
     @Final
     private Minecraft minecraft;
+
+    //? if <1.20.5 {
+    @Unique
+    private static <T extends Comparable<T>> BlockState big_shot_lib$updateState(BlockState blockState, Property<T> property, String string) {
+        return property.getValue(string).map((comparable) -> blockState.setValue(property, comparable)).orElse(blockState);
+    }
+    //? }
 
     @WrapOperation(
             method = "renderItem(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/level/Level;Lnet/minecraft/world/item/ItemStack;IIII)V",
@@ -63,7 +77,26 @@ public class GuiGraphicsMixin {
     ) {
         if ((Object) this instanceof RaytracedGuiGraphics raytraced) {
             if (stack.getItem() instanceof BlockItem blockItem) {
-                BlockState state = stack.getOrDefault(DataComponents.BLOCK_STATE, BlockItemStateProperties.EMPTY).apply(blockItem.getBlock().defaultBlockState());
+                //? if <1.20.5 {
+                BlockState state = blockItem.getBlock().defaultBlockState();
+                CompoundTag tag = stack.getTag();
+
+                if (tag != null) {
+                    CompoundTag stateTag = tag.getCompound("BlockStateTag");
+                    StateDefinition<Block, BlockState> stateDefinition = blockItem.getBlock().getStateDefinition();
+
+                    for(String string : stateTag.getAllKeys()) {
+                        Property<?> property = stateDefinition.getProperty(string);
+                        if (property != null) {
+                            String string2 = stateTag.get(string).getAsString();
+                            state = big_shot_lib$updateState(state, property, string2);
+                        }
+                    }
+                }
+                //? } else {
+                /*BlockState state = stack.getOrDefault(DataComponents.BLOCK_STATE, BlockItemStateProperties.EMPTY).apply(blockItem.getBlock().defaultBlockState());
+                *///? }
+
                 BlockLightInfo info = BlockLightRegistry.blockMap.get(blockItem.getBlock());
 
                 if (info != null && info.getEnabled().invoke(state)) {

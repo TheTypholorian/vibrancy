@@ -2,10 +2,7 @@ package net.typho.vibrancy.util
 
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.texture.SpriteContents
-import net.minecraft.client.renderer.texture.SpriteLoader
 import net.minecraft.client.renderer.texture.SpriteTicker
-import net.minecraft.client.renderer.texture.atlas.SpriteResourceLoader
-import net.minecraft.resources.ResourceLocation
 import net.typho.big_shot_lib.api.client.rendering.opengl.GlQueue
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlFramebuffer
@@ -95,7 +92,11 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
                 }
 
                 val animations = mutableListOf<Animation>()
-                val loader = SpriteResourceLoader.create(SpriteLoader.DEFAULT_METADATA_SECTIONS)
+
+                //? if <1.21 {
+                TODO()
+                //? } else {
+                /*val loader = SpriteResourceLoader.create(SpriteLoader.DEFAULT_METADATA_SECTIONS)
 
                 for (resource in idConverter.listMatchingResources(resources)) {
                     val id = idConverter.fileToId(resource.key)
@@ -120,6 +121,7 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
                         }
                     }
                 }
+                *///? }
 
                 return@computeIfAbsent Atlas(texture.resource, animations)
             }
