@@ -108,8 +108,11 @@ dependencies {
     modImplementation(libs.bigShot)
     modImplementation(libs.yacl)
     modImplementation(libs.modmenu)
-    include(libs.sableCompanionFabric)
-    modApi(libs.sableCompanionFabric)
+
+    if (sc.current.version == "1.21") {
+        include(libs.sableCompanionFabric)
+        modApi(libs.sableCompanionFabric)
+    }
 }
 
 fabricApi {

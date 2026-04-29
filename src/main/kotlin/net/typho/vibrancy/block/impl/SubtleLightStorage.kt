@@ -1,6 +1,12 @@
 package net.typho.vibrancy.block.impl
 
+//? if 1.21 {
 import dev.ryanhcode.sable.companion.SableCompanion
+import net.typho.big_shot_lib.api.math.vec.NeoVec3d
+import net.typho.vibrancy.Vibrancy
+import org.joml.Quaternionf
+//? }
+
 import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
@@ -16,13 +22,11 @@ import net.typho.big_shot_lib.api.math.rect.AbstractRect3
 import net.typho.big_shot_lib.api.math.rect.AbstractRect3.Companion.iterator
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
-import net.typho.big_shot_lib.api.math.vec.NeoVec3d
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.vibrancy.LightManager
-import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyConfig
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.block.ChunkedBlockLightStorage
@@ -32,7 +36,6 @@ import net.typho.vibrancy.shadows.LightFace
 import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.util.VibrancyThreadPool
 import org.joml.Matrix4f
-import org.joml.Quaternionf
 import org.lwjgl.system.NativeResource
 import java.util.*
 import java.util.concurrent.CompletableFuture
@@ -244,6 +247,8 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                 && box?.let { manager.testFrustum(pos, data, it) } ?: true
             ) {
                 val blockPos = NeoVec3i(pos.minBlockX, 0, pos.minBlockZ)
+
+                //? if 1.21 {
                 val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
 
                 if (subLevel == null) {
@@ -260,6 +265,9 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                         )
                     }
                 }
+                //? } else {
+                /*shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((blockPos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
+                *///? }
 
                 //shader.setTexture(1, GlTextureBinding.FromInstance(lightTexture, GlTextureTarget.TEXTURE_2D))
                 mesh.draw()

@@ -1,5 +1,8 @@
 package net.typho.vibrancy
 
+//? if 1.21 {
+//? }
+
 import dev.ryanhcode.sable.companion.ClientSubLevelAccess
 import dev.ryanhcode.sable.companion.SableCompanion
 import net.minecraft.ChatFormatting
@@ -142,6 +145,7 @@ open class LightManager {
         profiler.pop()
     }
 
+    //? if 1.21 {
     fun testFrustum(origin: IVec3<Int>, data: RenderEventData, box: AbstractRect3<Int>): Boolean {
         return testFrustum(SableCompanion.INSTANCE.getContainingClient(origin.toDouble().toJOML()), data, box)
     }
@@ -164,6 +168,22 @@ open class LightManager {
             )
         }
     }
+    //? } else {
+    /*fun testFrustum(origin: IVec3<Int>, data: RenderEventData, box: AbstractRect3<Int>): Boolean {
+        return testFrustum(data, box)
+    }
+
+    fun testFrustum(origin: ChunkPos, data: RenderEventData, box: AbstractRect3<Int>): Boolean {
+        return testFrustum(data, box)
+    }
+
+    fun testFrustum(data: RenderEventData, box: AbstractRect3<Int>): Boolean {
+        return data.frustum.testAab(
+            (box.min.toFloat() - data.camera.pos).toJOML(),
+            (box.max.toFloat() - data.camera.pos).toJOML(),
+        )
+    }
+    *///? }
 
     fun getDebugOutput(out: Consumer<String>) {
         debugInfo[null]?.forEach { (key, value) -> out.accept("$key: $value") }
@@ -192,6 +212,7 @@ open class LightManager {
         return testDistanceSquared <= x * x
     }
 
+    //? if 1.21 {
     fun inRenderDistance(data: RenderEventData, pos: ChunkPos, distance: Int): Boolean {
         val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
 
@@ -217,4 +238,17 @@ open class LightManager {
             data.camera.pos.distanceSquared(NeoVec3d(subLevel.renderPose().position()).toFloat())
         }
     }
+    //? } else {
+    /*fun inRenderDistance(data: RenderEventData, pos: ChunkPos, distance: Int): Boolean {
+        return data.camera.pos.xz.inDistance(pos.middleBlockX.toFloat(), pos.middleBlockZ.toFloat(), clampToChunkRenderDistance(distance) * 16f)
+    }
+
+    fun getSortingOrder(data: RenderEventData, pos: IVec3<Int>): Float {
+        return (pos.toFloat() + 0.5f).distanceSquared(data.camera.pos)
+    }
+
+    fun getSortingOrder(data: RenderEventData, pos: ChunkPos): Float {
+        return data.camera.pos.xz.distanceSquared(pos.middleBlockX.toFloat(), pos.middleBlockZ.toFloat())
+    }
+    *///? }
 }

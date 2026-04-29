@@ -1,8 +1,13 @@
 package net.typho.vibrancy.util
 
+//? if <1.21 {
+//? } else {
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.texture.SpriteContents
+import net.minecraft.client.renderer.texture.SpriteLoader
 import net.minecraft.client.renderer.texture.SpriteTicker
+import net.minecraft.client.renderer.texture.atlas.SpriteResourceLoader
+import net.minecraft.resources.ResourceLocation
 import net.typho.big_shot_lib.api.client.rendering.opengl.GlQueue
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlFramebuffer
@@ -21,6 +26,8 @@ import net.typho.big_shot_lib.api.util.resource.NeoFileToIdConverter
 import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.Vibrancy
 import java.io.FileNotFoundException
+
+//? }
 
 object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigShotClientEntrypoint {
     private class Animation(
@@ -94,9 +101,9 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
                 val animations = mutableListOf<Animation>()
 
                 //? if <1.21 {
-                TODO()
+                // TODO
                 //? } else {
-                /*val loader = SpriteResourceLoader.create(SpriteLoader.DEFAULT_METADATA_SECTIONS)
+                val loader = SpriteResourceLoader.create(SpriteLoader.DEFAULT_METADATA_SECTIONS)
 
                 for (resource in idConverter.listMatchingResources(resources)) {
                     val id = idConverter.fileToId(resource.key)
@@ -121,7 +128,7 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
                         }
                     }
                 }
-                *///? }
+                //? }
 
                 return@computeIfAbsent Atlas(texture.resource, animations)
             }

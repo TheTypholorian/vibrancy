@@ -9,15 +9,13 @@ import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.renderer.MultiBufferSource;
 import net.minecraft.client.renderer.entity.ItemRenderer;
 import net.minecraft.client.resources.model.BakedModel;
-import net.minecraft.nbt.CompoundTag;
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.BlockItem;
 import net.minecraft.world.item.ItemDisplayContext;
 import net.minecraft.world.item.ItemStack;
-import net.minecraft.world.level.block.Block;
+import net.minecraft.world.item.component.BlockItemStateProperties;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraft.world.level.block.state.StateDefinition;
-import net.minecraft.world.level.block.state.properties.Property;
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D;
 import net.typho.big_shot_lib.api.math.vec.NeoVec2i;
 import net.typho.big_shot_lib.api.math.vec.NeoVec3f;
@@ -30,14 +28,10 @@ import org.joml.Vector4f;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-//? } else {
-/*import net.minecraft.core.component.DataComponents;
-import net.minecraft.world.item.component.BlockItemStateProperties;
-*///? }
+//? }
 
 @Mixin(GuiGraphics.class)
 public class GuiGraphicsMixin {
@@ -50,11 +44,11 @@ public class GuiGraphicsMixin {
     private Minecraft minecraft;
 
     //? if <1.20.5 {
-    @Unique
+    /*@Unique
     private static <T extends Comparable<T>> BlockState big_shot_lib$updateState(BlockState blockState, Property<T> property, String string) {
         return property.getValue(string).map((comparable) -> blockState.setValue(property, comparable)).orElse(blockState);
     }
-    //? }
+    *///? }
 
     @WrapOperation(
             method = "renderItem(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/level/Level;Lnet/minecraft/world/item/ItemStack;IIII)V",
@@ -78,7 +72,7 @@ public class GuiGraphicsMixin {
         if ((Object) this instanceof RaytracedGuiGraphics raytraced) {
             if (stack.getItem() instanceof BlockItem blockItem) {
                 //? if <1.20.5 {
-                BlockState state = blockItem.getBlock().defaultBlockState();
+                /*BlockState state = blockItem.getBlock().defaultBlockState();
                 CompoundTag tag = stack.getTag();
 
                 if (tag != null) {
@@ -93,9 +87,9 @@ public class GuiGraphicsMixin {
                         }
                     }
                 }
-                //? } else {
-                /*BlockState state = stack.getOrDefault(DataComponents.BLOCK_STATE, BlockItemStateProperties.EMPTY).apply(blockItem.getBlock().defaultBlockState());
-                *///? }
+                *///? } else {
+                BlockState state = stack.getOrDefault(DataComponents.BLOCK_STATE, BlockItemStateProperties.EMPTY).apply(blockItem.getBlock().defaultBlockState());
+                //? }
 
                 BlockLightInfo info = BlockLightRegistry.blockMap.get(blockItem.getBlock());
 
@@ -121,7 +115,11 @@ public class GuiGraphicsMixin {
             method = "innerBlit(Lnet/minecraft/resources/ResourceLocation;IIIIIFFFF)V",
             at = @At(
                     value = "INVOKE",
+                    //? if >=1.21 {
                     target = "Lcom/mojang/blaze3d/vertex/BufferUploader;drawWithShader(Lcom/mojang/blaze3d/vertex/MeshData;)V"
+                    //? } else {
+                    /*target = "Lcom/mojang/blaze3d/vertex/BufferUploader;drawWithShader(Lcom/mojang/blaze3d/vertex/BufferBuilder$RenderedBuffer;)V"
+                    *///? }
             )
     )
     private void innerBlit(
@@ -152,7 +150,11 @@ public class GuiGraphicsMixin {
             method = "innerBlit(Lnet/minecraft/resources/ResourceLocation;IIIIIFFFFFFFF)V",
             at = @At(
                     value = "INVOKE",
+                    //? if >=1.21 {
                     target = "Lcom/mojang/blaze3d/vertex/BufferUploader;drawWithShader(Lcom/mojang/blaze3d/vertex/MeshData;)V"
+                    //? } else {
+                    /*target = "Lcom/mojang/blaze3d/vertex/BufferUploader;drawWithShader(Lcom/mojang/blaze3d/vertex/BufferBuilder$RenderedBuffer;)V"
+                    *///? }
             )
     )
     private void innerBlit(
