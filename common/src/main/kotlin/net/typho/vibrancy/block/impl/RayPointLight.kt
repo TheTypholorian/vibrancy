@@ -376,34 +376,40 @@ open class RayPointLight(
                 }
 
                 if (VibrancyConfig.blockEntityShadows) {
+                    Vibrancy.disableFlywheelInstancing = true
+
                     for (pos in meshCollector.blockEntities) {
                         level.getBlockEntity(pos.blockPos)?.let { blockEntity ->
-                            val node = Node()
-                            debugOut("blockEntityShadows", 1)
+                            Minecraft.getInstance().blockEntityRenderDispatcher.getRenderer(blockEntity)?.let { renderer ->
+                                val node = Node()
+                                debugOut("blockEntityShadows", 1)
 
-                            poseStack.pushPose()
+                                poseStack.pushPose()
 
-                            if (subLevelPose == null) {
-                                poseStack.translate(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
-                            } else {
-                                val pos = subLevelPose.transformPosition(pos.toDouble().toJOML())
-                                poseStack.translate(pos.x, pos.y, pos.z)
-                                poseStack.mulPose(Quaternionf(subLevelPose.orientation()))
+                                if (subLevelPose == null) {
+                                    poseStack.translate(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
+                                } else {
+                                    val pos = subLevelPose.transformPosition(pos.toDouble().toJOML())
+                                    poseStack.translate(pos.x, pos.y, pos.z)
+                                    poseStack.mulPose(Quaternionf(subLevelPose.orientation()))
+                                }
+
+                                renderer.render(
+                                    blockEntity,
+                                    tickDelta,
+                                    poseStack,
+                                    node.bufferSource,
+                                    15728880,
+                                    OverlayTexture.NO_OVERLAY
+                                )
+
+                                poseStack.popPose()
+                                nodes.add(node)
                             }
-
-                            Minecraft.getInstance().blockEntityRenderDispatcher.getRenderer(blockEntity)?.render(
-                                blockEntity,
-                                tickDelta,
-                                poseStack,
-                                node.bufferSource,
-                                15728880,
-                                OverlayTexture.NO_OVERLAY
-                            )
-
-                            poseStack.popPose()
-                            nodes.add(node)
                         }
                     }
+
+                    Vibrancy.disableFlywheelInstancing = false
                 }
                 profiler.pop()
 

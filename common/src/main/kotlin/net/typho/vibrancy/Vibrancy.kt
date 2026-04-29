@@ -45,6 +45,8 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
 
     @JvmField
     val lightManager = LightManager()
+    @JvmField
+    var disableFlywheelInstancing = false
 
     /*
     @JvmField
