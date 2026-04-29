@@ -86,6 +86,26 @@ neoForge {
 repositories {
     mavenLocal()
     maven("https://thedarkcolour.github.io/KotlinForForge/") { name = "KotlinForForge" }
+    maven {
+        name = "Modrinth"
+        url = uri("https://api.modrinth.com/maven")
+    }
+    maven("https://maven.isxander.dev/releases") {
+        name = "Xander Maven"
+    }
+    maven("https://maven.ryanhcode.dev/releases") {
+        name = "RyanHCode Maven"
+    }
+
+    ivy {
+        url = uri("https://github.com/TheTypholorian/big_shot_lib/releases/download")
+        patternLayout {
+            artifact("[revision]/[artifact]-[revision](-[classifier]).[ext]")
+        }
+        metadataSources {
+            artifact()
+        }
+    }
 }
 
 dependencies {
