@@ -32,6 +32,7 @@ val processResources = tasks.named<ProcessResources>("processResources") {
         this["mod_description"] = project.property("mod.description") as String
         this["mod_credits"] = project.property("mod.credits") as String
         this["mod_license"] = project.property("mod.license") as String
+        this["big_shot_version"] = libs.bigShot.get().version as String
     }
 
     inputs.properties(props)
@@ -51,12 +52,6 @@ jsonlang {
 
 neoForge {
     version = property("deps.neoforge") as String
-
-    if (accessTransformer.exists()) {
-        accessTransformers.from(accessTransformer)
-    }
-
-    validateAccessTransformers = true
 
     if (hasProperty("deps.parchment")) parchment {
         val (mc, ver) = (property("deps.parchment") as String).split(':')

@@ -1,16 +1,16 @@
 {
   "schemaVersion": 1,
   "id": "${mod_id}",
-  "version": "${version}",
+  "version": "${mod_version}",
   "name": "${mod_name}",
-  "description": "${description}",
+  "description": "${mod_description}",
   "authors": [
     "${mod_author}"
   ],
   "contact": {
-    "sources": "https://github.com/TheTypholorian/vibrancy"
+    "sources": "https://github.com/TheTypholorian/${mod_id}"
   },
-  "license": "${license}",
+  "license": "${mod_license}",
   "icon": "${mod_id}.png",
   "environment": "client",
   "entrypoints": {
@@ -22,17 +22,13 @@
     ]
   },
   "mixins": [
-    "${mod_id}.mixins.json",
-    "${mod_id}.fabric.mixins.json"
+    "${mod_id}.mixins.json"
   ],
   "depends": {
     "fabricloader": "*",
     "fabric-api": "*",
-    "minecraft": [
-      "1.21",
-      "1.21.1"
-    ],
-    "fabric-language-kotlin": ">=${flk_version}",
+    "minecraft": "${minecraft}",
+    "fabric-language-kotlin": "*",
     "big_shot_lib": ">=${big_shot_version}"
   },
   "breaks": {

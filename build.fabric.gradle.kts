@@ -42,6 +42,7 @@ tasks.named<ProcessResources>("processResources") {
         this["mod_description"] = project.property("mod.description") as String
         this["mod_credits"] = project.property("mod.credits") as String
         this["mod_license"] = project.property("mod.license") as String
+        this["big_shot_version"] = libs.bigShot.get().version as String
     }
 
     inputs.properties(props)
