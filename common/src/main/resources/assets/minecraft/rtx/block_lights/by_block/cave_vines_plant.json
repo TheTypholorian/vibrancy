@@ -1,6 +1,6 @@
 {
   "type": "vibrancy:subtle",
-  "color": [ 0.94, 0.58, 0.27 ],
+  "color": [ 0.92, 0.53, 0.19 ],
   "brightness": 0.5,
   "enabled": {
     "default": false,

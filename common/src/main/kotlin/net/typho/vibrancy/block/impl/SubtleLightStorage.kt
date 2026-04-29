@@ -7,9 +7,16 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkAccess
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBeginMode
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferTarget
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlDataType
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlBuffer
+import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
+import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
 import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.math.NeoDirection
@@ -21,7 +28,7 @@ import net.typho.big_shot_lib.api.math.vec.NeoVec3d
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.BlockUtil
-import net.typho.big_shot_lib.api.util.NeoColor
+import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.VibrancyConfig
 import net.typho.vibrancy.block.BlockLightRegistry
@@ -29,15 +36,38 @@ import net.typho.vibrancy.block.ChunkedBlockLightStorage
 import net.typho.vibrancy.block.HashMapBlockLightStorage
 import net.typho.vibrancy.collectors.BlockMeshCollector
 import net.typho.vibrancy.shadows.LightFace
-import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.util.VibrancyThreadPool
 import org.joml.Matrix4f
 import org.joml.Quaternionf
+import org.lwjgl.opengl.GL30.glBindBufferBase
+import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.system.NativeResource
 import java.util.*
 import java.util.concurrent.CompletableFuture
 
 class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLightStorage.Chunk>(SubtleLightType) {
+    companion object {
+        @JvmField
+        val VERTEX_FORMAT = NeoVertexFormat.builder()
+            .add("Position", NeoVertexFormat.Element.POSITION)
+            .add("UV0", NeoVertexFormat.Element.TEXTURE_UV)
+            // TODO
+            .add("LightIndex", object : NeoVertexFormat.Element {
+                override fun vertexAttribPointer(index: Int, offset: Long, stride: Int) {
+                    type.vertexAttribPointer(index, count, normalized, stride, offset)
+                }
+
+                override val count: Int = 1
+                override val index: Int = 0
+                override val normalized: Boolean? = null
+                override val sizeBytes: Int = 4
+                override val type: GlDataType = GlDataType.UNSIGNED_INT
+            })
+            .add("Color", NeoVertexFormat.Element.COLOR)
+            .add("Normal", NeoVertexFormat.Element.NORMAL)
+            .build()
+    }
+
     @JvmField
     val dirty = HashSet<ChunkPos>()
     @JvmField
@@ -134,11 +164,13 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                             return { }
                         }
 
-                        val quads = arrayListOf<NeoBakedQuad>()
+                        val quads = arrayListOf<Pair<NeoBakedQuad, Int>>()
                         val origin = NeoVec3i(pos.minBlockX, 0, pos.minBlockZ)
 
+                        val lights = chunk.map.values.toList()
+
                         profiler?.push("collect")
-                        chunk.map.values.forEach { light ->
+                        lights.forEachIndexed { index, light ->
                             val lightPos = (light.pos - origin).toFloat() + light.offset
 
                             light.shadowBox.iterator().forEach { block ->
@@ -180,17 +212,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                                             }
 
                                             override fun collect(faces: Iterable<LightFace>) {
-                                                faces.mapTo(quads) { face ->
-                                                    face.applyTint { pos, color ->
-                                                        val value = SubtleLight.sampleLight(lightPos, pos)
-                                                        NeoColor.RGBAF(
-                                                            /*color.r * color.a * */light.color.r,
-                                                            /*color.g * color.a * */light.color.g,
-                                                            /*color.b * color.a * */light.color.b,
-                                                            value
-                                                        )
-                                                    }
-                                                }
+                                                faces.mapTo(quads) { it.quad to index }
                                             }
                                         }
                                     )
@@ -199,11 +221,39 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                         }
                         profiler?.pop()
 
-                        profiler?.push("upload")
-                        val task = chunk.mesh.lazyUploadNoAtlas(quads)
+                        profiler?.push("ssbo")
+                        val buffer = NeoBuffer.GCNative(chunk.size.toLong() * 8 * Float.SIZE_BYTES)
+
+                        buffer.write().run {
+                            for (light in lights) {
+                                val color = light.color
+                                val pos = (light.pos - origin).toFloat() + light.offset
+
+                                writeFloat(pos.x)
+                                writeFloat(pos.y)
+                                writeFloat(pos.z)
+                                writeFloat(0f)
+
+                                writeFloat(color.x)
+                                writeFloat(color.y)
+                                writeFloat(color.z)
+                                writeFloat(0f)
+                            }
+                        }
                         profiler?.pop()
 
-                        return task
+                        profiler?.push("upload")
+                        val task = chunk.lazyUpload(quads)
+                        profiler?.pop()
+
+                        return {
+                            task()
+
+                            chunk.ssbo.bind(GlBufferTarget.SHADER_STORAGE_BUFFER).use { ssbo ->
+                                ssbo.bufferData(buffer, GlBufferUsage.STATIC_DRAW)
+                                buffer.free()
+                            }
+                        }
                     }
                 }
 
@@ -226,7 +276,43 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
         @JvmField
         var box: AbstractRect3<Int>? = null
         @JvmField
-        val mesh = LightMesh(GlBufferUsage.STATIC_DRAW)
+        val mesh = Mesh(
+            VERTEX_FORMAT,
+            GlBeginMode.QUADS,
+            GlBufferWriter.Mode.REGULAR,
+            GlBufferUsage.STATIC_DRAW
+        )
+        @JvmField
+        val ssbo = NeoGlBuffer()
+
+        fun lazyUpload(quads: Collection<Pair<NeoBakedQuad, Int>>): () -> Unit {
+            val vertexBuffer = NeoBuffer.GCNative(quads.size.toLong() * 4 * VERTEX_FORMAT.vertexSizeBytes)
+
+            vertexBuffer.write().run {
+                quads.forEachIndexed { index, quad ->
+                    for (vertex in quad.first.vertices) {
+                        writeFloat(vertex.pos.x)
+                        writeFloat(vertex.pos.y)
+                        writeFloat(vertex.pos.z)
+                        writeFloat(vertex.textureUV!!.x)
+                        writeFloat(vertex.textureUV!!.y)
+                        writeInt(quad.second)
+                        writeInt(vertex.color!!.toRGBA())
+                        writeByte((vertex.normal!!.x * 127).toInt())
+                        writeByte((vertex.normal!!.y * 127).toInt())
+                        writeByte((vertex.normal!!.z * 127).toInt())
+                    }
+                }
+            }
+
+            val indices = mesh.generateIndices(quads.size * 4)
+
+            return {
+                mesh.rawUpload(quads.size * 6, indices.second, vertexBuffer, indices.first)
+                vertexBuffer.free()
+                indices.first.free()
+            }
+        }
 
         fun scan(level: Level, manager: LightManager) {
             map.clear()
@@ -263,6 +349,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                 }
 
                 //shader.setTexture(1, GlTextureBinding.FromInstance(lightTexture, GlTextureTarget.TEXTURE_2D))
+                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo.glId)
                 mesh.draw()
                 debugOut("lightsRendered", size)
                 debugOut("chunksRendered", 1)
