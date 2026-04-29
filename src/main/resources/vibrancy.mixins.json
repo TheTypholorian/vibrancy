@@ -1,0 +1,21 @@
+{
+  "required": true,
+  "minVersion": "0.8",
+  "package": "net.typho.vibrancy.mixin",
+  "refmap": "${mod_id}.refmap.json",
+  "compatibilityLevel": "JAVA_${java_version}",
+  "mixins": [
+    "VisualizationManagerMixin"
+  ],
+  "client": [
+    "EntityRenderDispatcherMixin",
+    "GameRendererMixin",
+    "GuiGraphicsMixin",
+    "NativeImageAccessor",
+    "ReceivingLevelScreenMixin"
+  ],
+  "injectors": {
+    "defaultRequire": 1
+  }
+}
+
