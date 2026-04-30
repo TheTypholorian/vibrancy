@@ -101,8 +101,8 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
                 val animations = mutableListOf<Animation>()
 
                 //? if <1.21 {
-                // TODO
-                //? } else {
+                 /*TODO
+                *///? } else {
                 val loader = SpriteResourceLoader.create(SpriteLoader.DEFAULT_METADATA_SECTIONS)
 
                 for (resource in idConverter.listMatchingResources(resources)) {
