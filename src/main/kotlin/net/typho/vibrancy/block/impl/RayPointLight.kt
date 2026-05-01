@@ -1,10 +1,10 @@
 package net.typho.vibrancy.block.impl
 
 //? if 1.21 {
+import dev.ryanhcode.sable.companion.SableCompanion
 //? }
 
 import com.mojang.blaze3d.vertex.PoseStack
-import dev.ryanhcode.sable.companion.SableCompanion
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.texture.OverlayTexture
@@ -89,6 +89,7 @@ open class RayPointLight(
         )
     }
 
+    @JvmField
     val blitMesh = Mesh(
         LightMesh.BLIT_VERTEX_FORMAT,
         GlBeginMode.QUADS,
@@ -110,18 +111,26 @@ open class RayPointLight(
         }
     }
 
+    @JvmField
     val meshCollector = FloodFillBlockMeshCollector(pos)
 
     var meshData: LightMesh.MeshData? = null
         protected set
 
+    @JvmField
     val dynamicTexture = LightTexture()
+    @JvmField
     val dynamicBuffer = ShadowBuffer(GlBufferUsage.STREAM_DRAW)
+    @JvmField
     val dynamicBVHBuffer = NeoGlBuffer()
+    @JvmField
     val dynamicTextureInfoBuffer = NeoGlBuffer()
+    @JvmField
     protected var dynamicCleared = true
 
+    @JvmField
     val staticTexture = LightTexture()
+    @JvmField
     val mesh = StaticBlockLightMeshManager { mesh, info ->
         meshData = info
         staticTexture.resize(info.sections.size.x, info.sections.size.y)
@@ -144,6 +153,7 @@ open class RayPointLight(
         dynamicTexture.clear()
     }
 
+    @JvmField
     var shadowsDirty = true
 
     constructor(info: RayPointLightInfo, state: BlockState, pos: IVec3<Int>) : this(

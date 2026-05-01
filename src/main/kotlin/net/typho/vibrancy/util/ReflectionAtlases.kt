@@ -1,7 +1,5 @@
 package net.typho.vibrancy.util
 
-//? if <1.21 {
-//? } else {
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.texture.SpriteContents
 import net.minecraft.client.renderer.texture.SpriteLoader
@@ -26,8 +24,6 @@ import net.typho.big_shot_lib.api.util.resource.NeoFileToIdConverter
 import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.Vibrancy
 import java.io.FileNotFoundException
-
-//? }
 
 object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigShotClientEntrypoint {
     private class Animation(
@@ -101,8 +97,7 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
                 val animations = mutableListOf<Animation>()
 
                 //? if <1.21 {
-                 /*TODO
-                *///? } else {
+                //? } else {
                 val loader = SpriteResourceLoader.create(SpriteLoader.DEFAULT_METADATA_SECTIONS)
 
                 for (resource in idConverter.listMatchingResources(resources)) {

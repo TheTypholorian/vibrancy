@@ -13,6 +13,10 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 
 import java.util.function.BooleanSupplier;
 
+//? if <1.21 {
+/*import org.spongepowered.asm.mixin.Unique;
+*///? }
+
 @Mixin(ReceivingLevelScreen.class)
 public class ReceivingLevelScreenMixin {
     @Shadow

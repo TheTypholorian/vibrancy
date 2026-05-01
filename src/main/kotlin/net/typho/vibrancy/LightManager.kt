@@ -1,10 +1,10 @@
 package net.typho.vibrancy
 
 //? if 1.21 {
-//? }
-
 import dev.ryanhcode.sable.companion.ClientSubLevelAccess
 import dev.ryanhcode.sable.companion.SableCompanion
+//? }
+
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
@@ -131,7 +131,11 @@ open class LightManager {
         profiler.pop()
     }
 
+    //? if <1.21.10 {
     fun render(data: RenderEventData, profiler: ProfilerFiller = Minecraft.getInstance().profiler) {
+    //? } else {
+    /*fun render(data: RenderEventData, profiler: ProfilerFiller = ProfilerFiller.get()) {
+    *///? }
         profiler.push("vibrancy")
         debugInfo.clear()
 
