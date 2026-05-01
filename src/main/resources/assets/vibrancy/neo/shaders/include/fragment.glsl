@@ -38,5 +38,5 @@ vec3 specularReflection(vec3 lightColor, vec3 lightPos, vec3 cameraPos, vec3 ver
 }
 
 vec3 applyLight(vec3 lightColor, vec4 blockColor, float vertexDistance, float fogStart, float fogEnd) {
-    return mix(lightColor, blockColor.rgb * blockColor.a * lightColor, 1 - (1 - blockColor.a) * (1 - blockColor.a)) * linear_fog_fade(vertexDistance, fogStart, fogEnd);
+    return mix(lightColor, lightColor * blockColor.rgb, 1 - (1 - blockColor.a) * (1 - blockColor.a)) * blockColor.a * linear_fog_fade(vertexDistance, fogStart, fogEnd);
 }
