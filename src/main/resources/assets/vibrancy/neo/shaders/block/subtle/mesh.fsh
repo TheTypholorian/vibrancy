@@ -45,10 +45,10 @@ void main() {
         lightColor = sampleCubeLight(light.pos, vertexPosition, 0.5, 1.5, light.color);
     } else if (light.shape == 1) {
         lightColor = samplePointLight(light.pos, vertexPosition, 1.5, light.color);
-    }
 
-    if (SpecularReflectionsEnabled) {
-        lightColor = specularReflection(lightColor, light.pos, CameraPos, vertexPosition, vertexNormal, SpecularReflectionStrength, SpecularReflectionExponent, Sampler1, texCoord0);
+        if (SpecularReflectionsEnabled) {
+            lightColor = specularReflection(lightColor, light.pos, CameraPos, vertexPosition, vertexNormal, SpecularReflectionStrength, SpecularReflectionExponent, Sampler1, texCoord0);
+        }
     }
 
     fragColor = applyLight(lightColor, block, vertexDistance, FogStart, FogEnd);
