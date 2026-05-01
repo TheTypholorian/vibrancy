@@ -106,9 +106,11 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
         if (VibrancyConfig.modEnabled) {
             //? if <1.21 {
             /*tickDelta = Minecraft.getInstance().frameTime
-            *///? } else {
+            *///? } else if <1.21.2 {
             tickDelta = Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(false)
-            //? }
+            //? } else {
+            /*tickDelta = Minecraft.getInstance().deltaTracker.getGameTimeDeltaPartialTick(false)
+            *///? }
 
             val targetAttachment = data.target.colorAttachments[0] as GlTexture2D
             val width = targetAttachment.width.coerceAtLeast(1)

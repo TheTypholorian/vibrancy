@@ -131,7 +131,7 @@ open class LightManager {
         profiler.pop()
     }
 
-    //? if <1.21.10 {
+    //? if <1.21.11 {
     fun render(data: RenderEventData, profiler: ProfilerFiller = Minecraft.getInstance().profiler) {
     //? } else {
     /*fun render(data: RenderEventData, profiler: ProfilerFiller = ProfilerFiller.get()) {
