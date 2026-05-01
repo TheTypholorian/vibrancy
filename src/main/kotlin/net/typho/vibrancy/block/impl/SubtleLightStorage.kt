@@ -12,9 +12,16 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkAccess
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBeginMode
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferTarget
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlDataType
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlBuffer
+import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
+import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
 import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.math.NeoDirection
@@ -25,7 +32,7 @@ import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.BlockUtil
-import net.typho.big_shot_lib.api.util.NeoColor
+import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.VibrancyConfig
 import net.typho.vibrancy.block.BlockLightRegistry
@@ -33,9 +40,10 @@ import net.typho.vibrancy.block.ChunkedBlockLightStorage
 import net.typho.vibrancy.block.HashMapBlockLightStorage
 import net.typho.vibrancy.collectors.BlockMeshCollector
 import net.typho.vibrancy.shadows.LightFace
-import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.util.VibrancyThreadPool
 import org.joml.Matrix4f
+import org.lwjgl.opengl.GL30.glBindBufferBase
+import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.system.NativeResource
 import java.util.*
 import java.util.concurrent.CompletableFuture
@@ -46,18 +54,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
         val VERTEX_FORMAT = NeoVertexFormat.builder()
             .add("Position", NeoVertexFormat.Element.POSITION)
             .add("UV0", NeoVertexFormat.Element.TEXTURE_UV)
-            // TODO
-            .add("LightIndex", object : NeoVertexFormat.Element {
-                override fun vertexAttribPointer(index: Int, offset: Long, stride: Int) {
-                    type.vertexAttribPointer(index, count, normalized, stride, offset)
-                }
-
-                override val count: Int = 1
-                override val index: Int = 0
-                override val normalized: Boolean? = null
-                override val sizeBytes: Int = 4
-                override val type: GlDataType = GlDataType.UNSIGNED_INT
-            })
+            .add("LightIndex", NeoVertexFormat.Element.create(0, GlDataType.UNSIGNED_INT, null, 1))
             .add("Color", NeoVertexFormat.Element.COLOR)
             .add("Normal", NeoVertexFormat.Element.NORMAL)
             .build()
