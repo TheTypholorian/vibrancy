@@ -17,11 +17,13 @@ uniform int FogShape;
 
 in vec3 Position;
 in vec2 UV0;
+in uint LightIndex;
 in ivec2 UV1;
 in vec4 Color;
 
 out vec2 texCoord0;
 out vec2 texCoord1;
+flat out uint lightIndex;
 out vec4 vertexColor;
 out vec3 vertexPosition;
 out float vertexDistance;
@@ -31,6 +33,7 @@ void main() {
     gl_Position = ProjMat * pos;
     texCoord0 = UV0;
     texCoord1 = vec2(UV1);
+    lightIndex = LightIndex;
     vertexColor = Color;
     vertexDistance = fog_distance(pos.xyz, FogShape);
     vertexPosition = Position;

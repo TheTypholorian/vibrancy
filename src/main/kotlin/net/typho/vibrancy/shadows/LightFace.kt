@@ -6,8 +6,6 @@ import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
 import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoVertexData
 import net.typho.big_shot_lib.api.math.rect.AbstractRect2
 import net.typho.big_shot_lib.api.math.vec.IVec3
-import net.typho.big_shot_lib.api.math.vec.IVec4
-import net.typho.big_shot_lib.api.util.NeoColor
 import kotlin.math.abs
 import kotlin.math.ceil
 
@@ -47,15 +45,6 @@ data class LightFace(
                     2 -> sprite.max
                     else -> sprite.minMax
                 }
-            )
-        }
-    }
-
-    fun applyTint(tint: (pos: IVec3<Float>, color: IVec4<Float>) -> NeoColor): NeoBakedQuad {
-        return quad.withVertices { index, vertex ->
-            NeoVertexData(
-                vertex,
-                color = tint(vertex.pos, (vertex.color ?: NeoColor.FULL_ON).toVec4F())
             )
         }
     }
