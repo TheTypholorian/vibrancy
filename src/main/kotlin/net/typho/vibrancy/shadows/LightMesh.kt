@@ -18,6 +18,7 @@ import net.typho.big_shot_lib.api.util.buffer.SHORT_MASK
 import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.TextureAtlas
 import net.typho.vibrancy.VibrancyConfig
+import net.typho.vibrancy.util.ReflectionAtlases
 import org.lwjgl.system.NativeResource
 
 open class LightMesh(

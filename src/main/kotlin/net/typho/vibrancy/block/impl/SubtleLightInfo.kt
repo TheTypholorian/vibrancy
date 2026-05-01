@@ -15,6 +15,8 @@ data class SubtleLightInfo(
     @JvmField
     val brightness: StateFunction<Float>,
     @JvmField
+    val shape: StateFunction<Int>,
+    @JvmField
     val offset: StateFunction<IVec3<Float>>,
     override val enabled: StateFunction<Boolean>
 ) : BlockLightInfo {
@@ -30,6 +32,9 @@ data class SubtleLightInfo(
                 StateFunction.codec(Codec.FLOAT, stateDefinition)
                     .fieldOf("brightness")
                     .forGetter { info -> info.brightness },
+                StateFunction.codec(Codec.INT, stateDefinition)
+                    .optionalFieldOf("shape", StateFunction(SubtleLight.SQUARE_SHAPE))
+                    .forGetter { info -> info.shape },
                 StateFunction.codec(IVec3.FLOAT_CODEC, stateDefinition)
                     .optionalFieldOf("offset", StateFunction(NeoVec3f(0.5f, 0.5f, 0.5f)))
                     .forGetter { info -> info.offset },

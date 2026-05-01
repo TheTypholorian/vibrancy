@@ -16,9 +16,15 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBeginMode
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferTarget
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlDataType
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureFormat
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureMagFilter
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureMinFilter
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureTarget
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlBuffer
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlFramebuffer
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
@@ -47,6 +53,7 @@ import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.system.NativeResource
 import java.util.*
 import java.util.concurrent.CompletableFuture
+import kotlin.use
 
 class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLightStorage.Chunk>(SubtleLightType) {
     companion object {
@@ -64,6 +71,24 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
     val dirty = HashSet<ChunkPos>()
     @JvmField
     val tasks = LinkedList<CompletableFuture<() -> Unit>>()
+
+    val target by lazy {
+        NeoGlTexture2D().also {
+            it.bind(GlTextureTarget.TEXTURE_2D).use { texture ->
+                texture.textureDataMutable(1, 1, GlTextureFormat.RGB16F)
+                texture.minFilter = GlTextureMinFilter.NEAREST
+                texture.magFilter = GlTextureMagFilter.NEAREST
+            }
+        }
+    }
+    val framebuffer by lazy {
+        NeoGlFramebuffer().also {
+            it.bind(null).use { fbo ->
+                fbo.colorAttachments[0] = target
+                fbo.checkStatus().throwIfError()
+            }
+        }
+    }
 
     override fun createChunk(manager: LightManager, pos: ChunkPos): Chunk {
         return Chunk(pos)
@@ -163,8 +188,6 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
 
                         profiler?.push("collect")
                         lights.forEachIndexed { index, light ->
-                            val lightPos = (light.pos - origin).toFloat() + light.offset
-
                             light.shadowBox.iterator().forEach { block ->
                                 //if (
                                 //    block.x >= pos.minBlockX && block.x <= pos.maxBlockX &&
@@ -224,7 +247,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                                 writeFloat(pos.x)
                                 writeFloat(pos.y)
                                 writeFloat(pos.z)
-                                writeFloat(0f)
+                                writeInt(light.shape)
 
                                 writeFloat(color.x)
                                 writeFloat(color.y)
@@ -345,6 +368,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                 *///? }
 
                 //shader.setTexture(1, GlTextureBinding.FromInstance(lightTexture, GlTextureTarget.TEXTURE_2D))
+                shader.setUniform("CameraPos") { setFloatVec(data.camera.pos - NeoVec3i(pos.minBlockX, 0, pos.minBlockZ).toFloat()) }
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo.glId)
                 mesh.draw()
                 debugOut("lightsRendered", size)

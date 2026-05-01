@@ -10,11 +10,19 @@ open class SubtleLight(
     @JvmField
     val color: IVec3<Float>,
     @JvmField
+    val shape: Int,
+    @JvmField
     val offset: IVec3<Float>,
     override val pos: IVec3<Int>
 ) : PointLight {
+    companion object {
+        const val SQUARE_SHAPE = 0
+        const val CIRCLE_SHAPE = 1
+    }
+
     constructor(info: SubtleLightInfo, state: BlockState, pos: IVec3<Int>) : this(
         info.color(state) * info.brightness(state),
+        info.shape(state),
         info.offset(state),
         pos
     )

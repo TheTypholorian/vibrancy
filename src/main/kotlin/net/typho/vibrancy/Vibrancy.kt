@@ -10,6 +10,7 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlFra
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.*
+import net.typho.big_shot_lib.api.client.rendering.opengl.util.BlendFunction
 import net.typho.big_shot_lib.api.client.rendering.opengl.util.ColorMask
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
@@ -27,6 +28,7 @@ import net.typho.big_shot_lib.api.util.event.CommonEventFactory
 import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.block.BlockLightInfoLoader
 import net.typho.vibrancy.block.BlockLightRegistry
+import net.typho.vibrancy.block.impl.SubtleLightStorage
 import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.shadows.ShadowBuffer
 import net.typho.vibrancy.sky.SkyLightInfoLoader
@@ -130,30 +132,38 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
                     }
                 }
 
-                fbo.clear(GlClearBit.Color(NeoColor.FULL_OFF), GlClearBit.Depth(1f))
+                FRAMEBUFFER.bind(NeoRect2i(0, 0, width, height)).use { fbo ->
+                    fbo.clear(GlClearBit.Color(NeoColor.FULL_OFF), GlClearBit.Depth(1f))
 
-                depthBlitState(data.target.depthAttachment as GlTexture2D).bind().use {
-                    Mesh.SCREEN_MESH.draw()
-                }
+                    depthBlitState(data.target.depthAttachment as GlTexture2D).bind().use {
+                        Mesh.SCREEN_MESH.draw()
+                    }
 
-                lightManager.render(
-                    RenderEventData(
-                        data.camera,
-                        data.level,
-                        data.projMat,
-                        data.modelViewMat,
-                        data.frustum,
-                        FRAMEBUFFER
+                    lightManager.render(
+                        RenderEventData(
+                            data.camera,
+                            data.level,
+                            data.projMat,
+                            data.modelViewMat,
+                            data.frustum,
+                            FRAMEBUFFER
+                        )
                     )
-                )
+                }
             }
 
             val drawState = GlDrawState.Basic(
+                blend = GlBlendShard.Enabled(
+                    BlendFunction.Basic(
+                        GlBlendingFactor.ONE,
+                        GlBlendingFactor.ONE
+                    ),
+                    GlBlendEquation.ADD
+                ),
                 shader = GlShaderShard.FromLocation(
                     id("light_post"),
                     {},
-                    GlTextureBinding.FromInstance(TARGET, GlTextureTarget.TEXTURE_2D),
-                    GlTextureBinding.FromInstance(targetAttachment, GlTextureTarget.TEXTURE_2D),
+                    GlTextureBinding.FromInstance(TARGET, GlTextureTarget.TEXTURE_2D)
                 )
             )
             data.target.bind(NeoRect2i(0, 0, width, height)).use {
@@ -223,6 +233,7 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
         factory.begin(NeoVertexFormat.REGISTRY_KEY)?.run {
             register(id("shadow_mesh")) { ShadowBuffer.VERTEX_FORMAT }
             register(id("light_mesh")) { LightMesh.VERTEX_FORMAT }
+            register(id("subtle_mesh")) { SubtleLightStorage.VERTEX_FORMAT }
             register(id("light_mesh_inventory")) { LightMesh.INVENTORY_VERTEX_FORMAT }
             register(id("light_mesh_blit")) { LightMesh.BLIT_VERTEX_FORMAT }
         }

@@ -3,16 +3,6 @@
 //#include "big_shot_lib:fog"
 #include "vibrancy:fragment"
 
-float linear_fog_fade(float vertexDistance, float fogStart, float fogEnd) {
-    if (vertexDistance <= fogStart) {
-        return 1.0;
-    } else if (vertexDistance >= fogEnd) {
-        return 0.0;
-    }
-
-    return smoothstep(fogEnd, fogStart, vertexDistance);
-}
-
 uniform float FogStart;
 uniform float FogEnd;
 
@@ -41,7 +31,7 @@ in vec3 vertexNormal;
 out vec3 fragColor;
 
 void main() {
-    vec4 block = texelFetch(Sampler0, ivec2(texCoord0 * Sampler0Size), 0) * vertexColor;
+    vec4 block = texture(Sampler0, texCoord0) * vertexColor;
 
     if (block.a == 0) {
         discard;
@@ -50,15 +40,8 @@ void main() {
     vec3 lightColor = texelFetch(Sampler1, ivec2(texCoord1), 0).rgb * texelFetch(Sampler2, ivec2(texCoord1), 0).rgb * LightColor * attenuateNoCusp(distance(LightPos, vertexPosition), LightRadius);
 
     if (SpecularReflectionsEnabled) {
-        vec3 inputNormal = normalize(LightPos - vertexPosition);
-        vec3 outputNormal = normalize(CameraPos - vertexPosition);
-        vec3 reflectedNormal = 2 * dot(inputNormal, vertexNormal) * vertexNormal - inputNormal;
-        float multiplier = clamp(dot(outputNormal, reflectedNormal), 0, 1);
-        multiplier = pow(multiplier, SpecularReflectionExponent) * SpecularReflectionStrength;
-
-        lightColor += lightColor * texelFetch(Sampler3, ivec2(texCoord0 * Sampler0Size), 0).r * multiplier;
-        fragColor = mix(lightColor, block.rgb * block.a * lightColor, 1 - (1 - block.a) * (1 - block.a)) * linear_fog_fade(vertexDistance, FogStart, FogEnd);
-    } else {
-        fragColor = block.rgb * block.a * lightColor * linear_fog_fade(vertexDistance, FogStart, FogEnd);
+        lightColor = specularReflection(lightColor, LightPos, CameraPos, vertexPosition, vertexNormal, SpecularReflectionStrength, SpecularReflectionExponent, Sampler3, texCoord0);
     }
+
+    fragColor = applyLight(lightColor, block, vertexDistance, FogStart, FogEnd);
 }

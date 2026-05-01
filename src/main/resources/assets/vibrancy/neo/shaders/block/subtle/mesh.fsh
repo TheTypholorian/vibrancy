@@ -3,51 +3,53 @@
 #include "vibrancy:fragment"
 //#include "big_shot_lib:fog"
 
-float linear_fog_fade(float vertexDistance, float fogStart, float fogEnd) {
-    if (vertexDistance <= fogStart) {
-        return 1.0;
-    } else if (vertexDistance >= fogEnd) {
-        return 0.0;
-    }
-
-    return smoothstep(fogEnd, fogStart, vertexDistance);
-}
-
 struct Light {
     vec3 pos;
+    uint shape;
     vec3 color;
-};
-
-layout(std430, binding = 0) buffer LightBuffer {
-    Light lights[];
 };
 
 uniform float FogStart;
 uniform float FogEnd;
 
 uniform sampler2D Sampler0;
-//uniform sampler2D Sampler1;
+uniform sampler2D Sampler1;
 uniform ivec2 Sampler0Size;
 uniform float LightBrightness;
+
+uniform bool SpecularReflectionsEnabled;
+uniform float SpecularReflectionStrength;
+uniform float SpecularReflectionExponent;
 
 uniform vec3 CameraPos;
 
 in vec2 texCoord0;
-//in vec2 texCoord1;
-in uint lightIndex;
+flat in Light light;
 in vec4 vertexColor;
 in vec3 vertexPosition;
 in float vertexDistance;
+in vec3 vertexNormal;
 
 out vec3 fragColor;
 
 void main() {
-    vec4 block = texelFetch(Sampler0, ivec2(texCoord0 * Sampler0Size), 0) * vertexColor;
+    vec4 block = texture(Sampler0, texCoord0) * vertexColor;
 
     if (block.a == 0) {
         discard;
     }
 
-    Light light = lights[lightIndex];
-    fragColor = block.rgb * block.a * LightBrightness * sampleCubeLight(light.pos, vertexPosition, 0.5, 1.5, light.color) * linear_fog_fade(vertexDistance, FogStart, FogEnd);
+    vec3 lightColor;
+
+    if (light.shape == 0) {
+        lightColor = sampleCubeLight(light.pos, vertexPosition, 0.5, 1.5, light.color);
+    } else if (light.shape == 1) {
+        lightColor = samplePointLight(light.pos, vertexPosition, 1.5, light.color);
+    }
+
+    if (SpecularReflectionsEnabled) {
+        lightColor = specularReflection(lightColor, light.pos, CameraPos, vertexPosition, vertexNormal, SpecularReflectionStrength, SpecularReflectionExponent, Sampler1, texCoord0);
+    }
+
+    fragColor = applyLight(lightColor, block, vertexDistance, FogStart, FogEnd);
 }

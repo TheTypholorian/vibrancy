@@ -61,7 +61,6 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                     ))
                     settings.shader.setUniform("ProjMat") { set(data.projMat) }
                     settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat) }
-                    settings.shader.setUniform("CameraPos") { setFloatVec(data.camera.pos) }
 
                     settings.shader.setUniform("FogStart") { set(RenderSystem.getShaderFogStart()) }
                     settings.shader.setUniform("FogEnd") { set(RenderSystem.getShaderFogEnd()) }

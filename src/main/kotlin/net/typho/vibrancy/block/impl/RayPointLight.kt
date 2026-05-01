@@ -561,6 +561,7 @@ open class RayPointLight(
         shader.setUniform("LightPos") { setFloatVec(offset) }
         shader.setUniform("LightColor") { setFloatVec(color) }
         shader.setUniform("LightRadius") { set(radius) }
+        shader.setUniform("CameraPos") { setFloatVec(data.camera.pos - pos.toFloat()) }
         shader.setTexture(1, GlTextureBinding.FromInstance(
             staticTexture,
             GlTextureTarget.TEXTURE_2D

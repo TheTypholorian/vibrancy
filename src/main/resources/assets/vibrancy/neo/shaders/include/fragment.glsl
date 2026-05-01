@@ -9,19 +9,34 @@ float attenuateNoCusp(float distance, float radius) {
     return oneMinusS * oneMinusS * oneMinusS;
 }
 
-vec4 samplePointLight(vec3 lightPos, vec3 fragPos, float radius, vec3 lightColor) {
-    return vec4(
-        attenuateNoCusp(distance(lightPos, fragPos), radius) *
-        lightColor,
-        1
-    );
+vec3 samplePointLight(vec3 lightPos, vec3 fragPos, float radius, vec3 lightColor) {
+    return attenuateNoCusp(distance(lightPos, fragPos), radius) * lightColor;
 }
 
-vec4 sampleCubeLight(vec3 lightPos, vec3 fragPos, float startRadius, float endRadius, vec3 lightColor) {
+vec3 sampleCubeLight(vec3 lightPos, vec3 fragPos, float startRadius, float endRadius, vec3 lightColor) {
     float dist = max(abs(lightPos.x - fragPos.x), max(abs(lightPos.y - fragPos.y), abs(lightPos.z - fragPos.z)));
-    return vec4(
-        clamp((endRadius - dist) / (endRadius - startRadius), 0, 1) *
-        lightColor,
-        1
-    );
+    return clamp((endRadius - dist) / (endRadius - startRadius), 0, 1) * lightColor;
+}
+
+float linear_fog_fade(float vertexDistance, float fogStart, float fogEnd) {
+    if (vertexDistance <= fogStart) {
+        return 1.0;
+    } else if (vertexDistance >= fogEnd) {
+        return 0.0;
+    }
+
+    return smoothstep(fogEnd, fogStart, vertexDistance);
+}
+
+vec3 specularReflection(vec3 lightColor, vec3 lightPos, vec3 cameraPos, vec3 vertexPos, vec3 normal, float strength, float exponent, sampler2D reflectionSampler, vec2 texCoord0) {
+    vec3 inputNormal = normalize(lightPos - vertexPos);
+    vec3 outputNormal = normalize(cameraPos - vertexPos);
+    vec3 reflectedNormal = 2 * dot(inputNormal, normal) * normal - inputNormal;
+    float multiplier = pow(clamp(dot(outputNormal, reflectedNormal), 0, 1), exponent) * strength;
+
+    return lightColor + lightColor * texture(reflectionSampler, texCoord0).r * multiplier;
+}
+
+vec3 applyLight(vec3 lightColor, vec4 blockColor, float vertexDistance, float fogStart, float fogEnd) {
+    return mix(lightColor, blockColor.rgb * blockColor.a * lightColor, 1 - (1 - blockColor.a) * (1 - blockColor.a)) * linear_fog_fade(vertexDistance, fogStart, fogEnd);
 }

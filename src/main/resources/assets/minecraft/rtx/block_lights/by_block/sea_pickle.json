@@ -1,32 +1,33 @@
 {
   "type": "vibrancy:subtle",
+  "shape": 1,
   "color": [ 0.84, 1, 0.84 ],
   "brightness": {
-    "default": 0.4,
+    "default": 0.8,
     "entries": [
       {
         "matches": {
           "pickles": "4"
         },
-        "value": 0.4
+        "value": 0.8
       },
       {
         "matches": {
           "pickles": "3"
         },
-        "value": 0.3
+        "value": 0.6
       },
       {
         "matches": {
           "pickles": "2"
         },
-        "value": 0.2
+        "value": 0.4
       },
       {
         "matches": {
           "pickles": "1"
         },
-        "value": 0.1
+        "value": 0.2
       }
     ]
   },
