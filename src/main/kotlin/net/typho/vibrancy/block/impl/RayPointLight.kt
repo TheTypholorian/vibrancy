@@ -5,8 +5,15 @@ import dev.ryanhcode.sable.companion.SableCompanion
 //? }
 
 import com.mojang.blaze3d.vertex.PoseStack
+import com.mojang.blaze3d.vertex.VertexConsumer
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.MultiBufferSource
+import net.minecraft.client.renderer.OutlineBufferSource
+import net.minecraft.client.renderer.RenderType
+import net.minecraft.client.renderer.SubmitNodeStorage
+import net.minecraft.client.renderer.culling.Frustum
+import net.minecraft.client.renderer.feature.FeatureRenderDispatcher
+import net.minecraft.client.renderer.state.CameraRenderState
 import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.util.Mth
 import net.minecraft.util.profiling.ProfilerFiller
@@ -389,6 +396,7 @@ open class RayPointLight(
                     *///? }
                         val node = Node()
                         debugOut("entityShadows", 1)
+                        //? if <1.21.9 {
                         Minecraft.getInstance().entityRenderDispatcher.render(
                             entity,
                             Mth.lerp(Vibrancy.tickDelta.toDouble(), entity.xOld, entity.x),
@@ -400,6 +408,35 @@ open class RayPointLight(
                             node.bufferSource,
                             net.minecraft.client.renderer.LightTexture.FULL_BRIGHT
                         )
+                        //? } else {
+                        /*val renderer = Minecraft.getInstance().entityRenderDispatcher.getRenderer(entity)
+
+                        if (renderer.shouldRender(entity, Frustum(data.modelViewMat, data.projMat), data.camera.pos.x.toDouble(), data.camera.pos.y.toDouble(), data.camera.pos.z.toDouble())) {
+                            val storage = SubmitNodeStorage()
+                            val features = FeatureRenderDispatcher(
+                                storage,
+                                Minecraft.getInstance().blockRenderer,
+                                node.bufferSource,
+                                Minecraft.getInstance().atlasManager,
+                                object : OutlineBufferSource() {
+                                    override fun getBuffer(renderType: RenderType): VertexConsumer {
+                                        return WrapperUtil.INSTANCE.unwrap(EmptyVertexConsumer)
+                                    }
+                                },
+                                WrapperUtil.INSTANCE.unwrap { EmptyVertexConsumer },
+                                Minecraft.getInstance().font
+                            )
+
+                            renderer.submit(
+                                renderer.createRenderState(entity, Vibrancy.tickDelta),
+                                poseStack,
+                                storage,
+                                Minecraft.getInstance().gameRenderer.levelRenderState.cameraRenderState
+                            )
+
+                            storage.endFrame()
+                        }
+                        *///? }
                         nodes.add(node)
                     }
                 }
