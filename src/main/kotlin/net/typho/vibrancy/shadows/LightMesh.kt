@@ -8,7 +8,6 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.state.*
 import net.typho.big_shot_lib.api.client.rendering.opengl.util.PolygonOffset
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
-import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.NeoVec2i
 import net.typho.big_shot_lib.api.util.buffer.BYTE_MASK

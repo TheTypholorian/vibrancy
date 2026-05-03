@@ -53,7 +53,7 @@ open class LightTexture : NeoGlTexture2D() {
         }
     }
 
-    open class Depth : LightTexture() {
+    open class Shadow : LightTexture() {
         var depth: NeoGlTexture2D? = null
             protected set
 

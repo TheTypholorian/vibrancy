@@ -68,21 +68,14 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
         @JvmField
         val lightDrawState = LightMesh.drawState(
             NeoAtlas.blocks,
-            Vibrancy.id("sky/overworld/mesh"),
-            blend = GlBlendShard.Enabled(
-                BlendFunction.Basic(
-                    GlBlendingFactor.ONE,
-                    GlBlendingFactor.ONE
-                ),
-                GlBlendEquation.ADD
-            )
+            Vibrancy.id("sky/overworld/mesh")
         )
     }
 
     var info: OverworldSkyLightInfo? = null
         private set
     @JvmField
-    val texture = LightTexture.Depth().also { it.resize(1024, 1024) }
+    val texture = LightTexture.Shadow().also { it.resize(8196, 8196) }
 
     override fun createChunk(
         manager: LightManager,
@@ -107,7 +100,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
         val shadowMat = Matrix4f()
             .rotateX(Math.toRadians(15.0).toFloat())
             .rotateY(Math.toRadians(30.0).toFloat())
-            .scale(0.1f)
+            .scale(0.0025f)
 
         texture.framebuffer.bind(NeoRect2i(0, 0, texture.width, texture.height)).use { fbo ->
             fbo.clear(GlClearBit.Color(NeoColor.FULL_OFF), GlClearBit.Depth(0f))

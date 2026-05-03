@@ -7,6 +7,7 @@ uniform float FogStart;
 uniform float FogEnd;
 
 uniform sampler2D Sampler0;
+uniform ivec2 Sampler0Size;
 uniform sampler2D Sampler1;
 uniform sampler2D Sampler2;
 
@@ -35,18 +36,20 @@ void main() {
         discard;
     }
 
-    if (texCoord1.x >= 0 && texCoord1.x <= 1 && texCoord1.y >= 0 && texCoord1.y <= 1) {
-        vec4 shadow = texture(Sampler1, texCoord1.xy);
-        float depth = texture(Sampler2, texCoord1.xy).r;
+    vec2 texelPos = texCoord0 * Sampler0Size;
+    vec2 screenOffset = inverse(mat2(dFdx(texCoord0), dFdy(texCoord0))) * (floor(texelPos) + 0.5 - texelPos) / Sampler0Size;
+    vec3 uv = texCoord1 + dFdx(texCoord1) * screenOffset.x + dFdy(texCoord1) * screenOffset.y;
 
-        if (shadow.a == 1 && texCoord1.z < depth - 2e-3) {
+    if (uv.x >= 0 && uv.x <= 1 && uv.y >= 0 && uv.y <= 1) {
+        vec4 shadow = texture(Sampler1, uv.xy);
+        float depth = texture(Sampler2, uv.xy).r;
+
+        if (shadow.a == 1 && uv.z < depth - 2e-3) {
             discard;
         }
-
-        fragColor = vec3(1, 0.5, 0.25);
-    } else {
-        fragColor = vec3(1, 0.5, 0.25);
     }
+
+    fragColor = block.rgb * block.a * vec3(1, 1, 0.59) * 0.5; // TODO
 
     /*
     vec3 lightColor = texelFetch(Sampler1, ivec2(texCoord1), 0).rgb * texelFetch(Sampler2, ivec2(texCoord1), 0).rgb * LightColor * attenuateNoCusp(distance(LightPos, vertexPosition), LightRadius);
