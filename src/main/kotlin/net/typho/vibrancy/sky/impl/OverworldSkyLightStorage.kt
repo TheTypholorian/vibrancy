@@ -45,6 +45,9 @@ import org.lwjgl.opengl.GL11.glClearDepth
 import org.lwjgl.system.NativeResource
 import java.util.concurrent.CompletableFuture
 import kotlin.collections.addAll
+import kotlin.math.PI
+import kotlin.math.cos
+import kotlin.math.sin
 
 class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, OverworldSkyLightStorage.Chunk>(OverworldSkyLightType) {
     companion object {
@@ -95,11 +98,26 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
             chunk.checkIfFinished()
         }
 
+        var sunAngle = (manager.getLevel()!!.getSunAngle(Vibrancy.tickDelta) + PI.toFloat() / 2) % (PI.toFloat() * 2)
+
+        if (sunAngle > PI.toFloat()) {
+            sunAngle -= PI.toFloat()
+        }
+
+        /*
+        if (sunY < 0) {
+            sunAngle += PI.toFloat()
+            sunX = -sunX
+            sunY = -sunY
+        }
+         */
+
         // TODO
         //.translate((-data.camera.pos.toInt().toFloat()).toJOML())
         val shadowMat = Matrix4f()
-            .rotateX(Math.toRadians(15.0).toFloat())
-            .rotateY(Math.toRadians(30.0).toFloat())
+            .rotateX(sunAngle)
+            .rotateY(-PI.toFloat() / 2)
+            .rotateY(Math.toRadians(15.0).toFloat())
             .scale(0.005f)
 
         texture.framebuffer.bind(NeoRect2i(0, 0, texture.width, texture.height)).use { fbo ->

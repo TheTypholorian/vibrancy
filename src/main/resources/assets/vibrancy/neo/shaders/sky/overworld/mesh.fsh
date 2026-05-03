@@ -47,7 +47,7 @@ void main() {
         vec4 shadow = texture(Sampler1, uv.xy);
         float depth = texture(Sampler2, uv.xy).r;
 
-        if (shadow.a == 1 && uv.z < depth - 1e-5) {
+        if (shadow.a == 1 && uv.z < depth - 1e-4) {
             discard;
         }
     }
