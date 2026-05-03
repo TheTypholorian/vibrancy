@@ -8,6 +8,7 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.GlQueue
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlFramebuffer
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlTexture2D
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlResourceType
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.*
 import net.typho.big_shot_lib.api.client.rendering.opengl.util.BlendFunction
@@ -61,7 +62,7 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
     var toggleSubtleLightsKey: KeyMapping? = null
      */
 
-    val TARGET by lazy {
+    val RESULT by lazy {
         NeoGlTexture2D().also {
             it.bind(GlTextureTarget.TEXTURE_2D).use { texture ->
                 texture.textureDataMutable(1, 1, GlTextureFormat.RGB16F)
@@ -70,7 +71,16 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
             }
         }
     }
-    val TARGET_DEPTH by lazy {
+    val TEMP by lazy {
+        NeoGlTexture2D().also {
+            it.bind(GlTextureTarget.TEXTURE_2D).use { texture ->
+                texture.textureDataMutable(1, 1, GlTextureFormat.RGB16F)
+                texture.minFilter = GlTextureMinFilter.NEAREST
+                texture.magFilter = GlTextureMagFilter.NEAREST
+            }
+        }
+    }
+    val DEPTH by lazy {
         NeoGlTexture2D().also {
             it.bind(GlTextureTarget.TEXTURE_2D).use { texture ->
                 texture.textureDataMutable(1, 1, GlTextureFormat.DEPTH_COMPONENT)
@@ -79,11 +89,20 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
             }
         }
     }
-    val FRAMEBUFFER by lazy {
+    val RESULT_FRAMEBUFFER by lazy {
         NeoGlFramebuffer().also {
             it.bind(null).use { fbo ->
-                fbo.colorAttachments[0] = TARGET
-                fbo.depthAttachment = TARGET_DEPTH
+                fbo.colorAttachments[0] = RESULT
+                fbo.depthAttachment = DEPTH
+                fbo.checkStatus().throwIfError()
+            }
+        }
+    }
+    val TEMP_FRAMEBUFFER by lazy {
+        NeoGlFramebuffer().also {
+            it.bind(null).use { fbo ->
+                fbo.colorAttachments[0] = TEMP
+                fbo.depthAttachment = DEPTH
                 fbo.checkStatus().throwIfError()
             }
         }
@@ -118,12 +137,15 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
             val width = targetAttachment.width.coerceAtLeast(1)
             val height = targetAttachment.height.coerceAtLeast(1)
 
-            FRAMEBUFFER.bind().use { fbo ->
-                if (TARGET.width != width || TARGET.height != height) {
-                    TARGET.bind(GlTextureTarget.TEXTURE_2D).use {
+            TEMP_FRAMEBUFFER.bind().use { fbo ->
+                if (TEMP.width != width || TEMP.height != height) {
+                    RESULT.bind(GlTextureTarget.TEXTURE_2D).use {
                         it.textureDataMutable(width, height, GlTextureFormat.RGB16F)
                     }
-                    TARGET_DEPTH.bind(GlTextureTarget.TEXTURE_2D).use {
+                    TEMP.bind(GlTextureTarget.TEXTURE_2D).use {
+                        it.textureDataMutable(width, height, GlTextureFormat.RGB16F)
+                    }
+                    DEPTH.bind(GlTextureTarget.TEXTURE_2D).use {
                         it.textureDataMutable(
                             width,
                             height,
@@ -132,43 +154,26 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
                     }
                 }
 
-                FRAMEBUFFER.bind(NeoRect2i(0, 0, width, height)).use { fbo ->
+                TEMP_FRAMEBUFFER.bind(NeoRect2i(0, 0, width, height)).use { fbo ->
                     fbo.clear(GlClearBit.Color(NeoColor.FULL_OFF), GlClearBit.Depth(1f))
 
                     depthBlitState(data.target.depthAttachment as GlTexture2D).bind().use {
                         Mesh.SCREEN_MESH.draw()
                     }
 
+                    RESULT_FRAMEBUFFER.bind().use { fbo ->
+                        fbo.clear(GlClearBit.Color(NeoColor.FULL_OFF))
+                    }
+
                     lightManager.render(
-                        RenderEventData(
-                            data.camera,
-                            data.level,
-                            data.projMat,
-                            data.modelViewMat,
-                            data.frustum,
-                            FRAMEBUFFER
-                        )
+                        data,
+                        RESULT_FRAMEBUFFER,
+                        TEMP_FRAMEBUFFER
                     )
                 }
             }
 
-            val drawState = GlDrawState.Basic(
-                blend = GlBlendShard.Enabled(
-                    BlendFunction.Basic(
-                        GlBlendingFactor.ONE,
-                        GlBlendingFactor.ONE
-                    ),
-                    GlBlendEquation.ADD
-                ),
-                shader = GlShaderShard.FromLocation(
-                    id("light_post"),
-                    {},
-                    GlTextureBinding.FromInstance(TARGET, GlTextureTarget.TEXTURE_2D)
-                )
-            )
-            data.target.bind(NeoRect2i(0, 0, width, height)).use {
-                drawState.bind().use { Mesh.SCREEN_MESH.draw() }
-            }
+            lightManager.blitFromTemp(data.target, RESULT_FRAMEBUFFER, lightLimited = false)
         }
     }
 

@@ -4,16 +4,19 @@ package net.typho.vibrancy.block.impl
 import dev.ryanhcode.sable.companion.SableCompanion
 //? }
 
-import com.mojang.blaze3d.vertex.PoseStack
-import com.mojang.blaze3d.vertex.VertexConsumer
-import net.minecraft.client.Minecraft
-import net.minecraft.client.renderer.MultiBufferSource
+//? if >=1.21.9 {
+/*import com.mojang.blaze3d.vertex.VertexConsumer
 import net.minecraft.client.renderer.OutlineBufferSource
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.client.renderer.SubmitNodeStorage
 import net.minecraft.client.renderer.culling.Frustum
 import net.minecraft.client.renderer.feature.FeatureRenderDispatcher
 import net.minecraft.client.renderer.state.CameraRenderState
+*///? }
+
+import com.mojang.blaze3d.vertex.PoseStack
+import net.minecraft.client.Minecraft
+import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.util.Mth
 import net.minecraft.util.profiling.ProfilerFiller
@@ -30,6 +33,7 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlBlendShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
+import net.typho.big_shot_lib.api.client.rendering.opengl.state.NeoGlStateManager
 import net.typho.big_shot_lib.api.client.rendering.opengl.util.BlendFunction
 import net.typho.big_shot_lib.api.client.rendering.util.*
 import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
@@ -567,13 +571,14 @@ open class RayPointLight(
         }
     }
 
-    fun render(data: RenderEventData, shader: GlBoundProgram, debugOut: (key: String, value: Int) -> Unit) {
+    fun render(data: RenderEventData, shader: GlBoundProgram, debugOut: (key: String, value: Int) -> Unit, profiler: ProfilerFiller) {
         debugOut("lightsRendered", 1)
 
         if (mesh.isTaskActive()) {
             debugOut("numAsyncTasks", 1)
         }
 
+        profiler.push("transforms")
         //? if 1.21 {
         val subLevel = SableCompanion.INSTANCE.getContainingClient(pos.toDouble().toJOML())
 
@@ -594,11 +599,17 @@ open class RayPointLight(
         //? } else {
         /*shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((pos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
         *///? }
+        profiler.pop()
 
+        profiler.push("uniforms")
         shader.setUniform("LightPos") { setFloatVec(offset) }
         shader.setUniform("LightColor") { setFloatVec(color) }
         shader.setUniform("LightRadius") { set(radius) }
         shader.setUniform("CameraPos") { setFloatVec(data.camera.pos - pos.toFloat()) }
+        shader.setTexture(0, GlTextureBinding.FromInstance(
+            NeoAtlas.blocks,
+            GlTextureTarget.TEXTURE_2D
+        ))
         shader.setTexture(1, GlTextureBinding.FromInstance(
             staticTexture,
             GlTextureTarget.TEXTURE_2D
@@ -607,6 +618,10 @@ open class RayPointLight(
             dynamicTexture,
             GlTextureTarget.TEXTURE_2D
         ))
+        profiler.pop()
+
+        profiler.push("draw")
         mesh.lightMesh.draw()
+        profiler.pop()
     }
 }

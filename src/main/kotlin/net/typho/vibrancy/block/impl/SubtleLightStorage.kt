@@ -25,6 +25,8 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBuffe
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlBuffer
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlFramebuffer
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlTexture2D
+import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
+import net.typho.big_shot_lib.api.client.rendering.opengl.state.NeoGlStateManager
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
@@ -71,24 +73,6 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
     val dirty = HashSet<ChunkPos>()
     @JvmField
     val tasks = LinkedList<CompletableFuture<() -> Unit>>()
-
-    val target by lazy {
-        NeoGlTexture2D().also {
-            it.bind(GlTextureTarget.TEXTURE_2D).use { texture ->
-                texture.textureDataMutable(1, 1, GlTextureFormat.RGB16F)
-                texture.minFilter = GlTextureMinFilter.NEAREST
-                texture.magFilter = GlTextureMagFilter.NEAREST
-            }
-        }
-    }
-    val framebuffer by lazy {
-        NeoGlFramebuffer().also {
-            it.bind(null).use { fbo ->
-                fbo.colorAttachments[0] = target
-                fbo.checkStatus().throwIfError()
-            }
-        }
-    }
 
     override fun createChunk(manager: LightManager, pos: ChunkPos): Chunk {
         return Chunk(pos)
@@ -339,11 +323,15 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
             }
         }
 
-        fun render(manager: LightManager, data: RenderEventData, shader: GlBoundProgram, debugOut: (key: String, value: Int) -> Unit) {
+        fun render(manager: LightManager, data: RenderEventData, shader: GlBoundProgram, debugOut: (key: String, value: Int) -> Unit, profiler: ProfilerFiller) {
             if (
                 size > 0
                 && box?.let { manager.testFrustum(pos, data, it) } ?: true
             ) {
+                debugOut("lightsRendered", size)
+                debugOut("chunksRendered", 1)
+
+                profiler.push("transforms")
                 val blockPos = NeoVec3i(pos.minBlockX, 0, pos.minBlockZ)
 
                 //? if 1.21 {
@@ -366,13 +354,21 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                 //? } else {
                 /*shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((blockPos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
                 *///? }
+                profiler.pop()
 
+                profiler.push("uniforms")
                 //shader.setTexture(1, GlTextureBinding.FromInstance(lightTexture, GlTextureTarget.TEXTURE_2D))
                 shader.setUniform("CameraPos") { setFloatVec(data.camera.pos - NeoVec3i(pos.minBlockX, 0, pos.minBlockZ).toFloat()) }
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo.glId)
+                shader.setTexture(0, GlTextureBinding.FromInstance(
+                    NeoAtlas.blocks,
+                    GlTextureTarget.TEXTURE_2D
+                ))
+                profiler.pop()
+
+                profiler.push("draw")
                 mesh.draw()
-                debugOut("lightsRendered", size)
-                debugOut("chunksRendered", 1)
+                profiler.pop()
             }
         }
 

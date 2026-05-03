@@ -1,6 +1,10 @@
 package net.typho.vibrancy.collectors
 
+import net.minecraft.client.Minecraft
+import net.minecraft.core.Direction
+import net.minecraft.util.RandomSource
 import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.Blocks
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlasSprite
 import net.typho.big_shot_lib.api.client.rendering.util.quad.BasicBakedQuad
@@ -87,9 +91,11 @@ class FloodFillBlockMeshCollector(
         val blockEntities = hashSetOf<IVec3<Int>>()
 
         collect.sortedBy { it.distanceSquared(pos) }.forEach { pos ->
+            val state = level.getBlockState(pos.blockPos)
+
             BlockMeshCollector.collectLightFaces(
                 manager,
-                level.getBlockState(pos.blockPos),
+                state,
                 level,
                 pos,
                 pos - this.pos,

@@ -8,9 +8,13 @@ import net.minecraft.client.Minecraft
 import net.minecraft.world.item.ItemStack
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBlendEquation
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBlendingFactor
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureTarget
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D
+import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlBlendShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
+import net.typho.big_shot_lib.api.client.rendering.opengl.util.BlendFunction
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.rendering.util.NeoMultiBufferSource
 import net.typho.big_shot_lib.api.client.rendering.util.NeoRenderSettings
@@ -82,26 +86,33 @@ data class RayPointLightInfo(
                 drawState = LightMesh.drawState(
                     NeoAtlas.blocks,
                     Vibrancy.id("block/raytraced/inventory"),
-                    false
-                ) {
-                    setUniform("ModelViewMat") { set(RenderSystem.getModelViewMatrix()) }
-                    setUniform("ProjMat") { set(RenderSystem.getProjectionMatrix()) }
+                    uniforms = {
+                        setUniform("ModelViewMat") { set(RenderSystem.getModelViewMatrix()) }
+                        setUniform("ProjMat") { set(RenderSystem.getProjectionMatrix()) }
 
-                    setUniform("LightCoords") { setIntVec(absolutePos) }
-                    setUniform("LightPos") { setFloatVec(shadowPos) }
-                    setUniform("LightColor") { setFloatVec(color(block)) }
-                    setUniform("LightRadius") { set(radius(block) * VibrancyConfig.inventoryLightScale * Minecraft.getInstance().window.guiScale.toFloat()) }
-                    setUniform("LightBrightness") { set(VibrancyConfig.inventoryLightBrightness) }
+                        setUniform("LightCoords") { setIntVec(absolutePos) }
+                        setUniform("LightPos") { setFloatVec(shadowPos) }
+                        setUniform("LightColor") { setFloatVec(color(block)) }
+                        setUniform("LightRadius") { set(radius(block) * VibrancyConfig.inventoryLightScale * Minecraft.getInstance().window.guiScale.toFloat()) }
+                        setUniform("LightBrightness") { set(VibrancyConfig.inventoryLightBrightness) }
 
-                    setUniform("ScreenSize") { set(width, height) }
+                        setUniform("ScreenSize") { set(width, height) }
 
-                    setUniform("Scale") { set(Minecraft.getInstance().window.guiScale.toFloat()) }
+                        setUniform("Scale") { set(Minecraft.getInstance().window.guiScale.toFloat()) }
 
-                    setTexture(0, GlTextureBinding.FromInstance(texture, GlTextureTarget.TEXTURE_2D))
-                    setTexture(1, GlTextureBinding.FromInstance(NeoAtlas.blocks, GlTextureTarget.TEXTURE_2D))
+                        setTexture(0, GlTextureBinding.FromInstance(texture, GlTextureTarget.TEXTURE_2D))
+                        setTexture(1, GlTextureBinding.FromInstance(NeoAtlas.blocks, GlTextureTarget.TEXTURE_2D))
 
-                    glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, RaytracedGuiGraphics.shadowBuffer.glId)
-                }
+                        glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, RaytracedGuiGraphics.shadowBuffer.glId)
+                    },
+                    blend = GlBlendShard.Enabled(
+                        BlendFunction.Basic(
+                            GlBlendingFactor.ONE,
+                            GlBlendingFactor.ONE
+                        ),
+                        GlBlendEquation.ADD
+                    )
+                )
             )
             val buffer = buffers.getBuffer(settings)
 

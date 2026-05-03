@@ -13,12 +13,25 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkAccess
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBlendEquation
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBlendingFactor
+import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureTarget
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlFramebuffer
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D
+import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlBlendShard
+import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
+import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
+import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
+import net.typho.big_shot_lib.api.client.rendering.opengl.state.NeoGlStateManager
+import net.typho.big_shot_lib.api.client.rendering.opengl.util.BlendFunction
+import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.math.rect.AbstractRect3
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
 import net.typho.big_shot_lib.api.math.vec.NeoVec3d
 import net.typho.big_shot_lib.api.util.resource.NeoResourceKey
+import net.typho.vibrancy.Vibrancy.id
 import net.typho.vibrancy.block.BlockLightInfo
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.block.BlockLightStorage
@@ -28,6 +41,7 @@ import net.typho.vibrancy.sky.SkyLightStorage
 import net.typho.vibrancy.sky.SkyLightType
 import java.util.*
 import java.util.function.Consumer
+import kotlin.use
 
 open class LightManager {
     @JvmField
@@ -118,32 +132,32 @@ open class LightManager {
     }
 
     @Suppress("UNCHECKED_CAST")
-    protected fun <S : BlockLightStorage<*>> castAndRender(data: RenderEventData, type: BlockLightType<*, S>, storage: BlockLightStorage<*>, profiler: ProfilerFiller) {
+    protected fun <S : BlockLightStorage<*>> castAndRender(data: RenderEventData, result: GlFramebuffer, temp: GlFramebuffer, type: BlockLightType<*, S>, storage: BlockLightStorage<*>, profiler: ProfilerFiller) {
         profiler.push(BlockLightRegistry.registry!!.getKey(type).location.toString())
-        type.render(this, data, storage as S, getDebugOutput(BlockLightRegistry.registry!!.getKey(type)), profiler)
+        type.render(this, result, temp, data, storage as S, getDebugOutput(BlockLightRegistry.registry!!.getKey(type)), profiler)
         profiler.pop()
     }
 
     @Suppress("UNCHECKED_CAST")
-    protected fun <S : SkyLightStorage<*>> castAndRender(data: RenderEventData, type: SkyLightType<*, S>, storage: SkyLightStorage<*>, profiler: ProfilerFiller) {
+    protected fun <S : SkyLightStorage<*>> castAndRender(data: RenderEventData, result: GlFramebuffer, temp: GlFramebuffer, type: SkyLightType<*, S>, storage: SkyLightStorage<*>, profiler: ProfilerFiller) {
         profiler.push(SkyLightRegistry.registry!!.getKey(type).location.toString())
-        type.render(this, data, storage as S, getDebugOutput(SkyLightRegistry.registry!!.getKey(type)), profiler)
+        type.render(this, result, temp, data, storage as S, getDebugOutput(SkyLightRegistry.registry!!.getKey(type)), profiler)
         profiler.pop()
     }
 
     //? if <1.21.11 {
-    fun render(data: RenderEventData, profiler: ProfilerFiller = Minecraft.getInstance().profiler) {
+    fun render(data: RenderEventData, result: GlFramebuffer, temp: GlFramebuffer, profiler: ProfilerFiller = Minecraft.getInstance().profiler) {
     //? } else {
-    /*fun render(data: RenderEventData, profiler: ProfilerFiller = ProfilerFiller.get()) {
+    /*fun render(data: RenderEventData, result: GlFramebuffer, temp: GlFramebuffer, profiler: ProfilerFiller = ProfilerFiller.get()) {
     *///? }
         profiler.push("vibrancy")
         debugInfo.clear()
 
         for (entry in blockLights) {
-            castAndRender(data, entry.key, entry.value, profiler)
+            castAndRender(data, result, temp, entry.key, entry.value, profiler)
         }
 
-        skyLight?.let { castAndRender(data, it.first, it.second, profiler) }
+        skyLight?.let { castAndRender(data, result, temp, it.first, it.second, profiler) }
 
         dirtyBlocks.clear()
         profiler.pop()
@@ -255,4 +269,26 @@ open class LightManager {
         return data.camera.pos.xz.distanceSquared(pos.middleBlockX.toFloat(), pos.middleBlockZ.toFloat())
     }
     *///? }
+
+    fun blitFromTemp(result: GlFramebuffer, temp: GlFramebuffer, lightLimited: Boolean = VibrancyConfig.limitLightBrightness) {
+        val drawState = GlDrawState.Basic(
+            blend = GlBlendShard.Enabled(
+                BlendFunction.Basic(
+                    GlBlendingFactor.ONE,
+                    GlBlendingFactor.ONE
+                ),
+                if (lightLimited) GlBlendEquation.MAX else GlBlendEquation.ADD
+            ),
+            shader = GlShaderShard.FromLocation(
+                id("light_post"),
+                {},
+                GlTextureBinding.FromInstance(temp.colorAttachments[0] as GlTexture2D, GlTextureTarget.TEXTURE_2D)
+            )
+        )
+        result.bind().use {
+            drawState.bind().use {
+                Mesh.SCREEN_MESH.draw()
+            }
+        }
+    }
 }

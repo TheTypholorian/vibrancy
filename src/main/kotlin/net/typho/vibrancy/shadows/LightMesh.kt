@@ -48,18 +48,12 @@ open class LightMesh(
             .build()
 
         @JvmStatic
-        fun drawState(sampler0: GlTexture2D, shader: NeoIdentifier, lightLimited: Boolean = VibrancyConfig.limitLightBrightness, uniforms: GlBoundProgram.() -> Unit = {
+        fun drawState(sampler0: GlTexture2D, shader: NeoIdentifier, uniforms: GlBoundProgram.() -> Unit = {
             setUniform("SpecularReflectionsEnabled") { set(if (VibrancyConfig.reflectionsEnabled) 1 else 0) }
             setUniform("SpecularReflectionStrength") { set(VibrancyConfig.reflectionStrength) }
             setUniform("SpecularReflectionExponent") { set(VibrancyConfig.reflectionExponent) }
-        }) = GlDrawState.Basic(
-            blend = GlBlendShard.Enabled(
-                BlendFunction.Basic(
-                    GlBlendingFactor.ONE,
-                    GlBlendingFactor.ONE
-                ),
-                if (lightLimited) GlBlendEquation.MAX else GlBlendEquation.ADD
-            ),
+        }, blend: GlBlendShard = GlBlendShard.Disabled) = GlDrawState.Basic(
+            blend = blend,
             cull = GlCullShard.Enabled(
                 GlCullFace.BACK
             ),

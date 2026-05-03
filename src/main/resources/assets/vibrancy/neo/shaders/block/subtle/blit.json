@@ -1,7 +1,0 @@
-{
-  "sources": {
-    "vertex": "vibrancy:light_blit",
-    "fragment": "vibrancy:block/subtle/blit"
-  },
-  "format": "vibrancy:light_mesh_blit"
-}

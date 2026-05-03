@@ -6,7 +6,7 @@ dokka = "1.9.20"
 
 kff = "5.9.0"
 
-fabricLoader = "0.17.3"
+fabricLoader = "0.19.2"
 fabricApi = "0.116.7+1.21.1"
 forgifiedFabricApi = "0.116.7+2.2.0+1.21.1"
 flk = "1.13.4+kotlin.2.2.0"
@@ -16,7 +16,7 @@ mixinExtras = "0.5.3"
 
 sodium="mc1.21.1-0.6.13-neoforge"
 
-bigShot="4.6.1"
+bigShot="4.6.3"
 
 yacl = "3.6.6+1.20.1-forge"
 modmenu = "11.0.3"
