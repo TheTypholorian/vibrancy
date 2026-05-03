@@ -1,0 +1,7 @@
+{
+  "sources": {
+    "vertex": "vibrancy:sky/overworld/mesh",
+    "fragment": "vibrancy:sky/overworld/mesh"
+  },
+  "format": "vibrancy:light_mesh"
+}

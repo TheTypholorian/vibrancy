@@ -5,7 +5,6 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBound
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.*
-import net.typho.big_shot_lib.api.client.rendering.opengl.util.BlendFunction
 import net.typho.big_shot_lib.api.client.rendering.opengl.util.PolygonOffset
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
@@ -18,7 +17,6 @@ import net.typho.big_shot_lib.api.util.buffer.SHORT_MASK
 import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.TextureAtlas
 import net.typho.vibrancy.VibrancyConfig
-import net.typho.vibrancy.util.ReflectionAtlases
 import org.lwjgl.system.NativeResource
 
 open class LightMesh(
@@ -184,13 +182,13 @@ open class LightMesh(
     }
 
     fun lazyUploadNoAtlas(
-        quads: List<NeoBakedQuad>
+        faces: List<LightFace>
     ): () -> Unit {
-        val vertexBuffer = NeoBuffer.GCNative(quads.size.toLong() * 4 * VERTEX_FORMAT.vertexSizeBytes)
+        val vertexBuffer = NeoBuffer.GCNative(faces.size.toLong() * 4 * VERTEX_FORMAT.vertexSizeBytes)
 
         vertexBuffer.write().run {
-            quads.forEachIndexed { index, quad ->
-                for (vertex in quad.vertices) {
+            faces.forEachIndexed { index, face ->
+                for (vertex in face.quad.vertices) {
                     writeFloat(vertex.pos.x)
                     writeFloat(vertex.pos.y)
                     writeFloat(vertex.pos.z)
@@ -206,12 +204,12 @@ open class LightMesh(
             }
         }
 
-        val indices = mesh.generateIndices(quads.size * 4)
+        val indices = mesh.generateIndices(faces.size * 4)
 
         return {
-            empty = quads.isEmpty()
+            empty = faces.isEmpty()
 
-            mesh.rawUpload(quads.size * 6, indices.second, vertexBuffer, indices.first)
+            mesh.rawUpload(faces.size * 6, indices.second, vertexBuffer, indices.first)
             vertexBuffer.free()
             indices.first.free()
         }

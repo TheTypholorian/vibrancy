@@ -28,10 +28,6 @@ open class StaticBlockLightMeshManager(
         asyncTask?.cancel(true)
     }
 
-    fun draw() {
-        lightMesh.draw()
-    }
-
     fun isTaskActive() = asyncTask?.let { task -> !task.isDone } ?: false
 
     fun checkIfFinished(): Boolean {
@@ -106,15 +102,6 @@ open class StaticBlockLightMeshManager(
         lightPredicate: BlockMeshCollector.Predicate
     ) {
         if (VibrancyConfig.useMultithreading) {
-            /*
-            GlThreadPool.submit {
-                val info = rebuildAsyncImpl(manager, collector, shadowPredicate, lightPredicate)()
-
-                if (!lightMesh.empty) {
-                    blit(info)
-                }
-            }
-             */
             asyncTask?.cancel(true)
             asyncTask = VibrancyThreadPool.submit(data, pos, manager, { rebuildBlocksAsyncImpl(manager, collector, shadowPredicate, lightPredicate) })
         } else {

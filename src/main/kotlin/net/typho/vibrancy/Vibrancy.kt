@@ -32,8 +32,10 @@ import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.block.impl.SubtleLightStorage
 import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.shadows.ShadowBuffer
+import net.typho.vibrancy.sky.SkyLightInfo
 import net.typho.vibrancy.sky.SkyLightInfoLoader
 import net.typho.vibrancy.sky.SkyLightRegistry
+import net.typho.vibrancy.sky.SkyLightStorage
 import org.lwjgl.opengl.GL
 import org.lwjgl.system.NativeResource
 import org.lwjgl.system.Platform
@@ -282,7 +284,6 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
                     BlockLightInfoLoader.onResourceManagerReload(resourceManager)
                     SkyLightInfoLoader.onResourceManagerReload(resourceManager)
 
-                    /*
                     SkyLightRegistry.get(new)?.let { info ->
                         if (lightManager.skyLight?.first != info.type) {
                             (lightManager.skyLight?.second as? NativeResource)?.free()
@@ -300,7 +301,6 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
 
                         load(lightManager.skyLight!!.second)
                     }
-                     */
                 }
             }
         }
