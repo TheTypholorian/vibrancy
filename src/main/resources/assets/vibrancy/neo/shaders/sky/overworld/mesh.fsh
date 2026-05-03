@@ -36,9 +36,10 @@ void main() {
         discard;
     }
 
-    vec2 texelPos = texCoord0 * Sampler0Size;
-    vec2 screenOffset = inverse(mat2(dFdx(texCoord0), dFdy(texCoord0))) * (floor(texelPos) + 0.5 - texelPos) / Sampler0Size;
-    vec3 uv = texCoord1 + dFdx(texCoord1) * screenOffset.x + dFdy(texCoord1) * screenOffset.y;
+    //vec2 texelPos = texCoord0 * Sampler0Size;
+    //vec2 screenOffset = inverse(mat2(dFdx(texCoord0), dFdy(texCoord0))) * (floor(texelPos) + 0.5 - texelPos) / Sampler0Size;
+    //vec3 uv = texCoord1 + dFdx(texCoord1) * screenOffset.x + dFdy(texCoord1) * screenOffset.y;
+    vec3 uv = texCoord1;
 
     fragColor = block.rgb * block.a * vec3(1, 1, 0.59) * 0.5; // TODO
 
@@ -50,14 +51,14 @@ void main() {
             discard;
         }
     }
-
-    /*
-    vec3 lightColor = texelFetch(Sampler1, ivec2(texCoord1), 0).rgb * texelFetch(Sampler2, ivec2(texCoord1), 0).rgb * LightColor * attenuateNoCusp(distance(LightPos, vertexPosition), LightRadius);
-
-    if (SpecularReflectionsEnabled) {
-        lightColor = specularReflection(lightColor, LightPos, CameraPos, vertexPosition, vertexNormal, SpecularReflectionStrength, SpecularReflectionExponent, Sampler3, texCoord0);
-    }
-
-    fragColor = applyLight(lightColor, block, vertexDistance, FogStart, FogEnd);
-    */
 }
+
+/*
+vec3 lightColor = texelFetch(Sampler1, ivec2(texCoord1), 0).rgb * texelFetch(Sampler2, ivec2(texCoord1), 0).rgb * LightColor * attenuateNoCusp(distance(LightPos, vertexPosition), LightRadius);
+
+if (SpecularReflectionsEnabled) {
+    lightColor = specularReflection(lightColor, LightPos, CameraPos, vertexPosition, vertexNormal, SpecularReflectionStrength, SpecularReflectionExponent, Sampler3, texCoord0);
+}
+
+fragColor = applyLight(lightColor, block, vertexDistance, FogStart, FogEnd);
+*/

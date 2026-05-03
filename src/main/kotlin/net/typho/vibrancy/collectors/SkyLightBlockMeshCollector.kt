@@ -50,7 +50,14 @@ class SkyLightBlockMeshCollector(
                     }
 
                     if (!state.propagatesSkylightDown(level, pos.blockPos) && state.block !is LeavesBlock) { // TODO
-                        break
+                        if (
+                            level.getHeight(Heightmap.Types.WORLD_SURFACE, x + 1, z) > pos.y &&
+                            level.getHeight(Heightmap.Types.WORLD_SURFACE, x - 1, z) > pos.y &&
+                            level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z + 1) > pos.y &&
+                            level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z - 1) > pos.y
+                        ) {
+                            break
+                        }
                     }
 
                     y--
