@@ -40,16 +40,16 @@ void main() {
     vec2 screenOffset = inverse(mat2(dFdx(texCoord0), dFdy(texCoord0))) * (floor(texelPos) + 0.5 - texelPos) / Sampler0Size;
     vec3 uv = texCoord1 + dFdx(texCoord1) * screenOffset.x + dFdy(texCoord1) * screenOffset.y;
 
+    fragColor = block.rgb * block.a * vec3(1, 1, 0.59) * 0.5; // TODO
+
     if (uv.x >= 0 && uv.x <= 1 && uv.y >= 0 && uv.y <= 1) {
         vec4 shadow = texture(Sampler1, uv.xy);
         float depth = texture(Sampler2, uv.xy).r;
 
-        if (shadow.a == 1 && uv.z < depth - 2e-3) {
+        if (shadow.a == 1 && uv.z < depth - 1e-5) {
             discard;
         }
     }
-
-    fragColor = block.rgb * block.a * vec3(1, 1, 0.59) * 0.5; // TODO
 
     /*
     vec3 lightColor = texelFetch(Sampler1, ivec2(texCoord1), 0).rgb * texelFetch(Sampler2, ivec2(texCoord1), 0).rgb * LightColor * attenuateNoCusp(distance(LightPos, vertexPosition), LightRadius);

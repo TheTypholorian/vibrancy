@@ -60,15 +60,15 @@ open class LightTexture : NeoGlTexture2D() {
         override fun init() {
             bind(GlTextureTarget.TEXTURE_2D).use { texture ->
                 texture.textureDataMutable(1, 1, FORMAT)
-                texture.minFilter = GlTextureMinFilter.NEAREST
-                texture.magFilter = GlTextureMagFilter.NEAREST
+                texture.minFilter = GlTextureMinFilter.LINEAR
+                texture.magFilter = GlTextureMagFilter.LINEAR
             }
             val depth = NeoGlTexture2D()
             this.depth = depth
             depth.bind(GlTextureTarget.TEXTURE_2D).use { texture ->
                 texture.textureDataMutable(1, 1, GlTextureFormat.DEPTH_COMPONENT32F)
-                texture.minFilter = GlTextureMinFilter.NEAREST
-                texture.magFilter = GlTextureMagFilter.NEAREST
+                texture.minFilter = GlTextureMinFilter.LINEAR
+                texture.magFilter = GlTextureMagFilter.LINEAR
             }
             framebuffer.bind().use { fbo ->
                 fbo.colorAttachments[0] = this

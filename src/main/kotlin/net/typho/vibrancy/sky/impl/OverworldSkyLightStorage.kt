@@ -75,7 +75,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
     var info: OverworldSkyLightInfo? = null
         private set
     @JvmField
-    val texture = LightTexture.Shadow().also { it.resize(8196, 8196) }
+    val texture = LightTexture.Shadow().also { it.resize(16384, 16384) }
 
     override fun createChunk(
         manager: LightManager,
@@ -100,7 +100,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
         val shadowMat = Matrix4f()
             .rotateX(Math.toRadians(15.0).toFloat())
             .rotateY(Math.toRadians(30.0).toFloat())
-            .scale(0.0025f)
+            .scale(0.005f)
 
         texture.framebuffer.bind(NeoRect2i(0, 0, texture.width, texture.height)).use { fbo ->
             fbo.clear(GlClearBit.Color(NeoColor.FULL_OFF), GlClearBit.Depth(0f))
