@@ -8,6 +8,7 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.state.*
 import net.typho.big_shot_lib.api.client.rendering.opengl.util.PolygonOffset
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
+import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.NeoVec2i
 import net.typho.big_shot_lib.api.util.buffer.BYTE_MASK
@@ -188,6 +189,40 @@ open class LightMesh(
         vertexBuffer.write().run {
             faces.forEachIndexed { index, face ->
                 for (vertex in face.quad.vertices) {
+                    writeFloat(vertex.pos.x)
+                    writeFloat(vertex.pos.y)
+                    writeFloat(vertex.pos.z)
+                    writeFloat(vertex.textureUV!!.x)
+                    writeFloat(vertex.textureUV!!.y)
+                    writeShort(vertex.overlayUV?.x ?: 0)
+                    writeShort(vertex.overlayUV?.y ?: 0)
+                    writeInt(vertex.color!!.toRGBA())
+                    writeByte((vertex.normal!!.x * 127).toInt())
+                    writeByte((vertex.normal!!.y * 127).toInt())
+                    writeByte((vertex.normal!!.z * 127).toInt())
+                }
+            }
+        }
+
+        val indices = mesh.generateIndices(faces.size * 4)
+
+        return {
+            empty = faces.isEmpty()
+
+            mesh.rawUpload(faces.size * 6, indices.second, vertexBuffer, indices.first)
+            vertexBuffer.free()
+            indices.first.free()
+        }
+    }
+
+    fun lazyUploadQuadsNoAtlas(
+        faces: List<NeoBakedQuad>
+    ): () -> Unit {
+        val vertexBuffer = NeoBuffer.GCNative(faces.size.toLong() * 4 * VERTEX_FORMAT.vertexSizeBytes)
+
+        vertexBuffer.write().run {
+            faces.forEachIndexed { index, face ->
+                for (vertex in face.vertices) {
                     writeFloat(vertex.pos.x)
                     writeFloat(vertex.pos.y)
                     writeFloat(vertex.pos.z)

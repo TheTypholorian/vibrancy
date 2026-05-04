@@ -392,56 +392,58 @@ open class RayPointLight(
                 val nodes = arrayListOf<Node>()
                 val poseStack = PoseStack()
 
-                for (entity in level.getEntities(null, AABB.ofSize(Vec3(absolutePos.toJOML()), radius.toDouble() * 2, radius.toDouble() * 2, radius.toDouble() * 2))) {
-                    //? if 1.21 {
-                    if (subLevel != null || meshCollector.checked.contains(NeoVec3i(entity.blockPosition()))) {
-                    //? } else {
-                    /*if (meshCollector.checked.contains(NeoVec3i(entity.blockPosition()))) {
-                    *///? }
-                        val node = Node()
-                        debugOut("entityShadows", 1)
-                        //? if <1.21.9 {
-                        Minecraft.getInstance().entityRenderDispatcher.render(
-                            entity,
-                            Mth.lerp(Vibrancy.tickDelta.toDouble(), entity.xOld, entity.x),
-                            Mth.lerp(Vibrancy.tickDelta.toDouble(), entity.yOld, entity.y),
-                            Mth.lerp(Vibrancy.tickDelta.toDouble(), entity.zOld, entity.z),
-                            Mth.lerp(Vibrancy.tickDelta, entity.yRotO, entity.yRot),
-                            Vibrancy.tickDelta,
-                            poseStack,
-                            node.bufferSource,
-                            net.minecraft.client.renderer.LightTexture.FULL_BRIGHT
-                        )
-                        //? } else {
-                        /*val renderer = Minecraft.getInstance().entityRenderDispatcher.getRenderer(entity)
-
-                        if (renderer.shouldRender(entity, Frustum(data.modelViewMat, data.projMat), data.camera.pos.x.toDouble(), data.camera.pos.y.toDouble(), data.camera.pos.z.toDouble())) {
-                            val storage = SubmitNodeStorage()
-                            val features = FeatureRenderDispatcher(
-                                storage,
-                                Minecraft.getInstance().blockRenderer,
-                                node.bufferSource,
-                                Minecraft.getInstance().atlasManager,
-                                object : OutlineBufferSource() {
-                                    override fun getBuffer(renderType: RenderType): VertexConsumer {
-                                        return WrapperUtil.INSTANCE.unwrap(EmptyVertexConsumer)
-                                    }
-                                },
-                                WrapperUtil.INSTANCE.unwrap { EmptyVertexConsumer },
-                                Minecraft.getInstance().font
-                            )
-
-                            renderer.submit(
-                                renderer.createRenderState(entity, Vibrancy.tickDelta),
+                if (VibrancyConfig.entityShadowsEnabled) {
+                    for (entity in level.getEntities(null, AABB.ofSize(Vec3(absolutePos.toJOML()), radius.toDouble() * 2, radius.toDouble() * 2, radius.toDouble() * 2))) {
+                        //? if 1.21 {
+                        if (subLevel != null || meshCollector.checked.contains(NeoVec3i(entity.blockPosition()))) {
+                            //? } else {
+                            /*if (meshCollector.checked.contains(NeoVec3i(entity.blockPosition()))) {
+                            *///? }
+                            val node = Node()
+                            debugOut("entityShadows", 1)
+                            //? if <1.21.9 {
+                            Minecraft.getInstance().entityRenderDispatcher.render(
+                                entity,
+                                Mth.lerp(Vibrancy.tickDelta.toDouble(), entity.xOld, entity.x),
+                                Mth.lerp(Vibrancy.tickDelta.toDouble(), entity.yOld, entity.y),
+                                Mth.lerp(Vibrancy.tickDelta.toDouble(), entity.zOld, entity.z),
+                                Mth.lerp(Vibrancy.tickDelta, entity.yRotO, entity.yRot),
+                                Vibrancy.tickDelta,
                                 poseStack,
-                                storage,
-                                Minecraft.getInstance().gameRenderer.levelRenderState.cameraRenderState
+                                node.bufferSource,
+                                net.minecraft.client.renderer.LightTexture.FULL_BRIGHT
                             )
+                            //? } else {
+                            /*val renderer = Minecraft.getInstance().entityRenderDispatcher.getRenderer(entity)
 
-                            storage.endFrame()
+                            if (renderer.shouldRender(entity, Frustum(data.modelViewMat, data.projMat), data.camera.pos.x.toDouble(), data.camera.pos.y.toDouble(), data.camera.pos.z.toDouble())) {
+                                val storage = SubmitNodeStorage()
+                                val features = FeatureRenderDispatcher(
+                                    storage,
+                                    Minecraft.getInstance().blockRenderer,
+                                    node.bufferSource,
+                                    Minecraft.getInstance().atlasManager,
+                                    object : OutlineBufferSource() {
+                                        override fun getBuffer(renderType: RenderType): VertexConsumer {
+                                            return WrapperUtil.INSTANCE.unwrap(EmptyVertexConsumer)
+                                        }
+                                    },
+                                    WrapperUtil.INSTANCE.unwrap { EmptyVertexConsumer },
+                                    Minecraft.getInstance().font
+                                )
+
+                                renderer.submit(
+                                    renderer.createRenderState(entity, Vibrancy.tickDelta),
+                                    poseStack,
+                                    storage,
+                                    Minecraft.getInstance().gameRenderer.levelRenderState.cameraRenderState
+                                )
+
+                                storage.endFrame()
+                            }
+                            *///? }
+                            nodes.add(node)
                         }
-                        *///? }
-                        nodes.add(node)
                     }
                 }
 

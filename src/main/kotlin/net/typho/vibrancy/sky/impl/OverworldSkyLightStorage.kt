@@ -1,31 +1,45 @@
 package net.typho.vibrancy.sky.impl
 
 import com.mojang.blaze3d.systems.RenderSystem
+import com.mojang.blaze3d.vertex.PoseStack
+import net.minecraft.client.Minecraft
+import net.minecraft.client.renderer.texture.OverlayTexture
+import net.minecraft.core.BlockBox
+import net.minecraft.util.Mth
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkAccess
+import net.minecraft.world.phys.AABB
+import net.minecraft.world.phys.Vec3
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlAlphaFunction
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlClearBit
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlCullFace
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureTarget
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlBuffer
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlFramebuffer
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlCullShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDepthShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
+import net.typho.big_shot_lib.api.client.rendering.util.NeoRenderSettings
+import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.math.NeoDirection
 import net.typho.big_shot_lib.api.math.rect.NeoRect2i
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
+import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.big_shot_lib.api.math.vec.NeoVec4f
 import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.big_shot_lib.api.util.NeoColor
+import net.typho.big_shot_lib.api.util.WrapperUtil
+import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyConfig
@@ -36,6 +50,8 @@ import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.shadows.LightTexture
 import net.typho.vibrancy.sky.ChunkedSkyLightStorage
 import net.typho.vibrancy.sky.SkyLightStorage
+import net.typho.vibrancy.util.EmptyVertexConsumer
+import net.typho.vibrancy.util.QuadListVertexConsumer
 import net.typho.vibrancy.util.VibrancyThreadPool
 import org.joml.Matrix4f
 import org.joml.Quaternionf
@@ -78,6 +94,8 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
         private set
     @JvmField
     val texture = LightTexture.Shadow().also { it.resize(16384, 16384) }
+    @JvmField
+    val tempMesh = LightMesh(GlBufferUsage.STREAM_DRAW)
 
     override fun createChunk(
         manager: LightManager,
@@ -134,6 +152,84 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
                 for ((pos, chunk) in chunks) {
                     chunk.mesh.draw()
+                }
+
+                val quads = hashMapOf<NeoIdentifier, MutableList<NeoBakedQuad>>()
+                val buffers = hashMapOf<NeoIdentifier, NeoBakedQuad.Consumer>()
+                val bufferSource = WrapperUtil.INSTANCE.unwrap { settings: NeoRenderSettings ->
+                    val texture = settings.drawState.shader.textures.getOrNull(0)?.location ?: return@unwrap EmptyVertexConsumer
+
+                    if (GlTexture2D[texture] == null) {
+                        return@unwrap EmptyVertexConsumer
+                    }
+
+                    buffers.computeIfAbsent(texture) {
+                        QuadListVertexConsumer(quads.computeIfAbsent(texture) { texture -> arrayListOf() })
+                    }
+                }
+                val poseStack = PoseStack()
+                val radius = 64
+
+                if (VibrancyConfig.entityShadowsEnabled) {
+                    for (entity in data.level!!.getEntities(null, AABB.ofSize(Vec3(data.camera.pos.toJOML()), radius.toDouble() * 2, radius.toDouble() * 2, radius.toDouble() * 2))) {
+                        Minecraft.getInstance().entityRenderDispatcher.render(
+                            entity,
+                            Mth.lerp(Vibrancy.tickDelta.toDouble(), entity.xOld, entity.x),
+                            Mth.lerp(Vibrancy.tickDelta.toDouble(), entity.yOld, entity.y),
+                            Mth.lerp(Vibrancy.tickDelta.toDouble(), entity.zOld, entity.z),
+                            Mth.lerp(Vibrancy.tickDelta, entity.yRotO, entity.yRot),
+                            Vibrancy.tickDelta,
+                            poseStack,
+                            bufferSource,
+                            net.minecraft.client.renderer.LightTexture.FULL_BRIGHT
+                        )
+                    }
+                }
+
+                if (VibrancyConfig.blockEntityShadows) {
+                    Vibrancy.disableFlywheelInstancing = true
+
+                    val origin = data.camera.pos.toInt()
+                    val minChunk = ChunkPos((origin - radius).blockPos)
+                    val maxChunk = ChunkPos((origin + radius).blockPos)
+
+                    for (x in minChunk.x..maxChunk.x) {
+                        for (z in minChunk.z..maxChunk.z) {
+                            for ((pos, blockEntity) in data.level!!.getChunk(x, z).blockEntities) {
+                                Minecraft.getInstance().blockEntityRenderDispatcher.getRenderer(blockEntity)?.let { renderer ->
+                                    poseStack.pushPose()
+                                    poseStack.translate(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
+
+                                    renderer.render(
+                                        blockEntity,
+                                        Vibrancy.tickDelta,
+                                        poseStack,
+                                        bufferSource,
+                                        15728880,
+                                        OverlayTexture.NO_OVERLAY
+                                    )
+
+                                    poseStack.popPose()
+                                }
+                            }
+                        }
+                    }
+
+                    Vibrancy.disableFlywheelInstancing = false
+                }
+
+                for ((texture, quads) in quads) {
+                    GlTexture2D[texture]?.let { texture ->
+                        settings.shader.setTexture(
+                            0,
+                            GlTextureBinding.FromInstance(
+                                texture,
+                                GlTextureTarget.TEXTURE_2D
+                            )
+                        )
+                        tempMesh.lazyUploadQuadsNoAtlas(quads)()
+                        tempMesh.draw()
+                    }
                 }
             }
         }
