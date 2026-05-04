@@ -130,17 +130,14 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
             }
         }
 
-        lightColor *= sqrt(sin(lightAngle).coerceAtLeast(0f)) * info!!.brightness
+        lightColor *= sqrt(sin(lightAngle).coerceAtLeast(0f)) * info!!.brightness * (1 - data.level!!.getRainLevel(Vibrancy.tickDelta) / 2 - data.level!!.getThunderLevel(Vibrancy.tickDelta) / 2)
 
-        //val lightColor = sunColor * sin(lightAngle).coerceAtLeast(0f) + moonColor * sin(lightAngle + PI.toFloat()).coerceAtLeast(0f)
-
-        // TODO
-        //.translate((-data.camera.pos.toInt().toFloat()).toJOML())
         val shadowRot = Quaternionf()
             .rotateX(lightAngle)
             .rotateY(-PI.toFloat() / 2)
             .rotateY(Math.toRadians(15.0).toFloat())
         val shadowMat = Matrix4f().rotate(shadowRot)
+            //.translate((-data.camera.pos.toInt().toFloat()).toJOML())
             .scale(0.005f)
 
         texture.framebuffer.bind(NeoRect2i(0, 0, texture.width, texture.height)).use { fbo ->
