@@ -13,8 +13,6 @@ uniform sampler2D Sampler2;
 
 uniform vec3 CameraPos;
 uniform vec3 LightColor;
-uniform vec3 LightPos;
-uniform float LightRadius;
 
 uniform bool SpecularReflectionsEnabled;
 uniform float SpecularReflectionStrength;
@@ -41,7 +39,7 @@ void main() {
     //vec3 uv = texCoord1 + dFdx(texCoord1) * screenOffset.x + dFdy(texCoord1) * screenOffset.y;
     vec3 uv = texCoord1;
 
-    fragColor = block.rgb * block.a * vec3(1, 1, 0.59) * 0.5; // TODO
+    fragColor = block.rgb * block.a * LightColor;
 
     if (uv.x >= 0 && uv.x <= 1 && uv.y >= 0 && uv.y <= 1) {
         vec4 shadow = texture(Sampler1, uv.xy);

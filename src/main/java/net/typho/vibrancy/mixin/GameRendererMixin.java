@@ -48,7 +48,7 @@ public class GameRendererMixin {
             float partialTick,
             Operation<Void> original
     ) {
-        if (VibrancyConfig.inventoryLightsEnabled) {
+        if (VibrancyConfig.INSTANCE.getModEnabled() && VibrancyConfig.inventoryLightsEnabled) {
             Map<NeoRenderSettings, List<NeoBakedQuad>> quads = new HashMap<>();
             Map<GlTexture2D, List<NeoBakedQuad>> blitQuads = new HashMap<>();
 

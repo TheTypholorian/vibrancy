@@ -6,20 +6,16 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkAccess
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlAlphaFunction
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBlendEquation
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBlendingFactor
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlClearBit
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlCullFace
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureTarget
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlFramebuffer
-import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlBlendShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlCullShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDepthShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
-import net.typho.big_shot_lib.api.client.rendering.opengl.util.BlendFunction
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.math.NeoDirection
@@ -46,8 +42,9 @@ import org.lwjgl.system.NativeResource
 import java.util.concurrent.CompletableFuture
 import kotlin.collections.addAll
 import kotlin.math.PI
-import kotlin.math.cos
+import kotlin.math.cbrt
 import kotlin.math.sin
+import kotlin.math.sqrt
 
 class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, OverworldSkyLightStorage.Chunk>(OverworldSkyLightType) {
     companion object {
@@ -92,30 +89,35 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
         this.info = info
     }
 
+    @Suppress("SENSELESS_COMPARISON")
     fun render(data: RenderEventData, manager: LightManager, result: GlFramebuffer, temp: GlFramebuffer) {
         for ((pos, chunk) in chunks) {
             chunk.update(data, manager)
             chunk.checkIfFinished()
         }
 
-        var sunAngle = (manager.getLevel()!!.getSunAngle(Vibrancy.tickDelta) + PI.toFloat() / 2) % (PI.toFloat() * 2)
+        var lightAngle = (data.level!!.getSunAngle(Vibrancy.tickDelta) + PI.toFloat() / 2) % (PI.toFloat() * 2)
+        var lightColor = info!!.sunColor
 
-        if (sunAngle > PI.toFloat()) {
-            sunAngle -= PI.toFloat()
+        if (lightAngle > PI.toFloat()) {
+            lightAngle -= PI.toFloat()
+            lightColor = info!!.moonColor * data.level!!.moonBrightness
+        } else {
+            val sunriseColor = data.level!!.effects().getSunriseColor(data.level!!.getTimeOfDay(Vibrancy.tickDelta), Vibrancy.tickDelta)
+
+            if (sunriseColor != null) {
+                lightColor = lightColor.lerp(sunriseColor[0], sunriseColor[1], sunriseColor[2], sunriseColor[3] * 0.75f)
+            }
         }
 
-        /*
-        if (sunY < 0) {
-            sunAngle += PI.toFloat()
-            sunX = -sunX
-            sunY = -sunY
-        }
-         */
+        lightColor *= sqrt(sin(lightAngle).coerceAtLeast(0f))
+
+        //val lightColor = sunColor * sin(lightAngle).coerceAtLeast(0f) + moonColor * sin(lightAngle + PI.toFloat()).coerceAtLeast(0f)
 
         // TODO
         //.translate((-data.camera.pos.toInt().toFloat()).toJOML())
         val shadowMat = Matrix4f()
-            .rotateX(sunAngle)
+            .rotateX(lightAngle)
             .rotateY(-PI.toFloat() / 2)
             .rotateY(Math.toRadians(15.0).toFloat())
             .scale(0.005f)
@@ -144,6 +146,8 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                 settings.shader.setUniform("FogStart") { set(RenderSystem.getShaderFogStart()) }
                 settings.shader.setUniform("FogEnd") { set(RenderSystem.getShaderFogEnd()) }
                 settings.shader.setUniform("FogShape") { set(RenderSystem.getShaderFogShape().index) }
+
+                settings.shader.setUniform("LightColor") { setFloatVec(lightColor) }
 
                 settings.shader.setTexture(
                     1,
