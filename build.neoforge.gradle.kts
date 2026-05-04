@@ -109,7 +109,6 @@ dependencies {
     implementation(libs.sodium)
     implementation(libs.bigShot)
     implementation(libs.yacl)
-    implementation(libs.modmenu)
 
     if (sc.current.version == "1.21") {
         jarJar(libs.sableCompanion)

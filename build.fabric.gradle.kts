@@ -107,7 +107,7 @@ dependencies {
     modImplementation(libs.sodium)
     modImplementation(libs.bigShot)
     modImplementation(libs.yacl)
-    modImplementation(libs.modmenu)
+    modCompileOnly(libs.modmenu)
 
     if (sc.current.version == "1.21") {
         include(libs.sableCompanionFabric)
