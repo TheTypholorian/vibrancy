@@ -4,10 +4,10 @@ import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.texture.OverlayTexture
-import net.minecraft.core.BlockBox
 import net.minecraft.util.Mth
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkAccess
 import net.minecraft.world.phys.AABB
@@ -17,7 +17,6 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlClearBit
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlCullFace
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureTarget
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlBuffer
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlFramebuffer
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlCullShard
@@ -25,6 +24,7 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDepthShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
+import net.typho.big_shot_lib.api.client.rendering.util.BlockChunkLayer
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.rendering.util.NeoRenderSettings
 import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
@@ -33,7 +33,6 @@ import net.typho.big_shot_lib.api.math.NeoDirection
 import net.typho.big_shot_lib.api.math.rect.NeoRect2i
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
-import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.big_shot_lib.api.math.vec.NeoVec4f
 import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.BlockUtil
@@ -93,7 +92,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
     var info: OverworldSkyLightInfo? = null
         private set
     @JvmField
-    val texture = LightTexture.Shadow().also { it.resize(16384, 16384) }
+    val texture = LightTexture.Shadow().also { it.resize(1 shl (VibrancyConfig.skyLightResolution + 10), 1 shl (VibrancyConfig.skyLightResolution + 10)) } // 16384, 16384
     @JvmField
     val tempMesh = LightMesh(GlBufferUsage.STREAM_DRAW)
 
@@ -111,6 +110,10 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
     @Suppress("SENSELESS_COMPARISON")
     fun render(data: RenderEventData, manager: LightManager, result: GlFramebuffer, temp: GlFramebuffer) {
+        if (!VibrancyConfig.skyLightsEnabled) {
+            return
+        }
+
         for ((pos, chunk) in chunks) {
             chunk.update(data, manager)
             chunk.checkIfFinished()
@@ -130,7 +133,10 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
             }
         }
 
-        lightColor *= sqrt(sin(lightAngle).coerceAtLeast(0f)) * info!!.brightness * (1 - data.level!!.getRainLevel(Vibrancy.tickDelta) / 2 - data.level!!.getThunderLevel(Vibrancy.tickDelta) / 2)
+        lightColor *= sqrt(sin(lightAngle).coerceAtLeast(0f))
+        lightColor *= (1 - data.level!!.getRainLevel(Vibrancy.tickDelta) / 2 - data.level!!.getThunderLevel(Vibrancy.tickDelta) / 2)
+        lightColor *= info!!.brightness
+        lightColor *= VibrancyConfig.skyLightBrightness
 
         val shadowRot = Quaternionf()
             .rotateX(lightAngle)
@@ -138,7 +144,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
             .rotateY(Math.toRadians(15.0).toFloat())
         val shadowMat = Matrix4f().rotate(shadowRot)
             //.translate((-data.camera.pos.toInt().toFloat()).toJOML())
-            .scale(0.005f)
+            .scale(1f / (VibrancyConfig.skyLightShadowDistance * 16))
 
         texture.framebuffer.bind(NeoRect2i(0, 0, texture.width, texture.height)).use { fbo ->
             fbo.clear(GlClearBit.Color(NeoColor.FULL_OFF), GlClearBit.Depth(0f))
@@ -148,7 +154,9 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                 settings.shader.setUniform("ShadowMat") { set(shadowMat) }
 
                 for ((pos, chunk) in chunks) {
-                    chunk.mesh.draw()
+                    if (manager.getSortingOrder(data, pos) < VibrancyConfig.skyLightBrightness * VibrancyConfig.skyLightBrightness) {
+                        chunk.mesh.draw()
+                    }
                 }
 
                 val quads = hashMapOf<NeoIdentifier, MutableList<NeoBakedQuad>>()
@@ -320,7 +328,8 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                             pos: IVec3<Int>,
                             state: BlockState?
                         ): Boolean {
-                            return true
+                            val state = state ?: level.getBlockState(pos.blockPos)
+                            return BlockUtil.INSTANCE.getBlockChunkLayer(state) != BlockChunkLayer.TRANSLUCENT && state.block != Blocks.WATER
                         }
 
                         override fun shouldCastFace(
@@ -359,21 +368,22 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
             return mesh.lazyUploadNoAtlas(lightFaces)
         }
 
-        fun rebuildBlocksAsync(
-            data: RenderEventData,
-            manager: LightManager
-        ) {
-            if (VibrancyConfig.useMultithreading) {
-                asyncTask?.cancel(true)
-                asyncTask = VibrancyThreadPool.submit(data, pos, manager) { rebuildBlocksAsyncImpl(manager) }
-            } else {
-                rebuildBlocksAsyncImpl(manager)()
-            }
-        }
-
         fun update(data: RenderEventData, manager: LightManager) {
             if (dirty) {
-                rebuildBlocksAsync(data, manager)
+                for (x in (pos.x - 1)..(pos.x + 1)) {
+                    for (z in (pos.z - 1)..(pos.z + 1)) {
+                        if (!data.level!!.hasChunk(x, z)) {
+                            return
+                        }
+                    }
+                }
+
+                if (VibrancyConfig.useMultithreading) {
+                    asyncTask?.cancel(true)
+                    asyncTask = VibrancyThreadPool.submit(data, pos, manager) { rebuildBlocksAsyncImpl(manager) }
+                } else {
+                    rebuildBlocksAsyncImpl(manager)()
+                }
                 dirty = false
             }
         }

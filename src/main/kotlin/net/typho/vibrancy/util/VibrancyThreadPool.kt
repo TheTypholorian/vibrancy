@@ -15,7 +15,7 @@ object VibrancyThreadPool : ThreadPoolExecutor(
     VibrancyConfig.asyncThreads,
     10L,
     TimeUnit.MINUTES,
-    PriorityBlockingQueue(11, Comparator.comparingDouble { a -> if (a is SortedAsyncTask) a.sortingOrder else 0.0 })
+    PriorityBlockingQueue(11, Comparator.comparingDouble { a -> if (a is SortedAsyncTask) -a.sortingOrder else 0.0 })
 ) {
     @JvmStatic
     fun <T> submit(sort: Double, task: () -> T): CompletableFuture<T> {

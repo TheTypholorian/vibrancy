@@ -2,13 +2,16 @@ package net.typho.vibrancy.collectors
 
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
+import net.minecraft.world.level.LightLayer
 import net.minecraft.world.level.block.LeavesBlock
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.levelgen.Heightmap
+import net.typho.big_shot_lib.api.client.rendering.util.BlockChunkLayer
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.big_shot_lib.api.math.vec.blockPos
+import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.vibrancy.LightManager
 
 class SkyLightBlockMeshCollector(
@@ -49,12 +52,12 @@ class SkyLightBlockMeshCollector(
                         collect(pos, state)
                     }
 
-                    if (!state.propagatesSkylightDown(level, pos.blockPos) && state.block !is LeavesBlock) { // TODO
+                    if (!state.propagatesSkylightDown(level, pos.blockPos)) { // TODO
                         if (
-                            level.getHeight(Heightmap.Types.WORLD_SURFACE, x + 1, z) > pos.y &&
-                            level.getHeight(Heightmap.Types.WORLD_SURFACE, x - 1, z) > pos.y &&
-                            level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z + 1) > pos.y &&
-                            level.getHeight(Heightmap.Types.WORLD_SURFACE, x, z - 1) > pos.y
+                            level.getBrightness(LightLayer.SKY, pos.blockPos.north()) <= 0 &&
+                            level.getBrightness(LightLayer.SKY, pos.blockPos.south()) <= 0 &&
+                            level.getBrightness(LightLayer.SKY, pos.blockPos.east()) <= 0 &&
+                            level.getBrightness(LightLayer.SKY, pos.blockPos.west()) <= 0
                         ) {
                             break
                         }

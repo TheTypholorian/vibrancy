@@ -9,7 +9,10 @@ import net.minecraft.network.chat.Component
 import net.typho.big_shot_lib.api.client.rendering.opengl.GlQueue
 import net.typho.big_shot_lib.api.util.platform.PlatformUtil
 import net.typho.vibrancy.block.impl.SubtleLightCullingMode
+import net.typho.vibrancy.sky.impl.OverworldSkyLightStorage
 import net.typho.vibrancy.util.VibrancyThreadPool
+import org.lwjgl.opengl.GL11.GL_RENDERER
+import org.lwjgl.opengl.GL11.glGetString
 import java.nio.file.Files
 import kotlin.reflect.KMutableProperty0
 
@@ -18,6 +21,27 @@ internal fun <T : Any> Option.Builder<T>.binding(def: T, property: KMutablePrope
 }
 
 object VibrancyConfig {
+    @JvmField
+    val isPotato: Boolean
+
+    init {
+        val renderer = glGetString(GL_RENDERER)
+
+        isPotato = when {
+            renderer == null -> false
+            renderer.contains("Intel", true) -> true
+            renderer.contains("AMD Radeon(TM) Graphics", true) -> true
+            renderer.contains("Vega", true) && !renderer.contains("RX", true) -> true
+            else -> false
+        }
+
+        if (isPotato) {
+            Vibrancy.LOGGER.info("Detected that you own a potato (GPU renderer $renderer), setting config defaults accordingly")
+        } else {
+            Vibrancy.LOGGER.info("Detected that you own a non-potato (GPU renderer $renderer), setting config defaults accordingly")
+        }
+    }
+
     var modEnabled = true
         set(value) {
             field = value
@@ -27,7 +51,7 @@ object VibrancyConfig {
         }
     @JvmField
     var useMultithreading = true
-    var asyncThreads: Int = 2
+    var asyncThreads: Int = if (isPotato) 2 else 4
         set(value) {
             field = value
             VibrancyThreadPool.corePoolSize = value
@@ -46,20 +70,11 @@ object VibrancyConfig {
     @JvmField
     var entityShadowsEnabled = true
     @JvmField
-    var blockEntityShadows = true
+    var blockEntityShadows = !isPotato
     @JvmField
-    var entityShadowDistance = 3
+    var entityShadowDistance = if (isPotato) 3 else 4
     @JvmField
-    var entityShadowMaxLights = 30
-
-    @JvmField
-    var inventoryLightsEnabled = false
-    @JvmField
-    var inventoryLightScale = 8
-    @JvmField
-    var inventoryLightBrightness = 0.5f
-    @JvmField
-    var inventoryLightsShadows = true
+    var entityShadowMaxLights = if (isPotato) 10 else 30
 
     var rayLightsEnabled = true
         set(value) {
@@ -69,7 +84,7 @@ object VibrancyConfig {
             }
         }
     @JvmField
-    var rayLightsMaxRendered: Int = 400
+    var rayLightsMaxRendered: Int = if (isPotato) 200 else 400
     @JvmField
     var rayLightBrightness: Float = 1f
     @JvmField
@@ -86,13 +101,39 @@ object VibrancyConfig {
     var subtleLightsRenderDistance: Int = 6
     @JvmField
     var subtleLightBrightness = 1f
-    var subtleLightCullingMode = SubtleLightCullingMode.SOLID_NEIGHBOR
+    var subtleLightCullingMode = if (isPotato) SubtleLightCullingMode.NON_AIR_NEIGHBOR else SubtleLightCullingMode.SOLID_NEIGHBOR
         set(value) {
             field = value
             GlQueue.INSTANCE.runOrQueue {
                 Vibrancy.lightManager.reload()
             }
         }
+
+    var skyLightsEnabled = true
+        set(value) {
+            field = value
+            GlQueue.INSTANCE.runOrQueue {
+                Vibrancy.lightManager.reload()
+            }
+        }
+    @JvmField
+    var skyLightShadowDistance: Int = if (isPotato) 8 else 4
+    @JvmField
+    var skyLightBrightness: Float = 1f
+    var skyLightResolution: Int = if (isPotato) 0 else 4
+        set(value) {
+            field = value
+            (Vibrancy.lightManager.skyLight?.second as? OverworldSkyLightStorage)?.texture?.resize(1 shl (value + 10), 1 shl (value + 10))
+        }
+
+    @JvmField
+    var inventoryLightsEnabled = false
+    @JvmField
+    var inventoryLightScale = 8
+    @JvmField
+    var inventoryLightBrightness = 0.5f
+    @JvmField
+    var inventoryLightsShadows = !isPotato
 
     @JvmStatic
     fun save() {
@@ -242,7 +283,7 @@ object VibrancyConfig {
 
                 .option(Option.createBuilder<Int>()
                     .name(Component.translatable("config.vibrancy.general.asyncThreads"))
-                    .binding(2, VibrancyConfig::asyncThreads)
+                    .binding(if (isPotato) 2 else 4, VibrancyConfig::asyncThreads)
                     .controller { opt ->
                         IntegerSliderControllerBuilder.create(opt)
                             .range(1, 8)
@@ -262,108 +303,6 @@ object VibrancyConfig {
                 .build())
 
             .category(ConfigCategory.createBuilder()
-                .name(Component.translatable("config.vibrancy.specularReflections"))
-
-                .option(Option.createBuilder<Boolean>()
-                    .name(Component.translatable("config.vibrancy.specularReflections.enabled"))
-                    .binding(true, VibrancyConfig::reflectionsEnabled)
-                    .controller(TickBoxControllerBuilder::create)
-                    .build())
-
-                .option(Option.createBuilder<Float>()
-                    .name(Component.translatable("config.vibrancy.specularReflections.strength"))
-                    .binding(3.5f, VibrancyConfig::reflectionStrength)
-                    .controller { opt ->
-                        FloatSliderControllerBuilder.create(opt)
-                            .range(0.5f, 10f)
-                            .step(0.5f)
-                    }
-                    .build())
-
-                .option(Option.createBuilder<Float>()
-                    .name(Component.translatable("config.vibrancy.specularReflections.exponent"))
-                    .binding(3f, VibrancyConfig::reflectionExponent)
-                    .controller { opt ->
-                        FloatSliderControllerBuilder.create(opt)
-                            .range(0.5f, 10f)
-                            .step(0.5f)
-                    }
-                    .build())
-                .build())
-
-            .category(ConfigCategory.createBuilder()
-                .name(Component.translatable("config.vibrancy.entityShadows"))
-
-                .option(Option.createBuilder<Boolean>()
-                    .name(Component.translatable("config.vibrancy.entityShadows.enabled"))
-                    .binding(true, VibrancyConfig::entityShadowsEnabled)
-                    .controller(TickBoxControllerBuilder::create)
-                    .build())
-
-                .option(Option.createBuilder<Boolean>()
-                    .name(Component.translatable("config.vibrancy.entityShadows.blockEntityShadows"))
-                    .binding(true, VibrancyConfig::blockEntityShadows)
-                    .controller(TickBoxControllerBuilder::create)
-                    .build())
-
-                .option(Option.createBuilder<Int>()
-                    .name(Component.translatable("config.vibrancy.entityShadows.distance"))
-                    .binding(3, VibrancyConfig::entityShadowDistance)
-                    .controller { opt ->
-                        IntegerSliderControllerBuilder.create(opt)
-                            .range(1, 16)
-                            .step(1)
-                    }
-                    .build())
-
-                .option(Option.createBuilder<Int>()
-                    .name(Component.translatable("config.vibrancy.entityShadows.maxLights"))
-                    .binding(30, VibrancyConfig::entityShadowMaxLights)
-                    .controller { opt ->
-                        IntegerSliderControllerBuilder.create(opt)
-                            .range(10, 100)
-                            .step(10)
-                    }
-                    .build())
-                .build())
-
-            .category(ConfigCategory.createBuilder()
-                .name(Component.translatable("config.vibrancy.inventoryLights"))
-
-                .option(Option.createBuilder<Boolean>()
-                    .name(Component.translatable("config.vibrancy.inventoryLights.enabled"))
-                    .binding(false, VibrancyConfig::inventoryLightsEnabled)
-                    .controller(TickBoxControllerBuilder::create)
-                    .build())
-
-                .option(Option.createBuilder<Int>()
-                    .name(Component.translatable("config.vibrancy.inventoryLights.scale"))
-                    .binding(8, VibrancyConfig::inventoryLightScale)
-                    .controller { opt ->
-                        IntegerSliderControllerBuilder.create(opt)
-                            .range(4, 32)
-                            .step(4)
-                    }
-                    .build())
-
-                .option(Option.createBuilder<Float>()
-                    .name(Component.translatable("config.vibrancy.inventoryLights.brightness"))
-                    .binding(0.5f, VibrancyConfig::inventoryLightBrightness)
-                    .controller { opt ->
-                        FloatSliderControllerBuilder.create(opt)
-                            .range(0.1f, 2f)
-                            .step(0.1f)
-                    }
-                    .build())
-
-                .option(Option.createBuilder<Boolean>()
-                    .name(Component.translatable("config.vibrancy.inventoryLights.shadows"))
-                    .binding(true, VibrancyConfig::inventoryLightsShadows)
-                    .controller(TickBoxControllerBuilder::create)
-                    .build())
-                .build())
-
-            .category(ConfigCategory.createBuilder()
                 .name(Component.translatable("config.vibrancy.blockLights"))
 
                 .group(OptionGroup.createBuilder()
@@ -377,7 +316,7 @@ object VibrancyConfig {
 
                     .option(Option.createBuilder<Int>()
                         .name(Component.translatable("config.vibrancy.blockLights.raytraced.maxRendered"))
-                        .binding(200, VibrancyConfig::rayLightsMaxRendered)
+                        .binding(if (isPotato) 200 else 400, VibrancyConfig::rayLightsMaxRendered)
                         .description(OptionDescription.of(
                             Component.translatable("config.vibrancy.blockLights.raytraced.maxRendered.tooltip")
                         ))
@@ -450,7 +389,7 @@ object VibrancyConfig {
 
                     .option(Option.createBuilder<SubtleLightCullingMode>()
                         .name(Component.translatable("config.vibrancy.blockLights.subtle.cullingMode"))
-                        .binding(SubtleLightCullingMode.SOLID_NEIGHBOR, VibrancyConfig::subtleLightCullingMode)
+                        .binding(if (isPotato) SubtleLightCullingMode.NON_AIR_NEIGHBOR else SubtleLightCullingMode.SOLID_NEIGHBOR, VibrancyConfig::subtleLightCullingMode)
                         .description(OptionDescription.of(
                             Component.translatable("config.vibrancy.blockLights.subtle.cullingMode.tooltip0"),
                             Component.translatable("config.vibrancy.blockLights.subtle.cullingMode.tooltip1"),
@@ -464,6 +403,150 @@ object VibrancyConfig {
                         .build())
                     .build())
 
+                .build())
+
+            .category(ConfigCategory.createBuilder()
+                .name(Component.translatable("config.vibrancy.skyLights"))
+
+                .option(Option.createBuilder<Boolean>()
+                    .name(Component.translatable("config.vibrancy.skyLights.enabled"))
+                    .binding(true, VibrancyConfig::skyLightsEnabled)
+                    .controller(TickBoxControllerBuilder::create)
+                    .build())
+
+                .option(Option.createBuilder<Int>()
+                    .name(Component.translatable("config.vibrancy.skyLights.shadow_distance"))
+                    .binding(if (isPotato) 8 else 4, VibrancyConfig::skyLightShadowDistance)
+                    .controller { opt ->
+                        IntegerSliderControllerBuilder.create(opt)
+                            .range(4, 16)
+                            .step(4)
+                    }
+                    .build())
+
+                .option(Option.createBuilder<Float>()
+                    .name(Component.translatable("config.vibrancy.skyLights.brightness"))
+                    .binding(1f, VibrancyConfig::skyLightBrightness)
+                    .controller { opt ->
+                        FloatSliderControllerBuilder.create(opt)
+                            .range(0.1f, 2f)
+                            .step(0.1f)
+                    }
+                    .build())
+
+                .option(Option.createBuilder<Int>()
+                    .name(Component.translatable("config.vibrancy.skyLights.resolution"))
+                    .binding(if (isPotato) 0 else 4, VibrancyConfig::skyLightResolution)
+                    .controller { opt ->
+                        IntegerSliderControllerBuilder.create(opt)
+                            .range(0, 4)
+                            .step(1)
+                            .formatValue { Component.literal((1 shl (it + 10)).toString()) }
+                    }
+                    .build())
+
+                .build())
+
+            .category(ConfigCategory.createBuilder()
+                .name(Component.translatable("config.vibrancy.inventoryLights"))
+
+                .option(Option.createBuilder<Boolean>()
+                    .name(Component.translatable("config.vibrancy.inventoryLights.enabled"))
+                    .binding(false, VibrancyConfig::inventoryLightsEnabled)
+                    .controller(TickBoxControllerBuilder::create)
+                    .build())
+
+                .option(Option.createBuilder<Int>()
+                    .name(Component.translatable("config.vibrancy.inventoryLights.scale"))
+                    .binding(8, VibrancyConfig::inventoryLightScale)
+                    .controller { opt ->
+                        IntegerSliderControllerBuilder.create(opt)
+                            .range(4, 32)
+                            .step(4)
+                    }
+                    .build())
+
+                .option(Option.createBuilder<Float>()
+                    .name(Component.translatable("config.vibrancy.inventoryLights.brightness"))
+                    .binding(0.5f, VibrancyConfig::inventoryLightBrightness)
+                    .controller { opt ->
+                        FloatSliderControllerBuilder.create(opt)
+                            .range(0.1f, 2f)
+                            .step(0.1f)
+                    }
+                    .build())
+
+                .option(Option.createBuilder<Boolean>()
+                    .name(Component.translatable("config.vibrancy.inventoryLights.shadows"))
+                    .binding(!isPotato, VibrancyConfig::inventoryLightsShadows)
+                    .controller(TickBoxControllerBuilder::create)
+                    .build())
+                .build())
+
+            .category(ConfigCategory.createBuilder()
+                .name(Component.translatable("config.vibrancy.specularReflections"))
+
+                .option(Option.createBuilder<Boolean>()
+                    .name(Component.translatable("config.vibrancy.specularReflections.enabled"))
+                    .binding(true, VibrancyConfig::reflectionsEnabled)
+                    .controller(TickBoxControllerBuilder::create)
+                    .build())
+
+                .option(Option.createBuilder<Float>()
+                    .name(Component.translatable("config.vibrancy.specularReflections.strength"))
+                    .binding(3.5f, VibrancyConfig::reflectionStrength)
+                    .controller { opt ->
+                        FloatSliderControllerBuilder.create(opt)
+                            .range(0.5f, 10f)
+                            .step(0.5f)
+                    }
+                    .build())
+
+                .option(Option.createBuilder<Float>()
+                    .name(Component.translatable("config.vibrancy.specularReflections.exponent"))
+                    .binding(3f, VibrancyConfig::reflectionExponent)
+                    .controller { opt ->
+                        FloatSliderControllerBuilder.create(opt)
+                            .range(0.5f, 10f)
+                            .step(0.5f)
+                    }
+                    .build())
+                .build())
+
+            .category(ConfigCategory.createBuilder()
+                .name(Component.translatable("config.vibrancy.entityShadows"))
+
+                .option(Option.createBuilder<Boolean>()
+                    .name(Component.translatable("config.vibrancy.entityShadows.enabled"))
+                    .binding(true, VibrancyConfig::entityShadowsEnabled)
+                    .controller(TickBoxControllerBuilder::create)
+                    .build())
+
+                .option(Option.createBuilder<Boolean>()
+                    .name(Component.translatable("config.vibrancy.entityShadows.blockEntityShadows"))
+                    .binding(!isPotato, VibrancyConfig::blockEntityShadows)
+                    .controller(TickBoxControllerBuilder::create)
+                    .build())
+
+                .option(Option.createBuilder<Int>()
+                    .name(Component.translatable("config.vibrancy.entityShadows.distance"))
+                    .binding(if (isPotato) 3 else 4, VibrancyConfig::entityShadowDistance)
+                    .controller { opt ->
+                        IntegerSliderControllerBuilder.create(opt)
+                            .range(1, 16)
+                            .step(1)
+                    }
+                    .build())
+
+                .option(Option.createBuilder<Int>()
+                    .name(Component.translatable("config.vibrancy.entityShadows.maxLights"))
+                    .binding(if (isPotato) 10 else 30, VibrancyConfig::entityShadowMaxLights)
+                    .controller { opt ->
+                        IntegerSliderControllerBuilder.create(opt)
+                            .range(10, 100)
+                            .step(10)
+                    }
+                    .build())
                 .build())
 
             .build()
