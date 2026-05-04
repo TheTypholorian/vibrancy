@@ -22,6 +22,7 @@ import net.typho.big_shot_lib.api.math.NeoDirection
 import net.typho.big_shot_lib.api.math.rect.NeoRect2i
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
+import net.typho.big_shot_lib.api.math.vec.NeoVec4f
 import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.big_shot_lib.api.util.NeoColor
@@ -37,12 +38,13 @@ import net.typho.vibrancy.sky.ChunkedSkyLightStorage
 import net.typho.vibrancy.sky.SkyLightStorage
 import net.typho.vibrancy.util.VibrancyThreadPool
 import org.joml.Matrix4f
+import org.joml.Quaternionf
+import org.joml.Vector4f
 import org.lwjgl.opengl.GL11.glClearDepth
 import org.lwjgl.system.NativeResource
 import java.util.concurrent.CompletableFuture
 import kotlin.collections.addAll
 import kotlin.math.PI
-import kotlin.math.cbrt
 import kotlin.math.sin
 import kotlin.math.sqrt
 
@@ -110,16 +112,17 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
             }
         }
 
-        lightColor *= sqrt(sin(lightAngle).coerceAtLeast(0f))
+        lightColor *= sqrt(sin(lightAngle).coerceAtLeast(0f)) * info!!.brightness
 
         //val lightColor = sunColor * sin(lightAngle).coerceAtLeast(0f) + moonColor * sin(lightAngle + PI.toFloat()).coerceAtLeast(0f)
 
         // TODO
         //.translate((-data.camera.pos.toInt().toFloat()).toJOML())
-        val shadowMat = Matrix4f()
+        val shadowRot = Quaternionf()
             .rotateX(lightAngle)
             .rotateY(-PI.toFloat() / 2)
             .rotateY(Math.toRadians(15.0).toFloat())
+        val shadowMat = Matrix4f().rotate(shadowRot)
             .scale(0.005f)
 
         texture.framebuffer.bind(NeoRect2i(0, 0, texture.width, texture.height)).use { fbo ->
@@ -147,7 +150,9 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                 settings.shader.setUniform("FogEnd") { set(RenderSystem.getShaderFogEnd()) }
                 settings.shader.setUniform("FogShape") { set(RenderSystem.getShaderFogShape().index) }
 
+                settings.shader.setUniform("CameraPos") { setFloatVec(data.camera.pos) }
                 settings.shader.setUniform("LightColor") { setFloatVec(lightColor) }
+                settings.shader.setUniform("LightDirection") { setFloatVec(NeoVec4f(shadowRot.transform(Vector4f(0f, -1f, 0f, 0f))).xyz) }
 
                 settings.shader.setTexture(
                     1,
