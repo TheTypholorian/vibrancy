@@ -9,6 +9,7 @@ uniform float FogEnd;
 uniform sampler2D Sampler0;
 uniform ivec2 Sampler0Size;
 uniform sampler2DShadow Sampler1;
+uniform sampler2D Sampler2;
 
 uniform vec3 CameraPos;
 uniform vec3 LightColor;
@@ -48,5 +49,11 @@ void main() {
 
     vec3 uv = texCoord1 + dFdx(texCoord1) * a + dFdy(texCoord1) * b;
 
-    fragColor = block.rgb * block.a * LightColor * texture(Sampler1, vec3(uv.xy, uv.z + ShadowBias)) * texCoord2.y * clamp(dot(vertexNormal, LightDirection), 0, 1);
+    vec3 lightColor = LightColor * texture(Sampler1, vec3(uv.xy, uv.z + ShadowBias)) * texCoord2.y * clamp(dot(vertexNormal, LightDirection), 0, 1);
+
+    if (SpecularReflectionsEnabled) {
+        lightColor = specularReflection(lightColor, LightDirection, CameraPos, vertexPosition, vertexNormal, SpecularReflectionStrength, SpecularReflectionExponent, Sampler2, texCoord0);
+    }
+
+    fragColor = applyLight(lightColor, block, vertexDistance, FogStart, FogEnd);
 }

@@ -28,8 +28,8 @@ float linear_fog_fade(float vertexDistance, float fogStart, float fogEnd) {
     return smoothstep(fogEnd, fogStart, vertexDistance);
 }
 
-vec3 specularReflection(vec3 lightColor, vec3 lightPos, vec3 cameraPos, vec3 vertexPos, vec3 normal, float strength, float exponent, sampler2D reflectionSampler, vec2 texCoord0) {
-    vec3 inputNormal = normalize(lightPos - vertexPos);
+vec3 specularReflection(vec3 lightColor, vec3 lightDir, vec3 cameraPos, vec3 vertexPos, vec3 normal, float strength, float exponent, sampler2D reflectionSampler, vec2 texCoord0) {
+    vec3 inputNormal = lightDir;
     vec3 outputNormal = normalize(cameraPos - vertexPos);
     vec3 reflectedNormal = 2 * dot(inputNormal, normal) * normal - inputNormal;
     float multiplier = pow(clamp(dot(outputNormal, reflectedNormal), 0, 1), exponent) * strength;

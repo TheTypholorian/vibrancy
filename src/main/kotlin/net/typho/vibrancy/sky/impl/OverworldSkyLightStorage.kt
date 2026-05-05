@@ -61,6 +61,7 @@ import net.typho.vibrancy.sky.ChunkedSkyLightStorage
 import net.typho.vibrancy.sky.SkyLightStorage
 import net.typho.vibrancy.util.EmptyVertexConsumer
 import net.typho.vibrancy.util.QuadListVertexConsumer
+import net.typho.vibrancy.util.ReflectionAtlases
 import net.typho.vibrancy.util.VibrancyThreadPool
 import org.joml.Matrix4f
 import org.joml.Quaternionf
@@ -294,7 +295,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                 settings.shader.setUniform("LightColor") { setFloatVec(lightColor) }
                 settings.shader.setUniform("LightDirection") { setFloatVec(NeoVec4f(shadowRot.invert(Quaternionf()).transform(Vector4f(0f, 0f, 1f, 0f))).xyz) }
 
-                settings.shader.setUniform("ShadowBias") { set(1e-4 * (1 shl (4 - VibrancyConfig.skyLightResolution))) }
+                settings.shader.setUniform("ShadowBias") { set(2e-4f * (1 shl (4 - VibrancyConfig.skyLightResolution))) }
 
                 settings.shader.setTexture(
                     1,
@@ -303,6 +304,10 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                         GlTextureTarget.TEXTURE_2D
                     )
                 )
+                settings.shader.setTexture(2, GlTextureBinding.FromInstance(
+                    ReflectionAtlases[NeoIdentifier("blocks")], //NeoAtlas.blocks.location
+                    GlTextureTarget.TEXTURE_2D
+                ))
 
                 for ((pos, chunk) in chunks) {
                     //if (chunk.box == null || data.frustum.testAab((chunk.box!!.min.toFloat() - data.camera.pos).toJOML(), (chunk.box!!.min.toFloat() + 1f - data.camera.pos).toJOML())) {
@@ -463,6 +468,13 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
         }
 
         fun update(data: RenderEventData, manager: LightManager) {
+            for (pos in manager.dirtyBlocks) {
+                if (ChunkPos(pos.blockPos) == pos) {
+                    dirty = true
+                    break
+                }
+            }
+
             if (dirty) {
                 for (x in (pos.x - 1)..(pos.x + 1)) {
                     for (z in (pos.z - 1)..(pos.z + 1)) {

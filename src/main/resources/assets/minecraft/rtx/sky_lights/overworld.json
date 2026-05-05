@@ -1,6 +1,6 @@
 {
   "type": "vibrancy:overworld",
-  "brightness": 1,
+  "brightness": 0.6,
   "sunColor": [ 1, 1, 0.85 ],
   "moonColor": [ 0.15, 0.16, 0.2 ]
 }
