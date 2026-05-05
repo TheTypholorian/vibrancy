@@ -14,6 +14,8 @@ uniform vec3 CameraPos;
 uniform vec3 LightColor;
 uniform vec3 LightDirection;
 
+uniform float ShadowBias;
+
 uniform bool SpecularReflectionsEnabled;
 uniform float SpecularReflectionStrength;
 uniform float SpecularReflectionExponent;
@@ -46,5 +48,5 @@ void main() {
 
     vec3 uv = texCoord1 + dFdx(texCoord1) * a + dFdy(texCoord1) * b;
 
-    fragColor = block.rgb * block.a * LightColor * texture(Sampler1, vec3(uv.xy, uv.z + 2e-4)) * texCoord2.y * clamp(dot(vertexNormal, LightDirection), 0, 1);
+    fragColor = block.rgb * block.a * LightColor * texture(Sampler1, vec3(uv.xy, uv.z + ShadowBias)) * texCoord2.y * clamp(dot(vertexNormal, LightDirection), 0, 1);
 }

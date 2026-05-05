@@ -294,6 +294,8 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                 settings.shader.setUniform("LightColor") { setFloatVec(lightColor) }
                 settings.shader.setUniform("LightDirection") { setFloatVec(NeoVec4f(shadowRot.invert(Quaternionf()).transform(Vector4f(0f, 0f, 1f, 0f))).xyz) }
 
+                settings.shader.setUniform("ShadowBias") { set(1e-4 * (1 shl (4 - VibrancyConfig.skyLightResolution))) }
+
                 settings.shader.setTexture(
                     1,
                     GlTextureBinding.FromInstance(
