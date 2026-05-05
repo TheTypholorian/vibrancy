@@ -44,6 +44,14 @@ open class LightMesh(
             .add("Position", NeoVertexFormat.Element.POSITION)
             .add("UV0", NeoVertexFormat.Element.TEXTURE_UV)
             .build()
+        @JvmField
+        val SKY_VERTEX_FORMAT = NeoVertexFormat.builder()
+            .add("Position", NeoVertexFormat.Element.POSITION)
+            .add("UV0", NeoVertexFormat.Element.TEXTURE_UV)
+            .add("UV2", NeoVertexFormat.Element.LIGHT_UV)
+            .add("Color", NeoVertexFormat.Element.COLOR)
+            .add("Normal", NeoVertexFormat.Element.NORMAL)
+            .build()
 
         @JvmStatic
         fun drawState(sampler0: GlTexture2D, shader: NeoIdentifier, uniforms: GlBoundProgram.() -> Unit = {

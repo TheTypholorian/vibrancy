@@ -20,6 +20,7 @@ uniform float SpecularReflectionExponent;
 
 in vec2 texCoord0;
 in vec3 texCoord1;
+in vec2 texCoord2;
 in vec4 vertexColor;
 in vec3 vertexPosition;
 in float vertexDistance;
@@ -45,5 +46,5 @@ void main() {
 
     vec3 uv = texCoord1 + dFdx(texCoord1) * a + dFdy(texCoord1) * b;
 
-    fragColor = block.rgb * block.a * LightColor * texture(Sampler1, vec3(uv.xy, uv.z + 1e-5)) * clamp(dot(vertexNormal, LightDirection), 0, 1);
+    fragColor = block.rgb * block.a * LightColor * texture(Sampler1, vec3(uv.xy, uv.z + 1e-5)) * texCoord2.y * clamp(dot(vertexNormal, LightDirection), 0, 1);
 }

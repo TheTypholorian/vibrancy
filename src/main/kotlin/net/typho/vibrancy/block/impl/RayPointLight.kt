@@ -393,6 +393,7 @@ open class RayPointLight(
                 val poseStack = PoseStack()
 
                 if (VibrancyConfig.entityShadowsEnabled) {
+                    profiler.push("entityShadows")
                     for (entity in level.getEntities(null, AABB.ofSize(Vec3(absolutePos.toJOML()), radius.toDouble() * 2, radius.toDouble() * 2, radius.toDouble() * 2))) {
                         //? if 1.21 {
                         if (subLevel != null || meshCollector.checked.contains(NeoVec3i(entity.blockPosition()))) {
@@ -445,9 +446,11 @@ open class RayPointLight(
                             nodes.add(node)
                         }
                     }
+                    profiler.pop()
                 }
 
                 if (VibrancyConfig.blockEntityShadows) {
+                    profiler.push("blockEntityShadows")
                     Vibrancy.disableFlywheelInstancing = true
 
                     for (pos in meshCollector.blockEntities) {
@@ -486,6 +489,7 @@ open class RayPointLight(
                     }
 
                     Vibrancy.disableFlywheelInstancing = false
+                    profiler.pop()
                 }
                 profiler.pop()
 

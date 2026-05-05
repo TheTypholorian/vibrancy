@@ -36,6 +36,7 @@ import net.typho.vibrancy.sky.SkyLightInfo
 import net.typho.vibrancy.sky.SkyLightInfoLoader
 import net.typho.vibrancy.sky.SkyLightRegistry
 import net.typho.vibrancy.sky.SkyLightStorage
+import net.typho.vibrancy.sky.impl.OverworldSkyLightStorage
 import org.lwjgl.opengl.GL
 import org.lwjgl.system.NativeResource
 import org.lwjgl.system.Platform
@@ -240,6 +241,7 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
         factory.begin(NeoVertexFormat.REGISTRY_KEY)?.run {
             register(id("shadow_mesh")) { ShadowBuffer.VERTEX_FORMAT }
             register(id("light_mesh")) { LightMesh.VERTEX_FORMAT }
+            register(id("sky_mesh")) { LightMesh.SKY_VERTEX_FORMAT }
             register(id("subtle_mesh")) { SubtleLightStorage.VERTEX_FORMAT }
             register(id("light_mesh_inventory")) { LightMesh.INVENTORY_VERTEX_FORMAT }
             register(id("light_mesh_blit")) { LightMesh.BLIT_VERTEX_FORMAT }

@@ -25,6 +25,6 @@ object OverworldSkyLightType : SkyLightType<OverworldSkyLightInfo, OverworldSkyL
         debugOut: (key: String, value: Int) -> Unit,
         profiler: ProfilerFiller
     ) {
-        lights.render(data, manager, result, temp)
+        lights.render(data, manager, result, temp, profiler)
     }
 }
