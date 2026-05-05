@@ -14,6 +14,8 @@ uniform mat4 ModelViewMat;
 uniform mat4 ProjMat;
 uniform mat4 ShadowMat;
 
+uniform vec3 CameraPos;
+
 uniform int FogShape;
 
 in vec3 Position;
@@ -33,8 +35,8 @@ void main() {
     vec4 pos = ModelViewMat * vec4(Position, 1);
     gl_Position = ProjMat * pos;
     texCoord0 = UV0;
-    vec4 shadowPos = ShadowMat * vec4(Position, 1);
-    texCoord1 = shadowPos.xyz / shadowPos.w;
+    vec4 shadowPos = ShadowMat * vec4(Position - floor(CameraPos), 1);
+    texCoord1 = shadowPos.xyz / shadowPos.w / 2 + 0.5;
     vertexColor = Color;
     vertexPosition = Position;
     vertexDistance = fog_distance(pos.xyz, FogShape);

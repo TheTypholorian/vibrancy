@@ -54,27 +54,19 @@ open class LightTexture : NeoGlTexture2D() {
     }
 
     open class Shadow : LightTexture() {
-        var depth: NeoGlTexture2D? = null
-            protected set
-
         override fun init() {
             bind(GlTextureTarget.TEXTURE_2D).use { texture ->
-                texture.textureDataMutable(1, 1, FORMAT)
-                texture.minFilter = GlTextureMinFilter.LINEAR
-                texture.magFilter = GlTextureMagFilter.LINEAR
-            }
-            val depth = NeoGlTexture2D()
-            this.depth = depth
-            depth.bind(GlTextureTarget.TEXTURE_2D).use { texture ->
                 texture.textureDataMutable(1, 1, GlTextureFormat.DEPTH_COMPONENT32F)
                 texture.minFilter = GlTextureMinFilter.LINEAR
                 texture.magFilter = GlTextureMagFilter.LINEAR
                 texture.compareMode = GlTextureCompareMode.COMPARE_REF_TO_TEXTURE
                 texture.compareFunc = GlAlphaFunction.GEQUAL
+                texture.borderColor = NeoColor.FULL_OFF
+                texture.wrapS = GlTextureWrapMode.CLAMP_TO_BORDER
+                texture.wrapT = GlTextureWrapMode.CLAMP_TO_BORDER
             }
             framebuffer.bind().use { fbo ->
-                fbo.colorAttachments[0] = this
-                fbo.depthAttachment = depth
+                fbo.depthAttachment = this
                 fbo.checkStatus().throwIfError()
                 clear()
             }
@@ -92,9 +84,6 @@ open class LightTexture : NeoGlTexture2D() {
 
             if (width != this.width || height != this.height) {
                 bind(GlTextureTarget.TEXTURE_2D).use {
-                    it.textureDataMutable(width, height, FORMAT)
-                }
-                depth!!.bind(GlTextureTarget.TEXTURE_2D).use {
                     it.textureDataMutable(width, height, GlTextureFormat.DEPTH_COMPONENT32F)
                 }
             }
