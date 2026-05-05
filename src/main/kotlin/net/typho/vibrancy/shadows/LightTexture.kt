@@ -69,6 +69,8 @@ open class LightTexture : NeoGlTexture2D() {
                 texture.textureDataMutable(1, 1, GlTextureFormat.DEPTH_COMPONENT32F)
                 texture.minFilter = GlTextureMinFilter.LINEAR
                 texture.magFilter = GlTextureMagFilter.LINEAR
+                texture.compareMode = GlTextureCompareMode.COMPARE_REF_TO_TEXTURE
+                texture.compareFunc = GlAlphaFunction.GEQUAL
             }
             framebuffer.bind().use { fbo ->
                 fbo.colorAttachments[0] = this

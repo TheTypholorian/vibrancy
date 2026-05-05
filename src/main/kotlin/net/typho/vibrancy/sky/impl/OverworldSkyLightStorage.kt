@@ -3,6 +3,7 @@ package net.typho.vibrancy.sky.impl
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.Minecraft
+import net.minecraft.client.gui.components.ImageWidget.texture
 import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.util.Mth
 import net.minecraft.world.level.ChunkPos
@@ -54,6 +55,7 @@ import net.typho.vibrancy.util.QuadListVertexConsumer
 import net.typho.vibrancy.util.VibrancyThreadPool
 import org.joml.Matrix4f
 import org.joml.Quaternionf
+import org.joml.Vector3f
 import org.joml.Vector4f
 import org.lwjgl.opengl.GL11.glClearDepth
 import org.lwjgl.system.NativeResource
@@ -92,7 +94,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
     var info: OverworldSkyLightInfo? = null
         private set
     @JvmField
-    val texture = LightTexture.Shadow().also { it.resize(1 shl (VibrancyConfig.skyLightResolution + 10), 1 shl (VibrancyConfig.skyLightResolution + 10)) } // 16384, 16384
+    val textures = Array(3) { size -> LightTexture.Shadow().also { it.resize(1 shl (VibrancyConfig.skyLightResolution + 10 - size), 1 shl (VibrancyConfig.skyLightResolution + 10 - size)) } }
     @JvmField
     val tempMesh = LightMesh(GlBufferUsage.STREAM_DRAW)
 
@@ -142,98 +144,107 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
             .rotateX(lightAngle)
             .rotateY(-PI.toFloat() / 2)
             .rotateY(Math.toRadians(15.0).toFloat())
-        val shadowMat = Matrix4f().rotate(shadowRot)
-            //.translate((-data.camera.pos.toInt().toFloat()).toJOML())
-            .scale(1f / (VibrancyConfig.skyLightShadowDistance * 16))
 
-        texture.framebuffer.bind(NeoRect2i(0, 0, texture.width, texture.height)).use { fbo ->
-            fbo.clear(GlClearBit.Color(NeoColor.FULL_OFF), GlClearBit.Depth(0f))
-            glClearDepth(1.0)
+        val shadowMats = Array(3) { index ->
+            Matrix4f()
+                .scale(1f / ((0 until index).sumOf { 1 shl (VibrancyConfig.skyLightShadowDistance + it) } * 16))
+                .translate((-data.camera.pos).toJOML())
+                .rotate(shadowRot)
+        }
 
-            shadowDrawState.bind().use { settings ->
-                settings.shader.setUniform("ShadowMat") { set(shadowMat) }
+        textures.forEachIndexed { index, texture ->
+            texture.framebuffer.bind(NeoRect2i(0, 0, texture.width, texture.height)).use { fbo ->
+                fbo.clear(GlClearBit.Color(NeoColor.FULL_OFF), GlClearBit.Depth(0f))
+                glClearDepth(1.0)
 
-                for ((pos, chunk) in chunks) {
-                    if (manager.getSortingOrder(data, pos) < VibrancyConfig.skyLightBrightness * VibrancyConfig.skyLightBrightness) {
-                        chunk.mesh.draw()
-                    }
-                }
+                shadowDrawState.bind().use { settings ->
+                    settings.shader.setUniform("ShadowMat") { set(shadowMats[index]) }
 
-                val quads = hashMapOf<NeoIdentifier, MutableList<NeoBakedQuad>>()
-                val buffers = hashMapOf<NeoIdentifier, NeoBakedQuad.Consumer>()
-                val bufferSource = WrapperUtil.INSTANCE.unwrap { settings: NeoRenderSettings ->
-                    val texture = settings.drawState.shader.textures.getOrNull(0)?.location ?: return@unwrap EmptyVertexConsumer
-
-                    if (GlTexture2D[texture] == null) {
-                        return@unwrap EmptyVertexConsumer
+                    for ((pos, chunk) in chunks) {
+                        // TODO
+                        //if (manager.getSortingOrder(data, pos) < 16 * 16 * VibrancyConfig.skyLightShadowDistance * VibrancyConfig.skyLightShadowDistance) {
+                            chunk.mesh.draw()
+                        //}
                     }
 
-                    buffers.computeIfAbsent(texture) {
-                        QuadListVertexConsumer(quads.computeIfAbsent(texture) { texture -> arrayListOf() })
-                    }
-                }
-                val poseStack = PoseStack()
-                val radius = 64
+                    if (index == 0) {
+                        val quads = hashMapOf<NeoIdentifier, MutableList<NeoBakedQuad>>()
+                        val buffers = hashMapOf<NeoIdentifier, NeoBakedQuad.Consumer>()
+                        val bufferSource = WrapperUtil.INSTANCE.unwrap { settings: NeoRenderSettings ->
+                            val texture = settings.drawState.shader.textures.getOrNull(0)?.location ?: return@unwrap EmptyVertexConsumer
 
-                if (VibrancyConfig.entityShadowsEnabled) {
-                    for (entity in data.level!!.getEntities(null, AABB.ofSize(Vec3(data.camera.pos.toJOML()), radius.toDouble() * 2, radius.toDouble() * 2, radius.toDouble() * 2))) {
-                        Minecraft.getInstance().entityRenderDispatcher.render(
-                            entity,
-                            Mth.lerp(Vibrancy.tickDelta.toDouble(), entity.xOld, entity.x),
-                            Mth.lerp(Vibrancy.tickDelta.toDouble(), entity.yOld, entity.y),
-                            Mth.lerp(Vibrancy.tickDelta.toDouble(), entity.zOld, entity.z),
-                            Mth.lerp(Vibrancy.tickDelta, entity.yRotO, entity.yRot),
-                            Vibrancy.tickDelta,
-                            poseStack,
-                            bufferSource,
-                            net.minecraft.client.renderer.LightTexture.FULL_BRIGHT
-                        )
-                    }
-                }
+                            if (GlTexture2D[texture] == null) {
+                                return@unwrap EmptyVertexConsumer
+                            }
 
-                if (VibrancyConfig.blockEntityShadows) {
-                    Vibrancy.disableFlywheelInstancing = true
-
-                    val origin = data.camera.pos.toInt()
-                    val minChunk = ChunkPos((origin - radius).blockPos)
-                    val maxChunk = ChunkPos((origin + radius).blockPos)
-
-                    for (x in minChunk.x..maxChunk.x) {
-                        for (z in minChunk.z..maxChunk.z) {
-                            for ((pos, blockEntity) in data.level!!.getChunk(x, z).blockEntities) {
-                                Minecraft.getInstance().blockEntityRenderDispatcher.getRenderer(blockEntity)?.let { renderer ->
-                                    poseStack.pushPose()
-                                    poseStack.translate(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
-
-                                    renderer.render(
-                                        blockEntity,
-                                        Vibrancy.tickDelta,
-                                        poseStack,
-                                        bufferSource,
-                                        15728880,
-                                        OverlayTexture.NO_OVERLAY
-                                    )
-
-                                    poseStack.popPose()
-                                }
+                            buffers.computeIfAbsent(texture) {
+                                QuadListVertexConsumer(quads.computeIfAbsent(texture) { texture -> arrayListOf() })
                             }
                         }
-                    }
+                        val poseStack = PoseStack()
+                        val radius = 64
 
-                    Vibrancy.disableFlywheelInstancing = false
-                }
+                        if (VibrancyConfig.entityShadowsEnabled) {
+                            for (entity in data.level!!.getEntities(null, AABB.ofSize(Vec3(data.camera.pos.toJOML()), radius.toDouble() * 2, radius.toDouble() * 2, radius.toDouble() * 2))) {
+                                Minecraft.getInstance().entityRenderDispatcher.render(
+                                    entity,
+                                    Mth.lerp(Vibrancy.tickDelta.toDouble(), entity.xOld, entity.x),
+                                    Mth.lerp(Vibrancy.tickDelta.toDouble(), entity.yOld, entity.y),
+                                    Mth.lerp(Vibrancy.tickDelta.toDouble(), entity.zOld, entity.z),
+                                    Mth.lerp(Vibrancy.tickDelta, entity.yRotO, entity.yRot),
+                                    Vibrancy.tickDelta,
+                                    poseStack,
+                                    bufferSource,
+                                    net.minecraft.client.renderer.LightTexture.FULL_BRIGHT
+                                )
+                            }
+                        }
 
-                for ((texture, quads) in quads) {
-                    GlTexture2D[texture]?.let { texture ->
-                        settings.shader.setTexture(
-                            0,
-                            GlTextureBinding.FromInstance(
-                                texture,
-                                GlTextureTarget.TEXTURE_2D
-                            )
-                        )
-                        tempMesh.lazyUploadQuadsNoAtlas(quads)()
-                        tempMesh.draw()
+                        if (VibrancyConfig.blockEntityShadows) {
+                            Vibrancy.disableFlywheelInstancing = true
+
+                            val origin = data.camera.pos.toInt()
+                            val minChunk = ChunkPos((origin - radius).blockPos)
+                            val maxChunk = ChunkPos((origin + radius).blockPos)
+
+                            for (x in minChunk.x..maxChunk.x) {
+                                for (z in minChunk.z..maxChunk.z) {
+                                    for ((pos, blockEntity) in data.level!!.getChunk(x, z).blockEntities) {
+                                        Minecraft.getInstance().blockEntityRenderDispatcher.getRenderer(blockEntity)?.let { renderer ->
+                                            poseStack.pushPose()
+                                            poseStack.translate(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
+
+                                            renderer.render(
+                                                blockEntity,
+                                                Vibrancy.tickDelta,
+                                                poseStack,
+                                                bufferSource,
+                                                15728880,
+                                                OverlayTexture.NO_OVERLAY
+                                            )
+
+                                            poseStack.popPose()
+                                        }
+                                    }
+                                }
+                            }
+
+                            Vibrancy.disableFlywheelInstancing = false
+                        }
+
+                        for ((texture, quads) in quads) {
+                            GlTexture2D[texture]?.let { texture ->
+                                settings.shader.setTexture(
+                                    0,
+                                    GlTextureBinding.FromInstance(
+                                        texture,
+                                        GlTextureTarget.TEXTURE_2D
+                                    )
+                                )
+                                tempMesh.lazyUploadQuadsNoAtlas(quads)()
+                                tempMesh.draw()
+                            }
+                        }
                     }
                 }
             }
@@ -245,7 +256,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
             lightDrawState.bind().use { settings ->
                 settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((-data.camera.pos.toFloat()).toJOML(), Matrix4f())) }
                 settings.shader.setUniform("ProjMat") { set(data.projMat) }
-                settings.shader.setUniform("ShadowMat") { set(shadowMat) }
+                settings.shader.setUniform("ShadowMat") { set(shadowMats[0]) }
 
                 settings.shader.setUniform("FogStart") { set(RenderSystem.getShaderFogStart()) }
                 settings.shader.setUniform("FogEnd") { set(RenderSystem.getShaderFogEnd()) }
@@ -255,19 +266,15 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                 settings.shader.setUniform("LightColor") { setFloatVec(lightColor) }
                 settings.shader.setUniform("LightDirection") { setFloatVec(NeoVec4f(shadowRot.transform(Vector4f(0f, -1f, 0f, 0f))).xyz) }
 
-                settings.shader.setTexture(
+                settings.shader.setTextureArray(
                     1,
-                    GlTextureBinding.FromInstance(
-                        texture,
-                        GlTextureTarget.TEXTURE_2D
-                    )
+                    "ColorTextures",
+                    *textures.map { GlTextureBinding.FromInstance(it, GlTextureTarget.TEXTURE_2D) }.toTypedArray()
                 )
-                settings.shader.setTexture(
-                    2,
-                    GlTextureBinding.FromInstance(
-                        texture.depth!!,
-                        GlTextureTarget.TEXTURE_2D
-                    )
+                settings.shader.setTextureArray(
+                    1 + textures.size,
+                    "DepthTextures",
+                    *textures.map { GlTextureBinding.FromInstance(it.depth!!, GlTextureTarget.TEXTURE_2D) }.toTypedArray()
                 )
 
                 for ((pos, chunk) in chunks) {

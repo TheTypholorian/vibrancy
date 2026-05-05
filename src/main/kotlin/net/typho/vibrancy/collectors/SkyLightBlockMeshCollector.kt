@@ -52,7 +52,7 @@ class SkyLightBlockMeshCollector(
                         collect(pos, state)
                     }
 
-                    if (!state.propagatesSkylightDown(level, pos.blockPos)) { // TODO
+                    if (!state.propagatesSkylightDown(level, pos.blockPos)) {
                         if (
                             level.getBrightness(LightLayer.SKY, pos.blockPos.north()) <= 0 &&
                             level.getBrightness(LightLayer.SKY, pos.blockPos.south()) <= 0 &&

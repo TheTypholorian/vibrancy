@@ -117,13 +117,15 @@ object VibrancyConfig {
             }
         }
     @JvmField
-    var skyLightShadowDistance: Int = if (isPotato) 8 else 4
+    var skyLightShadowDistance: Int = if (isPotato) 3 else 2
     @JvmField
     var skyLightBrightness: Float = 1f
     var skyLightResolution: Int = if (isPotato) 0 else 4
         set(value) {
             field = value
-            (Vibrancy.lightManager.skyLight?.second as? OverworldSkyLightStorage)?.texture?.resize(1 shl (value + 10), 1 shl (value + 10))
+            (Vibrancy.lightManager.skyLight?.second as? OverworldSkyLightStorage)?.let {
+                it.textures.forEachIndexed { index, texture -> texture.resize(1 shl (value + 10 - index), 1 shl (value + 10 - index)) }
+            }
         }
 
     @JvmField
@@ -194,6 +196,15 @@ object VibrancyConfig {
 
                 .endObject()
 
+                .name("skyLights").beginObject()
+
+                .name("enabled").value(skyLightsEnabled)
+                .name("shadowDistance").value(skyLightShadowDistance)
+                .name("brightness").value(skyLightBrightness)
+                .name("resolution").value(skyLightResolution)
+
+                .endObject()
+
                 .endObject()
         }
     }
@@ -245,6 +256,13 @@ object VibrancyConfig {
                         subtle.getAsJsonPrimitive("brightness")?.let { subtleLightBrightness = it.asFloat }
                         subtle.getAsJsonPrimitive("cullingMode")?.let { subtleLightCullingMode = SubtleLightCullingMode.valueOf(it.asString.uppercase()) }
                     }
+                }
+
+                json.getAsJsonObject("skyLights")?.let { skyLights ->
+                    skyLights.getAsJsonPrimitive("enabled")?.let { skyLightsEnabled = it.asBoolean }
+                    skyLights.getAsJsonPrimitive("shadowDistance")?.let { skyLightShadowDistance = it.asInt }
+                    skyLights.getAsJsonPrimitive("brightness")?.let { skyLightBrightness = it.asFloat }
+                    skyLights.getAsJsonPrimitive("resolution")?.let { skyLightResolution = it.asInt }
                 }
             } catch (e: Exception) {
                 Vibrancy.LOGGER.info("Error loading Vibrancy config", e)
@@ -416,11 +434,12 @@ object VibrancyConfig {
 
                 .option(Option.createBuilder<Int>()
                     .name(Component.translatable("config.vibrancy.skyLights.shadow_distance"))
-                    .binding(if (isPotato) 8 else 4, VibrancyConfig::skyLightShadowDistance)
+                    .binding(if (isPotato) 3 else 2, VibrancyConfig::skyLightShadowDistance)
                     .controller { opt ->
                         IntegerSliderControllerBuilder.create(opt)
-                            .range(4, 16)
-                            .step(4)
+                            .range(1, 4)
+                            .step(1)
+                            .formatValue { Component.literal((1 shl it).toString()) }
                     }
                     .build())
 

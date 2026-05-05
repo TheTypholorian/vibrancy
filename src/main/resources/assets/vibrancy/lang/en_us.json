@@ -55,6 +55,12 @@
   "config.vibrancy.blockLights.subtle.cullingMode.tooltip1": "Solid - If all neighbors are a full solid block, get rid of the light",
   "config.vibrancy.blockLights.subtle.cullingMode.tooltip2": "Not Air - If all neighbors are not air, get rid of the light",
 
+  "config.vibrancy.skyLights": "Sky Lights",
+  "config.vibrancy.skyLights.enabled": "Enabled",
+  "config.vibrancy.skyLights.shadow_distance": "Shadow Distance",
+  "config.vibrancy.skyLights.brightness": "Brightness",
+  "config.vibrancy.skyLights.resolution": "Resolution",
+
   "key.category.vibrancy.keys": "Vibrancy",
   "key.vibrancy.debug": "Modifier key",
   "key.vibrancy.rebuild_all_shadows": "Rebuild all shadows",

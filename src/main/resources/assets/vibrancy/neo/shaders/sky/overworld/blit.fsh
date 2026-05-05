@@ -10,7 +10,7 @@ out vec4 fragColor;
 void main() {
     fragColor = texture(Sampler0, texCoord0) * vertexColor;
 
-    if (fragColor.a == 0) {
+    if (fragColor.a < 0.1) {
         discard;
     }
 }

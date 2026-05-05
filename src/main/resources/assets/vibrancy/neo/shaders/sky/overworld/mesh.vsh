@@ -34,7 +34,7 @@ void main() {
     gl_Position = ProjMat * pos;
     texCoord0 = UV0;
     vec4 shadowPos = ShadowMat * vec4(Position, 1);
-    texCoord1 = shadowPos.xyz / shadowPos.w / 2 + 0.5;
+    texCoord1 = shadowPos.xyz / shadowPos.w;
     vertexColor = Color;
     vertexPosition = Position;
     vertexDistance = fog_distance(pos.xyz, FogShape);
