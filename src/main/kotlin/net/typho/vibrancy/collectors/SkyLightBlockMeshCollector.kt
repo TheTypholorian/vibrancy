@@ -41,10 +41,9 @@ class SkyLightBlockMeshCollector(
 
         repeat(16) { x ->
             repeat(16) { z ->
-                val height = chunk.getHeight(Heightmap.Types.WORLD_SURFACE, x, z)
-                var y = height
+                var y = chunk.skyLightSources.getLowestSourceY(x, z)
 
-                while (y > chunk.minBuildHeight) {
+                while (y >= chunk.minBuildHeight) {
                     val pos = NeoVec3i(x + pos.minBlockX, y, z + pos.minBlockZ)
                     val state = chunk.getBlockState(pos.blockPos)
 
@@ -52,6 +51,7 @@ class SkyLightBlockMeshCollector(
                         collect(pos, state)
                     }
 
+                    /*
                     if (!state.propagatesSkylightDown(level, pos.blockPos)) {
                         if (
                             level.getBrightness(LightLayer.SKY, pos.blockPos.north()) <= 0 &&
@@ -62,6 +62,7 @@ class SkyLightBlockMeshCollector(
                             break
                         }
                     }
+                     */
 
                     y--
                 }

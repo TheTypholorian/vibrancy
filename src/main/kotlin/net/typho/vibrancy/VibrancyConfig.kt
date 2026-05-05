@@ -194,6 +194,15 @@ object VibrancyConfig {
 
                 .endObject()
 
+                .name("skyLights").beginObject()
+
+                .name("enabled").value(skyLightsEnabled)
+                .name("shadowDistance").value(skyLightShadowDistance)
+                .name("brightness").value(skyLightBrightness)
+                .name("resolution").value(skyLightResolution)
+
+                .endObject()
+
                 .endObject()
         }
     }
@@ -245,6 +254,13 @@ object VibrancyConfig {
                         subtle.getAsJsonPrimitive("brightness")?.let { subtleLightBrightness = it.asFloat }
                         subtle.getAsJsonPrimitive("cullingMode")?.let { subtleLightCullingMode = SubtleLightCullingMode.valueOf(it.asString.uppercase()) }
                     }
+                }
+
+                json.getAsJsonObject("skyLights")?.let { skyLights ->
+                    skyLights.getAsJsonPrimitive("enabled")?.let { skyLightsEnabled = it.asBoolean }
+                    skyLights.getAsJsonPrimitive("shadowDistance")?.let { skyLightShadowDistance = it.asInt }
+                    skyLights.getAsJsonPrimitive("brightness")?.let { skyLightBrightness = it.asFloat }
+                    skyLights.getAsJsonPrimitive("resolution")?.let { skyLightResolution = it.asInt }
                 }
             } catch (e: Exception) {
                 Vibrancy.LOGGER.info("Error loading Vibrancy config", e)

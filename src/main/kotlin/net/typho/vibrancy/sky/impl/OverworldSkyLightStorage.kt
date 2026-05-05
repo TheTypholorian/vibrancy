@@ -78,7 +78,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
         @JvmField
         val shadowDrawState = GlDrawState.Basic(
             cull = GlCullShard.Enabled(
-                GlCullFace.FRONT
+                GlCullFace.BACK
             ),
             depth = GlDepthShard.Enabled(
                 GlAlphaFunction.GEQUAL
@@ -375,7 +375,10 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                             state: BlockState?
                         ): Boolean {
                             val state = state ?: level.getBlockState(pos.blockPos)
-                            val passed = BlockUtil.INSTANCE.getBlockChunkLayer(state) != BlockChunkLayer.TRANSLUCENT && state.block != Blocks.WATER // TODO
+                            // TODO
+                            val passed = BlockUtil.INSTANCE.getBlockChunkLayer(state) != BlockChunkLayer.TRANSLUCENT &&
+                                    state.block != Blocks.WATER &&
+                                    NeoDirection.entries.any { level.getBrightness(LightLayer.SKY, (pos + it).blockPos) > 0 }
 
                             if (passed) {
                                 box = box?.include(pos) ?: NeoRect3i(pos, pos)

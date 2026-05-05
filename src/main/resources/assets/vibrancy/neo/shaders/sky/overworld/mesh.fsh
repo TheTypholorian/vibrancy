@@ -46,5 +46,5 @@ void main() {
 
     vec3 uv = texCoord1 + dFdx(texCoord1) * a + dFdy(texCoord1) * b;
 
-    fragColor = block.rgb * block.a * LightColor * texture(Sampler1, vec3(uv.xy, uv.z + 1e-5)) * texCoord2.y * clamp(dot(vertexNormal, LightDirection), 0, 1);
+    fragColor = block.rgb * block.a * LightColor * texture(Sampler1, vec3(uv.xy, uv.z + 2e-4)) * texCoord2.y * clamp(dot(vertexNormal, LightDirection), 0, 1);
 }
