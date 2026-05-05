@@ -469,7 +469,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
         fun update(data: RenderEventData, manager: LightManager) {
             for (pos in manager.dirtyBlocks) {
-                if (ChunkPos(pos.blockPos) == pos) {
+                if (ChunkPos(pos.blockPos) == this.pos) {
                     dirty = true
                     break
                 }
