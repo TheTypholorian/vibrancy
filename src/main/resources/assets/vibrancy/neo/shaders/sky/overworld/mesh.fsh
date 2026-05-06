@@ -50,10 +50,14 @@ void main() {
     float b = (-d.x * stepA.y + d.y * stepA.x) / det;
 
     vec3 uv = texCoord1 + dFdx(texCoord1) * a + dFdy(texCoord1) * b;
-    vec3 biasUV = vec3(uv.xy, uv.z + ShadowBias);
+    vec3 biasUV = vec3(uv.xy, max(uv.z, 0) + ShadowBias);
 
     vec4 translucentColor = texture(Sampler2, uv.xy);
-    vec3 lightColor = LightColor * texture(Sampler1, biasUV) * mix(translucentColor.rgb * translucentColor.a, vec3(1), texture(Sampler3, biasUV)) * texCoord2.y * clamp(dot(vertexNormal, LightDirection), 0, 1);
+    vec3 lightColor = LightColor * texCoord2.y * clamp(dot(vertexNormal, LightDirection), 0, 1);
+
+    if (uv.x >= 0 && uv.x <= 1 && uv.y >= 0 && uv.y <= 1) {
+        lightColor *= texture(Sampler1, biasUV) * mix(translucentColor.rgb * translucentColor.a, vec3(1), texture(Sampler3, biasUV));
+    }
 
     if (SpecularReflectionsEnabled) {
         lightColor = specularReflection(lightColor, LightDirection, CameraPos, vertexPosition, vertexNormal, SpecularReflectionStrength, SpecularReflectionExponent, Sampler4, texCoord0);
