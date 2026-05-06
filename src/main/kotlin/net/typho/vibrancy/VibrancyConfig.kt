@@ -301,11 +301,15 @@ object VibrancyConfig {
                     .controller(TickBoxControllerBuilder::create)
                     .build())
 
-                .option(Option.createBuilder<Boolean>()
-                    .name(Component.translatable("config.vibrancy.general.useMultithreading"))
-                    .binding(true, VibrancyConfig::useMultithreading)
-                    .controller(TickBoxControllerBuilder::create)
-                    .build())
+                .also {
+                    if (PlatformUtil.INSTANCE.isDevEnv()) {
+                        it.option(Option.createBuilder<Boolean>()
+                                .name(Component.translatable("config.vibrancy.general.useMultithreading"))
+                                .binding(true, VibrancyConfig::useMultithreading)
+                                .controller(TickBoxControllerBuilder::create)
+                                .build())
+                    }
+                }
 
                 .option(Option.createBuilder<Int>()
                     .name(Component.translatable("config.vibrancy.general.asyncThreads"))
