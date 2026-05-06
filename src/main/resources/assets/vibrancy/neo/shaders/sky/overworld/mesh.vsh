@@ -41,6 +41,6 @@ void main() {
     texCoord2 = vec2(UV2) / 240;
     vertexColor = Color;
     vertexPosition = Position;
-    vertexDistance = fog_distance(pos.xyz, FogShape);
+    vertexDistance = fog_distance((Position - CameraPos).xyz, FogShape);
     vertexNormal = Normal;
 }

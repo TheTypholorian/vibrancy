@@ -410,7 +410,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
             val lightFaces = arrayListOf<LightFace>()
             val translucentFaces = arrayListOf<LightFace>()
-            SkyLightBlockMeshCollector(pos).submit(
+            if (!SkyLightBlockMeshCollector(pos).submit(
                 manager,
                 level,
                 NeoAtlas.blocks,
@@ -480,7 +480,10 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                         }
                     }
                 }
-            )
+            )) {
+                dirty = true
+                return { null }
+            }
 
             fun upload(faces: List<LightFace>, mesh: Mesh): () -> Unit {
                 val vertexBuffer = NeoBuffer.GCNative(faces.size.toLong() * 4 * LightMesh.SKY_VERTEX_FORMAT.vertexSizeBytes)

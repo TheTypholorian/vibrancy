@@ -12,7 +12,6 @@ import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.NeoVec2f
 import net.typho.big_shot_lib.api.math.vec.NeoVec3f
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
-import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy.isPointingTowardsInclusive
@@ -52,7 +51,7 @@ class FloodFillBlockMeshCollector(
         level: Level,
         atlas: NeoAtlas,
         vararg consumers: BlockMeshCollector.Consumer
-    ) {
+    ): Boolean {
         var cursors = dirty.toMutableList()
         var newCursors = arrayListOf<BlockPos>()
 
@@ -112,6 +111,8 @@ class FloodFillBlockMeshCollector(
         }
 
         this.blockEntities = blockEntities
+
+        return true
 
         /*
         val directions = arrayOf(

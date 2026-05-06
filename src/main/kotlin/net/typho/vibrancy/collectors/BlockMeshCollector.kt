@@ -10,7 +10,6 @@ import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoVertexData
 import net.typho.big_shot_lib.api.math.NeoDirection
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
-import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.vibrancy.LightManager
@@ -22,7 +21,7 @@ interface BlockMeshCollector {
         level: Level,
         atlas: NeoAtlas,
         vararg consumers: Consumer
-    )
+    ): Boolean
 
     interface Predicate {
         fun isBlockTransparent(

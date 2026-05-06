@@ -5,7 +5,6 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
-import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.vibrancy.LightManager
 
@@ -19,7 +18,7 @@ class SkyLightBlockMeshCollector(
         level: Level,
         atlas: NeoAtlas,
         vararg consumers: BlockMeshCollector.Consumer
-    ) {
+    ): Boolean {
         fun collect(pos: BlockPos.MutableBlockPos, state: BlockState) {
             BlockMeshCollector.collectLightFaces(
                 manager,
@@ -35,7 +34,7 @@ class SkyLightBlockMeshCollector(
 
         val chunk = level.getChunk(pos.x, pos.z)
         val pos = BlockPos.MutableBlockPos()
-        val lightSources = chunk.skyLightSources ?: return
+        val lightSources = chunk.skyLightSources ?: return false
 
         repeat(16) { x ->
             repeat(16) { z ->
@@ -66,6 +65,8 @@ class SkyLightBlockMeshCollector(
                 }
             }
         }
+
+        return true
 
         /*
         while (cursors.isNotEmpty()) {

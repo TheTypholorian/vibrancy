@@ -18,7 +18,7 @@ class IterationBlockMeshCollector(
         level: Level,
         atlas: NeoAtlas,
         vararg consumers: BlockMeshCollector.Consumer
-    ) {
+    ): Boolean {
         for (pos in blocks) {
             val mutable = BlockPos.MutableBlockPos().set(pos.blockPos)
             BlockMeshCollector.collectLightFaces(
@@ -32,5 +32,7 @@ class IterationBlockMeshCollector(
                 *consumers
             )
         }
+
+        return true
     }
 }
