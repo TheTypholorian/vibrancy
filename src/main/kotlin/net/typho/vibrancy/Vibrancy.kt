@@ -10,6 +10,7 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlFra
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlResourceType
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.TextureMipmapLevel
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.*
 import net.typho.big_shot_lib.api.client.rendering.opengl.util.BlendFunction
 import net.typho.big_shot_lib.api.client.rendering.opengl.util.ColorMask
@@ -136,9 +137,9 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
             /*tickDelta = Minecraft.getInstance().deltaTracker.getGameTimeDeltaPartialTick(false)
             *///? }
 
-            val targetAttachment = data.target.colorAttachments[0] as GlTexture2D
-            val width = targetAttachment.width.coerceAtLeast(1)
-            val height = targetAttachment.height.coerceAtLeast(1)
+            val targetAttachment = data.target.colorAttachments[0]!!
+            val width = targetAttachment.width!!.coerceAtLeast(1)
+            val height = targetAttachment.height!!.coerceAtLeast(1)
 
             TEMP_FRAMEBUFFER.bind().use { fbo ->
                 if (TEMP.width != width || TEMP.height != height) {

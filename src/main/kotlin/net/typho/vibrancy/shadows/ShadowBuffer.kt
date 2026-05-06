@@ -88,7 +88,7 @@ open class ShadowBuffer(
                         writeFloat(vertex.pos.x)
                         writeFloat(vertex.pos.y)
                         writeFloat(vertex.pos.z)
-                        writeInt(((vertex.textureUV!!.x * texture.width).toInt() shl 16) or (vertex.textureUV!!.y * texture.height).toInt())
+                        writeInt(((vertex.textureUV!!.x * texture.width!!).toInt() shl 16) or (vertex.textureUV!!.y * texture.height!!).toInt())
                     }
                 }
             }

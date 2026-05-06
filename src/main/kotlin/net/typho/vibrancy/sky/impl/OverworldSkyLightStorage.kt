@@ -167,7 +167,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
             settings.shader.setUniform("CameraPos") { setFloatVec(data.camera.pos) }
 
             profiler.push("translucent")
-            translucent.framebuffer.bind(NeoRect2i(0, 0, translucent.width, translucent.height)).use { fbo ->
+            translucent.framebuffer.bind(NeoRect2i(0, 0, translucent.width!!, translucent.height!!)).use { fbo ->
                 profiler.push("clear")
                 translucent.clear()
                 profiler.pop()
@@ -182,7 +182,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
             }
             profiler.pop()
 
-            texture.framebuffer.bind(NeoRect2i(0, 0, texture.width, texture.height)).use { fbo ->
+            texture.framebuffer.bind(NeoRect2i(0, 0, texture.width!!, texture.height!!)).use { fbo ->
                 profiler.push("clear")
                 texture.clear()
                 profiler.pop()

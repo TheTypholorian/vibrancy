@@ -53,7 +53,7 @@ void main() {
     vec3 biasUV = vec3(uv.xy, uv.z + ShadowBias);
 
     vec4 translucentColor = texture(Sampler2, uv.xy);
-    vec3 lightColor = LightColor * texture(Sampler1, biasUV) * mix(vec3(1), translucentColor.rgb * translucentColor.a, texture(Sampler3, biasUV)) * texCoord2.y * clamp(dot(vertexNormal, LightDirection), 0, 1);
+    vec3 lightColor = LightColor * texture(Sampler1, biasUV) * mix(translucentColor.rgb * translucentColor.a, vec3(1), texture(Sampler3, biasUV)) * texCoord2.y * clamp(dot(vertexNormal, LightDirection), 0, 1);
 
     if (SpecularReflectionsEnabled) {
         lightColor = specularReflection(lightColor, LightDirection, CameraPos, vertexPosition, vertexNormal, SpecularReflectionStrength, SpecularReflectionExponent, Sampler4, texCoord0);

@@ -109,7 +109,7 @@ open class RayPointLight(
     )
 
     fun blit(target: LightTexture, shadowBuffer: ShadowBuffer, uniforms: GlBoundProgram.() -> Unit, shader: NeoIdentifier) {
-        target.framebuffer.bind(NeoRect2i(0, 0, target.width, target.height)).use { fbo ->
+        target.framebuffer.bind(NeoRect2i(0, 0, target.width!!, target.height!!)).use { fbo ->
             glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, shadowBuffer.glId)
 
             drawState(shader) {
@@ -147,7 +147,7 @@ open class RayPointLight(
         staticTexture.resize(info.sections.size.x, info.sections.size.y)
         dynamicTexture.resize(info.sections.size.x, info.sections.size.y)
         LightMesh.initBlitMesh(blitMesh, info)
-        staticTexture.framebuffer.bind(NeoRect2i(0, 0, staticTexture.width, staticTexture.height)).use { fbo ->
+        staticTexture.framebuffer.bind(NeoRect2i(0, 0, staticTexture.width!!, staticTexture.height!!)).use { fbo ->
             staticTexture.clear()
             blit(
                 staticTexture,
@@ -494,7 +494,7 @@ open class RayPointLight(
                 profiler.pop()
 
                 profiler.push("calculate")
-                dynamicTexture.framebuffer.bind(NeoRect2i(0, 0, dynamicTexture.width, dynamicTexture.height)).use { fbo ->
+                dynamicTexture.framebuffer.bind(NeoRect2i(0, 0, dynamicTexture.width!!, dynamicTexture.height!!)).use { fbo ->
                     var cleared = false
 
                     nodes.forEach { it.buffers.forEach { (texture, consumer) -> consumer.flush() } }
