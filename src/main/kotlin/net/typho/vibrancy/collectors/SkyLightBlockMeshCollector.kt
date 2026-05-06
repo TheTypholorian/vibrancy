@@ -7,6 +7,7 @@ import net.minecraft.world.level.block.state.BlockState
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.vibrancy.LightManager
+import net.typho.vibrancy.Vibrancy
 
 class SkyLightBlockMeshCollector(
     @JvmField
@@ -19,7 +20,10 @@ class SkyLightBlockMeshCollector(
         atlas: NeoAtlas,
         vararg consumers: BlockMeshCollector.Consumer
     ): Boolean {
+        var collected = false
+
         fun collect(pos: BlockPos.MutableBlockPos, state: BlockState) {
+            collected = true
             BlockMeshCollector.collectLightFaces(
                 manager,
                 state,

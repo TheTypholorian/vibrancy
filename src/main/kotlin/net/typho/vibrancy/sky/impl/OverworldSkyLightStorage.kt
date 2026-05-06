@@ -388,14 +388,15 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
         fun checkIfFinished(): Boolean {
             asyncTask?.let { task ->
-                try {
-                    if (task.isDone) {
+                if (task.isDone) {
+                    try {
                         box = task.get()()
-                        asyncTask = null
-                        return true
+                    } catch (e: NullPointerException) {
+                        Vibrancy.LOGGER.warn("Error finishing sky light task at $pos", e)
                     }
-                } catch (e: NullPointerException) {
+
                     asyncTask = null
+                    return true
                 }
             }
 
@@ -551,13 +552,14 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                     }
                 }
 
+                dirty = false
+
                 if (VibrancyConfig.useMultithreading) {
                     asyncTask?.cancel(true)
                     asyncTask = VibrancyThreadPool.submit(data, pos, manager) { rebuildBlocksAsyncImpl(manager) }
                 } else {
                     rebuildBlocksAsyncImpl(manager)()
                 }
-                dirty = false
             }
         }
 

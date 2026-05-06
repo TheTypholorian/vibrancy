@@ -5,6 +5,7 @@ import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.vibrancy.LightManager
+import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyConfig
 import net.typho.vibrancy.collectors.BlockMeshCollector
 import net.typho.vibrancy.util.VibrancyThreadPool
@@ -32,19 +33,19 @@ open class StaticBlockLightMeshManager(
 
     fun checkIfFinished(): Boolean {
         asyncTask?.let { task ->
-            try {
-                if (task.isDone) {
+            if (task.isDone) {
+                try {
                     val info = task.get()()
 
                     if (!lightMesh.empty) {
                         blit(this, info)
                     }
-
-                    asyncTask = null
-                    return true
+                } catch (e: NullPointerException) {
+                    Vibrancy.LOGGER.warn("Error finishing block light task", e)
                 }
-            } catch (e: NullPointerException) {
+
                 asyncTask = null
+                return true
             }
         }
 
