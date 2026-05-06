@@ -123,7 +123,11 @@ object VibrancyConfig {
     var skyLightResolution: Int = if (isPotato) 2 else 4
         set(value) {
             field = value
-            (Vibrancy.lightManager.skyLight?.second as? OverworldSkyLightStorage)?.texture?.resize(1 shl (value + 10), 1 shl (value + 10))
+            (Vibrancy.lightManager.skyLight?.second as? OverworldSkyLightStorage)?.let {
+                val size = 1 shl (value + 10)
+                it.texture.resize(size, size)
+                it.translucent.resize(size, size)
+            }
         }
 
     @JvmField

@@ -68,14 +68,14 @@ open class StaticBlockLightMeshManager(
             object : BlockMeshCollector.Consumer {
                 override val predicate: BlockMeshCollector.Predicate = shadowPredicate
 
-                override fun collect(faces: Iterable<LightFace>) {
+                override fun collect(faces: Iterable<LightFace>, origin: BlockMeshCollector.FaceOrigin) {
                     shadowFaces.addAll(faces)
                 }
             },
             object : BlockMeshCollector.Consumer {
                 override val predicate: BlockMeshCollector.Predicate = lightPredicate
 
-                override fun collect(faces: Iterable<LightFace>) {
+                override fun collect(faces: Iterable<LightFace>, origin: BlockMeshCollector.FaceOrigin) {
                     lightFaces.addAll(faces)
                 }
             }

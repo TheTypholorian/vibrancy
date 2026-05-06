@@ -16,17 +16,11 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBeginMode
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferTarget
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlDataType
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureFormat
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureMagFilter
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureMinFilter
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureTarget
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlBuffer
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlFramebuffer
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
-import net.typho.big_shot_lib.api.client.rendering.opengl.state.NeoGlStateManager
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
@@ -210,7 +204,10 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                                                 }
                                             }
 
-                                            override fun collect(faces: Iterable<LightFace>) {
+                                            override fun collect(
+                                                faces: Iterable<LightFace>,
+                                                origin: BlockMeshCollector.FaceOrigin
+                                            ) {
                                                 faces.mapTo(quads) { it.quad to index }
                                             }
                                         }

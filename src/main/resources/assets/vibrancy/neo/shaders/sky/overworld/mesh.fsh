@@ -6,10 +6,12 @@
 uniform float FogStart;
 uniform float FogEnd;
 
-uniform sampler2D Sampler0;
+uniform sampler2D Sampler0; // material
 uniform ivec2 Sampler0Size;
-uniform sampler2DShadow Sampler1;
-uniform sampler2D Sampler2;
+uniform sampler2DShadow Sampler1; // solid shadow (depth)
+uniform sampler2D Sampler2; // translucent shadow
+uniform sampler2DShadow Sampler3; // translucent shadow (depth)
+uniform sampler2D Sampler4; //
 
 uniform vec3 CameraPos;
 uniform vec3 LightColor;
@@ -48,11 +50,13 @@ void main() {
     float b = (-d.x * stepA.y + d.y * stepA.x) / det;
 
     vec3 uv = texCoord1 + dFdx(texCoord1) * a + dFdy(texCoord1) * b;
+    vec3 biasUV = vec3(uv.xy, uv.z + ShadowBias);
 
-    vec3 lightColor = LightColor * texture(Sampler1, vec3(uv.xy, uv.z + ShadowBias)) * texCoord2.y * clamp(dot(vertexNormal, LightDirection), 0, 1);
+    vec4 translucentColor = texture(Sampler2, uv.xy);
+    vec3 lightColor = LightColor * texture(Sampler1, biasUV) * mix(vec3(1), translucentColor.rgb * translucentColor.a, texture(Sampler3, biasUV)) * texCoord2.y * clamp(dot(vertexNormal, LightDirection), 0, 1);
 
     if (SpecularReflectionsEnabled) {
-        lightColor = specularReflection(lightColor, LightDirection, CameraPos, vertexPosition, vertexNormal, SpecularReflectionStrength, SpecularReflectionExponent, Sampler2, texCoord0);
+        lightColor = specularReflection(lightColor, LightDirection, CameraPos, vertexPosition, vertexNormal, SpecularReflectionStrength, SpecularReflectionExponent, Sampler4, texCoord0);
     }
 
     fragColor = applyLight(lightColor, block, vertexDistance, FogStart, FogEnd);

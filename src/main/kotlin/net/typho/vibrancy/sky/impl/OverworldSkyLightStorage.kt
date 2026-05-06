@@ -12,6 +12,7 @@ import net.minecraft.world.level.LightLayer
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkAccess
+import net.minecraft.world.level.material.Fluids
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlAlphaFunction
@@ -32,7 +33,6 @@ import net.typho.big_shot_lib.api.client.rendering.util.BlockChunkLayer
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.rendering.util.NeoRenderSettings
-import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
 import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.math.NeoDirection
@@ -66,10 +66,8 @@ import net.typho.vibrancy.util.VibrancyThreadPool
 import org.joml.Matrix4f
 import org.joml.Quaternionf
 import org.joml.Vector4f
-import org.lwjgl.opengl.GL11.glClearDepth
 import org.lwjgl.system.NativeResource
 import java.util.concurrent.CompletableFuture
-import kotlin.collections.addAll
 import kotlin.math.PI
 import kotlin.math.sin
 import kotlin.math.sqrt
@@ -103,7 +101,9 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
     var info: OverworldSkyLightInfo? = null
         private set
     @JvmField
-    val texture = LightTexture.Shadow().also { it.resize(1 shl (VibrancyConfig.skyLightResolution + 10), 1 shl (VibrancyConfig.skyLightResolution + 10)) } // 16384, 16384
+    val texture = LightTexture.Shadow().also { it.resize(1 shl (VibrancyConfig.skyLightResolution + 10), 1 shl (VibrancyConfig.skyLightResolution + 10)) }
+    @JvmField
+    val translucent = LightTexture.ColorShadow().also { it.resize(1 shl (VibrancyConfig.skyLightResolution + 10), 1 shl (VibrancyConfig.skyLightResolution + 10)) }
     @JvmField
     val tempMesh = LightMesh(GlBufferUsage.STREAM_DRAW)
 
@@ -162,19 +162,34 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
         profiler.pop()
 
         profiler.push("shadows")
-        texture.framebuffer.bind(NeoRect2i(0, 0, texture.width, texture.height)).use { fbo ->
-            profiler.push("clear")
-            fbo.clear(GlClearBit.Depth(0f))
-            glClearDepth(1.0)
-            profiler.pop()
+        shadowDrawState.bind().use { settings ->
+            settings.shader.setUniform("ShadowMat") { set(shadowMat) }
+            settings.shader.setUniform("CameraPos") { setFloatVec(data.camera.pos) }
 
-            shadowDrawState.bind().use { settings ->
-                settings.shader.setUniform("ShadowMat") { set(shadowMat) }
-                settings.shader.setUniform("CameraPos") { setFloatVec(data.camera.pos) }
+            profiler.push("translucent")
+            translucent.framebuffer.bind(NeoRect2i(0, 0, translucent.width, translucent.height)).use { fbo ->
+                profiler.push("clear")
+                translucent.clear()
+                profiler.pop()
 
                 profiler.push("chunks")
                 for ((pos, chunk) in chunks) {
-                    if (manager.getSortingOrder(data, pos) < 16 * 16 * VibrancyConfig.skyLightShadowDistance * VibrancyConfig.skyLightShadowDistance) {
+                    if (manager.getSortingOrder(data, pos) < 16 * 16 * VibrancyConfig.skyLightShadowDistance * VibrancyConfig.skyLightShadowDistance) { // TODO
+                        chunk.translucentMesh.draw()
+                    }
+                }
+                profiler.pop()
+            }
+            profiler.pop()
+
+            texture.framebuffer.bind(NeoRect2i(0, 0, texture.width, texture.height)).use { fbo ->
+                profiler.push("clear")
+                texture.clear()
+                profiler.pop()
+
+                profiler.push("chunks")
+                for ((pos, chunk) in chunks) {
+                    if (manager.getSortingOrder(data, pos) < 16 * 16 * VibrancyConfig.skyLightShadowDistance * VibrancyConfig.skyLightShadowDistance) { // TODO
                         chunk.mesh.draw()
                     }
                 }
@@ -304,7 +319,21 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                         GlTextureTarget.TEXTURE_2D
                     )
                 )
-                settings.shader.setTexture(2, GlTextureBinding.FromInstance(
+                settings.shader.setTexture(
+                    2,
+                    GlTextureBinding.FromInstance(
+                        translucent,
+                        GlTextureTarget.TEXTURE_2D
+                    )
+                )
+                settings.shader.setTexture(
+                    3,
+                    GlTextureBinding.FromInstance(
+                        translucent.depth,
+                        GlTextureTarget.TEXTURE_2D
+                    )
+                )
+                settings.shader.setTexture(4, GlTextureBinding.FromInstance(
                     ReflectionAtlases[NeoIdentifier("blocks")], //NeoAtlas.blocks.location
                     GlTextureTarget.TEXTURE_2D
                 ))
@@ -312,6 +341,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                 for ((pos, chunk) in chunks) {
                     //if (chunk.box == null || data.frustum.testAab((chunk.box!!.min.toFloat() - data.camera.pos).toJOML(), (chunk.box!!.min.toFloat() + 1f - data.camera.pos).toJOML())) {
                         chunk.mesh.draw()
+                        chunk.translucentMesh.draw()
                     //}
                 }
             }
@@ -330,6 +360,13 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
     ) : SkyLightStorage<OverworldSkyLightInfo>, NativeResource {
         @JvmField
         val mesh = Mesh(
+            LightMesh.SKY_VERTEX_FORMAT,
+            GlBeginMode.QUADS,
+            GlBufferWriter.Mode.REGULAR,
+            GlBufferUsage.STATIC_DRAW
+        )
+        @JvmField
+        val translucentMesh = Mesh(
             LightMesh.SKY_VERTEX_FORMAT,
             GlBeginMode.QUADS,
             GlBufferWriter.Mode.REGULAR,
@@ -370,6 +407,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
             var box: AbstractRect3<Int>? = null
 
             val lightFaces = arrayListOf<LightFace>()
+            val translucentFaces = arrayListOf<LightFace>()
             SkyLightBlockMeshCollector(pos).submit(
                 manager,
                 level,
@@ -381,11 +419,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                             pos: IVec3<Int>,
                             state: BlockState?
                         ): Boolean {
-                            val state = state ?: level.getBlockState(pos.blockPos)
-                            // TODO
-                            val passed = BlockUtil.INSTANCE.getBlockChunkLayer(state) != BlockChunkLayer.TRANSLUCENT &&
-                                    state.block != Blocks.WATER &&
-                                    NeoDirection.entries.any { level.getBrightness(LightLayer.SKY, (pos + it).blockPos) > 0 }
+                            val passed = NeoDirection.entries.any { level.getBrightness(LightLayer.SKY, (pos + it).blockPos) > 0 }
 
                             if (passed) {
                                 box = box?.include(pos) ?: NeoRect3i(pos, pos)
@@ -421,48 +455,71 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                         }
                     }
 
-                    override fun collect(faces: Iterable<LightFace>) {
-                        lightFaces.addAll(faces)
+                    override fun collect(faces: Iterable<LightFace>, origin: BlockMeshCollector.FaceOrigin) {
+                        if (origin is BlockMeshCollector.FaceOrigin.Block) {
+                            if (BlockUtil.INSTANCE.getBlockChunkLayer(origin.block) == BlockChunkLayer.TRANSLUCENT) {
+                                translucentFaces.addAll(faces)
+                            } else {
+                                lightFaces.addAll(faces)
+                            }
+                        } else if (origin is BlockMeshCollector.FaceOrigin.Fluid) {
+                            if (origin.fluid.isSourceOfType(Fluids.WATER)) {
+                                translucentFaces.addAll(faces)
+                            } else {
+                                lightFaces.addAll(faces)
+                            }
+                        } else {
+                            lightFaces.addAll(faces)
+                        }
                     }
                 }
             )
 
-            val vertexBuffer = NeoBuffer.GCNative(lightFaces.size.toLong() * 4 * LightMesh.SKY_VERTEX_FORMAT.vertexSizeBytes)
+            fun upload(faces: List<LightFace>, mesh: Mesh): () -> Unit {
+                val vertexBuffer = NeoBuffer.GCNative(faces.size.toLong() * 4 * LightMesh.SKY_VERTEX_FORMAT.vertexSizeBytes)
 
-            vertexBuffer.write().run {
-                lightFaces.forEachIndexed { index, face ->
-                    for (vertex in face.quad.vertices) {
-                        writeFloat(vertex.pos.x)
-                        writeFloat(vertex.pos.y)
-                        writeFloat(vertex.pos.z)
-                        writeFloat(vertex.textureUV!!.x)
-                        writeFloat(vertex.textureUV!!.y)
+                vertexBuffer.write().run {
+                    faces.forEachIndexed { index, face ->
+                        for (vertex in face.quad.vertices) {
+                            writeFloat(vertex.pos.x)
+                            writeFloat(vertex.pos.y)
+                            writeFloat(vertex.pos.z)
+                            writeFloat(vertex.textureUV!!.x)
+                            writeFloat(vertex.textureUV!!.y)
 
-                        if (face.blockPos == null || face.quad.direction == null) {
-                            writeInt(net.minecraft.client.renderer.LightTexture.FULL_BRIGHT)
-                        } else {
-                            val pos = (face.blockPos + face.quad.direction!!).blockPos
-                            writeInt(net.minecraft.client.renderer.LightTexture.pack(
-                                level.getBrightness(LightLayer.BLOCK, pos),
-                                level.getBrightness(LightLayer.SKY, pos)
-                            ))
+                            if (face.blockPos == null || face.quad.direction == null) {
+                                writeInt(net.minecraft.client.renderer.LightTexture.FULL_BRIGHT)
+                            } else {
+                                val pos = (face.blockPos + face.quad.direction!!).blockPos
+                                writeInt(net.minecraft.client.renderer.LightTexture.pack(
+                                    level.getBrightness(LightLayer.BLOCK, pos),
+                                    level.getBrightness(LightLayer.SKY, pos)
+                                ))
+                            }
+
+                            writeInt(vertex.color!!.toRGBA())
+                            writeByte((vertex.normal!!.x * 127).toInt())
+                            writeByte((vertex.normal!!.y * 127).toInt())
+                            writeByte((vertex.normal!!.z * 127).toInt())
                         }
-
-                        writeInt(vertex.color!!.toRGBA())
-                        writeByte((vertex.normal!!.x * 127).toInt())
-                        writeByte((vertex.normal!!.y * 127).toInt())
-                        writeByte((vertex.normal!!.z * 127).toInt())
                     }
+                }
+
+                val indices = mesh.generateIndices(faces.size * 4)
+
+                return {
+                    mesh.rawUpload(faces.size * 6, indices.second, vertexBuffer, indices.first)
+                    vertexBuffer.free()
+                    indices.first.free()
                 }
             }
 
-            val indices = mesh.generateIndices(lightFaces.size * 4)
+            val solid = upload(lightFaces, mesh)
+            val translucent = upload(translucentFaces, translucentMesh)
 
             return {
-                mesh.rawUpload(lightFaces.size * 6, indices.second, vertexBuffer, indices.first)
-                vertexBuffer.free()
-                indices.first.free()
-
+                solid()
+                translucent()
                 box
             }
         }

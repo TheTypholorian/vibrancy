@@ -3,6 +3,7 @@ package net.typho.vibrancy.collectors
 import net.minecraft.client.Minecraft
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.material.FluidState
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoVertexData
 import net.typho.big_shot_lib.api.math.NeoDirection
@@ -45,7 +46,23 @@ interface BlockMeshCollector {
     interface Consumer {
         val predicate: Predicate
 
-        fun collect(faces: Iterable<LightFace>)
+        fun collect(faces: Iterable<LightFace>, origin: FaceOrigin)
+    }
+
+    interface FaceOrigin {
+        data class Block(
+            @JvmField
+            val block: BlockState,
+            @JvmField
+            val pos: IVec3<Int>
+        ) : FaceOrigin
+
+        data class Fluid(
+            @JvmField
+            val fluid: FluidState,
+            @JvmField
+            val pos: IVec3<Int>
+        ) : FaceOrigin
     }
 
     companion object {
@@ -82,17 +99,22 @@ interface BlockMeshCollector {
                         )
                     }
 
+                    val origin = FaceOrigin.Block(state, pos)
+
                     for (consumer in consumers) {
                         if (consumer.predicate.shouldCastFace(dir, level, pos, state)) {
-                            consumer.collect(faces)
+                            consumer.collect(faces, origin)
                         }
                     }
                 }
 
                 if (collectFluid) {
+                    val fluid = level.getFluidState(pos.blockPos)
+                    val origin = FaceOrigin.Fluid(fluid, pos)
+
                     BlockUtil.INSTANCE.getFluidQuads(
                         state,
-                        level.getFluidState(pos.blockPos),
+                        fluid,
                         level,
                         pos,
                         { level, from, direction, otherState -> false },
@@ -114,7 +136,7 @@ interface BlockMeshCollector {
                             ))
 
                             for (consumer in consumers) {
-                                consumer.collect(face)
+                                consumer.collect(face, origin)
                             }
                         }
                     )
