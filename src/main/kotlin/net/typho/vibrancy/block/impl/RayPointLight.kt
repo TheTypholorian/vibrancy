@@ -230,7 +230,7 @@ open class RayPointLight(
             if (
                 !BlockUtil.INSTANCE.shouldRenderFace(
                     level,
-                    NeoVec3i(pos),
+                    pos,
                     face,
                     state
                 ) && BlockLightRegistry.get(level.getBlockState(sidePos).block, RayPointLightType) == null
@@ -269,7 +269,7 @@ open class RayPointLight(
             if (
                 !BlockUtil.INSTANCE.shouldRenderFace(
                     level,
-                    NeoVec3i(pos),
+                    pos,
                     face,
                     state
                 )

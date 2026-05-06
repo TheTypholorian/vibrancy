@@ -450,7 +450,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                             if (
                                 !BlockUtil.INSTANCE.shouldRenderFace(
                                     level,
-                                    NeoVec3i(pos),
+                                    pos,
                                     face,
                                     state
                                 )

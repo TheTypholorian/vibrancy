@@ -29,7 +29,7 @@ interface BlockMeshCollector {
             level: Level,
             pos: BlockPos.MutableBlockPos,
             state: BlockState
-        ): Boolean = !BlockUtil.INSTANCE.isSolidRender(state, NeoVec3i(pos), level)
+        ): Boolean = !BlockUtil.INSTANCE.isSolidRender(state, pos, level)
 
         fun shouldCastBlock(
             level: Level,
@@ -83,7 +83,7 @@ interface BlockMeshCollector {
                 val consumers = consumers.filter { it.predicate.shouldCastBlock(level, pos, state) }
                 val pos1 = NeoVec3i(pos)
 
-                BlockUtil.INSTANCE.getBlockQuads(state, level, pos1) { dir, quads ->
+                BlockUtil.INSTANCE.getBlockQuads(state, level, pos) { dir, quads ->
                     val faces = quads.map { quad ->
                         val tintColor = if (quad.tintIndex != null) NeoColor.RGB(Minecraft.getInstance().blockColors.getColor(state, level, pos, quad.tintIndex!!)) else null
 
@@ -119,7 +119,7 @@ interface BlockMeshCollector {
                         state,
                         fluid,
                         level,
-                        pos1,
+                        pos,
                         { level, from, direction, otherState -> false },
                         { quad ->
                             val face = listOf(LightFace(

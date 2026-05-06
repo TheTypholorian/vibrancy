@@ -13,6 +13,7 @@ class SkyLightBlockMeshCollector(
     @JvmField
     val pos: ChunkPos
 ) : BlockMeshCollector {
+    @Suppress("USELESS_ELVIS")
     override fun submit(
         manager: LightManager,
         level: Level,
@@ -34,10 +35,11 @@ class SkyLightBlockMeshCollector(
 
         val chunk = level.getChunk(pos.x, pos.z)
         val pos = BlockPos.MutableBlockPos()
+        val lightSources = chunk.skyLightSources ?: return
 
         repeat(16) { x ->
             repeat(16) { z ->
-                var y = chunk.skyLightSources.getLowestSourceY(x, z)
+                var y = lightSources.getLowestSourceY(x, z)
 
                 while (y >= chunk.minBuildHeight) {
                     pos.set(x + this.pos.minBlockX, y, z + this.pos.minBlockZ)

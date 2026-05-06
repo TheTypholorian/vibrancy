@@ -28,6 +28,6 @@ object SubtleLightMeshCollectorPredicate : BlockMeshCollector.Predicate {
             return true
         }
 
-        return BlockUtil.INSTANCE.shouldRenderFace(level, NeoVec3i(pos), face, state ?: level.getBlockState(pos))
+        return BlockUtil.INSTANCE.shouldRenderFace(level, pos, face, state ?: level.getBlockState(pos))
     }
 }

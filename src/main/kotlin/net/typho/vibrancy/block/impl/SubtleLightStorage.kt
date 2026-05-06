@@ -199,7 +199,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                                                 ): Boolean {
                                                     return face == null || BlockUtil.INSTANCE.shouldRenderFace(
                                                         level,
-                                                        NeoVec3i(pos),
+                                                        pos,
                                                         face,
                                                         state ?: level.getBlockState(pos)
                                                     )
@@ -383,8 +383,8 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
 
                 if (
                     NeoDirection.entries.all { dir ->
-                        val pos = pos + dir
-                        cullingMode.test(level, pos, state, level.getBlockState(pos.blockPos))
+                        val pos = (pos + dir).blockPos
+                        cullingMode.test(level, pos, state, level.getBlockState(pos))
                     }
                 ) {
                     return null
