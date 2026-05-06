@@ -2,14 +2,25 @@ package net.typho.vibrancy.mixin;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.ReceivingLevelScreen;
+import net.minecraft.client.gui.screens.Screen;
+import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
+import net.typho.vibrancy.Vibrancy;
+import net.typho.vibrancy.block.impl.RayPointLightStorage;
+import net.typho.vibrancy.block.impl.RayPointLightType;
+import net.typho.vibrancy.block.impl.SubtleLightStorage;
+import net.typho.vibrancy.block.impl.SubtleLightType;
+import net.typho.vibrancy.sky.impl.OverworldSkyLightStorage;
 import net.typho.vibrancy.util.VibrancyThreadPool;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.injection.At;
+import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.function.BooleanSupplier;
 
@@ -18,7 +29,7 @@ import java.util.function.BooleanSupplier;
 *///? }
 
 @Mixin(ReceivingLevelScreen.class)
-public class ReceivingLevelScreenMixin {
+public abstract class ReceivingLevelScreenMixin extends Screen {
     @Shadow
     @Final
     private long createdAt;
@@ -53,12 +64,58 @@ public class ReceivingLevelScreenMixin {
             vibrancy$levelReceived = true;
         }
     }
-
     *///? } else {
-    
     @Shadow
     @Final
     private BooleanSupplier levelReceived;
+
+    protected ReceivingLevelScreenMixin(Component component) {
+        super(component);
+    }
+
+    @Inject(
+            method = "render",
+            at = @At("TAIL")
+    )
+    private void render(GuiGraphics guiGraphics, int i, int j, float f, CallbackInfo ci) {
+        if (levelReceived.getAsBoolean()) {
+            int y = height / 2 - 50 + font.lineHeight * 2;
+            var rayPointLights = Vibrancy.lightManager.blockLights.get(RayPointLightType.INSTANCE);
+
+            if (rayPointLights != null) {
+                var loading = ((RayPointLightStorage) rayPointLights).getMap().values().stream().filter(light -> light.mesh.isTaskActive()).count();
+                var max = rayPointLights.getSize();
+                guiGraphics.drawCenteredString(font, Component.translatable("loading.vibrancy.raytraced_point", loading == 0 ? CommonComponents.GUI_DONE : (max - loading) + " / " + max), width / 2, y, 16777215);
+                y += font.lineHeight;
+            }
+
+            var subtleLights = Vibrancy.lightManager.blockLights.get(SubtleLightType.INSTANCE);
+
+            if (subtleLights != null) {
+                var loading = ((SubtleLightStorage) subtleLights).tasks.size();
+                var max = ((SubtleLightStorage) subtleLights).chunks.size();
+                guiGraphics.drawCenteredString(font, Component.translatable("loading.vibrancy.subtle", loading == 0 ? CommonComponents.GUI_DONE : (max - loading) + " / " + max), width / 2, y, 16777215);
+                y += font.lineHeight;
+            }
+
+            var skyLight = Vibrancy.lightManager.skyLight;
+
+            if (skyLight != null && skyLight.getSecond() instanceof OverworldSkyLightStorage storage) {
+                var loading = storage.chunks.values().stream().filter(OverworldSkyLightStorage.Chunk::isTaskActive).count();
+                var max = storage.chunks.size();
+                guiGraphics.drawCenteredString(font, Component.translatable("loading.vibrancy.overworld", loading == 0 ? CommonComponents.GUI_DONE : (max - loading) + " / " + max), width / 2, y, 16777215);
+                y += font.lineHeight;
+            }
+
+            y += font.lineHeight;
+            guiGraphics.drawCenteredString(font, Component.translatable("loading.vibrancy.timeout", (createdAt + 15000L - System.currentTimeMillis()) / 1000), width / 2, y, 16777215);
+
+            y += font.lineHeight * 2;
+            guiGraphics.drawCenteredString(font, Component.translatable("loading.vibrancy.tip1"), width / 2, y, 16777215);
+            y += font.lineHeight;
+            guiGraphics.drawCenteredString(font, Component.translatable("loading.vibrancy.tip2"), width / 2, y, 16777215);
+        }
+    }
 
     @ModifyArg(
             method = "render",

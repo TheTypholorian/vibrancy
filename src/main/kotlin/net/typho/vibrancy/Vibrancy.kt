@@ -3,6 +3,7 @@ package net.typho.vibrancy
 import com.mojang.serialization.Lifecycle
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
+import net.minecraft.core.BlockPos
 import net.minecraft.network.chat.Component
 import net.typho.big_shot_lib.api.client.rendering.opengl.GlQueue
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
@@ -196,6 +197,46 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
 
     @JvmStatic
     fun NeoDirection.isPointingTowardsInclusive(from: IVec3<Int>, to: IVec3<Int>): Boolean = when (this) {
+        NeoDirection.DOWN -> to.y <= from.y
+        NeoDirection.UP -> to.y >= from.y
+        NeoDirection.NORTH -> to.z <= from.z
+        NeoDirection.SOUTH -> to.z >= from.z
+        NeoDirection.WEST -> to.x <= from.x
+        NeoDirection.EAST -> to.x >= from.x
+    }
+
+    @JvmStatic
+    fun NeoDirection.isPointingTowards(from: BlockPos, to: IVec3<Int>): Boolean = when (this) {
+        NeoDirection.DOWN -> to.y < from.y
+        NeoDirection.UP -> to.y > from.y
+        NeoDirection.NORTH -> to.z < from.z
+        NeoDirection.SOUTH -> to.z > from.z
+        NeoDirection.WEST -> to.x < from.x
+        NeoDirection.EAST -> to.x > from.x
+    }
+
+    @JvmStatic
+    fun NeoDirection.isPointingTowardsInclusive(from: BlockPos, to: IVec3<Int>): Boolean = when (this) {
+        NeoDirection.DOWN -> to.y <= from.y
+        NeoDirection.UP -> to.y >= from.y
+        NeoDirection.NORTH -> to.z <= from.z
+        NeoDirection.SOUTH -> to.z >= from.z
+        NeoDirection.WEST -> to.x <= from.x
+        NeoDirection.EAST -> to.x >= from.x
+    }
+
+    @JvmStatic
+    fun NeoDirection.isPointingTowards(from: BlockPos, to: BlockPos): Boolean = when (this) {
+        NeoDirection.DOWN -> to.y < from.y
+        NeoDirection.UP -> to.y > from.y
+        NeoDirection.NORTH -> to.z < from.z
+        NeoDirection.SOUTH -> to.z > from.z
+        NeoDirection.WEST -> to.x < from.x
+        NeoDirection.EAST -> to.x > from.x
+    }
+
+    @JvmStatic
+    fun NeoDirection.isPointingTowardsInclusive(from: BlockPos, to: BlockPos): Boolean = when (this) {
         NeoDirection.DOWN -> to.y <= from.y
         NeoDirection.UP -> to.y >= from.y
         NeoDirection.NORTH -> to.z <= from.z

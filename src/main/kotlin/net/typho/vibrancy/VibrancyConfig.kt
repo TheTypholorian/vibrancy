@@ -51,11 +51,17 @@ object VibrancyConfig {
         }
     @JvmField
     var useMultithreading = true
-    var asyncThreads: Int = if (isPotato) 2 else 4
+    var asyncThreads: Int = if (isPotato) 4 else 8
         set(value) {
+            if (value < field) {
+                VibrancyThreadPool.corePoolSize = value
+                VibrancyThreadPool.maximumPoolSize = value
+            } else {
+                VibrancyThreadPool.maximumPoolSize = value
+                VibrancyThreadPool.corePoolSize = value
+            }
+
             field = value
-            VibrancyThreadPool.corePoolSize = value
-            VibrancyThreadPool.maximumPoolSize = value
         }
     @JvmField
     var limitLightBrightness = false
@@ -303,7 +309,7 @@ object VibrancyConfig {
 
                 .option(Option.createBuilder<Int>()
                     .name(Component.translatable("config.vibrancy.general.asyncThreads"))
-                    .binding(if (isPotato) 2 else 4, VibrancyConfig::asyncThreads)
+                    .binding(if (isPotato) 4 else 8, VibrancyConfig::asyncThreads)
                     .controller { opt ->
                         IntegerSliderControllerBuilder.create(opt)
                             .range(1, 8)
@@ -437,6 +443,9 @@ object VibrancyConfig {
                 .option(Option.createBuilder<Int>()
                     .name(Component.translatable("config.vibrancy.skyLights.shadow_distance"))
                     .binding(if (isPotato) 4 else 8, VibrancyConfig::skyLightShadowDistance)
+                    .description(OptionDescription.of(
+                        Component.translatable("config.vibrancy.skyLights.shadow_distance.tooltip")
+                    ))
                     .controller { opt ->
                         IntegerSliderControllerBuilder.create(opt)
                             .range(4, 16)
@@ -457,6 +466,9 @@ object VibrancyConfig {
                 .option(Option.createBuilder<Int>()
                     .name(Component.translatable("config.vibrancy.skyLights.resolution"))
                     .binding(if (isPotato) 2 else 4, VibrancyConfig::skyLightResolution)
+                    .description(OptionDescription.of(
+                        Component.translatable("config.vibrancy.skyLights.resolution.tooltip")
+                    ))
                     .controller { opt ->
                         IntegerSliderControllerBuilder.create(opt)
                             .range(0, 4)

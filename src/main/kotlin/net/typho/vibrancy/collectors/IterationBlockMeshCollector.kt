@@ -1,5 +1,6 @@
 package net.typho.vibrancy.collectors
 
+import net.minecraft.core.BlockPos
 import net.minecraft.world.level.Level
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.math.vec.IVec3
@@ -19,11 +20,12 @@ class IterationBlockMeshCollector(
         vararg consumers: BlockMeshCollector.Consumer
     ) {
         for (pos in blocks) {
+            val mutable = BlockPos.MutableBlockPos().set(pos.blockPos)
             BlockMeshCollector.collectLightFaces(
                 manager,
-                level.getBlockState(pos.blockPos),
+                level.getBlockState(mutable),
                 level,
-                pos,
+                mutable,
                 pos - origin,
                 atlas,
                 true,

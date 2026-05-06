@@ -1,6 +1,7 @@
 package net.typho.vibrancy.collectors
 
 import net.minecraft.client.Minecraft
+import net.minecraft.core.BlockPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.material.FluidState
@@ -8,6 +9,7 @@ import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoVertexData
 import net.typho.big_shot_lib.api.math.NeoDirection
 import net.typho.big_shot_lib.api.math.vec.IVec3
+import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.big_shot_lib.api.util.NeoColor
@@ -25,20 +27,20 @@ interface BlockMeshCollector {
     interface Predicate {
         fun isBlockTransparent(
             level: Level,
-            pos: IVec3<Int>,
+            pos: BlockPos.MutableBlockPos,
             state: BlockState
-        ): Boolean = !BlockUtil.INSTANCE.isSolidRender(state, pos, level)
+        ): Boolean = !BlockUtil.INSTANCE.isSolidRender(state, NeoVec3i(pos), level)
 
         fun shouldCastBlock(
             level: Level,
-            pos: IVec3<Int>,
+            pos: BlockPos.MutableBlockPos,
             state: BlockState?
         ): Boolean
 
         fun shouldCastFace(
             face: NeoDirection?,
             level: Level,
-            pos: IVec3<Int>,
+            pos: BlockPos.MutableBlockPos,
             state: BlockState?
         ): Boolean
     }
@@ -71,7 +73,7 @@ interface BlockMeshCollector {
             manager: LightManager,
             state: BlockState,
             level: Level,
-            pos: IVec3<Int>,
+            pos: BlockPos.MutableBlockPos,
             offset: IVec3<Int>,
             atlas: NeoAtlas,
             collectFluid: Boolean,
@@ -79,13 +81,14 @@ interface BlockMeshCollector {
         ) {
             if (!state.isAir) {
                 val consumers = consumers.filter { it.predicate.shouldCastBlock(level, pos, state) }
+                val pos1 = NeoVec3i(pos)
 
-                BlockUtil.INSTANCE.getBlockQuads(state, level, pos) { dir, quads ->
+                BlockUtil.INSTANCE.getBlockQuads(state, level, pos1) { dir, quads ->
                     val faces = quads.map { quad ->
-                        val tintColor = if (quad.tintIndex != null) NeoColor.RGB(Minecraft.getInstance().blockColors.getColor(state, level, pos.blockPos, quad.tintIndex!!)) else null
+                        val tintColor = if (quad.tintIndex != null) NeoColor.RGB(Minecraft.getInstance().blockColors.getColor(state, level, pos, quad.tintIndex!!)) else null
 
                         LightFace(
-                            pos,
+                            pos1,
                             state,
                             quad.withVertices { index, vertex ->
                                 NeoVertexData(
@@ -99,7 +102,7 @@ interface BlockMeshCollector {
                         )
                     }
 
-                    val origin = FaceOrigin.Block(state, pos)
+                    val origin = FaceOrigin.Block(state, pos1)
 
                     for (consumer in consumers) {
                         if (consumer.predicate.shouldCastFace(dir, level, pos, state)) {
@@ -109,18 +112,18 @@ interface BlockMeshCollector {
                 }
 
                 if (collectFluid) {
-                    val fluid = level.getFluidState(pos.blockPos)
-                    val origin = FaceOrigin.Fluid(fluid, pos)
+                    val fluid = level.getFluidState(pos)
+                    val origin = FaceOrigin.Fluid(fluid, pos1)
 
                     BlockUtil.INSTANCE.getFluidQuads(
                         state,
                         fluid,
                         level,
-                        pos,
+                        pos1,
                         { level, from, direction, otherState -> false },
                         { quad ->
                             val face = listOf(LightFace(
-                                pos,
+                                pos1,
                                 state,
                                 quad.withVertices { index, vertex ->
                                     NeoVertexData(

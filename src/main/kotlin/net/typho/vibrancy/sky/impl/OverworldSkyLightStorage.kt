@@ -4,12 +4,13 @@ import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.texture.OverlayTexture
+import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
 import net.minecraft.util.Mth
 import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.LightLayer
-import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkAccess
 import net.minecraft.world.level.material.Fluids
@@ -39,7 +40,6 @@ import net.typho.big_shot_lib.api.math.NeoDirection
 import net.typho.big_shot_lib.api.math.rect.AbstractRect3
 import net.typho.big_shot_lib.api.math.rect.NeoRect2i
 import net.typho.big_shot_lib.api.math.rect.NeoRect3i
-import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.big_shot_lib.api.math.vec.NeoVec4f
@@ -63,6 +63,7 @@ import net.typho.vibrancy.util.EmptyVertexConsumer
 import net.typho.vibrancy.util.QuadListVertexConsumer
 import net.typho.vibrancy.util.ReflectionAtlases
 import net.typho.vibrancy.util.VibrancyThreadPool
+import org.joml.FrustumIntersection
 import org.joml.Matrix4f
 import org.joml.Quaternionf
 import org.joml.Vector4f
@@ -159,6 +160,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
         val shadowMat = Matrix4f()
             .scale(1f / (VibrancyConfig.skyLightShadowDistance * 16))
             .rotate(shadowRot)
+        val shadowFrustum = FrustumIntersection(shadowMat)
         profiler.pop()
 
         profiler.push("shadows")
@@ -174,7 +176,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
                 profiler.push("chunks")
                 for ((pos, chunk) in chunks) {
-                    if (manager.getSortingOrder(data, pos) < 16 * 16 * VibrancyConfig.skyLightShadowDistance * VibrancyConfig.skyLightShadowDistance) { // TODO
+                    if (chunk.box == null || shadowFrustum.testAab((chunk.box!!.min.toFloat() - data.camera.pos).toJOML(), (chunk.box!!.max.toFloat() - data.camera.pos).toJOML())) {
                         chunk.translucentMesh.draw()
                     }
                 }
@@ -189,7 +191,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
                 profiler.push("chunks")
                 for ((pos, chunk) in chunks) {
-                    if (manager.getSortingOrder(data, pos) < 16 * 16 * VibrancyConfig.skyLightShadowDistance * VibrancyConfig.skyLightShadowDistance) { // TODO
+                    if (chunk.box == null || shadowFrustum.testAab((chunk.box!!.min.toFloat() - data.camera.pos).toJOML(), (chunk.box!!.max.toFloat() - data.camera.pos).toJOML())) {
                         chunk.mesh.draw()
                     }
                 }
@@ -416,13 +418,18 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                     override val predicate: BlockMeshCollector.Predicate = object : BlockMeshCollector.Predicate {
                         override fun shouldCastBlock(
                             level: Level,
-                            pos: IVec3<Int>,
+                            pos: BlockPos.MutableBlockPos,
                             state: BlockState?
                         ): Boolean {
-                            val passed = NeoDirection.entries.any { level.getBrightness(LightLayer.SKY, (pos + it).blockPos) > 0 }
+                            val passed = Direction.entries.any {
+                                val v = level.getBrightness(LightLayer.SKY, pos.move(it)) > 0
+                                pos.move(it.opposite)
+                                v
+                            }
 
                             if (passed) {
-                                box = box?.include(pos) ?: NeoRect3i(pos, pos)
+                                val pos1 = NeoVec3i(pos)
+                                box = box?.include(pos1) ?: NeoRect3i(pos1, pos1)
                             }
 
                             return passed
@@ -431,19 +438,19 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                         override fun shouldCastFace(
                             face: NeoDirection?,
                             level: Level,
-                            pos: IVec3<Int>,
+                            pos: BlockPos.MutableBlockPos,
                             state: BlockState?
                         ): Boolean {
                             if (face == null) {
                                 return true
                             }
 
-                            val state = state ?: level.getBlockState(pos.blockPos)
+                            val state = state ?: level.getBlockState(pos)
 
                             if (
                                 !BlockUtil.INSTANCE.shouldRenderFace(
                                     level,
-                                    pos,
+                                    NeoVec3i(pos),
                                     face,
                                     state
                                 )

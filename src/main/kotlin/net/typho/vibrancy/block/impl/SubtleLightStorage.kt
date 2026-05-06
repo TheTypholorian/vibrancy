@@ -2,6 +2,7 @@ package net.typho.vibrancy.block.impl
 
 //? if 1.21 {
 import dev.ryanhcode.sable.companion.SableCompanion
+import net.minecraft.core.BlockPos
 import net.typho.big_shot_lib.api.math.vec.NeoVec3d
 import net.typho.vibrancy.Vibrancy
 import org.joml.Quaternionf
@@ -171,11 +172,12 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                                 //    block.x >= pos.minBlockX && block.x <= pos.maxBlockX &&
                                 //    block.z >= pos.minBlockZ && block.z <= pos.maxBlockZ
                                 //) {
+                                val block1 = BlockPos.MutableBlockPos().set(block.blockPos)
                                     BlockMeshCollector.collectLightFaces(
                                         manager,
-                                        data.level!!.getBlockState(block.blockPos),
+                                        data.level!!.getBlockState(block1),
                                         data.level!!,
-                                        block,
+                                        block1,
                                         block - origin,
                                         NeoAtlas.blocks,
                                         true,
@@ -183,7 +185,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                                             override val predicate = object : BlockMeshCollector.Predicate {
                                                 override fun shouldCastBlock(
                                                     level: Level,
-                                                    pos: IVec3<Int>,
+                                                    pos: BlockPos.MutableBlockPos,
                                                     state: BlockState?
                                                 ): Boolean {
                                                     return true
@@ -192,14 +194,14 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                                                 override fun shouldCastFace(
                                                     face: NeoDirection?,
                                                     level: Level,
-                                                    pos: IVec3<Int>,
+                                                    pos: BlockPos.MutableBlockPos,
                                                     state: BlockState?
                                                 ): Boolean {
                                                     return face == null || BlockUtil.INSTANCE.shouldRenderFace(
                                                         level,
-                                                        pos,
+                                                        NeoVec3i(pos),
                                                         face,
-                                                        state ?: level.getBlockState(pos.blockPos)
+                                                        state ?: level.getBlockState(pos)
                                                     )
                                                 }
                                             }

@@ -18,6 +18,7 @@ import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.MultiBufferSource
 import net.minecraft.client.renderer.texture.OverlayTexture
+import net.minecraft.core.BlockPos
 import net.minecraft.util.Mth
 import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.Level
@@ -33,7 +34,6 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlBlendShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
-import net.typho.big_shot_lib.api.client.rendering.opengl.state.NeoGlStateManager
 import net.typho.big_shot_lib.api.client.rendering.opengl.util.BlendFunction
 import net.typho.big_shot_lib.api.client.rendering.util.*
 import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
@@ -123,7 +123,7 @@ open class RayPointLight(
     }
 
     @JvmField
-    val meshCollector = FloodFillBlockMeshCollector(pos)
+    val meshCollector = FloodFillBlockMeshCollector(pos.blockPos)
 
     var meshData: LightMesh.MeshData? = null
         protected set
@@ -193,35 +193,35 @@ open class RayPointLight(
             return NeoRect3i(pos - shadowRadius, pos + shadowRadius)
         }
     val shadowPredicate = object : BlockMeshCollector.Predicate {
-        override fun isBlockTransparent(level: Level, pos: IVec3<Int>, state: BlockState): Boolean {
+        override fun isBlockTransparent(level: Level, pos: BlockPos.MutableBlockPos, state: BlockState): Boolean {
             return super.isBlockTransparent(level, pos, state) || BlockLightRegistry.get(state.block, RayPointLightType) != null
         }
 
         override fun shouldCastBlock(
             level: Level,
-            pos: IVec3<Int>,
+            pos: BlockPos.MutableBlockPos,
             state: BlockState?
         ): Boolean {
-            return shadowBox.contains(pos) && BlockLightRegistry.get((state ?: level.getBlockState(pos.blockPos)).block, RayPointLightType) == null
+            return shadowBox.contains(NeoVec3i(pos)) && BlockLightRegistry.get((state ?: level.getBlockState(pos)).block, RayPointLightType) == null
         }
 
         override fun shouldCastFace(
             face: NeoDirection?,
             level: Level,
-            pos: IVec3<Int>,
+            pos: BlockPos.MutableBlockPos,
             state: BlockState?
         ): Boolean {
             if (face == null) {
                 return true
             }
 
-            val sidePos = pos + face
+            val sidePos = pos.relative(face.mojang)
 
             if (sidePos == this@RayPointLight.pos) {
                 return true
             }
 
-            val state = state ?: level.getBlockState(pos.blockPos)
+            val state = state ?: level.getBlockState(pos)
 
             if (BlockUtil.INSTANCE.getBlockChunkLayer(state) == BlockChunkLayer.SOLID && !face.isPointingTowards(pos, this@RayPointLight.pos)) {
                 return false
@@ -230,10 +230,10 @@ open class RayPointLight(
             if (
                 !BlockUtil.INSTANCE.shouldRenderFace(
                     level,
-                    pos,
+                    NeoVec3i(pos),
                     face,
                     state
-                ) && BlockLightRegistry.get(level.getBlockState(sidePos.blockPos).block, RayPointLightType) == null
+                ) && BlockLightRegistry.get(level.getBlockState(sidePos).block, RayPointLightType) == null
             ) {
                 return false
             }
@@ -244,23 +244,23 @@ open class RayPointLight(
     val lightPredicate = object : BlockMeshCollector.Predicate {
         override fun shouldCastBlock(
             level: Level,
-            pos: IVec3<Int>,
+            pos: BlockPos.MutableBlockPos,
             state: BlockState?
         ): Boolean {
-            return boundingBox.contains(pos)
+            return boundingBox.contains(NeoVec3i(pos))
         }
 
         override fun shouldCastFace(
             face: NeoDirection?,
             level: Level,
-            pos: IVec3<Int>,
+            pos: BlockPos.MutableBlockPos,
             state: BlockState?
         ): Boolean {
             if (face == null) {
                 return true
             }
 
-            val state = state ?: level.getBlockState(pos.blockPos)
+            val state = state ?: level.getBlockState(pos)
 
             if (BlockUtil.INSTANCE.getBlockChunkLayer(state) == BlockChunkLayer.SOLID && !face.isPointingTowards(pos, this@RayPointLight.pos)) {
                 return false
@@ -269,7 +269,7 @@ open class RayPointLight(
             if (
                 !BlockUtil.INSTANCE.shouldRenderFace(
                     level,
-                    pos,
+                    NeoVec3i(pos),
                     face,
                     state
                 )
@@ -302,7 +302,7 @@ open class RayPointLight(
         synchronized(meshCollector) {
             for (pos in manager.dirtyBlocks) {
                 if (boundingBox.contains(pos)) {
-                    shadowsDirty = shadowsDirty or meshCollector.markDirty(pos)
+                    shadowsDirty = shadowsDirty or meshCollector.markDirty(pos.blockPos)
                 }
             }
         }
@@ -396,7 +396,7 @@ open class RayPointLight(
                     profiler.push("entityShadows")
                     for (entity in level.getEntities(null, AABB.ofSize(Vec3(absolutePos.toJOML()), radius.toDouble() * 2, radius.toDouble() * 2, radius.toDouble() * 2))) {
                         //? if 1.21 {
-                        if (subLevel != null || meshCollector.checked.contains(NeoVec3i(entity.blockPosition()))) {
+                        if (subLevel != null || meshCollector.checked.contains(entity.blockPosition())) {
                             //? } else {
                             /*if (meshCollector.checked.contains(NeoVec3i(entity.blockPosition()))) {
                             *///? }
@@ -454,7 +454,7 @@ open class RayPointLight(
                     Vibrancy.disableFlywheelInstancing = true
 
                     for (pos in meshCollector.blockEntities) {
-                        level.getBlockEntity(pos.blockPos)?.let { blockEntity ->
+                        level.getBlockEntity(pos)?.let { blockEntity ->
                             Minecraft.getInstance().blockEntityRenderDispatcher.getRenderer(blockEntity)?.let { renderer ->
                                 val node = Node()
                                 debugOut("blockEntityShadows", 1)
@@ -465,7 +465,7 @@ open class RayPointLight(
                                 if (subLevelPose == null) {
                                     poseStack.translate(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
                                 } else {
-                                    val pos = subLevelPose.transformPosition(pos.toDouble().toJOML())
+                                    val pos = subLevelPose.transformPosition(NeoVec3i(pos).toDouble().toJOML())
                                     poseStack.translate(pos.x, pos.y, pos.z)
                                     poseStack.mulPose(Quaternionf(subLevelPose.orientation()))
                                 }

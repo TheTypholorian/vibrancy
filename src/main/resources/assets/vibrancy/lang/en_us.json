@@ -58,8 +58,10 @@
   "config.vibrancy.skyLights": "Sky Lights",
   "config.vibrancy.skyLights.enabled": "Enabled",
   "config.vibrancy.skyLights.shadow_distance": "Shadow Distance",
+  "config.vibrancy.skyLights.shadow_distance.tooltip": "The distance (in chunks) from the camera where shadows are calculated",
   "config.vibrancy.skyLights.brightness": "Brightness",
   "config.vibrancy.skyLights.resolution": "Resolution",
+  "config.vibrancy.skyLights.resolution.tooltip": "The quality of the shadows",
 
   "key.category.vibrancy.keys": "Vibrancy",
   "key.vibrancy.debug": "Modifier key",
@@ -82,5 +84,12 @@
 
   "same_neighbor": "Same Block Type",
   "solid_neighbor": "Solid",
-  "non_air_neighbor": "Not Air"
+  "non_air_neighbor": "Not Air",
+
+  "loading.vibrancy.raytraced_point": "Raytraced Point: %s",
+  "loading.vibrancy.subtle": "Subtle: %s",
+  "loading.vibrancy.overworld": "Overworld (Sky Light): %s",
+  "loading.vibrancy.timeout": "Times out in %s seconds",
+  "loading.vibrancy.tip1": "To get faster loads, increase the Async Threads option in Vibrancy config.",
+  "loading.vibrancy.tip2": "(this does use more of your CPU and might lag other apps while lights are generating)"
 }

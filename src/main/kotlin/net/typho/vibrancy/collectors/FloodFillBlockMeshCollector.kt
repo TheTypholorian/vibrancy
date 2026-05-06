@@ -1,10 +1,7 @@
 package net.typho.vibrancy.collectors
 
-import net.minecraft.client.Minecraft
-import net.minecraft.core.Direction
-import net.minecraft.util.RandomSource
+import net.minecraft.core.BlockPos
 import net.minecraft.world.level.Level
-import net.minecraft.world.level.block.Blocks
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlasSprite
 import net.typho.big_shot_lib.api.client.rendering.util.quad.BasicBakedQuad
@@ -14,6 +11,7 @@ import net.typho.big_shot_lib.api.math.NeoDirection
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.NeoVec2f
 import net.typho.big_shot_lib.api.math.vec.NeoVec3f
+import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.vibrancy.LightManager
@@ -21,15 +19,15 @@ import net.typho.vibrancy.Vibrancy.isPointingTowardsInclusive
 
 class FloodFillBlockMeshCollector(
     @JvmField
-    val pos: IVec3<Int>
+    val pos: BlockPos
 ) : BlockMeshCollector {
     @JvmField
-    val dirty: MutableList<IVec3<Int>> = arrayListOf(pos)
+    val dirty: MutableList<BlockPos> = arrayListOf(pos)
     @JvmField
-    val checked: MutableSet<IVec3<Int>> = hashSetOf()
+    val checked: MutableSet<BlockPos> = hashSetOf()
     @JvmField
-    val collect: MutableSet<IVec3<Int>> = hashSetOf()
-    var blockEntities: MutableSet<IVec3<Int>> = hashSetOf()
+    val collect: MutableSet<BlockPos> = hashSetOf()
+    var blockEntities: MutableSet<BlockPos> = hashSetOf()
         private set
 
     fun markAllDirty() {
@@ -40,7 +38,7 @@ class FloodFillBlockMeshCollector(
         blockEntities = hashSetOf()
     }
 
-    fun markDirty(pos: IVec3<Int>): Boolean {
+    fun markDirty(pos: BlockPos): Boolean {
         if (checked.contains(pos)) {
             dirty.add(pos)
             return true
@@ -56,31 +54,34 @@ class FloodFillBlockMeshCollector(
         vararg consumers: BlockMeshCollector.Consumer
     ) {
         var cursors = dirty.toMutableList()
-        var newCursors = arrayListOf<IVec3<Int>>()
+        var newCursors = arrayListOf<BlockPos>()
 
         do {
             while (cursors.isNotEmpty()) {
                 val cursor = cursors.removeLast()
+                val mutable = BlockPos.MutableBlockPos().set(cursor)
 
-                if (consumers.any { it.predicate.shouldCastBlock(level, cursor, null) }) {
+                if (consumers.any { it.predicate.shouldCastBlock(level, mutable, null) }) {
                     checked.add(cursor)
                     collect.add(cursor)
                 }
 
                 for (direction in NeoDirection.entries) {
-                    val pos = cursor + direction
+                    mutable.move(direction.mojang)
 
                     if (direction.isPointingTowardsInclusive(this.pos, cursor) && checked.add(pos)) {
-                        val state = level.getBlockState(pos.blockPos)
+                        val state = level.getBlockState(pos)
 
-                        if (consumers.any { it.predicate.shouldCastBlock(level, pos, state) }) {
+                        if (consumers.any { it.predicate.shouldCastBlock(level, mutable, state) }) {
                             collect.add(pos)
 
-                            if (consumers.any { it.predicate.isBlockTransparent(level, pos, state) }) {
+                            if (consumers.any { it.predicate.isBlockTransparent(level, mutable, state) }) {
                                 newCursors.add(pos)
                             }
                         }
                     }
+
+                    mutable.move(direction.mojang.opposite)
                 }
             }
 
@@ -88,23 +89,24 @@ class FloodFillBlockMeshCollector(
             newCursors = arrayListOf()
         } while (cursors.isNotEmpty())
 
-        val blockEntities = hashSetOf<IVec3<Int>>()
+        val blockEntities = hashSetOf<BlockPos>()
 
-        collect.sortedBy { it.distanceSquared(pos) }.forEach { pos ->
-            val state = level.getBlockState(pos.blockPos)
+        collect.sortedBy { it.distSqr(pos) }.forEach { pos ->
+            val state = level.getBlockState(pos)
+            val mutable = BlockPos.MutableBlockPos().set(pos)
 
             BlockMeshCollector.collectLightFaces(
                 manager,
                 state,
                 level,
-                pos,
-                pos - this.pos,
+                mutable,
+                NeoVec3i(pos.subtract(this.pos)),
                 atlas,
                 true,
                 *consumers
             )
 
-            if (level.getBlockEntity(pos.blockPos) != null) {
+            if (level.getBlockEntity(pos) != null) {
                 blockEntities.add(pos)
             }
         }
