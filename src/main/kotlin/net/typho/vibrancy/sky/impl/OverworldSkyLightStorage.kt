@@ -77,9 +77,6 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
     companion object {
         @JvmField
         val shadowDrawState = GlDrawState.Basic(
-            cull = GlCullShard.Enabled(
-                GlCullFace.BACK
-            ),
             depth = GlDepthShard.Enabled(
                 GlAlphaFunction.GEQUAL
             ),
@@ -120,11 +117,22 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
         this.info = info
     }
 
+    override fun loadChunk(manager: LightManager, chunk: ChunkAccess) {
+        for (x in (chunk.pos.x - 1)..(chunk.pos.x + 1)) {
+            for (z in (chunk.pos.z - 1)..(chunk.pos.z + 1)) {
+                getOrCreateChunk(manager, ChunkPos(x, z)).loadChunk(manager, manager.getLevel()!!.getChunk(x, z))
+            }
+        }
+    }
+
     @Suppress("SENSELESS_COMPARISON")
-    fun render(data: RenderEventData, manager: LightManager, result: GlFramebuffer, temp: GlFramebuffer, profiler: ProfilerFiller) {
+    fun render(data: RenderEventData, manager: LightManager, result: GlFramebuffer, temp: GlFramebuffer, debugOut: (key: String, value: Int) -> Unit, profiler: ProfilerFiller) {
         if (!VibrancyConfig.skyLightsEnabled) {
             return
         }
+
+        debugOut("numAsyncTasks", chunks.values.count { it.isTaskActive() })
+        debugOut("numChunks", chunks.size)
 
         profiler.push("update")
         for ((pos, chunk) in chunks) {
@@ -589,7 +597,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
         }
 
         override fun clear(manager: LightManager) {
-            dirty = true
+            free()
         }
     }
 }

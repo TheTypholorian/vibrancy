@@ -66,7 +66,7 @@ class FloodFillBlockMeshCollector(
                 }
 
                 for (direction in NeoDirection.entries) {
-                    mutable.move(direction.mojang)
+                    val pos = cursor.relative(direction.mojang)
 
                     if (direction.isPointingTowardsInclusive(this.pos, cursor) && checked.add(pos)) {
                         val state = level.getBlockState(pos)
@@ -79,8 +79,6 @@ class FloodFillBlockMeshCollector(
                             }
                         }
                     }
-
-                    mutable.move(direction.mojang.opposite)
                 }
             }
 
