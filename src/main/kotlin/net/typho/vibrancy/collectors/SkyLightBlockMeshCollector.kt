@@ -4,6 +4,7 @@ import net.minecraft.core.BlockPos
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
+import net.minecraft.world.level.levelgen.Heightmap
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.vibrancy.LightManager
@@ -38,11 +39,10 @@ class SkyLightBlockMeshCollector(
 
         val chunk = level.getChunk(pos.x, pos.z)
         val pos = BlockPos.MutableBlockPos()
-        val lightSources = chunk.skyLightSources ?: return false
 
         repeat(16) { x ->
             repeat(16) { z ->
-                var y = lightSources.getLowestSourceY(x, z)
+                var y = chunk.getHeight(Heightmap.Types.WORLD_SURFACE, x, z)
 
                 while (y >= chunk.minBuildHeight) {
                     pos.set(x + this.pos.minBlockX, y, z + this.pos.minBlockZ)
