@@ -11,6 +11,8 @@ import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
 import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.NeoVec2i
+import net.typho.big_shot_lib.api.math.vec.NeoVec3f
+import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.big_shot_lib.api.util.buffer.BYTE_MASK
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
 import net.typho.big_shot_lib.api.util.buffer.SHORT_MASK
@@ -168,10 +170,11 @@ open class LightMesh(
                     writeFloat(vertex.textureUV!!.y)
                     writeShort(vertex.overlayUV!!.x)
                     writeShort(vertex.overlayUV!!.y)
-                    writeInt(vertex.color!!.toRGBA())
-                    writeByte((vertex.normal!!.x * 127).toInt())
-                    writeByte((vertex.normal!!.y * 127).toInt())
-                    writeByte((vertex.normal!!.z * 127).toInt())
+                    writeInt((vertex.color ?: NeoColor.FULL_ON).toRGBA())
+                    val normal = vertex.normal ?: face.quad.direction?.toFloat() ?: NeoVec3f(0f, 1f, 0f)
+                    writeByte((normal.x * 127).toInt())
+                    writeByte((normal.y * 127).toInt())
+                    writeByte((normal.z * 127).toInt())
                 }
             }
         }
@@ -204,10 +207,11 @@ open class LightMesh(
                     writeFloat(vertex.textureUV!!.y)
                     writeShort(vertex.overlayUV?.x ?: 0)
                     writeShort(vertex.overlayUV?.y ?: 0)
-                    writeInt(vertex.color!!.toRGBA())
-                    writeByte((vertex.normal!!.x * 127).toInt())
-                    writeByte((vertex.normal!!.y * 127).toInt())
-                    writeByte((vertex.normal!!.z * 127).toInt())
+                    writeInt((vertex.color ?: NeoColor.FULL_ON).toRGBA())
+                    val normal = vertex.normal ?: face.quad.direction?.toFloat() ?: NeoVec3f(0f, 1f, 0f)
+                    writeByte((normal.x * 127).toInt())
+                    writeByte((normal.y * 127).toInt())
+                    writeByte((normal.z * 127).toInt())
                 }
             }
         }
@@ -238,10 +242,11 @@ open class LightMesh(
                     writeFloat(vertex.textureUV!!.y)
                     writeShort(vertex.overlayUV?.x ?: 0)
                     writeShort(vertex.overlayUV?.y ?: 0)
-                    writeInt(vertex.color!!.toRGBA())
-                    writeByte((vertex.normal!!.x * 127).toInt())
-                    writeByte((vertex.normal!!.y * 127).toInt())
-                    writeByte((vertex.normal!!.z * 127).toInt())
+                    writeInt((vertex.color ?: NeoColor.FULL_ON).toRGBA())
+                    val normal = vertex.normal ?: face.direction?.toFloat() ?: NeoVec3f(0f, 1f, 0f)
+                    writeByte((normal.x * 127).toInt())
+                    writeByte((normal.y * 127).toInt())
+                    writeByte((normal.z * 127).toInt())
                 }
             }
         }
