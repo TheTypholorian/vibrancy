@@ -7,7 +7,7 @@ plugins {
     kotlin("jvm")
     alias(libs.plugins.loom)
     id("dev.kikugie.postprocess.jsonlang")
-    //id("me.modmuss50.mod-publish-plugin")
+    id("me.modmuss50.mod-publish-plugin")
     id("com.google.devtools.ksp") version "2.2.0-2.0.2"
     id("dev.kikugie.fletching-table.fabric") version "0.1.0-alpha.22"
 }
@@ -164,12 +164,11 @@ val additionalVersions: List<String> = additionalVersionsStr
     ?.filter { it.isNotEmpty() }
     ?: emptyList()
 
-/*
 publishMods {
     file = tasks.remapJar.map { it.archiveFile.get() }
     additionalFiles.from(tasks.remapSourcesJar.map { it.archiveFile.get() })
 
-    type = BETA
+    type = STABLE
     displayName = "${property("mod.name")} ${property("mod.version")} for ${stonecutter.current.version} Fabric"
     version = "${property("mod.version")}+${stonecutter.current.version}-fabric"
     changelog = provider { rootProject.file("CHANGELOG.md").readText() }
@@ -177,18 +176,19 @@ publishMods {
 
     modrinth {
         projectId = property("publish.modrinth") as String
-        accessToken = env.MODRINTH_API_KEY.orNull()
+        //accessToken = env.MODRINTH_API_KEY.orNull()
         minecraftVersions.add(stonecutter.current.version)
         minecraftVersions.addAll(additionalVersions)
-        requires("fabric-api", "fabric-language-kotlin")
+        requires("fabric-api", "fabric-language-kotlin", "big_shot_lib")
     }
 
+    /*
     curseforge {
         projectId = property("publish.curseforge") as String
         accessToken = env.CURSEFORGE_API_KEY.orNull()
         minecraftVersions.add(stonecutter.current.version)
         minecraftVersions.addAll(additionalVersions)
-        requires("fabric-api", "fabric-language-kotlin")
+        requires("fabric-api", "fabric-language-kotlin", "big_shot_lib")
     }
+     */
 }
- */

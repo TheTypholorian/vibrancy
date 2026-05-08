@@ -1,8 +1,10 @@
+import org.jetbrains.kotlin.tooling.core.KotlinToolingVersion
+
 plugins {
     kotlin("jvm")
     id("net.neoforged.moddev")
     id("dev.kikugie.postprocess.jsonlang")
-    //id("me.modmuss50.mod-publish-plugin")
+    id("me.modmuss50.mod-publish-plugin")
     id("com.google.devtools.ksp") version "2.2.0-2.0.2"
 }
 
@@ -145,6 +147,7 @@ java {
     }
     sourceCompatibility = javaCompat
     targetCompatibility = javaCompat
+    withSourcesJar()
 }
 
 kotlin {
@@ -165,12 +168,11 @@ val additionalVersions: List<String> = additionalVersionsStr
     ?.filter { it.isNotEmpty() }
     ?: emptyList()
 
-/*
 publishMods {
     file = tasks.jar.map { it.archiveFile.get() }
     additionalFiles.from(tasks.named<org.gradle.jvm.tasks.Jar>("sourcesJar").map { it.archiveFile.get() })
 
-    type = BETA
+    type = STABLE
     displayName = "${property("mod.name")} ${property("mod.version")} for ${stonecutter.current.version} Neoforge"
     version = "${property("mod.version")}+${stonecutter.current.version}-neoforge"
     changelog = provider { rootProject.file("CHANGELOG.md").readText() }
@@ -178,18 +180,19 @@ publishMods {
 
     modrinth {
         projectId = property("publish.modrinth") as String
-        accessToken = env.MODRINTH_API_KEY.orNull()
+        //accessToken = env.MODRINTH_API_KEY.orNull()
         minecraftVersions.add(stonecutter.current.version)
         minecraftVersions.addAll(additionalVersions)
-        requires("kotlin-for-forge")
+        requires("kotlin-for-forge", "big_shot_lib")
     }
 
+    /*
     curseforge {
         projectId = property("publish.curseforge") as String
         accessToken = env.CURSEFORGE_API_KEY.orNull()
         minecraftVersions.add(stonecutter.current.version)
         minecraftVersions.addAll(additionalVersions)
-        requires("kotlin-for-forge")
+        requires("kotlin-for-forge", "big_shot_lib")
     }
+     */
 }
- */
