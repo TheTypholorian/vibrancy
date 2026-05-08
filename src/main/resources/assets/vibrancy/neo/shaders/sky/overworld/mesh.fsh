@@ -36,10 +36,6 @@ out vec3 fragColor;
 void main() {
     vec4 block = texture(Sampler0, texCoord0) * vertexColor;
 
-    if (block.a == 0) {
-        discard;
-    }
-
     vec2 texelPos = texCoord0 * Sampler0Size;
     vec2 d = (floor(texelPos) + 0.5 - texelPos) / Sampler0Size;
 
@@ -48,6 +44,11 @@ void main() {
     float det = stepA.x * stepB.y - stepA.y * stepB.x;
     float a = (d.x * stepB.y - d.y * stepB.x) / det;
     float b = (-d.x * stepA.y + d.y * stepA.x) / det;
+
+    // discard here to not mess up derivatives
+    if (block.a < 0.01) {
+        discard;
+    }
 
     vec3 uv = texCoord1 + dFdx(texCoord1) * a + dFdy(texCoord1) * b;
     vec3 biasUV = vec3(uv.xy, max(uv.z, 0) + ShadowBias);
