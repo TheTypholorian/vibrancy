@@ -1,5 +1,6 @@
 @file:Suppress("UnstableApiUsage")
 
+import io.github.klahap.dotenv.DotEnvBuilder
 import net.fabricmc.loom.task.RemapJarTask
 import net.fabricmc.loom.task.RemapSourcesJarTask
 
@@ -10,6 +11,11 @@ plugins {
     id("me.modmuss50.mod-publish-plugin")
     id("com.google.devtools.ksp") version "2.2.0-2.0.2"
     id("dev.kikugie.fletching-table.fabric") version "0.1.0-alpha.22"
+    id("io.github.klahap.dotenv") version "1.1.3"
+}
+
+val env = DotEnvBuilder.dotEnv {
+    addFile("$rootDir/.env")
 }
 
 kotlin {
@@ -171,24 +177,25 @@ publishMods {
     type = STABLE
     displayName = "${property("mod.name")} ${property("mod.version")} for ${stonecutter.current.version} Fabric"
     version = "${property("mod.version")}+${stonecutter.current.version}-fabric"
-    changelog = provider { rootProject.file("CHANGELOG.md").readText() }
+    changelog = ""
+    //changelog = provider { rootProject.file("CHANGELOG.md").readText() }
     modLoaders.add("fabric")
 
     modrinth {
         projectId = property("publish.modrinth") as String
-        //accessToken = env.MODRINTH_API_KEY.orNull()
+        accessToken = env["MODRINTH_TOKEN"]
         minecraftVersions.add(stonecutter.current.version)
         minecraftVersions.addAll(additionalVersions)
-        requires("fabric-api", "fabric-language-kotlin", "big_shot_lib")
+        requires("fabric-api", "fabric-language-kotlin", "big-shot-lib", "yacl")
     }
 
     /*
     curseforge {
         projectId = property("publish.curseforge") as String
-        accessToken = env.CURSEFORGE_API_KEY.orNull()
+        accessToken = env["CURSEFORGE_TOKEN"]
         minecraftVersions.add(stonecutter.current.version)
         minecraftVersions.addAll(additionalVersions)
-        requires("fabric-api", "fabric-language-kotlin", "big_shot_lib")
+        requires("fabric-api", "fabric-language-kotlin", "big-shot-lib", "yacl")
     }
      */
 }

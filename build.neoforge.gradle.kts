@@ -1,4 +1,4 @@
-import org.jetbrains.kotlin.tooling.core.KotlinToolingVersion
+import io.github.klahap.dotenv.DotEnvBuilder
 
 plugins {
     kotlin("jvm")
@@ -6,6 +6,11 @@ plugins {
     id("dev.kikugie.postprocess.jsonlang")
     id("me.modmuss50.mod-publish-plugin")
     id("com.google.devtools.ksp") version "2.2.0-2.0.2"
+    id("io.github.klahap.dotenv") version "1.1.3"
+}
+
+val env = DotEnvBuilder.dotEnv {
+    addFile("$rootDir/.env")
 }
 
 kotlin {
@@ -133,7 +138,7 @@ tasks {
 
     register<Copy>("buildAndCollect") {
         group = "build"
-        from(jar.map { it.archiveFile })
+        from(jar.map { it.archiveFile }, named<org.gradle.jvm.tasks.Jar>("sourcesJar").map { it.archiveFile })
         into(rootProject.layout.buildDirectory.file("libs/${project.property("mod.version")}"))
         dependsOn("build")
     }
@@ -175,24 +180,25 @@ publishMods {
     type = STABLE
     displayName = "${property("mod.name")} ${property("mod.version")} for ${stonecutter.current.version} Neoforge"
     version = "${property("mod.version")}+${stonecutter.current.version}-neoforge"
-    changelog = provider { rootProject.file("CHANGELOG.md").readText() }
+    changelog = ""
+    //changelog = provider { rootProject.file("CHANGELOG.md").readText() }
     modLoaders.add("neoforge")
 
     modrinth {
         projectId = property("publish.modrinth") as String
-        //accessToken = env.MODRINTH_API_KEY.orNull()
+        accessToken = env["MODRINTH_TOKEN"]
         minecraftVersions.add(stonecutter.current.version)
         minecraftVersions.addAll(additionalVersions)
-        requires("kotlin-for-forge", "big_shot_lib")
+        requires("kotlin-for-forge", "big-shot-lib", "yacl")
     }
 
     /*
     curseforge {
         projectId = property("publish.curseforge") as String
-        accessToken = env.CURSEFORGE_API_KEY.orNull()
+        accessToken = env["CURSEFORGE_TOKEN"]
         minecraftVersions.add(stonecutter.current.version)
         minecraftVersions.addAll(additionalVersions)
-        requires("kotlin-for-forge", "big_shot_lib")
+        requires("kotlin-for-forge", "big-shot-lib", "yacl")
     }
      */
 }
