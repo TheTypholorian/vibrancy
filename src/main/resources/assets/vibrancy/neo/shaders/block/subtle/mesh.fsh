@@ -47,7 +47,7 @@ void main() {
         lightColor = samplePointLight(light.pos, vertexPosition, 1.5, light.color);
 
         if (SpecularReflectionsEnabled) {
-            lightColor = specularReflection(lightColor, normalize(light.pos - vertexPosition), CameraPos, vertexPosition, vertexNormal, SpecularReflectionStrength, SpecularReflectionExponent, Sampler1, texCoord0);
+            lightColor = specularReflection(lightColor, lightColor, normalize(light.pos - vertexPosition), CameraPos, vertexPosition, vertexNormal, SpecularReflectionStrength, SpecularReflectionExponent, Sampler1, texCoord0);
         }
     }
 

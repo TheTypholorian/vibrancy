@@ -54,14 +54,14 @@ void main() {
     vec3 biasUV = vec3(uv.xy, max(uv.z, 0) + ShadowBias);
 
     vec4 translucentColor = texture(Sampler2, uv.xy);
-    vec3 lightColor = LightColor * texCoord2.y * clamp(dot(vertexNormal, LightDirection), 0, 1);
+    vec3 lightColor = LightColor * texCoord2.y;
 
     if (uv.x >= 0 && uv.x <= 1 && uv.y >= 0 && uv.y <= 1) {
         lightColor *= texture(Sampler1, biasUV) * mix(translucentColor.rgb * translucentColor.a, vec3(1), texture(Sampler3, biasUV));
     }
 
     if (SpecularReflectionsEnabled) {
-        lightColor = specularReflection(lightColor, LightDirection, CameraPos, vertexPosition, vertexNormal, SpecularReflectionStrength, SpecularReflectionExponent, Sampler4, texCoord0);
+        lightColor = specularReflection(lightColor * clamp(dot(vertexNormal, LightDirection), 0, 1), lightColor, LightDirection, CameraPos, vertexPosition, vertexNormal, SpecularReflectionStrength, SpecularReflectionExponent, Sampler4, texCoord0);
     }
 
     fragColor = applyLight(lightColor, block, vertexDistance, FogStart, FogEnd);
