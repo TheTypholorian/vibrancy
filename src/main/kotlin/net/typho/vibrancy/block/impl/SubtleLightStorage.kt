@@ -330,6 +330,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
 
                 if (subLevel == null) {
                     shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((blockPos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
+                    shader.setUniform("CameraPos") { setFloatVec(data.camera.pos - blockPos.toFloat()) }
                 } else {
                     val pose = subLevel.renderPose(Vibrancy.tickDelta)
                     val orientation = Quaternionf(pose.orientation())
@@ -341,15 +342,16 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                                 .rotate(orientation)
                         )
                     }
+                    shader.setUniform("CameraPos") { setFloatVec(data.camera.pos - pos.toFloat()) }
                 }
                 //? } else {
                 /*shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((blockPos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
+                shader.setUniform("CameraPos") { setFloatVec(data.camera.pos - blockPos.toFloat()) }
                 *///? }
                 profiler.pop()
 
                 profiler.push("uniforms")
                 //shader.setTexture(1, GlTextureBinding.FromInstance(lightTexture, GlTextureTarget.TEXTURE_2D))
-                shader.setUniform("CameraPos") { setFloatVec(data.camera.pos - NeoVec3i(pos.minBlockX, 0, pos.minBlockZ).toFloat()) }
                 glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo.glId)
                 shader.setTexture(0, GlTextureBinding.FromInstance(
                     NeoAtlas.blocks,

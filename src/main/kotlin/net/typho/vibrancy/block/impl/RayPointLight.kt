@@ -590,6 +590,8 @@ open class RayPointLight(
 
         if (subLevel == null) {
             shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((pos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
+            shader.setUniform("SpecularMat") { set(Matrix4f()) }
+            shader.setUniform("CameraPos") { setFloatVec(data.camera.pos - pos.toFloat()) }
         } else {
             val pose = subLevel.renderPose(Vibrancy.tickDelta)
             val orientation = Quaternionf(pose.orientation())
@@ -601,9 +603,18 @@ open class RayPointLight(
                         .rotate(orientation)
                 )
             }
+            shader.setUniform("SpecularMat") {
+                set(
+                    Matrix4f()
+                        .rotate(orientation)
+                )
+            }
+            shader.setUniform("CameraPos") { setFloatVec(data.camera.pos - pos.toFloat()) }
         }
         //? } else {
         /*shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((pos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
+        shader.setUniform("SpecularMat") { set(Matrix4f()) }
+        shader.setUniform("CameraPos") { setFloatVec(data.camera.pos - pos.toFloat()) }
         *///? }
         profiler.pop()
 
@@ -611,7 +622,6 @@ open class RayPointLight(
         shader.setUniform("LightPos") { setFloatVec(offset) }
         shader.setUniform("LightColor") { setFloatVec(color) }
         shader.setUniform("LightRadius") { set(radius) }
-        shader.setUniform("CameraPos") { setFloatVec(data.camera.pos - pos.toFloat()) }
         shader.setTexture(0, GlTextureBinding.FromInstance(
             NeoAtlas.blocks,
             GlTextureTarget.TEXTURE_2D

@@ -13,13 +13,13 @@
     ]
   },
   "brightness": {
-    "default": 1,
+    "default": 2,
     "entries": [
       {
         "matches": {
           "flame_type": "soul"
         },
-        "value": 0.8
+        "value": 1.6
       }
     ]
   }
