@@ -11,8 +11,9 @@ float fog_distance(vec3 pos, int shape) {
 }
 
 uniform mat4 ModelViewMat;
-uniform mat4 SableMat;
 uniform mat4 ProjMat;
+uniform mat4 SableMat;
+uniform mat4 SpecularMat;
 uniform mat4 ShadowMat;
 
 uniform int FogShape;
@@ -40,7 +41,7 @@ void main() {
     texCoord1 = shadowPos.xyz / shadowPos.w / 2 + 0.5;
     texCoord2 = vec2(UV2) / 240;
     vertexColor = Color;
-    vertexPosition = Position;
+    vertexPosition = (SpecularMat * vec4(Position, 1)).xyz;
     vertexDistance = fog_distance(sablePos.xyz, FogShape);
-    vertexNormal = Normal;
+    vertexNormal = normalize(mat3(SableMat) * Normal);
 }

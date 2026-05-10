@@ -4,13 +4,11 @@ import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.PoseStack
 import dev.ryanhcode.sable.companion.SableCompanion
 import net.minecraft.client.Minecraft
-import net.minecraft.client.renderer.RenderType.translucent
 import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.util.Mth
 import net.minecraft.util.profiling.ProfilerFiller
-import net.minecraft.world.entity.ai.behavior.SetWalkTargetAwayFrom.pos
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.LightLayer
@@ -50,7 +48,6 @@ import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.big_shot_lib.api.util.WrapperUtil
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
-import net.typho.big_shot_lib.api.util.resource.NeoFileToIdConverter.Companion.shader
 import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
@@ -72,7 +69,6 @@ import org.joml.Matrix4f
 import org.joml.Quaternionf
 import org.joml.Vector4f
 import org.lwjgl.system.NativeResource
-import java.util.concurrent.CompletableFuture
 import kotlin.math.PI
 import kotlin.math.sin
 import kotlin.math.sqrt
@@ -229,6 +225,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                 for ((pos, chunk) in chunks) {
                     profiler.push("transforms")
                     val blockPos = NeoVec3i(pos.minBlockX, 0, pos.minBlockZ)
+                    var origin = blockPos.toFloat()
 
                     //? if 1.21 {
                     val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
@@ -238,11 +235,11 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                     } else {
                         val pose = subLevel.renderPose(Vibrancy.tickDelta)
                         val orientation = Quaternionf(pose.orientation())
-                        val pos = NeoVec3d(pose.transformPosition(blockPos.toDouble().toJOML()))
+                        origin = NeoVec3d(pose.transformPosition(blockPos.toDouble().toJOML())).toFloat()
                         settings.shader.setUniform("ModelViewMat") {
                             set(
                                 Matrix4f()
-                                    .translate((pos - data.camera.pos.toDouble()).toFloat().toJOML())
+                                    .translate((origin - data.camera.pos).toJOML())
                                     .rotate(orientation)
                             )
                         }
@@ -366,6 +363,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
             profiler.push("draw")
             lightDrawState.bind().use { settings ->
+                settings.shader.setUniform("ModelViewMat") { set(Matrix4f().translate((-data.camera.pos).toJOML())) }
                 settings.shader.setUniform("ProjMat") { set(data.projMat) }
                 settings.shader.setUniform("ShadowMat") { set(shadowMat) }
 
@@ -421,6 +419,12 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                                     .translate((blockPos.toFloat() - data.camera.pos).toFloat().toJOML())
                             )
                         }
+                        settings.shader.setUniform("SpecularMat") {
+                            set(
+                                Matrix4f()
+                                    .translate(blockPos.toFloat().toJOML())
+                            )
+                        }
                     } else {
                         val pose = subLevel.renderPose(Vibrancy.tickDelta)
                         val orientation = Quaternionf(pose.orientation())
@@ -435,7 +439,14 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                         settings.shader.setUniform("SableMat") {
                             set(
                                 Matrix4f()
-                                    .translate((pos.toFloat() - data.camera.pos.toFloat()).toJOML())
+                                    .translate((pos.toFloat() - data.camera.pos).toJOML())
+                                    .rotate(orientation)
+                            )
+                        }
+                        settings.shader.setUniform("SpecularMat") {
+                            set(
+                                Matrix4f()
+                                    .translate(pos.toFloat().toJOML())
                                     .rotate(orientation)
                             )
                         }
