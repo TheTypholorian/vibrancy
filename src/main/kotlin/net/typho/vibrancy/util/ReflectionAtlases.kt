@@ -98,7 +98,7 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
 
                 //? if <1.21 {
                 //? } else {
-                /*val loader = SpriteResourceLoader.create(SpriteLoader.DEFAULT_METADATA_SECTIONS)
+                val loader = SpriteResourceLoader.create(SpriteLoader.DEFAULT_METADATA_SECTIONS)
 
                 for (resource in idConverter.listMatchingResources(resources)) {
                     val id = idConverter.fileToId(resource.key)
@@ -123,7 +123,7 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
                         }
                     }
                 }
-                *///? }
+                //? }
 
                 return@computeIfAbsent Atlas(texture.resource, animations)
             }

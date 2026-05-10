@@ -53,7 +53,9 @@ abstract class RaytracedGuiGraphics(
             val shadowQuads = quads.filter { (settings, quads) -> settings.drawState.shader.textures.getOrNull(0)?.texture == NeoAtlas.blocks }
                 .flatMap { it.value }
 
-            shadowBuffer.lazyUploadQuads(NeoAtlas.blocks.width, NeoAtlas.blocks.height, shadowQuads)()
+            val result = shadowBuffer.lazyUploadQuads(NeoAtlas.blocks.width, NeoAtlas.blocks.height, shadowQuads)
+            result.second()
+            result.first.close()
         } else {
             shadowBuffer.bind(GlBufferTarget.ARRAY_BUFFER).use { it.bufferData(0L, GlBufferUsage.STREAM_DRAW) }
         }

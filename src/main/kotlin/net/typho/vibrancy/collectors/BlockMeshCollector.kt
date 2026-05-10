@@ -17,6 +17,7 @@ import net.typho.vibrancy.shadows.LightFace
 
 interface BlockMeshCollector {
     fun submit(
+        isCancelled: () -> Boolean,
         manager: LightManager,
         level: Level,
         atlas: NeoAtlas,

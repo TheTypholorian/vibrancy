@@ -20,9 +20,9 @@ open class ShadowBuffer(
             .build()
     }
 
-    fun lazyUpload(texWidth: Int, texHeight: Int, faces: List<LightFace>): () -> Unit {
+    fun lazyUpload(texWidth: Int, texHeight: Int, faces: List<LightFace>): Pair<AutoCloseable, () -> Unit> {
         if (faces.isEmpty()) {
-            return {
+            return AutoCloseable { } to {
                 bind(GlBufferTarget.ARRAY_BUFFER).use { it.bufferData(0L, usage) }
             }
         } else {
@@ -39,16 +39,15 @@ open class ShadowBuffer(
                 }
             }
 
-            return {
+            return buffer to {
                 bind(GlBufferTarget.ARRAY_BUFFER).use { it.bufferData(buffer, usage) }
-                buffer.free()
             }
         }
     }
 
-    fun lazyUploadQuads(texWidth: Int, texHeight: Int, faces: List<NeoBakedQuad>): () -> Unit {
+    fun lazyUploadQuads(texWidth: Int, texHeight: Int, faces: List<NeoBakedQuad>): Pair<AutoCloseable, () -> Unit> {
         if (faces.isEmpty()) {
-            return {
+            return AutoCloseable { } to {
                 bind(GlBufferTarget.ARRAY_BUFFER).use { it.bufferData(0L, usage) }
             }
         } else {
@@ -65,9 +64,8 @@ open class ShadowBuffer(
                 }
             }
 
-            return {
+            return buffer to {
                 bind(GlBufferTarget.ARRAY_BUFFER).use { it.bufferData(buffer, usage) }
-                buffer.free()
             }
         }
     }

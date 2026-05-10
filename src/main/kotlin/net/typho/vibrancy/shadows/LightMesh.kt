@@ -152,7 +152,7 @@ open class LightMesh(
 
     fun lazyUpload(
         lightFaces: List<LightFace>
-    ): () -> TextureAtlas.Result {
+    ): Pair<AutoCloseable, () -> TextureAtlas.Result> {
         val textures = Array(lightFaces.size) {
             val face = lightFaces[it]
             NeoVec2i(face.width, face.height)
@@ -181,12 +181,13 @@ open class LightMesh(
 
         val indices = mesh.generateIndices(lightFaces.size * 4)
 
-        return {
+        return AutoCloseable {
+            vertexBuffer.free()
+            indices.first.free()
+        } to {
             empty = lightFaces.isEmpty()
 
             mesh.rawUpload(lightFaces.size * 6, indices.second, vertexBuffer, indices.first)
-            vertexBuffer.free()
-            indices.first.free()
 
             result
         }

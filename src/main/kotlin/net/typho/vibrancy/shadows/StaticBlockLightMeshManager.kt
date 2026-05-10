@@ -8,9 +8,9 @@ import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyConfig
 import net.typho.vibrancy.collectors.BlockMeshCollector
+import net.typho.vibrancy.util.GlTask
 import net.typho.vibrancy.util.VibrancyThreadPool
 import org.lwjgl.system.NativeResource
-import java.util.concurrent.CompletableFuture
 
 open class StaticBlockLightMeshManager(
     @JvmField
@@ -21,24 +21,24 @@ open class StaticBlockLightMeshManager(
     @JvmField
     val shadowBuffer = ShadowBuffer(GlBufferUsage.STATIC_DRAW)
     @JvmField
-    protected var asyncTask: CompletableFuture<() -> LightMesh.MeshData>? = null
+    protected var asyncTask: GlTask<LightMesh.MeshData?>? = null
 
     override fun free() {
         lightMesh.free()
         shadowBuffer.free()
-        asyncTask?.cancel(true)
+        asyncTask?.cancel()
     }
 
     fun isTaskActive() = asyncTask?.let { task -> !task.isDone } ?: false
 
     fun checkIfFinished(): Boolean {
         asyncTask?.let { task ->
-            if (task.isDone) {
+            if (task.isDoneOrCancelled()) {
                 try {
-                    val info = task.get()()
-
-                    if (!lightMesh.empty) {
-                        blit(this, info)
+                    task.finish()?.let {
+                        if (!lightMesh.empty) {
+                            blit(this, it)
+                        }
                     }
                 } catch (e: NullPointerException) {
                     Vibrancy.LOGGER.warn("Error finishing block light task", e)
@@ -53,16 +53,18 @@ open class StaticBlockLightMeshManager(
     }
 
     protected fun rebuildBlocksAsyncImpl(
+        isCancelled: () -> Boolean,
         manager: LightManager,
         collector: BlockMeshCollector,
         shadowPredicate: BlockMeshCollector.Predicate,
         lightPredicate: BlockMeshCollector.Predicate
-    ): () -> LightMesh.MeshData {
+    ): Pair<AutoCloseable, () -> LightMesh.MeshData?> {
         val level = manager.getLevel() ?: throw NullPointerException("No level?")
 
         val shadowFaces = arrayListOf<LightFace>()
         val lightFaces = arrayListOf<LightFace>()
-        collector.submit(
+        if (!collector.submit(
+            isCancelled,
             manager,
             level,
             NeoAtlas.blocks,
@@ -80,16 +82,30 @@ open class StaticBlockLightMeshManager(
                     lightFaces.addAll(faces)
                 }
             }
-        )
+        )) {
+            return AutoCloseable { } to { null }
+        }
+
+        if (isCancelled()) {
+            return AutoCloseable { } to { null }
+        }
 
         val shadows = shadowBuffer.lazyUpload(NeoAtlas.blocks.width, NeoAtlas.blocks.height, shadowFaces)
+
+        if (isCancelled()) {
+            return shadows.first to { null }
+        }
+
         val light = lightMesh.lazyUpload(lightFaces)
 
-        return {
-            shadows()
+        return AutoCloseable {
+            shadows.first.close()
+            light.first.close()
+        } to {
+            shadows.second()
             LightMesh.MeshData(
                 lightFaces,
-                light()
+                light.second()
             )
         }
     }
@@ -103,14 +119,16 @@ open class StaticBlockLightMeshManager(
         lightPredicate: BlockMeshCollector.Predicate
     ) {
         if (VibrancyConfig.useMultithreading) {
-            asyncTask?.cancel(true)
-            asyncTask = VibrancyThreadPool.submit(data, pos, manager, { rebuildBlocksAsyncImpl(manager, collector, shadowPredicate, lightPredicate) })
+            asyncTask?.cancel()
+            asyncTask = VibrancyThreadPool.submit(data, pos, manager) { rebuildBlocksAsyncImpl(it, manager, collector, shadowPredicate, lightPredicate) }
         } else {
-            val info = rebuildBlocksAsyncImpl(manager, collector, shadowPredicate, lightPredicate)()
-
-            if (!lightMesh.empty) {
-                blit(this, info)
+            val result = rebuildBlocksAsyncImpl({ false }, manager, collector, shadowPredicate, lightPredicate)
+            result.second()?.let {
+                if (!lightMesh.empty) {
+                    blit(this, it)
+                }
             }
+            result.first.close()
         }
     }
 }

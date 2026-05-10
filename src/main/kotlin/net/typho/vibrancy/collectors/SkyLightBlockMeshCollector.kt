@@ -8,7 +8,6 @@ import net.minecraft.world.level.levelgen.Heightmap
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.vibrancy.LightManager
-import net.typho.vibrancy.Vibrancy
 
 class SkyLightBlockMeshCollector(
     @JvmField
@@ -16,6 +15,7 @@ class SkyLightBlockMeshCollector(
 ) : BlockMeshCollector {
     @Suppress("USELESS_ELVIS")
     override fun submit(
+        isCancelled: () -> Boolean,
         manager: LightManager,
         level: Level,
         atlas: NeoAtlas,

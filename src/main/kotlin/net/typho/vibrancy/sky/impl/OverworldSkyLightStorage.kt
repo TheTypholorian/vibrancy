@@ -3,6 +3,7 @@ package net.typho.vibrancy.sky.impl
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.Minecraft
+import net.minecraft.client.renderer.RenderType.translucent
 import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
@@ -20,12 +21,10 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlAlphaFuncti
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBeginMode
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlClearBit
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlCullFace
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureTarget
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlFramebuffer
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D
-import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlCullShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDepthShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
@@ -60,6 +59,7 @@ import net.typho.vibrancy.shadows.LightTexture
 import net.typho.vibrancy.sky.ChunkedSkyLightStorage
 import net.typho.vibrancy.sky.SkyLightStorage
 import net.typho.vibrancy.util.EmptyVertexConsumer
+import net.typho.vibrancy.util.GlTask
 import net.typho.vibrancy.util.QuadListVertexConsumer
 import net.typho.vibrancy.util.ReflectionAtlases
 import net.typho.vibrancy.util.VibrancyThreadPool
@@ -385,20 +385,20 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
         var box: AbstractRect3<Int>? = null
             private set
         private var dirty = true
-        private var asyncTask: CompletableFuture<() -> AbstractRect3<Int>?>? = null
+        private var asyncTask: GlTask<AbstractRect3<Int>?>? = null
 
         override fun free() {
             mesh.free()
-            asyncTask?.cancel(true)
+            asyncTask?.cancel()
         }
 
         fun isTaskActive() = asyncTask?.let { task -> !task.isDone } ?: false
 
         fun checkIfFinished(): Boolean {
             asyncTask?.let { task ->
-                if (task.isDone) {
+                if (task.isDoneOrCancelled()) {
                     try {
-                        box = task.get()()
+                        box = task.finish()
                     } catch (e: NullPointerException) {
                         Vibrancy.LOGGER.warn("Error finishing sky light task at $pos", e)
                     }
@@ -412,89 +412,91 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
         }
 
         private fun rebuildBlocksAsyncImpl(
+            isCancelled: () -> Boolean,
             manager: LightManager
-        ): () -> AbstractRect3<Int>? {
+        ): Pair<AutoCloseable, () -> AbstractRect3<Int>?> {
             val level = manager.getLevel() ?: throw NullPointerException("No level?")
             var box: AbstractRect3<Int>? = null
 
             val lightFaces = arrayListOf<LightFace>()
             val translucentFaces = arrayListOf<LightFace>()
             if (!SkyLightBlockMeshCollector(pos).submit(
-                manager,
-                level,
-                NeoAtlas.blocks,
-                object : BlockMeshCollector.Consumer {
-                    override val predicate: BlockMeshCollector.Predicate = object : BlockMeshCollector.Predicate {
-                        override fun shouldCastBlock(
-                            level: Level,
-                            pos: BlockPos.MutableBlockPos,
-                            state: BlockState?
-                        ): Boolean {
-                            val passed = Direction.entries.any {
-                                val v = level.getBrightness(LightLayer.SKY, pos.move(it)) > 0
-                                pos.move(it.opposite)
-                                v
+                    isCancelled,
+                    manager,
+                    level,
+                    NeoAtlas.blocks,
+                    object : BlockMeshCollector.Consumer {
+                        override val predicate: BlockMeshCollector.Predicate = object : BlockMeshCollector.Predicate {
+                            override fun shouldCastBlock(
+                                level: Level,
+                                pos: BlockPos.MutableBlockPos,
+                                state: BlockState?
+                            ): Boolean {
+                                val passed = Direction.entries.any {
+                                    val v = level.getBrightness(LightLayer.SKY, pos.move(it)) > 0
+                                    pos.move(it.opposite)
+                                    v
+                                }
+
+                                if (passed) {
+                                    val pos1 = NeoVec3i(pos)
+                                    box = box?.include(pos1) ?: NeoRect3i(pos1, pos1)
+                                }
+
+                                return passed
                             }
 
-                            if (passed) {
-                                val pos1 = NeoVec3i(pos)
-                                box = box?.include(pos1) ?: NeoRect3i(pos1, pos1)
-                            }
+                            override fun shouldCastFace(
+                                face: NeoDirection?,
+                                level: Level,
+                                pos: BlockPos.MutableBlockPos,
+                                state: BlockState?
+                            ): Boolean {
+                                if (face == null) {
+                                    return true
+                                }
 
-                            return passed
-                        }
+                                val state = state ?: level.getBlockState(pos)
 
-                        override fun shouldCastFace(
-                            face: NeoDirection?,
-                            level: Level,
-                            pos: BlockPos.MutableBlockPos,
-                            state: BlockState?
-                        ): Boolean {
-                            if (face == null) {
+                                if (
+                                    !BlockUtil.INSTANCE.shouldRenderFace(
+                                        level,
+                                        pos,
+                                        face,
+                                        state
+                                    )
+                                ) {
+                                    return false
+                                }
+
                                 return true
                             }
-
-                            val state = state ?: level.getBlockState(pos)
-
-                            if (
-                                !BlockUtil.INSTANCE.shouldRenderFace(
-                                    level,
-                                    pos,
-                                    face,
-                                    state
-                                )
-                            ) {
-                                return false
-                            }
-
-                            return true
                         }
-                    }
 
-                    override fun collect(faces: Iterable<LightFace>, origin: BlockMeshCollector.FaceOrigin) {
-                        if (origin is BlockMeshCollector.FaceOrigin.Block) {
-                            if (BlockUtil.INSTANCE.getBlockChunkLayer(origin.block) == BlockChunkLayer.TRANSLUCENT) {
-                                translucentFaces.addAll(faces)
+                        override fun collect(faces: Iterable<LightFace>, origin: BlockMeshCollector.FaceOrigin) {
+                            if (origin is BlockMeshCollector.FaceOrigin.Block) {
+                                if (BlockUtil.INSTANCE.getBlockChunkLayer(origin.block) == BlockChunkLayer.TRANSLUCENT) {
+                                    translucentFaces.addAll(faces)
+                                } else {
+                                    lightFaces.addAll(faces)
+                                }
+                            } else if (origin is BlockMeshCollector.FaceOrigin.Fluid) {
+                                if (origin.fluid.isSourceOfType(Fluids.WATER)) {
+                                    translucentFaces.addAll(faces)
+                                } else {
+                                    lightFaces.addAll(faces)
+                                }
                             } else {
                                 lightFaces.addAll(faces)
                             }
-                        } else if (origin is BlockMeshCollector.FaceOrigin.Fluid) {
-                            if (origin.fluid.isSourceOfType(Fluids.WATER)) {
-                                translucentFaces.addAll(faces)
-                            } else {
-                                lightFaces.addAll(faces)
-                            }
-                        } else {
-                            lightFaces.addAll(faces)
                         }
                     }
-                }
-            )) {
+                )) {
                 dirty = true
-                return { null }
+                return AutoCloseable { } to { null }
             }
 
-            fun upload(faces: List<LightFace>, mesh: Mesh): () -> Unit {
+            fun upload(faces: List<LightFace>, mesh: Mesh): Pair<AutoCloseable, () -> Unit> {
                 val vertexBuffer = NeoBuffer.GCNative(faces.size.toLong() * 4 * LightMesh.SKY_VERTEX_FORMAT.vertexSizeBytes)
 
                 vertexBuffer.write().run {
@@ -526,19 +528,23 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
                 val indices = mesh.generateIndices(faces.size * 4)
 
-                return {
-                    mesh.rawUpload(faces.size * 6, indices.second, vertexBuffer, indices.first)
+                return AutoCloseable {
                     vertexBuffer.free()
                     indices.first.free()
+                } to {
+                    mesh.rawUpload(faces.size * 6, indices.second, vertexBuffer, indices.first)
                 }
             }
 
             val solid = upload(lightFaces, mesh)
             val translucent = upload(translucentFaces, translucentMesh)
 
-            return {
-                solid()
-                translucent()
+            return AutoCloseable {
+                solid.first.close()
+                translucent.first.close()
+            } to {
+                solid.second()
+                translucent.second()
                 box
             }
         }
@@ -563,10 +569,12 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                 dirty = false
 
                 if (VibrancyConfig.useMultithreading) {
-                    asyncTask?.cancel(true)
-                    asyncTask = VibrancyThreadPool.submit(data, pos, manager) { rebuildBlocksAsyncImpl(manager) }
+                    asyncTask?.cancel()
+                    asyncTask = VibrancyThreadPool.submit(data, pos, manager) { rebuildBlocksAsyncImpl(it, manager) }
                 } else {
-                    rebuildBlocksAsyncImpl(manager)()
+                    val result = rebuildBlocksAsyncImpl({ false }, manager)
+                    box = result.second()
+                    result.first.close()
                 }
             }
         }

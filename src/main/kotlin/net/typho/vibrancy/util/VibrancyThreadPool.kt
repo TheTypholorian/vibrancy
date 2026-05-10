@@ -18,29 +18,60 @@ object VibrancyThreadPool : ThreadPoolExecutor(
     PriorityBlockingQueue(11, Comparator.comparingDouble { a -> if (a is SortedAsyncTask) a.sortingOrder else 0.0 })
 ) {
     @JvmStatic
-    fun <T> submit(sort: Double, task: () -> T): CompletableFuture<T> {
-        val future = CompletableFuture<T>()
+    fun <T> submit(sort: Double, task: (isCancelled: () -> Boolean) -> Pair<AutoCloseable, () -> T>): GlTask<T> {
+        val future = CompletableFuture<Pair<AutoCloseable, () -> T>>()
+        var cancelled = false
+        var result: T? = null
         submit(object : SortedAsyncTask {
             override val sortingOrder: Double = sort
 
             override fun run() {
                 try {
-                    future.complete(task())
+                    val r = task { cancelled }
+
+                    if (cancelled) {
+                        r.first.close()
+                    }
+
+                    future.complete(r)
                 } catch (e: Exception) {
                     future.completeExceptionally(e)
                 }
             }
         })
-        return future
+        return object : GlTask<T> {
+            override val isDone: Boolean
+                get() = future.isDone
+            override val isCancelled: Boolean
+                get() = cancelled
+
+            override fun cancel() {
+                cancelled = true
+            }
+
+            override fun finish(): T? {
+                result?.let { return it }
+
+                if (!isCancelled && isDone) {
+                    val r = future.get()
+                    val v = r.second()
+                    result = v
+                    r.first.close()
+                    return v
+                } else {
+                    return null
+                }
+            }
+        }
     }
 
     @JvmStatic
-    fun <T> submit(data: RenderEventData, chunk: ChunkPos, manager: LightManager, task: () -> T): CompletableFuture<T> {
+    fun <T> submit(data: RenderEventData, chunk: ChunkPos, manager: LightManager, task: (isCancelled: () -> Boolean) -> Pair<AutoCloseable, () -> T>): GlTask<T> {
         return submit(manager.getSortingOrder(data, chunk).toDouble(), task)
     }
 
     @JvmStatic
-    fun <T> submit(data: RenderEventData, pos: IVec3<Int>, manager: LightManager, task: () -> T): CompletableFuture<T> {
+    fun <T> submit(data: RenderEventData, pos: IVec3<Int>, manager: LightManager, task: (isCancelled: () -> Boolean) -> Pair<AutoCloseable, () -> T>): GlTask<T> {
         return submit(manager.getSortingOrder(data, pos).toDouble(), task)
     }
 }

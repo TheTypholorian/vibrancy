@@ -14,6 +14,7 @@ class IterationBlockMeshCollector(
     val blocks: Iterable<IVec3<Int>>
 ) : BlockMeshCollector {
     override fun submit(
+        isCancelled: () -> Boolean,
         manager: LightManager,
         level: Level,
         atlas: NeoAtlas,

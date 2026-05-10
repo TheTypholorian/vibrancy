@@ -106,7 +106,7 @@ dependencies {
         if (hasProperty("deps.parchment"))
             parchment("org.parchmentmc.data:parchment-${property("deps.parchment")}@zip")
     })
-    modImplementation("net.fabricmc:fabric-loader:0.17.3")
+    modImplementation("net.fabricmc:fabric-loader:0.19.2")
     modImplementation("net.fabricmc.fabric-api:fabric-api:${property("deps.fabric-api")}")
     modImplementation(libs.flk)
 

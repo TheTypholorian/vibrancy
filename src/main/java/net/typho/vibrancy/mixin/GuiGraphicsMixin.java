@@ -31,15 +31,15 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 //? if <1.20.5 {
-import net.minecraft.nbt.CompoundTag;
+/*import net.minecraft.nbt.CompoundTag;
 import net.minecraft.world.level.block.Block;
 import net.minecraft.world.level.block.state.StateDefinition;
 import net.minecraft.world.level.block.state.properties.Property;
 import org.spongepowered.asm.mixin.Unique;
-//? } else {
-/*import net.minecraft.core.component.DataComponents;
+*///? } else {
+import net.minecraft.core.component.DataComponents;
 import net.minecraft.world.item.component.BlockItemStateProperties;
-*///? }
+//? }
 
 @Mixin(GuiGraphics.class)
 public class GuiGraphicsMixin {
@@ -52,11 +52,11 @@ public class GuiGraphicsMixin {
     private Minecraft minecraft;
 
     //? if <1.20.5 {
-    @Unique
+    /*@Unique
     private static <T extends Comparable<T>> BlockState big_shot_lib$updateState(BlockState blockState, Property<T> property, String string) {
         return property.getValue(string).map((comparable) -> blockState.setValue(property, comparable)).orElse(blockState);
     }
-    //? }
+    *///? }
 
     @WrapOperation(
             method = "renderItem(Lnet/minecraft/world/entity/LivingEntity;Lnet/minecraft/world/level/Level;Lnet/minecraft/world/item/ItemStack;IIII)V",
@@ -80,7 +80,7 @@ public class GuiGraphicsMixin {
         if ((Object) this instanceof RaytracedGuiGraphics raytraced) {
             if (stack.getItem() instanceof BlockItem blockItem) {
                 //? if <1.20.5 {
-                BlockState state = blockItem.getBlock().defaultBlockState();
+                /*BlockState state = blockItem.getBlock().defaultBlockState();
                 CompoundTag tag = stack.getTag();
 
                 if (tag != null) {
@@ -95,9 +95,9 @@ public class GuiGraphicsMixin {
                         }
                     }
                 }
-                //? } else {
-                /*BlockState state = stack.getOrDefault(DataComponents.BLOCK_STATE, BlockItemStateProperties.EMPTY).apply(blockItem.getBlock().defaultBlockState());
-                *///? }
+                *///? } else {
+                BlockState state = stack.getOrDefault(DataComponents.BLOCK_STATE, BlockItemStateProperties.EMPTY).apply(blockItem.getBlock().defaultBlockState());
+                //? }
 
                 BlockLightInfo info = BlockLightRegistry.blockMap.get(blockItem.getBlock());
 
@@ -124,10 +124,10 @@ public class GuiGraphicsMixin {
             at = @At(
                     value = "INVOKE",
                     //? if >=1.21 {
-                    /*target = "Lcom/mojang/blaze3d/vertex/BufferUploader;drawWithShader(Lcom/mojang/blaze3d/vertex/MeshData;)V"
-                    *///? } else {
-                    target = "Lcom/mojang/blaze3d/vertex/BufferUploader;drawWithShader(Lcom/mojang/blaze3d/vertex/BufferBuilder$RenderedBuffer;)V"
-                    //? }
+                    target = "Lcom/mojang/blaze3d/vertex/BufferUploader;drawWithShader(Lcom/mojang/blaze3d/vertex/MeshData;)V"
+                    //? } else {
+                    /*target = "Lcom/mojang/blaze3d/vertex/BufferUploader;drawWithShader(Lcom/mojang/blaze3d/vertex/BufferBuilder$RenderedBuffer;)V"
+                    *///? }
             )
     )
     private void innerBlit(
@@ -159,10 +159,10 @@ public class GuiGraphicsMixin {
             at = @At(
                     value = "INVOKE",
                     //? if >=1.21 {
-                    /*target = "Lcom/mojang/blaze3d/vertex/BufferUploader;drawWithShader(Lcom/mojang/blaze3d/vertex/MeshData;)V"
-                    *///? } else {
-                    target = "Lcom/mojang/blaze3d/vertex/BufferUploader;drawWithShader(Lcom/mojang/blaze3d/vertex/BufferBuilder$RenderedBuffer;)V"
-                    //? }
+                    target = "Lcom/mojang/blaze3d/vertex/BufferUploader;drawWithShader(Lcom/mojang/blaze3d/vertex/MeshData;)V"
+                    //? } else {
+                    /*target = "Lcom/mojang/blaze3d/vertex/BufferUploader;drawWithShader(Lcom/mojang/blaze3d/vertex/BufferBuilder$RenderedBuffer;)V"
+                    *///? }
             )
     )
     private void innerBlit(
