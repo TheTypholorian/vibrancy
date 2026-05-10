@@ -8,7 +8,7 @@ plugins {
     kotlin("jvm")
     alias(libs.plugins.loom)
     id("dev.kikugie.postprocess.jsonlang")
-    id("me.modmuss50.mod-publish-plugin")
+    id("me.modmuss50.mod-publish-plugin") version "2.0.0-beta.1"
     id("com.google.devtools.ksp") version "2.2.0-2.0.2"
     id("dev.kikugie.fletching-table.fabric") version "0.1.0-alpha.22"
     id("io.github.klahap.dotenv") version "1.1.3"

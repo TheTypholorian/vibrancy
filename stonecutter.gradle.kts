@@ -4,7 +4,6 @@ plugins {
     alias(libs.plugins.loom) apply false
     alias(libs.plugins.moddev) apply false
     id("dev.kikugie.postprocess.jsonlang") version "2.1-beta.4" apply false
-    id("me.modmuss50.mod-publish-plugin") version "0.8.+" apply false
 }
 
 stonecutter active "mc1_21_fabric"

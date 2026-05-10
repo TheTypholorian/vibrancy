@@ -4,7 +4,7 @@ plugins {
     kotlin("jvm")
     id("net.neoforged.moddev")
     id("dev.kikugie.postprocess.jsonlang")
-    id("me.modmuss50.mod-publish-plugin")
+    id("me.modmuss50.mod-publish-plugin") version "2.0.0-beta.1"
     id("com.google.devtools.ksp") version "2.2.0-2.0.2"
     id("io.github.klahap.dotenv") version "1.1.3"
 }
