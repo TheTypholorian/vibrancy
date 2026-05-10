@@ -13,6 +13,9 @@ class SkyLightBlockMeshCollector(
     @JvmField
     val pos: ChunkPos
 ) : BlockMeshCollector {
+    var blockEntities: MutableSet<BlockPos> = hashSetOf()
+        private set
+
     @Suppress("USELESS_ELVIS")
     override fun submit(
         isCancelled: () -> Boolean,
@@ -22,6 +25,7 @@ class SkyLightBlockMeshCollector(
         vararg consumers: BlockMeshCollector.Consumer
     ): Boolean {
         val origin = NeoVec3i(pos.minBlockX, 0, pos.minBlockZ)
+        val blockEntities = hashSetOf<BlockPos>()
 
         fun collect(pos: BlockPos.MutableBlockPos, state: BlockState) {
             BlockMeshCollector.collectLightFaces(
@@ -34,6 +38,10 @@ class SkyLightBlockMeshCollector(
                 true,
                 *consumers
             )
+
+            if (level.getBlockEntity(pos) != null) {
+                blockEntities.add(pos.immutable())
+            }
         }
 
         val chunk = level.getChunk(pos.x, pos.z)
@@ -72,6 +80,8 @@ class SkyLightBlockMeshCollector(
                 }
             }
         }
+
+        this.blockEntities = blockEntities
 
         return true
 

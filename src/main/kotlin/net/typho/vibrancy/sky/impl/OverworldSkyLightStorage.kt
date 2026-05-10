@@ -33,6 +33,7 @@ import net.typho.big_shot_lib.api.client.rendering.util.BlockChunkLayer
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.rendering.util.NeoRenderSettings
+import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexConsumer
 import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.math.NeoDirection
@@ -185,6 +186,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                 for ((pos, chunk) in chunks) {
                     profiler.push("transforms")
                     val blockPos = NeoVec3i(pos.minBlockX, 0, pos.minBlockZ)
+                    var origin = blockPos.toFloat()
 
                     //? if 1.21 {
                     val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
@@ -194,23 +196,28 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                     } else {
                         val pose = subLevel.renderPose(Vibrancy.tickDelta)
                         val orientation = Quaternionf(pose.orientation())
-                        val pos = NeoVec3d(pose.transformPosition(blockPos.toDouble().toJOML()))
+                        origin = NeoVec3d(pose.transformPosition(blockPos.toDouble().toJOML())).toFloat()
                         settings.shader.setUniform("ModelViewMat") {
                             set(
                                 Matrix4f()
-                                    .translate((pos - data.camera.pos.toDouble()).toFloat().toJOML())
+                                    .translate((origin - data.camera.pos).toJOML())
                                     .rotate(orientation)
                             )
                         }
                     }
+                    profiler.pop()
+
+                    if (chunk.box == null || subLevel != null || shadowFrustum.testAab((chunk.box!!.min.toFloat() - data.camera.pos).toJOML(), (chunk.box!!.max.toFloat() - data.camera.pos).toJOML())) {
+                        chunk.translucentMesh.draw()
+                    }
                     //? } else {
                     /*settings.shader.setUniform("ModelViewMat") { set(Matrix4f().translate((blockPos.toFloat() - data.camera.pos).toJOML())) }
-                    *///? }
                     profiler.pop()
 
                     if (chunk.box == null || shadowFrustum.testAab((chunk.box!!.min.toFloat() - data.camera.pos).toJOML(), (chunk.box!!.max.toFloat() - data.camera.pos).toJOML())) {
                         chunk.translucentMesh.draw()
                     }
+                    *///? }
                 }
                 profiler.pop()
             }
@@ -260,6 +267,8 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                 }
                 profiler.pop()
 
+                settings.shader.setUniform("ModelViewMat") { set(Matrix4f().translate((-data.camera.pos).toJOML())) }
+
                 profiler.push("dynamicShadows")
                 val quads = hashMapOf<NeoIdentifier, MutableList<NeoBakedQuad>>()
                 val buffers = hashMapOf<NeoIdentifier, NeoBakedQuad.Consumer>()
@@ -300,17 +309,21 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                     profiler.push("blockEntityShadows")
                     Vibrancy.disableFlywheelInstancing = true
 
-                    val origin = data.camera.pos.toInt()
-                    val minChunk = ChunkPos((origin - radius).blockPos)
-                    val maxChunk = ChunkPos((origin + radius).blockPos)
+                    for ((pos, chunk) in chunks) {
+                        for (blockPos in chunk.blockEntities) {
+                            val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
+                            val subLevelPose = subLevel?.renderPose()
+                            val transformedPos = subLevelPose?.transformPosition(NeoVec3i(blockPos).toDouble().toJOML())?.let { NeoVec3d(it).toFloat() } ?: NeoVec3i(blockPos).toFloat()
 
-                    for (x in minChunk.x..maxChunk.x) {
-                        for (z in minChunk.z..maxChunk.z) {
-                            for ((pos, blockEntity) in data.level!!.getChunk(x, z).blockEntities) {
-                                if ((NeoVec3i(pos).toFloat() + 0.5f).inDistance(data.camera.pos, radius.toFloat())) {
+                            if (transformedPos.inDistance(data.camera.pos, radius.toFloat())) {
+                                data.level!!.getBlockEntity(blockPos)?.let { blockEntity ->
                                     Minecraft.getInstance().blockEntityRenderDispatcher.getRenderer(blockEntity)?.let { renderer ->
                                         poseStack.pushPose()
-                                        poseStack.translate(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
+                                        poseStack.translate(transformedPos.x, transformedPos.y, transformedPos.z)
+
+                                        if (subLevelPose != null) {
+                                            poseStack.mulPose(Quaternionf(subLevelPose.orientation()))
+                                        }
 
                                         renderer.render(
                                             blockEntity,
@@ -496,6 +509,8 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
         )
         var box: AbstractRect3<Int>? = null
             private set
+        var blockEntities: MutableSet<BlockPos> = hashSetOf()
+            private set
         private var dirty = true
         private var asyncTask: GlTask<AbstractRect3<Int>?>? = null
 
@@ -532,7 +547,8 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
             val lightFaces = arrayListOf<LightFace>()
             val translucentFaces = arrayListOf<LightFace>()
-            if (!SkyLightBlockMeshCollector(pos).submit(
+            val mesher = SkyLightBlockMeshCollector(pos)
+            if (!mesher.submit(
                     isCancelled,
                     manager,
                     level,
@@ -606,6 +622,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                 )) {
                 return AutoCloseable { } to { null }
             }
+            blockEntities = mesher.blockEntities
 
             fun upload(faces: List<LightFace>, mesh: Mesh): Pair<AutoCloseable, () -> Unit> {
                 val vertexBuffer = NeoBuffer.GCNative(faces.size.toLong() * 4 * LightMesh.SKY_VERTEX_FORMAT.vertexSizeBytes)
