@@ -21,16 +21,15 @@ class SkyLightBlockMeshCollector(
         atlas: NeoAtlas,
         vararg consumers: BlockMeshCollector.Consumer
     ): Boolean {
-        var collected = false
+        val origin = NeoVec3i(pos.minBlockX, 0, pos.minBlockZ)
 
         fun collect(pos: BlockPos.MutableBlockPos, state: BlockState) {
-            collected = true
             BlockMeshCollector.collectLightFaces(
                 manager,
                 state,
                 level,
                 pos,
-                NeoVec3i(pos),
+                NeoVec3i(pos) - origin,
                 atlas,
                 true,
                 *consumers
@@ -42,6 +41,10 @@ class SkyLightBlockMeshCollector(
 
         repeat(16) { x ->
             repeat(16) { z ->
+                if (isCancelled()) {
+                    return false
+                }
+
                 var y = chunk.getHeight(Heightmap.Types.WORLD_SURFACE, x, z)
 
                 while (y >= chunk.minBuildHeight) {

@@ -2,6 +2,7 @@ package net.typho.vibrancy.sky.impl
 
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.PoseStack
+import dev.ryanhcode.sable.companion.SableCompanion
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.RenderType.translucent
 import net.minecraft.client.renderer.texture.OverlayTexture
@@ -9,6 +10,7 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.util.Mth
 import net.minecraft.util.profiling.ProfilerFiller
+import net.minecraft.world.entity.ai.behavior.SetWalkTargetAwayFrom.pos
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.LightLayer
@@ -40,6 +42,7 @@ import net.typho.big_shot_lib.api.math.rect.AbstractRect3
 import net.typho.big_shot_lib.api.math.rect.NeoRect2i
 import net.typho.big_shot_lib.api.math.rect.NeoRect3i
 import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
+import net.typho.big_shot_lib.api.math.vec.NeoVec3d
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.big_shot_lib.api.math.vec.NeoVec4f
 import net.typho.big_shot_lib.api.math.vec.blockPos
@@ -47,6 +50,7 @@ import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.big_shot_lib.api.util.WrapperUtil
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
+import net.typho.big_shot_lib.api.util.resource.NeoFileToIdConverter.Companion.shader
 import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
@@ -174,7 +178,6 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
         profiler.push("shadows")
         shadowDrawState.bind().use { settings ->
             settings.shader.setUniform("ShadowMat") { set(shadowMat) }
-            settings.shader.setUniform("CameraPos") { setFloatVec(data.camera.pos) }
 
             profiler.push("translucent")
             translucent.framebuffer.bind(NeoRect2i(0, 0, translucent.width!!, translucent.height!!)).use { fbo ->
@@ -184,6 +187,31 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
                 profiler.push("chunks")
                 for ((pos, chunk) in chunks) {
+                    profiler.push("transforms")
+                    val blockPos = NeoVec3i(pos.minBlockX, 0, pos.minBlockZ)
+
+                    //? if 1.21 {
+                    val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
+
+                    if (subLevel == null) {
+                        settings.shader.setUniform("ModelViewMat") { set(Matrix4f().translate((blockPos.toFloat() - data.camera.pos).toJOML())) }
+                    } else {
+                        val pose = subLevel.renderPose(Vibrancy.tickDelta)
+                        val orientation = Quaternionf(pose.orientation())
+                        val pos = NeoVec3d(pose.transformPosition(blockPos.toDouble().toJOML()))
+                        settings.shader.setUniform("ModelViewMat") {
+                            set(
+                                Matrix4f()
+                                    .translate((pos - data.camera.pos.toDouble()).toFloat().toJOML())
+                                    .rotate(orientation)
+                            )
+                        }
+                    }
+                    //? } else {
+                    /*settings.shader.setUniform("ModelViewMat") { set(Matrix4f().translate((blockPos.toFloat() - data.camera.pos).toJOML())) }
+                    *///? }
+                    profiler.pop()
+
                     if (chunk.box == null || shadowFrustum.testAab((chunk.box!!.min.toFloat() - data.camera.pos).toJOML(), (chunk.box!!.max.toFloat() - data.camera.pos).toJOML())) {
                         chunk.translucentMesh.draw()
                     }
@@ -199,9 +227,39 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
                 profiler.push("chunks")
                 for ((pos, chunk) in chunks) {
+                    profiler.push("transforms")
+                    val blockPos = NeoVec3i(pos.minBlockX, 0, pos.minBlockZ)
+
+                    //? if 1.21 {
+                    val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
+
+                    if (subLevel == null) {
+                        settings.shader.setUniform("ModelViewMat") { set(Matrix4f().translate((blockPos.toFloat() - data.camera.pos).toJOML())) }
+                    } else {
+                        val pose = subLevel.renderPose(Vibrancy.tickDelta)
+                        val orientation = Quaternionf(pose.orientation())
+                        val pos = NeoVec3d(pose.transformPosition(blockPos.toDouble().toJOML()))
+                        settings.shader.setUniform("ModelViewMat") {
+                            set(
+                                Matrix4f()
+                                    .translate((pos - data.camera.pos.toDouble()).toFloat().toJOML())
+                                    .rotate(orientation)
+                            )
+                        }
+                    }
+                    profiler.pop()
+
+                    if (chunk.box == null || subLevel != null || shadowFrustum.testAab((chunk.box!!.min.toFloat() - data.camera.pos).toJOML(), (chunk.box!!.max.toFloat() - data.camera.pos).toJOML())) {
+                        chunk.mesh.draw()
+                    }
+                    //? } else {
+                    /*settings.shader.setUniform("ModelViewMat") { set(Matrix4f().translate((blockPos.toFloat() - data.camera.pos).toJOML())) }
+                    profiler.pop()
+
                     if (chunk.box == null || shadowFrustum.testAab((chunk.box!!.min.toFloat() - data.camera.pos).toJOML(), (chunk.box!!.max.toFloat() - data.camera.pos).toJOML())) {
                         chunk.mesh.draw()
                     }
+                    *///? }
                 }
                 profiler.pop()
 
@@ -308,7 +366,6 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
             profiler.push("draw")
             lightDrawState.bind().use { settings ->
-                settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((-data.camera.pos).toJOML(), Matrix4f())) }
                 settings.shader.setUniform("ProjMat") { set(data.projMat) }
                 settings.shader.setUniform("ShadowMat") { set(shadowMat) }
 
@@ -350,8 +407,52 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
                 for ((pos, chunk) in chunks) {
                     //if (chunk.box == null || data.frustum.testAab((chunk.box!!.min.toFloat() - data.camera.pos).toJOML(), (chunk.box!!.min.toFloat() + 1f - data.camera.pos).toJOML())) {
-                        chunk.mesh.draw()
-                        chunk.translucentMesh.draw()
+                    profiler.push("transforms")
+                    val blockPos = NeoVec3i(pos.minBlockX, 0, pos.minBlockZ)
+
+                    //? if 1.21 {
+                    val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
+
+                    if (subLevel == null) {
+                        settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((blockPos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
+                        settings.shader.setUniform("SableMat") {
+                            set(
+                                Matrix4f()
+                                    .translate((blockPos.toFloat() - data.camera.pos).toFloat().toJOML())
+                            )
+                        }
+                    } else {
+                        val pose = subLevel.renderPose(Vibrancy.tickDelta)
+                        val orientation = Quaternionf(pose.orientation())
+                        val pos = NeoVec3d(pose.transformPosition(blockPos.toDouble().toJOML()))
+                        settings.shader.setUniform("ModelViewMat") {
+                            set(
+                                data.modelViewMat
+                                    .translate((pos.toFloat() - data.camera.pos).toJOML(), Matrix4f())
+                                    .rotate(orientation)
+                            )
+                        }
+                        settings.shader.setUniform("SableMat") {
+                            set(
+                                Matrix4f()
+                                    .translate((pos.toFloat() - data.camera.pos.toFloat()).toJOML())
+                                    .rotate(orientation)
+                            )
+                        }
+                    }
+                    //? } else {
+                    /*settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((blockPos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
+                    settings.shader.setUniform("SableMat") {
+                        set(
+                            Matrix4f()
+                                .translate((blockPos - data.camera.pos).toFloat().toJOML())
+                        )
+                    }
+                    *///? }
+                    profiler.pop()
+
+                    chunk.mesh.draw()
+                    chunk.translucentMesh.draw()
                     //}
                 }
             }
@@ -492,7 +593,6 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                         }
                     }
                 )) {
-                dirty = true
                 return AutoCloseable { } to { null }
             }
 

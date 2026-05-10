@@ -20,7 +20,7 @@ bigShot="4.7.2"
 
 yacl = "3.6.6+1.20.1-forge"
 modmenu = "11.0.3"
-sableCompanion = "1.4.2"
+sableCompanion = "1.6.0"
 
 [libraries]
 fabricLoader = { group = "net.fabricmc", name = "fabric-loader", version.ref = "fabricLoader" }
