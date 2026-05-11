@@ -1,5 +1,6 @@
 package net.typho.vibrancy.util
 
+import com.ibm.icu.impl.PluralRulesLoader.loader
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.texture.SpriteContents
 import net.minecraft.client.renderer.texture.SpriteLoader
@@ -97,6 +98,29 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
                 val animations = mutableListOf<Animation>()
 
                 //? if <1.21 {
+                for (resource in idConverter.listMatchingResources(resources)) {
+                    val id = idConverter.fileToId(resource.key)
+
+                    parent.sprites[id]?.let { sprite ->
+                        resource.value.open().use { stream ->
+                            SpriteLoader.loadSprite(ResourceLocation(resource.key.namespace, resource.key.path), resource.value)?.let { contents ->
+                                contents.uploadFirstFrame(sprite.x, sprite.y)
+                                val ticker = contents.createTicker()
+
+                                if (ticker == null) {
+                                    contents.close()
+                                } else {
+                                    animations.add(Animation(
+                                        sprite.x,
+                                        sprite.y,
+                                        contents,
+                                        ticker
+                                    ))
+                                }
+                            }
+                        }
+                    }
+                }
                 //? } else {
                 /*val loader = SpriteResourceLoader.create(SpriteLoader.DEFAULT_METADATA_SECTIONS)
 

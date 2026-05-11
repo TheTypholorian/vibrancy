@@ -491,7 +491,7 @@ object VibrancyConfig {
 
                 .option(Option.createBuilder<Float>()
                     .name(Component.translatable("config.vibrancy.skyLights.shadow_map_power"))
-                    .binding(1f, VibrancyConfig::skyLightShadowMapPower)
+                    .binding(8f, VibrancyConfig::skyLightShadowMapPower)
                     .controller { opt ->
                         FloatSliderControllerBuilder.create(opt)
                             .range(1f, 8f)
