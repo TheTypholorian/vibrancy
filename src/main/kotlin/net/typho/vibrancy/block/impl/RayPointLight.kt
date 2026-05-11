@@ -351,6 +351,10 @@ open class RayPointLight(
                             return@unwrap EmptyVertexConsumer
                         }
 
+                        if (texture.equals("minecraft", "textures/entity/beacon_beam.png")) {
+                            return@unwrap EmptyVertexConsumer
+                        }
+
                         allTextures.add(texture)
 
                         buffers.computeIfAbsent(texture) {

@@ -307,6 +307,10 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                     return@unwrap EmptyVertexConsumer
                 }
 
+                if (texture.equals("minecraft", "textures/entity/beacon_beam.png")) {
+                    return@unwrap EmptyVertexConsumer
+                }
+
                 buffers.computeIfAbsent(texture) {
                     QuadListVertexConsumer(quads.computeIfAbsent((settings.drawState.blend is GlBlendShard.Enabled) to texture) { texture -> arrayListOf() })
                 }

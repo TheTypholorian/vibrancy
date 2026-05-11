@@ -123,10 +123,10 @@ object VibrancyConfig {
             }
         }
     @JvmField
-    var skyLightShadowDistance: Int = if (isPotato) 4 else 8
+    var skyLightShadowDistance: Int = if (isPotato) 8 else 16
     @JvmField
     var skyLightBrightness: Float = 1f
-    var skyLightResolution: Int = if (isPotato) 2 else 4
+    var skyLightResolution: Int = if (isPotato) 1 else 2
         set(value) {
             field = value
             (Vibrancy.lightManager.skyLight?.second as? OverworldSkyLightStorage)?.let {
@@ -452,7 +452,7 @@ object VibrancyConfig {
                     ))
                     .controller { opt ->
                         IntegerSliderControllerBuilder.create(opt)
-                            .range(4, 32)
+                            .range(8, 32)
                             .step(4)
                     }
                     .build())
@@ -469,7 +469,7 @@ object VibrancyConfig {
 
                 .option(Option.createBuilder<Int>()
                     .name(Component.translatable("config.vibrancy.skyLights.resolution"))
-                    .binding(if (isPotato) 1 else 3, VibrancyConfig::skyLightResolution)
+                    .binding(if (isPotato) 1 else 2, VibrancyConfig::skyLightResolution)
                     .description(OptionDescription.of(
                         Component.translatable("config.vibrancy.skyLights.resolution.tooltip")
                     ))

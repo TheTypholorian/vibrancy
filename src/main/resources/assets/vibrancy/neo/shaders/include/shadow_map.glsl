@@ -1,10 +1,12 @@
 vec3 fisheyeShadowMapCoords(vec4 glPosition, float power) {
     vec3 ndc = glPosition.xyz / glPosition.w;
-    float r = length(ndc.xyz);
+    float r = length(ndc.xy);
 
     if (r > 0.00001) {
-        ndc.xyz *= atan(r * power) / atan(power) / r;
+        ndc.xy *= atan(r * power) / atan(power) / r;
     }
+
+    ndc.z = sign(ndc.z) * atan(abs(ndc.z) * power) / atan(power);
 
     return ndc;
 }
