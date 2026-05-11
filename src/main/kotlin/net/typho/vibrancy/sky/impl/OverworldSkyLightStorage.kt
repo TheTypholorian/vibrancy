@@ -25,6 +25,7 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureTarg
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlFramebuffer
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D
+import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlBlendShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDepthShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
@@ -167,7 +168,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
             .rotateY(-PI.toFloat() / 2)
             .rotateY(Math.toRadians(15.0).toFloat())
         val shadowMat = Matrix4f()
-            .scale(1f / (VibrancyConfig.skyLightShadowDistance * 16))
+            .scale(1f / (manager.clampToChunkRenderDistance(VibrancyConfig.skyLightShadowDistance) * 16))
             .rotate(shadowRot)
         val shadowFrustum = FrustumIntersection(shadowMat)
         profiler.pop()
@@ -268,103 +269,107 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                 profiler.pop()
 
                 settings.shader.setUniform("ModelViewMat") { set(Matrix4f().translate((-data.camera.pos).toJOML())) }
+            }
 
-                profiler.push("dynamicShadows")
-                val quads = hashMapOf<NeoIdentifier, MutableList<NeoBakedQuad>>()
-                val buffers = hashMapOf<NeoIdentifier, NeoBakedQuad.Consumer>()
-                val bufferSource = WrapperUtil.INSTANCE.unwrap { settings: NeoRenderSettings ->
-                    val texture = settings.drawState.shader.textures.getOrNull(0)?.location ?: return@unwrap EmptyVertexConsumer
+            profiler.push("dynamicShadows")
+            val quads = hashMapOf<Pair<Boolean, NeoIdentifier>, MutableList<NeoBakedQuad>>()
+            val buffers = hashMapOf<NeoIdentifier, NeoBakedQuad.Consumer>()
+            val bufferSource = WrapperUtil.INSTANCE.unwrap { settings: NeoRenderSettings ->
+                val texture = settings.drawState.shader.textures.getOrNull(0)?.location ?: return@unwrap EmptyVertexConsumer
 
-                    if (GlTexture2D[texture] == null) {
-                        return@unwrap EmptyVertexConsumer
-                    }
-
-                    buffers.computeIfAbsent(texture) {
-                        QuadListVertexConsumer(quads.computeIfAbsent(texture) { texture -> arrayListOf() })
-                    }
-                }
-                val poseStack = PoseStack()
-                val radius = VibrancyConfig.entityShadowDistance * 16
-
-                profiler.push("collect")
-                if (VibrancyConfig.entityShadowsEnabled) {
-                    profiler.push("entityShadows")
-                    for (entity in data.level!!.getEntities(null, AABB.ofSize(Vec3(data.camera.pos.toJOML()), radius.toDouble() * 2, radius.toDouble() * 2, radius.toDouble() * 2))) {
-                        Minecraft.getInstance().entityRenderDispatcher.render(
-                            entity,
-                            Mth.lerp(Vibrancy.tickDelta.toDouble(), entity.xOld, entity.x),
-                            Mth.lerp(Vibrancy.tickDelta.toDouble(), entity.yOld, entity.y),
-                            Mth.lerp(Vibrancy.tickDelta.toDouble(), entity.zOld, entity.z),
-                            Mth.lerp(Vibrancy.tickDelta, entity.yRotO, entity.yRot),
-                            Vibrancy.tickDelta,
-                            poseStack,
-                            bufferSource,
-                            net.minecraft.client.renderer.LightTexture.FULL_BRIGHT
-                        )
-                    }
-                    profiler.pop()
+                if (GlTexture2D[texture] == null) {
+                    return@unwrap EmptyVertexConsumer
                 }
 
-                if (VibrancyConfig.blockEntityShadows) {
-                    profiler.push("blockEntityShadows")
-                    Vibrancy.disableFlywheelInstancing = true
+                buffers.computeIfAbsent(texture) {
+                    QuadListVertexConsumer(quads.computeIfAbsent((settings.drawState.blend is GlBlendShard.Enabled) to texture) { texture -> arrayListOf() })
+                }
+            }
+            val poseStack = PoseStack()
+            val radius = VibrancyConfig.entityShadowDistance * 16
 
-                    for ((pos, chunk) in chunks) {
-                        for (blockPos in chunk.blockEntities) {
-                            val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
-                            val subLevelPose = subLevel?.renderPose()
-                            val transformedPos = subLevelPose?.transformPosition(NeoVec3i(blockPos).toDouble().toJOML())?.let { NeoVec3d(it).toFloat() } ?: NeoVec3i(blockPos).toFloat()
+            profiler.push("collect")
+            if (VibrancyConfig.entityShadowsEnabled) {
+                profiler.push("entityShadows")
+                for (entity in data.level!!.getEntities(null, AABB.ofSize(Vec3(data.camera.pos.toJOML()), radius.toDouble() * 2, radius.toDouble() * 2, radius.toDouble() * 2))) {
+                    Minecraft.getInstance().entityRenderDispatcher.render(
+                        entity,
+                        Mth.lerp(Vibrancy.tickDelta.toDouble(), entity.xOld, entity.x),
+                        Mth.lerp(Vibrancy.tickDelta.toDouble(), entity.yOld, entity.y),
+                        Mth.lerp(Vibrancy.tickDelta.toDouble(), entity.zOld, entity.z),
+                        Mth.lerp(Vibrancy.tickDelta, entity.yRotO, entity.yRot),
+                        Vibrancy.tickDelta,
+                        poseStack,
+                        bufferSource,
+                        net.minecraft.client.renderer.LightTexture.FULL_BRIGHT
+                    )
+                }
+                profiler.pop()
+            }
 
-                            if (transformedPos.inDistance(data.camera.pos, radius.toFloat())) {
-                                data.level!!.getBlockEntity(blockPos)?.let { blockEntity ->
-                                    Minecraft.getInstance().blockEntityRenderDispatcher.getRenderer(blockEntity)?.let { renderer ->
-                                        poseStack.pushPose()
-                                        poseStack.translate(transformedPos.x, transformedPos.y, transformedPos.z)
+            if (VibrancyConfig.blockEntityShadows) {
+                profiler.push("blockEntityShadows")
+                Vibrancy.disableFlywheelInstancing = true
 
-                                        if (subLevelPose != null) {
-                                            poseStack.mulPose(Quaternionf(subLevelPose.orientation()))
-                                        }
+                for ((pos, chunk) in chunks) {
+                    for (blockPos in chunk.blockEntities) {
+                        val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
+                        val subLevelPose = subLevel?.renderPose()
+                        val transformedPos = subLevelPose?.transformPosition(NeoVec3i(blockPos).toDouble().toJOML())?.let { NeoVec3d(it).toFloat() } ?: NeoVec3i(blockPos).toFloat()
 
-                                        renderer.render(
-                                            blockEntity,
-                                            Vibrancy.tickDelta,
-                                            poseStack,
-                                            bufferSource,
-                                            15728880,
-                                            OverlayTexture.NO_OVERLAY
-                                        )
+                        if (transformedPos.inDistance(data.camera.pos, radius.toFloat())) {
+                            data.level!!.getBlockEntity(blockPos)?.let { blockEntity ->
+                                Minecraft.getInstance().blockEntityRenderDispatcher.getRenderer(blockEntity)?.let { renderer ->
+                                    poseStack.pushPose()
+                                    poseStack.translate(transformedPos.x, transformedPos.y, transformedPos.z)
 
-                                        poseStack.popPose()
+                                    if (subLevelPose != null) {
+                                        poseStack.mulPose(Quaternionf(subLevelPose.orientation()))
                                     }
+
+                                    renderer.render(
+                                        blockEntity,
+                                        Vibrancy.tickDelta,
+                                        poseStack,
+                                        bufferSource,
+                                        15728880,
+                                        OverlayTexture.NO_OVERLAY
+                                    )
+
+                                    poseStack.popPose()
                                 }
                             }
                         }
                     }
-
-                    Vibrancy.disableFlywheelInstancing = false
-                    profiler.pop()
                 }
-                profiler.pop()
 
-                profiler.push("calculate")
-                for ((texture, quads) in quads) {
-                    if (quads.isNotEmpty()) {
-                        GlTexture2D[texture]?.let { texture ->
-                            settings.shader.setTexture(
-                                0,
-                                GlTextureBinding.FromInstance(
-                                    texture,
-                                    GlTextureTarget.TEXTURE_2D
-                                )
+                Vibrancy.disableFlywheelInstancing = false
+                profiler.pop()
+            }
+            profiler.pop()
+
+            profiler.push("calculate")
+            for ((key, quads) in quads) {
+                if (quads.isNotEmpty()) {
+                    GlTexture2D[key.second]?.let { texture ->
+                        settings.shader.setTexture(
+                            0,
+                            GlTextureBinding.FromInstance(
+                                texture,
+                                GlTextureTarget.TEXTURE_2D
                             )
+                        )
+
+                        val target = if (key.first) translucent else this.texture
+                        target.framebuffer.bind(NeoRect2i(0, 0, target.width!!, target.height!!)).use { fbo ->
                             tempMesh.lazyUploadQuadsNoAtlas(quads)()
                             tempMesh.draw()
                         }
                     }
                 }
-                profiler.pop()
-                profiler.pop()
             }
+            profiler.pop()
+            profiler.pop()
         }
         profiler.pop()
 

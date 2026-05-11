@@ -1,5 +1,7 @@
 #version 430
 
+#include "vibrancy:shadow_map"
+
 float fog_distance(vec3 pos, int shape) {
     if (shape == 0) {
         return length(pos);

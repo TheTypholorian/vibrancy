@@ -446,13 +446,13 @@ object VibrancyConfig {
 
                 .option(Option.createBuilder<Int>()
                     .name(Component.translatable("config.vibrancy.skyLights.shadow_distance"))
-                    .binding(if (isPotato) 4 else 8, VibrancyConfig::skyLightShadowDistance)
+                    .binding(if (isPotato) 8 else 16, VibrancyConfig::skyLightShadowDistance)
                     .description(OptionDescription.of(
                         Component.translatable("config.vibrancy.skyLights.shadow_distance.tooltip")
                     ))
                     .controller { opt ->
                         IntegerSliderControllerBuilder.create(opt)
-                            .range(4, 16)
+                            .range(4, 32)
                             .step(4)
                     }
                     .build())
@@ -469,13 +469,13 @@ object VibrancyConfig {
 
                 .option(Option.createBuilder<Int>()
                     .name(Component.translatable("config.vibrancy.skyLights.resolution"))
-                    .binding(if (isPotato) 2 else 4, VibrancyConfig::skyLightResolution)
+                    .binding(if (isPotato) 1 else 3, VibrancyConfig::skyLightResolution)
                     .description(OptionDescription.of(
                         Component.translatable("config.vibrancy.skyLights.resolution.tooltip")
                     ))
                     .controller { opt ->
                         IntegerSliderControllerBuilder.create(opt)
-                            .range(0, 4)
+                            .range(0, 3)
                             .step(1)
                             .formatValue { Component.literal((1 shl (it + 10)).toString()) }
                     }

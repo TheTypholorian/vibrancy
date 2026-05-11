@@ -1,5 +1,7 @@
 #version 430
 
+#include "vibrancy:shadow_map"
+
 float fog_distance(vec3 pos, int shape) {
     if (shape == 0) {
         return length(pos);
@@ -37,8 +39,7 @@ void main() {
     gl_Position = ProjMat * pos;
     texCoord0 = UV0;
     vec4 sablePos = SableMat * vec4(Position, 1);
-    vec4 shadowPos = ShadowMat * sablePos;
-    texCoord1 = shadowPos.xyz / shadowPos.w / 2 + 0.5;
+    texCoord1 = fisheyeShadowMapCoords(ShadowMat * sablePos, 8.0) / 2 + 0.5;
     texCoord2 = vec2(UV2) / 240;
     vertexColor = Color;
     vertexPosition = (SpecularMat * vec4(Position, 1)).xyz;
