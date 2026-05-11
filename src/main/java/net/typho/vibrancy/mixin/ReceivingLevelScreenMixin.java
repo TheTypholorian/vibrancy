@@ -22,10 +22,10 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.function.BooleanSupplier;
-
 //? if <1.21 {
-/*import org.spongepowered.asm.mixin.Unique;
+import org.spongepowered.asm.mixin.Unique;
+//? } else {
+/*import java.util.function.BooleanSupplier;
 *///? }
 
 @Mixin(ReceivingLevelScreen.class)
@@ -34,9 +34,57 @@ public abstract class ReceivingLevelScreenMixin extends Screen {
     @Final
     private long createdAt;
 
+    protected ReceivingLevelScreenMixin(Component component) {
+        super(component);
+    }
+
     //? if <1.21 {
-    /*@Unique
+    @Unique
     private boolean vibrancy$levelReceived;
+
+    @Inject(
+            method = "render",
+            at = @At("TAIL")
+    )
+    private void render(GuiGraphics guiGraphics, int i, int j, float f, CallbackInfo ci) {
+        if (vibrancy$levelReceived) {
+            int y = height / 2 - 50 + font.lineHeight * 2;
+            var rayPointLights = Vibrancy.lightManager.blockLights.get(RayPointLightType.INSTANCE);
+
+            if (rayPointLights != null) {
+                var loading = ((RayPointLightStorage) rayPointLights).getMap().values().stream().filter(light -> light.mesh.isTaskActive()).count();
+                var max = rayPointLights.getSize();
+                guiGraphics.drawCenteredString(font, Component.translatable("loading.vibrancy.raytraced_point", loading == 0 ? CommonComponents.GUI_DONE : (max - loading) + " / " + max), width / 2, y, 16777215);
+                y += font.lineHeight;
+            }
+
+            var subtleLights = Vibrancy.lightManager.blockLights.get(SubtleLightType.INSTANCE);
+
+            if (subtleLights != null) {
+                var loading = ((SubtleLightStorage) subtleLights).chunks.values().stream().filter(chunk -> chunk.getTask() != null).count();
+                var max = ((SubtleLightStorage) subtleLights).chunks.size();
+                guiGraphics.drawCenteredString(font, Component.translatable("loading.vibrancy.subtle", loading == 0 ? CommonComponents.GUI_DONE : (max - loading) + " / " + max), width / 2, y, 16777215);
+                y += font.lineHeight;
+            }
+
+            var skyLight = Vibrancy.lightManager.skyLight;
+
+            if (skyLight != null && skyLight.getSecond() instanceof OverworldSkyLightStorage storage) {
+                var loading = storage.chunks.values().stream().filter(OverworldSkyLightStorage.Chunk::isTaskActive).count();
+                var max = storage.chunks.size();
+                guiGraphics.drawCenteredString(font, Component.translatable("loading.vibrancy.overworld", loading == 0 ? CommonComponents.GUI_DONE : (max - loading) + " / " + max), width / 2, y, 16777215);
+                y += font.lineHeight;
+            }
+
+            y += font.lineHeight;
+            guiGraphics.drawCenteredString(font, Component.translatable("loading.vibrancy.timeout", (createdAt + 15000L - System.currentTimeMillis()) / 1000), width / 2, y, 16777215);
+
+            y += font.lineHeight * 2;
+            guiGraphics.drawCenteredString(font, Component.translatable("loading.vibrancy.tip1"), width / 2, y, 16777215);
+            y += font.lineHeight;
+            guiGraphics.drawCenteredString(font, Component.translatable("loading.vibrancy.tip2"), width / 2, y, 16777215);
+        }
+    }
 
     @ModifyArg(
             method = "render",
@@ -64,14 +112,10 @@ public abstract class ReceivingLevelScreenMixin extends Screen {
             vibrancy$levelReceived = true;
         }
     }
-    *///? } else {
-    @Shadow
+    //? } else {
+    /*@Shadow
     @Final
     private BooleanSupplier levelReceived;
-
-    protected ReceivingLevelScreenMixin(Component component) {
-        super(component);
-    }
 
     @Inject(
             method = "render",
@@ -139,5 +183,5 @@ public abstract class ReceivingLevelScreenMixin extends Screen {
     private boolean tick(BooleanSupplier instance, Operation<Boolean> original) {
         return original.call(instance) && (VibrancyThreadPool.INSTANCE.getQueue().size() < 10 || System.currentTimeMillis() > createdAt + 15000L);
     }
-    //? }
+    *///? }
 }

@@ -58,7 +58,7 @@ data class StateFunction<T>(
 
                 it.group(
                     //? if <1.21 {
-                    /*object : Codec<Map<Property<*>, Comparable<*>>> {
+                    object : Codec<Map<Property<*>, Comparable<*>>> {
                         @Suppress("UNCHECKED_CAST")
                         override fun <T> encode(
                             input: Map<Property<*>, Comparable<*>>,
@@ -112,9 +112,9 @@ data class StateFunction<T>(
                             }
                         }
                     }
-                    *///? } else {
-                    Codec.dispatchedMap(keyCodec, { it.codec() })
-                    //? }
+                    //? } else {
+                    /*Codec.dispatchedMap(keyCodec, { it.codec() })
+                    *///? }
                         .fieldOf("matches")
                         .forGetter { entry -> entry.map },
                     inner.fieldOf("value")

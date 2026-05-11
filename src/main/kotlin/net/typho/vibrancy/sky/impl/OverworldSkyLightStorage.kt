@@ -1,8 +1,11 @@
 package net.typho.vibrancy.sky.impl
 
+//? if 1.21 {
+/*import dev.ryanhcode.sable.companion.SableCompanion
+*///? }
+
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.PoseStack
-import dev.ryanhcode.sable.companion.SableCompanion
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.core.BlockPos
@@ -217,7 +220,9 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                     for ((pos, chunk) in chunks) {
                         profiler.push("transforms")
                         val blockPos = NeoVec3i(pos.minBlockX, 0, pos.minBlockZ)
-                        val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
+
+                        //? if 1.21 {
+                        /*val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
 
                         if (subLevel == null) {
                             if (chunk.shouldDraw(shadowFrustum, data)) {
@@ -239,6 +244,12 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                             mesh(chunk).draw()
                             settings.shader.setUniform("ShadowMat") { set(shadowMat) }
                         }
+                        *///? } else {
+                        if (chunk.shouldDraw(shadowFrustum, data)) {
+                            settings.shader.setUniform("ChunkOffset") { setFloatVec(blockPos.toFloat()) }
+                            mesh(chunk).draw()
+                        }
+                        //? }
 
                         profiler.pop()
                     }
@@ -301,19 +312,27 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
                 for ((pos, chunk) in chunks) {
                     for (blockPos in chunk.blockEntities) {
-                        val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
+                        //? if 1.21 {
+                        /*val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
                         val subLevelPose = subLevel?.renderPose()
                         val transformedPos = subLevelPose?.transformPosition(NeoVec3i(blockPos).toDouble().toJOML())?.let { NeoVec3d(it).toFloat() } ?: NeoVec3i(blockPos).toFloat()
 
                         if (transformedPos.inDistance(data.camera.pos, radius.toFloat())) {
+                        *///? } else {
+                        val transformedPos = NeoVec3i(blockPos).toFloat()
+
+                        if (transformedPos.inDistance(data.camera.pos, radius.toFloat())) {
+                        //? }
                             data.level!!.getBlockEntity(blockPos)?.let { blockEntity ->
                                 Minecraft.getInstance().blockEntityRenderDispatcher.getRenderer(blockEntity)?.let { renderer ->
                                     poseStack.pushPose()
                                     poseStack.translate(transformedPos.x, transformedPos.y, transformedPos.z)
 
-                                    if (subLevelPose != null) {
+                                    //? if 1.21 {
+                                    /*if (subLevelPose != null) {
                                         poseStack.mulPose(Quaternionf(subLevelPose.orientation()))
                                     }
+                                    *///? }
 
                                     renderer.render(
                                         blockEntity,
@@ -429,7 +448,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                     val blockPos = NeoVec3i(pos.minBlockX, 0, pos.minBlockZ)
 
                     //? if 1.21 {
-                    val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
+                    /*val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
 
                     if (subLevel == null) {
                         settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((blockPos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
@@ -471,15 +490,21 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                             )
                         }
                     }
-                    //? } else {
-                    /*settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((blockPos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
+                    *///? } else {
+                    settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((blockPos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
                     settings.shader.setUniform("SableMat") {
                         set(
                             Matrix4f()
-                                .translate((blockPos - data.camera.pos).toFloat().toJOML())
+                                .translate((blockPos.toFloat() - data.camera.pos).toFloat().toJOML())
                         )
                     }
-                    *///? }
+                    settings.shader.setUniform("SpecularMat") {
+                        set(
+                            Matrix4f()
+                                .translate(blockPos.toFloat().toJOML())
+                        )
+                    }
+                    //? }
                     profiler.pop()
 
                     chunk.mesh.draw()

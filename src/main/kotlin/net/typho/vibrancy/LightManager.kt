@@ -1,9 +1,9 @@
 package net.typho.vibrancy
 
 //? if 1.21 {
-import dev.ryanhcode.sable.companion.ClientSubLevelAccess
+/*import dev.ryanhcode.sable.companion.ClientSubLevelAccess
 import dev.ryanhcode.sable.companion.SableCompanion
-//? }
+*///? }
 
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
@@ -164,7 +164,7 @@ open class LightManager {
     }
 
     //? if 1.21 {
-    fun testFrustum(origin: IVec3<Int>, data: RenderEventData, box: AbstractRect3<Int>): Boolean {
+    /*fun testFrustum(origin: IVec3<Int>, data: RenderEventData, box: AbstractRect3<Int>): Boolean {
         return testFrustum(SableCompanion.INSTANCE.getContainingClient(origin.toDouble().toJOML()), data, box)
     }
 
@@ -186,8 +186,8 @@ open class LightManager {
             )
         }
     }
-    //? } else {
-    /*fun testFrustum(origin: IVec3<Int>, data: RenderEventData, box: AbstractRect3<Int>): Boolean {
+    *///? } else {
+    fun testFrustum(origin: IVec3<Int>, data: RenderEventData, box: AbstractRect3<Int>): Boolean {
         return testFrustum(data, box)
     }
 
@@ -201,7 +201,7 @@ open class LightManager {
             (box.max.toFloat() - data.camera.pos).toJOML(),
         )
     }
-    *///? }
+    //? }
 
     fun getDebugOutput(out: Consumer<String>) {
         debugInfo[null]?.forEach { (key, value) -> out.accept("$key: $value") }
@@ -231,7 +231,7 @@ open class LightManager {
     }
 
     //? if 1.21 {
-    fun inRenderDistance(data: RenderEventData, pos: ChunkPos, distance: Int): Boolean {
+    /*fun inRenderDistance(data: RenderEventData, pos: ChunkPos, distance: Int): Boolean {
         val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
 
         return if (subLevel == null) {
@@ -256,8 +256,8 @@ open class LightManager {
             data.camera.pos.distanceSquared(NeoVec3d(subLevel.renderPose().position()).toFloat())
         }
     }
-    //? } else {
-    /*fun inRenderDistance(data: RenderEventData, pos: ChunkPos, distance: Int): Boolean {
+    *///? } else {
+    fun inRenderDistance(data: RenderEventData, pos: ChunkPos, distance: Int): Boolean {
         return data.camera.pos.xz.inDistance(pos.middleBlockX.toFloat(), pos.middleBlockZ.toFloat(), clampToChunkRenderDistance(distance) * 16f)
     }
 
@@ -268,7 +268,7 @@ open class LightManager {
     fun getSortingOrder(data: RenderEventData, pos: ChunkPos): Float {
         return data.camera.pos.xz.distanceSquared(pos.middleBlockX.toFloat(), pos.middleBlockZ.toFloat())
     }
-    *///? }
+    //? }
 
     fun blitFromTemp(result: GlFramebuffer, temp: GlFramebuffer, lightLimited: Boolean = VibrancyConfig.limitLightBrightness) {
         val drawState = GlDrawState.Basic(
