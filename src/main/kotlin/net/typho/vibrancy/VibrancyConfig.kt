@@ -135,6 +135,10 @@ object VibrancyConfig {
                 it.translucent.resize(size, size)
             }
         }
+    @JvmField
+    var skyLightShadowMapPower: Float = 8f
+    @JvmField
+    var skyLightTranslucentEnabled: Boolean = true
 
     @JvmField
     var inventoryLightsEnabled = false
@@ -210,6 +214,8 @@ object VibrancyConfig {
                 .name("shadowDistance").value(skyLightShadowDistance)
                 .name("brightness").value(skyLightBrightness)
                 .name("resolution").value(skyLightResolution)
+                .name("shadowMapPower").value(skyLightShadowMapPower)
+                .name("translucentEnabled").value(skyLightTranslucentEnabled)
 
                 .endObject()
 
@@ -271,6 +277,8 @@ object VibrancyConfig {
                     skyLights.getAsJsonPrimitive("shadowDistance")?.let { skyLightShadowDistance = it.asInt }
                     skyLights.getAsJsonPrimitive("brightness")?.let { skyLightBrightness = it.asFloat }
                     skyLights.getAsJsonPrimitive("resolution")?.let { skyLightResolution = it.asInt }
+                    skyLights.getAsJsonPrimitive("shadowMapPower")?.let { skyLightShadowMapPower = it.asFloat }
+                    skyLights.getAsJsonPrimitive("translucentEnabled")?.let { skyLightTranslucentEnabled = it.asBoolean }
                 }
             } catch (e: Exception) {
                 Vibrancy.LOGGER.info("Error loading Vibrancy config", e)
@@ -479,6 +487,22 @@ object VibrancyConfig {
                             .step(1)
                             .formatValue { Component.literal((1 shl (it + 10)).toString()) }
                     }
+                    .build())
+
+                .option(Option.createBuilder<Float>()
+                    .name(Component.translatable("config.vibrancy.skyLights.shadow_map_power"))
+                    .binding(1f, VibrancyConfig::skyLightShadowMapPower)
+                    .controller { opt ->
+                        FloatSliderControllerBuilder.create(opt)
+                            .range(1f, 8f)
+                            .step(0.5f)
+                    }
+                    .build())
+
+                .option(Option.createBuilder<Boolean>()
+                    .name(Component.translatable("config.vibrancy.skyLights.translucent_enabled"))
+                    .binding(true, VibrancyConfig::skyLightTranslucentEnabled)
+                    .controller(TickBoxControllerBuilder::create)
                     .build())
 
                 .build())

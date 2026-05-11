@@ -34,7 +34,6 @@ import net.typho.big_shot_lib.api.client.rendering.util.BlockChunkLayer
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.rendering.util.NeoRenderSettings
-import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexConsumer
 import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.math.NeoDirection
@@ -43,6 +42,7 @@ import net.typho.big_shot_lib.api.math.rect.NeoRect2i
 import net.typho.big_shot_lib.api.math.rect.NeoRect3i
 import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
 import net.typho.big_shot_lib.api.math.vec.NeoVec3d
+import net.typho.big_shot_lib.api.math.vec.NeoVec3f
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.big_shot_lib.api.math.vec.NeoVec4f
 import net.typho.big_shot_lib.api.math.vec.blockPos
@@ -204,97 +204,55 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
         profiler.push("shadows")
         shadowDrawState.bind().use { settings ->
             settings.shader.setUniform("ShadowMat") { set(shadowMat) }
+            settings.shader.setUniform("CameraPos") { setFloatVec(data.camera.pos) }
 
-            profiler.push("translucent")
-            translucent.framebuffer.bind(NeoRect2i(0, 0, translucent.width!!, translucent.height!!)).use { fbo ->
-                profiler.push("clear")
-                translucent.clear()
-                profiler.pop()
+            fun drawChunks(name: String, to: LightTexture, mesh: (chunk: Chunk) -> Mesh) {
+                profiler.push(name)
+                to.framebuffer.bind(NeoRect2i(0, 0, to.width!!, to.height!!)).use { fbo ->
+                    profiler.push("clear")
+                    to.clear()
+                    profiler.pop()
 
-                profiler.push("chunks")
-                for ((pos, chunk) in chunks) {
-                    profiler.push("transforms")
-                    val blockPos = NeoVec3i(pos.minBlockX, 0, pos.minBlockZ)
-                    var origin = blockPos.toFloat()
+                    profiler.push("chunks")
+                    for ((pos, chunk) in chunks) {
+                        profiler.push("transforms")
+                        val blockPos = NeoVec3i(pos.minBlockX, 0, pos.minBlockZ)
+                        val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
 
-                    //? if 1.21 {
-                    val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
-
-                    if (subLevel == null) {
-                        settings.shader.setUniform("ModelViewMat") { set(Matrix4f().translate((blockPos.toFloat() - data.camera.pos).toJOML())) }
-                    } else {
-                        val pose = subLevel.renderPose(Vibrancy.tickDelta)
-                        val orientation = Quaternionf(pose.orientation())
-                        origin = NeoVec3d(pose.transformPosition(blockPos.toDouble().toJOML())).toFloat()
-                        settings.shader.setUniform("ModelViewMat") {
-                            set(
-                                Matrix4f()
-                                    .translate((origin - data.camera.pos).toJOML())
-                                    .rotate(orientation)
-                            )
+                        if (subLevel == null) {
+                            if (chunk.shouldDraw(shadowFrustum, data)) {
+                                settings.shader.setUniform("ChunkOffset") { setFloatVec(blockPos.toFloat()) }
+                                mesh(chunk).draw()
+                            }
+                        } else {
+                            val pose = subLevel.renderPose(Vibrancy.tickDelta)
+                            val orientation = Quaternionf(pose.orientation())
+                            val origin = NeoVec3d(pose.transformPosition(blockPos.toDouble().toJOML())).toFloat()
+                            settings.shader.setUniform("ShadowMat") {
+                                set(
+                                    Matrix4f()
+                                        .rotate(orientation)
+                                        .mul(shadowMat)
+                                )
+                            }
+                            settings.shader.setUniform("ChunkOffset") { setFloatVec(origin) }
+                            mesh(chunk).draw()
+                            settings.shader.setUniform("ShadowMat") { set(shadowMat) }
                         }
+
+                        profiler.pop()
                     }
                     profiler.pop()
-
-                    if (chunk.box == null || subLevel != null || shadowFrustum.testAab((chunk.box!!.min.toFloat() - data.camera.pos).toJOML(), (chunk.box!!.max.toFloat() - data.camera.pos).toJOML())) {
-                        chunk.translucentMesh.draw()
-                    }
-                    //? } else {
-                    /*settings.shader.setUniform("ModelViewMat") { set(Matrix4f().translate((blockPos.toFloat() - data.camera.pos).toJOML())) }
-                    profiler.pop()
-
-                    if (chunk.box == null || shadowFrustum.testAab((chunk.box!!.min.toFloat() - data.camera.pos).toJOML(), (chunk.box!!.max.toFloat() - data.camera.pos).toJOML())) {
-                        chunk.translucentMesh.draw()
-                    }
-                    *///? }
                 }
                 profiler.pop()
             }
-            profiler.pop()
 
-            texture.framebuffer.bind(NeoRect2i(0, 0, texture.width!!, texture.height!!)).use { fbo ->
-                profiler.push("clear")
-                texture.clear()
-                profiler.pop()
+            drawChunks("solid", texture, Chunk::mesh)
 
-                profiler.push("chunks")
-                for ((pos, chunk) in chunks) {
-                    profiler.push("transforms")
-                    val blockPos = NeoVec3i(pos.minBlockX, 0, pos.minBlockZ)
-                    var origin = blockPos.toFloat()
-
-                    //? if 1.21 {
-                    val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
-
-                    if (subLevel == null) {
-                        settings.shader.setUniform("ModelViewMat") { set(Matrix4f().translate((blockPos.toFloat() - data.camera.pos).toJOML())) }
-                    } else {
-                        val pose = subLevel.renderPose(Vibrancy.tickDelta)
-                        val orientation = Quaternionf(pose.orientation())
-                        origin = NeoVec3d(pose.transformPosition(blockPos.toDouble().toJOML())).toFloat()
-                        settings.shader.setUniform("ModelViewMat") {
-                            set(
-                                Matrix4f()
-                                    .translate((origin - data.camera.pos).toJOML())
-                                    .rotate(orientation)
-                            )
-                        }
-                    }
-                    profiler.pop()
-
-                    if (chunk.box == null || subLevel != null || shadowFrustum.testAab((chunk.box!!.min.toFloat() - data.camera.pos).toJOML(), (chunk.box!!.max.toFloat() - data.camera.pos).toJOML())) {
-                        chunk.mesh.draw()
-                    }
-                    //? } else {
-                    /*settings.shader.setUniform("ModelViewMat") { set(Matrix4f().translate((blockPos.toFloat() - data.camera.pos).toJOML())) }
-                    profiler.pop()
-
-                    if (chunk.box == null || shadowFrustum.testAab((chunk.box!!.min.toFloat() - data.camera.pos).toJOML(), (chunk.box!!.max.toFloat() - data.camera.pos).toJOML())) {
-                        chunk.mesh.draw()
-                    }
-                    *///? }
-                }
-                profiler.pop()
+            if (VibrancyConfig.skyLightTranslucentEnabled) {
+                drawChunks("translucent", translucent, Chunk::translucentMesh)
+            } else {
+                translucent.clear()
             }
 
             profiler.push("dynamicShadows")
@@ -379,18 +337,16 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
             profiler.pop()
 
             profiler.push("calculate")
-
-            val modelViewMat = Matrix4f().translate((-data.camera.pos).toJOML())
-
             for ((key, quads) in quads) {
                 if (quads.isNotEmpty()) {
                     GlTexture2D[key.second]?.let { texture ->
                         tempMesh.lazyUploadQuadsNoAtlas(quads)()
 
-                        if (key.first) {
-                            entityTranslucentShadowDrawState.bind().use { settings ->
+                        fun draw(state: GlDrawState, to: LightTexture) {
+                            state.bind().use { settings ->
                                 settings.shader.setUniform("ShadowMat") { set(shadowMat) }
-                                settings.shader.setUniform("ModelViewMat") { set(modelViewMat) }
+                                settings.shader.setUniform("CameraPos") { setFloatVec(data.camera.pos) }
+                                settings.shader.setUniform("ChunkOffset") { setFloatVec(NeoVec3f(0f, 0f, 0f)) }
                                 settings.shader.setTexture(
                                     0,
                                     GlTextureBinding.FromInstance(
@@ -399,26 +355,16 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                                     )
                                 )
 
-                                translucent.framebuffer.bind(NeoRect2i(0, 0, translucent.width!!, translucent.height!!)).use { fbo ->
+                                to.framebuffer.bind(NeoRect2i(0, 0, to.width!!, to.height!!)).use { fbo ->
                                     tempMesh.draw()
                                 }
                             }
                         }
 
-                        entityShadowDrawState.bind().use { settings ->
-                            settings.shader.setUniform("ShadowMat") { set(shadowMat) }
-                            settings.shader.setUniform("ModelViewMat") { set(modelViewMat) }
-                            settings.shader.setTexture(
-                                0,
-                                GlTextureBinding.FromInstance(
-                                    texture,
-                                    GlTextureTarget.TEXTURE_2D
-                                )
-                            )
+                        draw(entityShadowDrawState, this.texture)
 
-                            this.texture.framebuffer.bind(NeoRect2i(0, 0, this.texture.width!!, this.texture.height!!)).use { fbo ->
-                                tempMesh.draw()
-                            }
+                        if (key.first) {
+                            draw(entityTranslucentShadowDrawState, translucent)
                         }
                     }
                 }
@@ -448,6 +394,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                 settings.shader.setUniform("LightColor") { setFloatVec(lightColor) }
                 settings.shader.setUniform("LightDirection") { setFloatVec(NeoVec4f(shadowRot.invert(Quaternionf()).transform(Vector4f(0f, 0f, 1f, 0f))).xyz) }
 
+                settings.shader.setUniform("ShadowMapPower") { set(VibrancyConfig.skyLightShadowMapPower) }
                 settings.shader.setUniform("ShadowBias") { set(2e-4f * (1 shl (4 - VibrancyConfig.skyLightResolution))) }
 
                 settings.shader.setTexture(
@@ -578,6 +525,8 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
             mesh.free()
             asyncTask?.cancel()
         }
+
+        fun shouldDraw(shadowFrustum: FrustumIntersection, data: RenderEventData) = box == null || shadowFrustum.testAab((box!!.min.toFloat() - data.camera.pos).toJOML(), (box!!.max.toFloat() - data.camera.pos).toJOML())
 
         fun isTaskActive() = asyncTask?.let { task -> !task.isDone } ?: false
 

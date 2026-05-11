@@ -11,7 +11,7 @@ uniform ivec2 Sampler0Size;
 uniform sampler2DShadow Sampler1; // solid shadow (depth)
 uniform sampler2D Sampler2; // translucent shadow
 uniform sampler2DShadow Sampler3; // translucent shadow (depth)
-uniform sampler2D Sampler4; //
+uniform sampler2D Sampler4; // reflection atlas
 
 uniform vec3 CameraPos;
 uniform vec3 LightColor;
