@@ -92,6 +92,34 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
             )
         )
         @JvmField
+        val entityShadowDrawState = GlDrawState.Basic(
+            depth = GlDepthShard.Enabled(
+                GlAlphaFunction.GEQUAL
+            ),
+            shader = GlShaderShard.FromLocation(
+                Vibrancy.id("sky/overworld/blit_entity_solid"),
+                { },
+                GlTextureBinding.FromInstance(
+                    NeoAtlas.blocks,
+                    GlTextureTarget.TEXTURE_2D
+                )
+            )
+        )
+        @JvmField
+        val entityTranslucentShadowDrawState = GlDrawState.Basic(
+            depth = GlDepthShard.Enabled(
+                GlAlphaFunction.GEQUAL
+            ),
+            shader = GlShaderShard.FromLocation(
+                Vibrancy.id("sky/overworld/blit_entity_translucent"),
+                { },
+                GlTextureBinding.FromInstance(
+                    NeoAtlas.blocks,
+                    GlTextureTarget.TEXTURE_2D
+                )
+            )
+        )
+        @JvmField
         val lightDrawState = LightMesh.drawState(
             NeoAtlas.blocks,
             Vibrancy.id("sky/overworld/mesh")
@@ -267,8 +295,6 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                     *///? }
                 }
                 profiler.pop()
-
-                settings.shader.setUniform("ModelViewMat") { set(Matrix4f().translate((-data.camera.pos).toJOML())) }
             }
 
             profiler.push("dynamicShadows")
@@ -349,21 +375,46 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
             profiler.pop()
 
             profiler.push("calculate")
+
+            val modelViewMat = Matrix4f().translate((-data.camera.pos).toJOML())
+
             for ((key, quads) in quads) {
                 if (quads.isNotEmpty()) {
                     GlTexture2D[key.second]?.let { texture ->
-                        settings.shader.setTexture(
-                            0,
-                            GlTextureBinding.FromInstance(
-                                texture,
-                                GlTextureTarget.TEXTURE_2D
-                            )
-                        )
+                        tempMesh.lazyUploadQuadsNoAtlas(quads)()
 
-                        val target = if (key.first) translucent else this.texture
-                        target.framebuffer.bind(NeoRect2i(0, 0, target.width!!, target.height!!)).use { fbo ->
-                            tempMesh.lazyUploadQuadsNoAtlas(quads)()
-                            tempMesh.draw()
+                        if (key.first) {
+                            entityTranslucentShadowDrawState.bind().use { settings ->
+                                settings.shader.setUniform("ShadowMat") { set(shadowMat) }
+                                settings.shader.setUniform("ModelViewMat") { set(modelViewMat) }
+                                settings.shader.setTexture(
+                                    0,
+                                    GlTextureBinding.FromInstance(
+                                        texture,
+                                        GlTextureTarget.TEXTURE_2D
+                                    )
+                                )
+
+                                translucent.framebuffer.bind(NeoRect2i(0, 0, translucent.width!!, translucent.height!!)).use { fbo ->
+                                    tempMesh.draw()
+                                }
+                            }
+                        }
+
+                        entityShadowDrawState.bind().use { settings ->
+                            settings.shader.setUniform("ShadowMat") { set(shadowMat) }
+                            settings.shader.setUniform("ModelViewMat") { set(modelViewMat) }
+                            settings.shader.setTexture(
+                                0,
+                                GlTextureBinding.FromInstance(
+                                    texture,
+                                    GlTextureTarget.TEXTURE_2D
+                                )
+                            )
+
+                            this.texture.framebuffer.bind(NeoRect2i(0, 0, this.texture.width!!, this.texture.height!!)).use { fbo ->
+                                tempMesh.draw()
+                            }
                         }
                     }
                 }

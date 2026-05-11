@@ -1,0 +1,7 @@
+{
+  "sources": {
+    "vertex": "vibrancy:sky/overworld/blit",
+    "fragment": "vibrancy:sky/overworld/blit_entity_translucent"
+  },
+  "format": "vibrancy:light_mesh"
+}
