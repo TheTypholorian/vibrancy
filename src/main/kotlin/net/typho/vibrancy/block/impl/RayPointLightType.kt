@@ -10,7 +10,6 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureTarg
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlFramebuffer
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlBlendShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
-import net.typho.big_shot_lib.api.client.rendering.opengl.state.NeoGlStateManager
 import net.typho.big_shot_lib.api.client.rendering.opengl.util.BlendFunction
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
@@ -58,7 +57,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                     data,
                     manager,
                     debugOut,
-                    (VibrancyConfig.entityShadowsEnabled || VibrancyConfig.blockEntityShadows) && index < VibrancyConfig.entityShadowMaxLights && manager.inRenderDistance(light.second, VibrancyConfig.entityShadowDistance),
+                    (VibrancyConfig.entityShadowsEnabled || VibrancyConfig.blockEntityShadows) && index < VibrancyConfig.entityShadowMaxBlockLights && manager.inRenderDistance(light.second, VibrancyConfig.entityShadowDistance),
                     profiler
                 ) }
                 profiler.pop()

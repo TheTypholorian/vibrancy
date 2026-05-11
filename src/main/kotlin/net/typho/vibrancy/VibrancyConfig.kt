@@ -80,7 +80,7 @@ object VibrancyConfig {
     @JvmField
     var entityShadowDistance = if (isPotato) 3 else 4
     @JvmField
-    var entityShadowMaxLights = if (isPotato) 10 else 30
+    var entityShadowMaxBlockLights = if (isPotato) 10 else 30
 
     var rayLightsEnabled = true
         set(value) {
@@ -169,7 +169,7 @@ object VibrancyConfig {
                 .name("enabled").value(entityShadowsEnabled)
                 .name("blockEntities").value(blockEntityShadows)
                 .name("distance").value(entityShadowDistance)
-                .name("maxLights").value(entityShadowMaxLights)
+                .name("maxLights").value(entityShadowMaxBlockLights)
 
                 .endObject()
 
@@ -240,7 +240,7 @@ object VibrancyConfig {
                     entityShadows.getAsJsonPrimitive("enabled")?.let { entityShadowsEnabled = it.asBoolean }
                     entityShadows.getAsJsonPrimitive("blockEntities")?.let { blockEntityShadows = it.asBoolean }
                     entityShadows.getAsJsonPrimitive("distance")?.let { entityShadowDistance = it.asInt }
-                    entityShadows.getAsJsonPrimitive("maxLights")?.let { entityShadowMaxLights = it.asInt }
+                    entityShadows.getAsJsonPrimitive("maxLights")?.let { entityShadowMaxBlockLights = it.asInt }
                 }
 
                 json.getAsJsonObject("inventoryLights")?.let { inventoryLights ->
@@ -566,7 +566,7 @@ object VibrancyConfig {
 
                 .option(Option.createBuilder<Int>()
                     .name(Component.translatable("config.vibrancy.entityShadows.distance"))
-                    .binding(if (isPotato) 3 else 4, VibrancyConfig::entityShadowDistance)
+                    .binding(if (isPotato) 2 else 4, VibrancyConfig::entityShadowDistance)
                     .controller { opt ->
                         IntegerSliderControllerBuilder.create(opt)
                             .range(1, 16)
@@ -576,10 +576,10 @@ object VibrancyConfig {
 
                 .option(Option.createBuilder<Int>()
                     .name(Component.translatable("config.vibrancy.entityShadows.maxLights"))
-                    .binding(if (isPotato) 10 else 30, VibrancyConfig::entityShadowMaxLights)
+                    .binding(if (isPotato) 10 else 30, VibrancyConfig::entityShadowMaxBlockLights)
                     .controller { opt ->
                         IntegerSliderControllerBuilder.create(opt)
-                            .range(10, 100)
+                            .range(0, 100)
                             .step(10)
                     }
                     .build())
