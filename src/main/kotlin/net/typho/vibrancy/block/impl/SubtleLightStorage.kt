@@ -45,10 +45,7 @@ import net.typho.vibrancy.shadows.LightFace
 import net.typho.vibrancy.util.GlTask
 import net.typho.vibrancy.util.VibrancyThreadPool
 import org.joml.Matrix4f
-import org.lwjgl.opengl.GL30.glBindBufferBase
-import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.system.NativeResource
-import java.util.concurrent.CompletableFuture
 import kotlin.use
 
 class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLightStorage.Chunk>(SubtleLightType) {
@@ -352,7 +349,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
 
                 profiler.push("uniforms")
                 //shader.setTexture(1, GlTextureBinding.FromInstance(lightTexture, GlTextureTarget.TEXTURE_2D))
-                glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, ssbo.glId)
+                shader.setShaderStorageBuffer("LightBuffer", ssbo)
                 shader.setTexture(0, GlTextureBinding.FromInstance(
                     NeoAtlas.blocks,
                     GlTextureTarget.TEXTURE_2D

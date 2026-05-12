@@ -68,10 +68,7 @@ import net.typho.vibrancy.util.EntityRenderingUtil
 import net.typho.vibrancy.util.PointLight
 import net.typho.vibrancy.util.QuadListVertexConsumer
 import org.joml.Matrix4f
-import org.joml.Quaternionf
 import org.joml.Vector4f
-import org.lwjgl.opengl.GL30.glBindBufferBase
-import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.system.NativeResource
 import kotlin.math.ceil
 
@@ -111,14 +108,14 @@ open class RayPointLight(
 
     fun blit(target: LightTexture, shadowBuffer: ShadowBuffer, uniforms: GlBoundProgram.() -> Unit, shader: NeoIdentifier) {
         target.framebuffer.bind(NeoRect2i(0, 0, target.width!!, target.height!!)).use { fbo ->
-            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 0, shadowBuffer.glId)
-
             drawState(shader) {
                 uniforms(this)
 
                 setUniform("LightPos") { setFloatVec(offset) }
                 setUniform("LightColor") { setFloatVec(color * VibrancyConfig.rayLightBrightness) }
                 setUniform("LightRadius") { set(radius) }
+
+                setShaderStorageBuffer("ShadowQuadBuffer", shadowBuffer)
             }.bind().use { blitMesh.draw() }
         }
     }
@@ -507,13 +504,13 @@ open class RayPointLight(
                             texBuffer.free()
 
                             dynamicBuffer.lazyUploadQuads(textures, quads)()
-                            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 1, dynamicBVHBuffer.glId)
-                            glBindBufferBase(GL_SHADER_STORAGE_BUFFER, 2, dynamicTextureInfoBuffer.glId)
                             blit(
                                 dynamicTexture,
                                 dynamicBuffer,
                                 {
                                     setTextureArray(0, "Samplers", *textures.map { GlTextureBinding.FromInstance(it, GlTextureTarget.TEXTURE_2D) }.toTypedArray())
+                                    setShaderStorageBuffer("BVHBuffer", dynamicBVHBuffer)
+                                    setShaderStorageBuffer("TextureInfoBuffer", dynamicTextureInfoBuffer)
                                 },
                                 Vibrancy.id("block/raytraced/dynamic_blit")
                             )

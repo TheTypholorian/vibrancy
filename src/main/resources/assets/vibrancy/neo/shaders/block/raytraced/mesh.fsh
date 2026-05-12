@@ -1,6 +1,5 @@
 #version 430
 
-#include "big_shot_lib:fog"
 #include "vibrancy:fragment"
 
 uniform sampler2D Sampler0;

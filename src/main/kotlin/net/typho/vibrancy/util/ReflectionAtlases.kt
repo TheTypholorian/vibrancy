@@ -30,6 +30,10 @@ import net.typho.vibrancy.mixin.GlTextureAccessor
 import com.mojang.blaze3d.textures.TextureFormat
 //? }
 
+//? if >=1.21.6 {
+import com.mojang.blaze3d.textures.GpuTexture
+//? }
+
 object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigShotClientEntrypoint {
     private class Animation(
         @JvmField
@@ -75,10 +79,16 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
                         /*animation.ticker.tickAndUpload(animation.x, animation.y)
                         *///? } else {
                         animation.ticker.tickAndUpload(animation.x, animation.y, GlTextureAccessor.`vibrancy$init`(
+                            //? if >=1.21.6 {
+                            GpuTexture.USAGE_COPY_DST,
+                            //? }
                             "Vibrancy Reflection Atlas $key",
                             TextureFormat.RGBA8,
                             atlas.texture.width!!,
                             atlas.texture.height!!,
+                            //? if >=1.21.6 {
+                            1,
+                            //? }
                             1,
                             atlas.texture.glId
                         ))
@@ -149,10 +159,16 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
                                 /*contents.uploadFirstFrame(sprite.x, sprite.y)
                                 *///? } else {
                                 contents.uploadFirstFrame(sprite.x, sprite.y, GlTextureAccessor.`vibrancy$init`(
+                                    //? if >=1.21.6 {
+                                    GpuTexture.USAGE_COPY_DST,
+                                    //? }
                                     "Vibrancy Reflection Atlas $key",
                                     TextureFormat.RGBA8,
                                     parent.width,
                                     parent.height,
+                                    //? if >=1.21.6 {
+                                    1,
+                                    //? }
                                     1,
                                     parent.glId
                                 ))

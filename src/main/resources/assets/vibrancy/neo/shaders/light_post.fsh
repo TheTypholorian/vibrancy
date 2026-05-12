@@ -1,7 +1,5 @@
 #version 430
 
-//#include "big_shot_lib:fog"
-
 uniform sampler2D Sampler0;
 
 in vec2 texCoord0;

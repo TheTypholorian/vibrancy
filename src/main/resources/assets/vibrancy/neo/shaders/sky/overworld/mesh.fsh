@@ -1,6 +1,5 @@
 #version 430
 
-//#include "big_shot_lib:fog"
 #include "vibrancy:fragment"
 
 uniform float FogStart;
@@ -28,7 +27,7 @@ in vec3 texCoord1;
 in vec2 texCoord2;
 in vec4 vertexColor;
 in vec3 vertexPosition;
-in float vertexDistance;
+in vec3 fogPosition;
 in vec3 vertexNormal;
 
 out vec3 fragColor;
@@ -64,5 +63,5 @@ void main() {
         lightColor = specularReflection(lightColor * clamp(dot(vertexNormal, LightDirection), 0, 1), lightColor, LightDirection, CameraPos, vertexPosition, vertexNormal, SpecularReflectionStrength, SpecularReflectionExponent, Sampler4, texCoord0);
     }
 
-    fragColor = applyLight(lightColor, block, vertexDistance, FogStart, FogEnd);
+    fragColor = applyLight(lightColor, block, fogPosition);
 }

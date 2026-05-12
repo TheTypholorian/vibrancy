@@ -1,3 +1,5 @@
+#include "big_shot_lib:fog"
+
 float attenuateNoCusp(float distance, float radius) {
     float s = distance / radius;
 
