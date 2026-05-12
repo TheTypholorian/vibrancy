@@ -6,7 +6,7 @@ plugins {
     id("dev.kikugie.postprocess.jsonlang") version "2.1-beta.4" apply false
 }
 
-stonecutter active "mc1_21_5_fabric"
+stonecutter active "mc1_21_6_fabric"
 stonecutter parameters {
     constants.match(node.metadata.project.substringAfterLast('_'), "fabric", "neoforge")
     filters.include("**/*.fsh", "**/*.vsh")

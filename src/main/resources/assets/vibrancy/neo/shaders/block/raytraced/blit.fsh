@@ -3,7 +3,7 @@
 #include "vibrancy:fragment"
 #include "vibrancy:rays"
 
-layout(std430, binding = 0) buffer ShadowQuadBuffer {
+layout(std430) buffer ShadowQuadBuffer {
     Quad shadowQuads[];
 };
 

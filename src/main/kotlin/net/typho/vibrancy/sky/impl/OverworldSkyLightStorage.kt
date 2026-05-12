@@ -35,6 +35,7 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
 import net.typho.big_shot_lib.api.client.rendering.util.BlockChunkLayer
+import net.typho.big_shot_lib.api.client.rendering.util.FogUtil
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.rendering.util.NeoRenderSettings
@@ -396,18 +397,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                 settings.shader.setUniform("ModelViewMat") { set(Matrix4f().translate((-data.camera.pos).toJOML())) }
                 settings.shader.setUniform("ProjMat") { set(data.projMat) }
                 settings.shader.setUniform("ShadowMat") { set(shadowMat) }
-
-                //? if <1.21.5 {
-                /*settings.shader.setUniform("FogStart") { set(RenderSystem.getShaderFogStart()) }
-                settings.shader.setUniform("FogEnd") { set(RenderSystem.getShaderFogEnd()) }
-                settings.shader.setUniform("FogShape") { set(RenderSystem.getShaderFogShape().index) }
-                *///? } else {
-                val fog = RenderSystem.getShaderFog()
-                settings.shader.setUniform("FogStart") { set(fog.start) }
-                settings.shader.setUniform("FogEnd") { set(fog.end) }
-                settings.shader.setUniform("FogShape") { set(fog.shape.index) }
-                //? }
-
+                FogUtil.INSTANCE.upload(settings.shader)
                 settings.shader.setUniform("CameraPos") { setFloatVec(data.camera.pos) }
                 settings.shader.setUniform("LightColor") { setFloatVec(lightColor) }
                 settings.shader.setUniform("LightDirection") { setFloatVec(NeoVec4f(shadowRot.invert(Quaternionf()).transform(Vector4f(0f, 0f, 1f, 0f))).xyz) }

@@ -25,6 +25,7 @@ sourceSets {
         java {
             if (sc.current.parsed < "1.21.5") {
                 exclude("net/typho/vibrancy/mixin/GlTextureAccessor.java")
+                exclude("net/typho/vibrancy/mixin/GlBufferAccessor.java")
             }
         }
     }

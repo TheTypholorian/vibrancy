@@ -12,6 +12,7 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlBlendShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.NeoGlStateManager
 import net.typho.big_shot_lib.api.client.rendering.opengl.util.BlendFunction
+import net.typho.big_shot_lib.api.client.rendering.util.FogUtil
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
@@ -71,17 +72,7 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
                     settings.shader.setUniform("ProjMat") { set(data.projMat) }
                     settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((-data.camera.pos).toJOML(), Matrix4f())) }
                     settings.shader.setUniform("LightBrightness") { set(VibrancyConfig.subtleLightBrightness) }
-
-                    //? if <1.21.5 {
-                    /*settings.shader.setUniform("FogStart") { set(RenderSystem.getShaderFogStart()) }
-                    settings.shader.setUniform("FogEnd") { set(RenderSystem.getShaderFogEnd()) }
-                    settings.shader.setUniform("FogShape") { set(RenderSystem.getShaderFogShape().index) }
-                    *///? } else {
-                    val fog = RenderSystem.getShaderFog()
-                    settings.shader.setUniform("FogStart") { set(fog.start) }
-                    settings.shader.setUniform("FogEnd") { set(fog.end) }
-                    settings.shader.setUniform("FogShape") { set(fog.shape.index) }
-                    //? }
+                    FogUtil.INSTANCE.upload(settings.shader)
                     profiler.pop()
 
                     profiler.push("sort")
