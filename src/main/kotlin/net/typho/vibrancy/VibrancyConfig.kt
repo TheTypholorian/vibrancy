@@ -140,15 +140,6 @@ object VibrancyConfig {
     @JvmField
     var skyLightTranslucentEnabled: Boolean = true
 
-    @JvmField
-    var inventoryLightsEnabled = false
-    @JvmField
-    var inventoryLightScale = 8
-    @JvmField
-    var inventoryLightBrightness = 0.5f
-    @JvmField
-    var inventoryLightsShadows = !isPotato
-
     @JvmStatic
     fun save() {
         JsonWriter(Files.newBufferedWriter(PlatformUtil.INSTANCE.configPath.resolve("vibrancy.json"))).use { writer ->
@@ -174,15 +165,6 @@ object VibrancyConfig {
                 .name("blockEntities").value(blockEntityShadows)
                 .name("distance").value(entityShadowDistance)
                 .name("maxLights").value(entityShadowMaxBlockLights)
-
-                .endObject()
-
-                .name("inventoryLights").beginObject()
-
-                .name("enabled").value(inventoryLightsEnabled)
-                .name("scale").value(inventoryLightScale)
-                .name("brightness").value(inventoryLightBrightness)
-                .name("shadows").value(inventoryLightsShadows)
 
                 .endObject()
 
@@ -247,13 +229,6 @@ object VibrancyConfig {
                     entityShadows.getAsJsonPrimitive("blockEntities")?.let { blockEntityShadows = it.asBoolean }
                     entityShadows.getAsJsonPrimitive("distance")?.let { entityShadowDistance = it.asInt }
                     entityShadows.getAsJsonPrimitive("maxLights")?.let { entityShadowMaxBlockLights = it.asInt }
-                }
-
-                json.getAsJsonObject("inventoryLights")?.let { inventoryLights ->
-                    inventoryLights.getAsJsonPrimitive("enabled")?.let { inventoryLightsEnabled = it.asBoolean }
-                    inventoryLights.getAsJsonPrimitive("scale")?.let { inventoryLightScale = it.asInt }
-                    inventoryLights.getAsJsonPrimitive("brightness")?.let { inventoryLightBrightness = it.asFloat }
-                    inventoryLights.getAsJsonPrimitive("shadows")?.let { inventoryLightsShadows = it.asBoolean }
                 }
 
                 json.getAsJsonObject("blockLights")?.let { blockLights ->
@@ -505,42 +480,6 @@ object VibrancyConfig {
                     .controller(TickBoxControllerBuilder::create)
                     .build())
 
-                .build())
-
-            .category(ConfigCategory.createBuilder()
-                .name(Component.translatable("config.vibrancy.inventoryLights"))
-
-                .option(Option.createBuilder<Boolean>()
-                    .name(Component.translatable("config.vibrancy.inventoryLights.enabled"))
-                    .binding(false, VibrancyConfig::inventoryLightsEnabled)
-                    .controller(TickBoxControllerBuilder::create)
-                    .build())
-
-                .option(Option.createBuilder<Int>()
-                    .name(Component.translatable("config.vibrancy.inventoryLights.scale"))
-                    .binding(8, VibrancyConfig::inventoryLightScale)
-                    .controller { opt ->
-                        IntegerSliderControllerBuilder.create(opt)
-                            .range(4, 32)
-                            .step(4)
-                    }
-                    .build())
-
-                .option(Option.createBuilder<Float>()
-                    .name(Component.translatable("config.vibrancy.inventoryLights.brightness"))
-                    .binding(0.5f, VibrancyConfig::inventoryLightBrightness)
-                    .controller { opt ->
-                        FloatSliderControllerBuilder.create(opt)
-                            .range(0.1f, 2f)
-                            .step(0.1f)
-                    }
-                    .build())
-
-                .option(Option.createBuilder<Boolean>()
-                    .name(Component.translatable("config.vibrancy.inventoryLights.shadows"))
-                    .binding(!isPotato, VibrancyConfig::inventoryLightsShadows)
-                    .controller(TickBoxControllerBuilder::create)
-                    .build())
                 .build())
 
             .category(ConfigCategory.createBuilder()

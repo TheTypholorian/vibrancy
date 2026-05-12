@@ -4,17 +4,8 @@
   "package": "net.typho.vibrancy.mixin",
   "refmap": "${mod_id}.refmap.json",
   "compatibilityLevel": "JAVA_${java}",
-  "mixins": [
-    "VisualizationManagerMixin"
-  ],
-  "client": [
-    "EntityRenderDispatcherMixin",
-    "GameRendererMixin",
-    "GuiGraphicsMixin",
-    "LevelRendererMixin",
-    "NativeImageAccessor",
-    "ReceivingLevelScreenMixin"
-  ],
+  "mixins": [],
+  "client": [],
   "injectors": {
     "defaultRequire": 1
   }

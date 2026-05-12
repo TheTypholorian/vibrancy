@@ -1,6 +1,5 @@
 package net.typho.vibrancy.util
 
-import com.ibm.icu.impl.PluralRulesLoader.loader
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.texture.SpriteContents
 import net.minecraft.client.renderer.texture.SpriteLoader
@@ -25,6 +24,11 @@ import net.typho.big_shot_lib.api.util.resource.NeoFileToIdConverter
 import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.Vibrancy
 import java.io.FileNotFoundException
+
+//? if >=1.21.5 {
+import net.typho.vibrancy.mixin.GlTextureAccessor
+import com.mojang.blaze3d.textures.TextureFormat
+//? }
 
 object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigShotClientEntrypoint {
     private class Animation(
@@ -64,10 +68,21 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
 
     override fun registerEvents(factory: ClientEventFactory) {
         factory.clientTickStart.add {
-            for (atlas in atlases.values) {
+            for ((key, atlas) in atlases) {
                 atlas.texture.bind(GlTextureTarget.TEXTURE_2D).use { texture ->
                     for (animation in atlas.animations) {
-                        animation.ticker.tickAndUpload(animation.x, animation.y)
+                        //? if <1.21.5 {
+                        /*animation.ticker.tickAndUpload(animation.x, animation.y)
+                        *///? } else {
+                        animation.ticker.tickAndUpload(animation.x, animation.y, GlTextureAccessor.`vibrancy$init`(
+                            "Vibrancy Reflection Atlas $key",
+                            TextureFormat.RGBA8,
+                            atlas.texture.width!!,
+                            atlas.texture.height!!,
+                            1,
+                            atlas.texture.glId
+                        ))
+                        //? }
                     }
                 }
             }
@@ -98,7 +113,7 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
                 val animations = mutableListOf<Animation>()
 
                 //? if <1.21 {
-                for (resource in idConverter.listMatchingResources(resources)) {
+                /*for (resource in idConverter.listMatchingResources(resources)) {
                     val id = idConverter.fileToId(resource.key)
 
                     parent.sprites[id]?.let { sprite ->
@@ -121,8 +136,8 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
                         }
                     }
                 }
-                //? } else {
-                /*val loader = SpriteResourceLoader.create(SpriteLoader.DEFAULT_METADATA_SECTIONS)
+                *///? } else {
+                val loader = SpriteResourceLoader.create(SpriteLoader.DEFAULT_METADATA_SECTIONS)
 
                 for (resource in idConverter.listMatchingResources(resources)) {
                     val id = idConverter.fileToId(resource.key)
@@ -130,7 +145,18 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
                     parent.sprites[id]?.let { sprite ->
                         resource.value.open().use { stream ->
                             loader.loadSprite(ResourceLocation.fromNamespaceAndPath(resource.key.namespace, resource.key.path), resource.value)?.let { contents ->
-                                contents.uploadFirstFrame(sprite.x, sprite.y)
+                                //? if <1.21.5 {
+                                /*contents.uploadFirstFrame(sprite.x, sprite.y)
+                                *///? } else {
+                                contents.uploadFirstFrame(sprite.x, sprite.y, GlTextureAccessor.`vibrancy$init`(
+                                    "Vibrancy Reflection Atlas $key",
+                                    TextureFormat.RGBA8,
+                                    parent.width,
+                                    parent.height,
+                                    1,
+                                    parent.glId
+                                ))
+                                //? }
                                 val ticker = contents.createTicker()
 
                                 if (ticker == null) {
@@ -147,7 +173,7 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
                         }
                     }
                 }
-                *///? }
+                //? }
 
                 return@computeIfAbsent Atlas(texture.resource, animations)
             }

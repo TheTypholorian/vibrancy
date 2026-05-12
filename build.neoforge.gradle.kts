@@ -7,6 +7,24 @@ plugins {
     id("me.modmuss50.mod-publish-plugin") version "2.0.0-beta.1"
     id("com.google.devtools.ksp") version "2.2.0-2.0.2"
     id("io.github.klahap.dotenv") version "1.1.3"
+    id("dev.kikugie.fletching-table.neoforge") version "0.1.0-alpha.22"
+}
+
+fletchingTable {
+    mixins.create("main") {
+        mixin("default", "${project.property("mod.id")}.mixins.json")
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            if (sc.current.parsed < "1.21.5") {
+                exclude("net/typho/vibrancy/mixin/GlTextureAccessor.java")
+                exclude("net/typho/vibrancy/mixin/GlBufferAccessor.java")
+            }
+        }
+    }
 }
 
 val env = DotEnvBuilder.dotEnv {

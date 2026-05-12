@@ -64,6 +64,7 @@ import net.typho.vibrancy.shadows.LightTexture
 import net.typho.vibrancy.shadows.ShadowBuffer
 import net.typho.vibrancy.shadows.StaticBlockLightMeshManager
 import net.typho.vibrancy.util.EmptyVertexConsumer
+import net.typho.vibrancy.util.EntityRenderingUtil
 import net.typho.vibrancy.util.PointLight
 import net.typho.vibrancy.util.QuadListVertexConsumer
 import org.joml.Matrix4f
@@ -406,47 +407,7 @@ open class RayPointLight(
                         //? }
                             val node = Node()
                             debugOut("entityShadows", 1)
-                            //? if <1.21.9 {
-                            Minecraft.getInstance().entityRenderDispatcher.render(
-                                entity,
-                                Mth.lerp(Vibrancy.tickDelta.toDouble(), entity.xOld, entity.x),
-                                Mth.lerp(Vibrancy.tickDelta.toDouble(), entity.yOld, entity.y),
-                                Mth.lerp(Vibrancy.tickDelta.toDouble(), entity.zOld, entity.z),
-                                Mth.lerp(Vibrancy.tickDelta, entity.yRotO, entity.yRot),
-                                Vibrancy.tickDelta,
-                                poseStack,
-                                node.bufferSource,
-                                net.minecraft.client.renderer.LightTexture.FULL_BRIGHT
-                            )
-                            //? } else {
-                            /*val renderer = Minecraft.getInstance().entityRenderDispatcher.getRenderer(entity)
-
-                            if (renderer.shouldRender(entity, Frustum(data.modelViewMat, data.projMat), data.camera.pos.x.toDouble(), data.camera.pos.y.toDouble(), data.camera.pos.z.toDouble())) {
-                                val storage = SubmitNodeStorage()
-                                val features = FeatureRenderDispatcher(
-                                    storage,
-                                    Minecraft.getInstance().blockRenderer,
-                                    node.bufferSource,
-                                    Minecraft.getInstance().atlasManager,
-                                    object : OutlineBufferSource() {
-                                        override fun getBuffer(renderType: RenderType): VertexConsumer {
-                                            return WrapperUtil.INSTANCE.unwrap(EmptyVertexConsumer)
-                                        }
-                                    },
-                                    WrapperUtil.INSTANCE.unwrap { EmptyVertexConsumer },
-                                    Minecraft.getInstance().font
-                                )
-
-                                renderer.submit(
-                                    renderer.createRenderState(entity, Vibrancy.tickDelta),
-                                    poseStack,
-                                    storage,
-                                    Minecraft.getInstance().gameRenderer.levelRenderState.cameraRenderState
-                                )
-
-                                storage.endFrame()
-                            }
-                            *///? }
+                            EntityRenderingUtil.render(entity, poseStack, node.bufferSource)
                             nodes.add(node)
                         }
                     }
@@ -459,36 +420,27 @@ open class RayPointLight(
 
                     for (pos in meshCollector.blockEntities) {
                         level.getBlockEntity(pos)?.let { blockEntity ->
-                            Minecraft.getInstance().blockEntityRenderDispatcher.getRenderer(blockEntity)?.let { renderer ->
-                                val node = Node()
-                                debugOut("blockEntityShadows", 1)
+                            val node = Node()
+                            debugOut("blockEntityShadows", 1)
 
-                                poseStack.pushPose()
+                            poseStack.pushPose()
 
-                                //? if 1.21 {
-                                /*if (subLevelPose == null) {
-                                    poseStack.translate(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
-                                } else {
-                                    val pos = subLevelPose.transformPosition(NeoVec3i(pos).toDouble().toJOML())
-                                    poseStack.translate(pos.x, pos.y, pos.z)
-                                    poseStack.mulPose(Quaternionf(subLevelPose.orientation()))
-                                }
-                                *///? } else {
+                            //? if 1.21 {
+                            /*if (subLevelPose == null) {
                                 poseStack.translate(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
-                                //? }
-
-                                renderer.render(
-                                    blockEntity,
-                                    Vibrancy.tickDelta,
-                                    poseStack,
-                                    node.bufferSource,
-                                    15728880,
-                                    OverlayTexture.NO_OVERLAY
-                                )
-
-                                poseStack.popPose()
-                                nodes.add(node)
+                            } else {
+                                val pos = subLevelPose.transformPosition(NeoVec3i(pos).toDouble().toJOML())
+                                poseStack.translate(pos.x, pos.y, pos.z)
+                                poseStack.mulPose(Quaternionf(subLevelPose.orientation()))
                             }
+                            *///? } else {
+                            poseStack.translate(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
+                            //? }
+
+                            EntityRenderingUtil.renderBlockEntity(blockEntity, poseStack, node.bufferSource, data)
+
+                            poseStack.popPose()
+                            nodes.add(node)
                         }
                     }
 

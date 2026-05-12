@@ -10,6 +10,7 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
+import net.minecraft.util.ARGB
 import net.minecraft.util.Mth
 import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.ChunkPos
@@ -34,6 +35,7 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
 import net.typho.big_shot_lib.api.client.rendering.util.BlockChunkLayer
+import net.typho.big_shot_lib.api.client.rendering.util.FogUtil
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.rendering.util.NeoRenderSettings
@@ -65,6 +67,7 @@ import net.typho.vibrancy.shadows.LightTexture
 import net.typho.vibrancy.sky.ChunkedSkyLightStorage
 import net.typho.vibrancy.sky.SkyLightStorage
 import net.typho.vibrancy.util.EmptyVertexConsumer
+import net.typho.vibrancy.util.EntityRenderingUtil
 import net.typho.vibrancy.util.GlTask
 import net.typho.vibrancy.util.QuadListVertexConsumer
 import net.typho.vibrancy.util.ReflectionAtlases
@@ -182,11 +185,20 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
             lightAngle -= PI.toFloat()
             lightColor = info!!.moonColor * data.level!!.moonBrightness
         } else {
-            val sunriseColor = data.level!!.effects().getSunriseColor(data.level!!.getTimeOfDay(Vibrancy.tickDelta), Vibrancy.tickDelta)
+            //? if <1.21.5 {
+            /*val sunriseColor = data.level!!.effects().getSunriseColor(data.level!!.getTimeOfDay(Vibrancy.tickDelta), Vibrancy.tickDelta)
 
             if (sunriseColor != null) {
                 lightColor = lightColor.lerp(sunriseColor[0], sunriseColor[1], sunriseColor[2], sunriseColor[3])
             }
+            *///? } else {
+            val timeOfDay = data.level!!.getTimeOfDay(Vibrancy.tickDelta)
+
+            if (data.level!!.effects().isSunriseOrSunset(timeOfDay)) {
+                val sunriseColor = NeoColor.argbF(data.level!!.effects().getSunriseOrSunsetColor(timeOfDay))
+                lightColor = lightColor.lerp(sunriseColor.redF, sunriseColor.greenF, sunriseColor.blueF, sunriseColor.alphaF)
+            }
+            //? }
         }
 
         lightColor *= sqrt(sin(lightAngle).coerceAtLeast(0f))
@@ -291,17 +303,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
             if (VibrancyConfig.entityShadowsEnabled) {
                 profiler.push("entityShadows")
                 for (entity in data.level!!.getEntities(null, AABB.ofSize(Vec3(data.camera.pos.toJOML()), radius.toDouble() * 2, radius.toDouble() * 2, radius.toDouble() * 2))) {
-                    Minecraft.getInstance().entityRenderDispatcher.render(
-                        entity,
-                        Mth.lerp(Vibrancy.tickDelta.toDouble(), entity.xOld, entity.x),
-                        Mth.lerp(Vibrancy.tickDelta.toDouble(), entity.yOld, entity.y),
-                        Mth.lerp(Vibrancy.tickDelta.toDouble(), entity.zOld, entity.z),
-                        Mth.lerp(Vibrancy.tickDelta, entity.yRotO, entity.yRot),
-                        Vibrancy.tickDelta,
-                        poseStack,
-                        bufferSource,
-                        net.minecraft.client.renderer.LightTexture.FULL_BRIGHT
-                    )
+                    EntityRenderingUtil.render(entity, poseStack, bufferSource)
                 }
                 profiler.pop()
             }
@@ -324,27 +326,18 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                         if (transformedPos.inDistance(data.camera.pos, radius.toFloat())) {
                         //? }
                             data.level!!.getBlockEntity(blockPos)?.let { blockEntity ->
-                                Minecraft.getInstance().blockEntityRenderDispatcher.getRenderer(blockEntity)?.let { renderer ->
-                                    poseStack.pushPose()
-                                    poseStack.translate(transformedPos.x, transformedPos.y, transformedPos.z)
+                                poseStack.pushPose()
+                                poseStack.translate(transformedPos.x, transformedPos.y, transformedPos.z)
 
-                                    //? if 1.21 {
-                                    /*if (subLevelPose != null) {
-                                        poseStack.mulPose(Quaternionf(subLevelPose.orientation()))
-                                    }
-                                    *///? }
-
-                                    renderer.render(
-                                        blockEntity,
-                                        Vibrancy.tickDelta,
-                                        poseStack,
-                                        bufferSource,
-                                        15728880,
-                                        OverlayTexture.NO_OVERLAY
-                                    )
-
-                                    poseStack.popPose()
+                                //? if 1.21 {
+                                /*if (subLevelPose != null) {
+                                    poseStack.mulPose(Quaternionf(subLevelPose.orientation()))
                                 }
+                                *///? }
+
+                                EntityRenderingUtil.renderBlockEntity(blockEntity, poseStack, bufferSource, data)
+
+                                poseStack.popPose()
                             }
                         }
                     }
@@ -404,11 +397,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                 settings.shader.setUniform("ModelViewMat") { set(Matrix4f().translate((-data.camera.pos).toJOML())) }
                 settings.shader.setUniform("ProjMat") { set(data.projMat) }
                 settings.shader.setUniform("ShadowMat") { set(shadowMat) }
-
-                settings.shader.setUniform("FogStart") { set(RenderSystem.getShaderFogStart()) }
-                settings.shader.setUniform("FogEnd") { set(RenderSystem.getShaderFogEnd()) }
-                settings.shader.setUniform("FogShape") { set(RenderSystem.getShaderFogShape().index) }
-
+                FogUtil.INSTANCE.upload(settings.shader)
                 settings.shader.setUniform("CameraPos") { setFloatVec(data.camera.pos) }
                 settings.shader.setUniform("LightColor") { setFloatVec(lightColor) }
                 settings.shader.setUniform("LightDirection") { setFloatVec(NeoVec4f(shadowRot.invert(Quaternionf()).transform(Vector4f(0f, 0f, 1f, 0f))).xyz) }

@@ -1,29 +1,17 @@
 #version 430
 
-float fog_distance(vec3 pos, int shape) {
-    if (shape == 0) {
-        return length(pos);
-    } else {
-        float distXZ = length(pos.xz);
-        float distY = abs(pos.y);
-        return max(distXZ, distY);
-    }
-}
-
 struct Light {
     vec3 pos;
     uint shape;
     vec3 color;
 };
 
-layout(std430, binding = 0) buffer LightBuffer {
+layout(std430) buffer LightBuffer {
     Light lights[];
 };
 
 uniform mat4 ModelViewMat;
 uniform mat4 ProjMat;
-
-uniform int FogShape;
 
 in vec3 Position;
 in vec2 UV0;
@@ -35,7 +23,7 @@ out vec2 texCoord0;
 flat out Light light;
 out vec4 vertexColor;
 out vec3 vertexPosition;
-out float vertexDistance;
+out vec3 fogPosition;
 out vec3 vertexNormal;
 
 void main() {
@@ -44,7 +32,7 @@ void main() {
     texCoord0 = UV0;
     light = lights[LightIndex];
     vertexColor = Color;
-    vertexDistance = fog_distance(pos.xyz, FogShape);
+    fogPosition = pos.xyz;
     vertexPosition = Position;
     vertexNormal = Normal;
 }

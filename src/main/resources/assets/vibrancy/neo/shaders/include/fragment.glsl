@@ -18,16 +18,6 @@ vec3 sampleCubeLight(vec3 lightPos, vec3 fragPos, float startRadius, float endRa
     return clamp((endRadius - dist) / (endRadius - startRadius), 0, 1) * lightColor;
 }
 
-float linear_fog_fade(float vertexDistance, float fogStart, float fogEnd) {
-    if (vertexDistance <= fogStart) {
-        return 1.0;
-    } else if (vertexDistance >= fogEnd) {
-        return 0.0;
-    }
-
-    return smoothstep(fogEnd, fogStart, vertexDistance);
-}
-
 vec3 specularReflection(vec3 baseColor, vec3 lightColor, vec3 lightDir, vec3 cameraPos, vec3 vertexPos, vec3 normal, float strength, float exponent, sampler2D reflectionSampler, vec2 texCoord0) {
     vec3 inputNormal = lightDir;
     vec3 outputNormal = normalize(cameraPos - vertexPos);
@@ -37,7 +27,7 @@ vec3 specularReflection(vec3 baseColor, vec3 lightColor, vec3 lightDir, vec3 cam
     return baseColor + lightColor * texture(reflectionSampler, texCoord0).r * multiplier;
 }
 
-vec3 applyLight(vec3 lightColor, vec4 blockColor, float vertexDistance, float fogStart, float fogEnd) {
+vec3 applyLight(vec3 lightColor, vec4 blockColor, vec3 pos) {
     vec3 mixedColor = mix(lightColor, lightColor * blockColor.rgb, blockColor.a) * blockColor.a;
-    return mixedColor * linear_fog_fade(vertexDistance, fogStart, fogEnd);
+    return mixedColor * fogFade(pos);
 }

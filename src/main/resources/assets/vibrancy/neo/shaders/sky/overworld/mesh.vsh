@@ -20,8 +20,6 @@ uniform mat4 SableMat;
 uniform mat4 SpecularMat;
 uniform mat4 ShadowMat;
 
-uniform int FogShape;
-
 in vec3 Position;
 in vec2 UV0;
 in ivec2 UV2;
@@ -33,7 +31,7 @@ out vec3 texCoord1;
 out vec2 texCoord2;
 out vec4 vertexColor;
 out vec3 vertexPosition;
-out float vertexDistance;
+out vec3 fogPosition;
 out vec3 vertexNormal;
 
 void main() {
@@ -45,6 +43,6 @@ void main() {
     texCoord2 = vec2(UV2) / 240;
     vertexColor = Color;
     vertexPosition = (SpecularMat * vec4(Position, 1)).xyz;
-    vertexDistance = fog_distance(sablePos.xyz, FogShape);
+    fogPosition = sablePos.xyz;
     vertexNormal = normalize(mat3(SableMat) * Normal);
 }

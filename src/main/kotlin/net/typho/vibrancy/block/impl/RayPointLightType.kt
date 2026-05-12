@@ -1,5 +1,6 @@
 package net.typho.vibrancy.block.impl
 
+import com.mojang.blaze3d.opengl.GlBuffer
 import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.block.state.StateDefinition
@@ -11,6 +12,7 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlFrameb
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlBlendShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
 import net.typho.big_shot_lib.api.client.rendering.opengl.util.BlendFunction
+import net.typho.big_shot_lib.api.client.rendering.util.FogUtil
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.util.NeoColor
@@ -22,6 +24,7 @@ import net.typho.vibrancy.block.BlockLightType
 import net.typho.vibrancy.block.HashMapBlockLightStorage
 import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.util.ReflectionAtlases
+import org.lwjgl.opengl.GL30.glBindBufferRange
 
 object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightStorage<RayPointLightInfo, RayPointLight>> {
     override fun infoCodec(stateDefinition: StateDefinition<*, *>) = RayPointLightInfo.codec(stateDefinition)
@@ -71,10 +74,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                     ))
                     settings.shader.setUniform("ProjMat") { set(data.projMat) }
                     settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat) }
-
-                    settings.shader.setUniform("FogStart") { set(RenderSystem.getShaderFogStart()) }
-                    settings.shader.setUniform("FogEnd") { set(RenderSystem.getShaderFogEnd()) }
-                    settings.shader.setUniform("FogShape") { set(RenderSystem.getShaderFogShape().index) }
+                    FogUtil.INSTANCE.upload(settings.shader)
                     profiler.pop()
 
                     val threshold = 2f * 2f * 16f * 16f
