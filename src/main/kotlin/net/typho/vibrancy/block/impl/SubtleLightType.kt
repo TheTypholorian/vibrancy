@@ -72,9 +72,16 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
                     settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((-data.camera.pos).toJOML(), Matrix4f())) }
                     settings.shader.setUniform("LightBrightness") { set(VibrancyConfig.subtleLightBrightness) }
 
-                    settings.shader.setUniform("FogStart") { set(RenderSystem.getShaderFogStart()) }
+                    //? if <1.21.5 {
+                    /*settings.shader.setUniform("FogStart") { set(RenderSystem.getShaderFogStart()) }
                     settings.shader.setUniform("FogEnd") { set(RenderSystem.getShaderFogEnd()) }
                     settings.shader.setUniform("FogShape") { set(RenderSystem.getShaderFogShape().index) }
+                    *///? } else {
+                    val fog = RenderSystem.getShaderFog()
+                    settings.shader.setUniform("FogStart") { set(fog.start) }
+                    settings.shader.setUniform("FogEnd") { set(fog.end) }
+                    settings.shader.setUniform("FogShape") { set(fog.shape.index) }
+                    //? }
                     profiler.pop()
 
                     profiler.push("sort")

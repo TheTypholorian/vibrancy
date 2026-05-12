@@ -4,12 +4,14 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.math.Axis;
 import net.minecraft.client.renderer.LevelRenderer;
+import net.minecraft.client.renderer.SkyRenderer;
 import org.joml.Quaternionf;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
-@Mixin(LevelRenderer.class)
-public class LevelRendererMixin {
+//? if <1.21.5 {
+/*@Mixin(LevelRenderer.class)
+public class SkyRendererMixin {
     @WrapOperation(
             method = "renderSky",
             at = @At(
@@ -22,3 +24,19 @@ public class LevelRendererMixin {
         return original.call(instance, f - 15);
     }
 }
+*///? } else {
+@Mixin(SkyRenderer.class)
+public class SkyRendererMixin {
+    @WrapOperation(
+            method = "renderSunMoonAndStars",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lcom/mojang/math/Axis;rotationDegrees(F)Lorg/joml/Quaternionf;",
+                    ordinal = 0
+            )
+    )
+    private Quaternionf renderSky(Axis instance, float f, Operation<Quaternionf> original) {
+        return original.call(instance, f - 15);
+    }
+}
+//? }

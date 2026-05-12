@@ -131,12 +131,12 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
     fun render(data: RenderEventData) {
         if (VibrancyConfig.modEnabled) {
             //? if <1.21 {
-            tickDelta = Minecraft.getInstance().frameTime
-            //? } else if <1.21.2 {
+            /*tickDelta = Minecraft.getInstance().frameTime
+            *///? } else if <1.21.2 {
             /*tickDelta = Minecraft.getInstance().timer.getGameTimeDeltaPartialTick(false)
             *///? } else {
-            /*tickDelta = Minecraft.getInstance().deltaTracker.getGameTimeDeltaPartialTick(false)
-            *///? }
+            tickDelta = Minecraft.getInstance().deltaTracker.getGameTimeDeltaPartialTick(false)
+            //? }
 
             val targetAttachment = data.target.colorAttachments[0]!!
             val width = targetAttachment.width!!.coerceAtLeast(1)

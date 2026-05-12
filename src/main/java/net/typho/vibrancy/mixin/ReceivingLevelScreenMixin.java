@@ -23,10 +23,10 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 //? if <1.21 {
-import org.spongepowered.asm.mixin.Unique;
-//? } else {
-/*import java.util.function.BooleanSupplier;
-*///? }
+/*import org.spongepowered.asm.mixin.Unique;
+*///? } else {
+import java.util.function.BooleanSupplier;
+//? }
 
 @Mixin(ReceivingLevelScreen.class)
 public abstract class ReceivingLevelScreenMixin extends Screen {
@@ -39,7 +39,7 @@ public abstract class ReceivingLevelScreenMixin extends Screen {
     }
 
     //? if <1.21 {
-    @Unique
+    /*@Unique
     private boolean vibrancy$levelReceived;
 
     @Inject(
@@ -112,8 +112,8 @@ public abstract class ReceivingLevelScreenMixin extends Screen {
             vibrancy$levelReceived = true;
         }
     }
-    //? } else {
-    /*@Shadow
+    *///? } else {
+    @Shadow
     @Final
     private BooleanSupplier levelReceived;
 
@@ -183,5 +183,5 @@ public abstract class ReceivingLevelScreenMixin extends Screen {
     private boolean tick(BooleanSupplier instance, Operation<Boolean> original) {
         return original.call(instance) && (VibrancyThreadPool.INSTANCE.getQueue().size() < 10 || System.currentTimeMillis() > createdAt + 15000L);
     }
-    *///? }
+    //? }
 }

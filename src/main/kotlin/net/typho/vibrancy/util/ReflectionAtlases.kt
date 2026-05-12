@@ -66,7 +66,8 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
             for (atlas in atlases.values) {
                 atlas.texture.bind(GlTextureTarget.TEXTURE_2D).use { texture ->
                     for (animation in atlas.animations) {
-                        animation.ticker.tickAndUpload(animation.x, animation.y)
+                        // TODO
+                        //animation.ticker.tickAndUpload(animation.x, animation.y)
                     }
                 }
             }
@@ -98,7 +99,7 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
 
                 //? if <1.21 {
                 //? } else {
-                /*val loader = SpriteResourceLoader.create(SpriteLoader.DEFAULT_METADATA_SECTIONS)
+                val loader = SpriteResourceLoader.create(SpriteLoader.DEFAULT_METADATA_SECTIONS)
 
                 for (resource in idConverter.listMatchingResources(resources)) {
                     val id = idConverter.fileToId(resource.key)
@@ -106,7 +107,8 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
                     parent.sprites[id]?.let { sprite ->
                         resource.value.open().use { stream ->
                             loader.loadSprite(ResourceLocation.fromNamespaceAndPath(resource.key.namespace, resource.key.path), resource.value)?.let { contents ->
-                                contents.uploadFirstFrame(sprite.x, sprite.y)
+                                // TODO
+                                //contents.uploadFirstFrame(sprite.x, sprite.y)
                                 val ticker = contents.createTicker()
 
                                 if (ticker == null) {
@@ -123,7 +125,7 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
                         }
                     }
                 }
-                *///? }
+                //? }
 
                 return@computeIfAbsent Atlas(texture.resource, animations)
             }

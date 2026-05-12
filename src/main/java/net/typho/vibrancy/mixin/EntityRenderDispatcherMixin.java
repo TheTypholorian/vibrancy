@@ -12,7 +12,11 @@ import org.spongepowered.asm.mixin.injection.At;
 public class EntityRenderDispatcherMixin {
     @SuppressWarnings("unchecked")
     @WrapOperation(
-            method = "render",
+            //? if <1.21.5 {
+            /*method = "render",
+            *///? } else {
+            method = "render(Lnet/minecraft/client/renderer/entity/state/EntityRenderState;DDDLcom/mojang/blaze3d/vertex/PoseStack;Lnet/minecraft/client/renderer/MultiBufferSource;ILnet/minecraft/client/renderer/entity/EntityRenderer;)V",
+            //? }
             at = @At(
                     value = "INVOKE",
                     target = "Lnet/minecraft/client/OptionInstance;get()Ljava/lang/Object;"
