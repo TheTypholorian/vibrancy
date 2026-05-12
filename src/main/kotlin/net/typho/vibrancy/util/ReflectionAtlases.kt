@@ -31,8 +31,8 @@ import com.mojang.blaze3d.textures.TextureFormat
 //? }
 
 //? if >=1.21.6 {
-import com.mojang.blaze3d.textures.GpuTexture
-//? }
+/*import com.mojang.blaze3d.textures.GpuTexture
+*///? }
 
 object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigShotClientEntrypoint {
     private class Animation(
@@ -75,24 +75,6 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
             for ((key, atlas) in atlases) {
                 atlas.texture.bind(GlTextureTarget.TEXTURE_2D).use { texture ->
                     for (animation in atlas.animations) {
-                        //? if <1.21.5 {
-                        /*animation.ticker.tickAndUpload(animation.x, animation.y)
-                        *///? } else {
-                        animation.ticker.tickAndUpload(animation.x, animation.y, GlTextureAccessor.`vibrancy$init`(
-                            //? if >=1.21.6 {
-                            GpuTexture.USAGE_COPY_DST,
-                            //? }
-                            "Vibrancy Reflection Atlas $key",
-                            TextureFormat.RGBA8,
-                            atlas.texture.width!!,
-                            atlas.texture.height!!,
-                            //? if >=1.21.6 {
-                            1,
-                            //? }
-                            1,
-                            atlas.texture.glId
-                        ))
-                        //? }
                     }
                 }
             }
@@ -155,24 +137,6 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
                     parent.sprites[id]?.let { sprite ->
                         resource.value.open().use { stream ->
                             loader.loadSprite(ResourceLocation.fromNamespaceAndPath(resource.key.namespace, resource.key.path), resource.value)?.let { contents ->
-                                //? if <1.21.5 {
-                                /*contents.uploadFirstFrame(sprite.x, sprite.y)
-                                *///? } else {
-                                contents.uploadFirstFrame(sprite.x, sprite.y, GlTextureAccessor.`vibrancy$init`(
-                                    //? if >=1.21.6 {
-                                    GpuTexture.USAGE_COPY_DST,
-                                    //? }
-                                    "Vibrancy Reflection Atlas $key",
-                                    TextureFormat.RGBA8,
-                                    parent.width,
-                                    parent.height,
-                                    //? if >=1.21.6 {
-                                    1,
-                                    //? }
-                                    1,
-                                    parent.glId
-                                ))
-                                //? }
                                 val ticker = contents.createTicker()
 
                                 if (ticker == null) {

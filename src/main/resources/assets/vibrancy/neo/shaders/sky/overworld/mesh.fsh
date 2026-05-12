@@ -2,9 +2,6 @@
 
 #include "vibrancy:fragment"
 
-uniform float FogStart;
-uniform float FogEnd;
-
 uniform sampler2D Sampler0; // material
 uniform ivec2 Sampler0Size;
 uniform sampler2DShadow Sampler1; // solid shadow (depth)

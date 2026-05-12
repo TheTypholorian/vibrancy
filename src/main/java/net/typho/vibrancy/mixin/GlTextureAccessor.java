@@ -15,14 +15,14 @@ import org.spongepowered.asm.mixin.gen.Invoker;
 @Mixin(GlTexture.class)
 public interface GlTextureAccessor {
     //? if <1.21.6 {
-    /*@Invoker("<init>")
+    @Invoker("<init>")
     static GlTexture vibrancy$init(String label, TextureFormat format, int width, int height, int mipLevels, int id) {
         throw new IllegalStateException();
     }
-    *///? } else {
-    @Invoker("<init>")
+    //? } else {
+    /*@Invoker("<init>")
     static GlTexture vibrancy$init(int usage, String label, TextureFormat format, int width, int height, int depthOrLayers, int mipLevels, int id) {
         throw new IllegalStateException();
     }
-    //? }
+    *///? }
 }
