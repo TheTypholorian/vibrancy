@@ -2,12 +2,14 @@ package net.typho.vibrancy.mixin;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import dev.kikugie.fletching_table.annotation.MixinEnvironment;
 import net.minecraft.client.OptionInstance;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.typho.vibrancy.VibrancyConfig;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
+@MixinEnvironment(type = MixinEnvironment.Env.CLIENT)
 @Mixin(EntityRenderDispatcher.class)
 public class EntityRenderDispatcherMixin {
     @SuppressWarnings("unchecked")

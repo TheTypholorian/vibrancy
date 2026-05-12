@@ -14,6 +14,22 @@ plugins {
     id("io.github.klahap.dotenv") version "1.1.3"
 }
 
+fletchingTable {
+    mixins.create("main") {
+        mixin("default", "${project.property("mod.id")}.mixins.json")
+    }
+}
+
+sourceSets {
+    main {
+        java {
+            if (sc.current.parsed < "1.21.5") {
+                exclude("net/typho/vibrancy/mixin/GlTextureAccessor.java")
+            }
+        }
+    }
+}
+
 val env = DotEnvBuilder.dotEnv {
     addFile("$rootDir/.env")
 }

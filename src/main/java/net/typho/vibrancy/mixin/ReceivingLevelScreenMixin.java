@@ -2,6 +2,7 @@ package net.typho.vibrancy.mixin;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import dev.kikugie.fletching_table.annotation.MixinEnvironment;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.ReceivingLevelScreen;
 import net.minecraft.client.gui.screens.Screen;
@@ -28,6 +29,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.function.BooleanSupplier;
 //? }
 
+@MixinEnvironment(type = MixinEnvironment.Env.CLIENT)
 @Mixin(ReceivingLevelScreen.class)
 public abstract class ReceivingLevelScreenMixin extends Screen {
     @Shadow
