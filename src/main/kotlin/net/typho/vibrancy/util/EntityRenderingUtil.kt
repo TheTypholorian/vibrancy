@@ -26,8 +26,14 @@ import net.minecraft.client.renderer.RenderType
 /*import net.minecraft.client.renderer.rendertype.RenderType
 *///? }
 import net.minecraft.client.renderer.SubmitNodeStorage
+import net.minecraft.client.renderer.blockentity.BlockEntityRenderer
+import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState
 import net.minecraft.client.renderer.entity.state.EntityRenderState
 import net.minecraft.client.renderer.feature.FeatureRenderDispatcher
+import net.minecraft.world.level.levelgen.SurfaceRules.state
+import net.minecraft.world.phys.Vec3
+import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
+
 //? }
 
 object EntityRenderingUtil {
@@ -120,6 +126,42 @@ object EntityRenderingUtil {
             Vec3(data.camera.pos.toJOML())
         )
         *///? } else {
+        fun <S : BlockEntityRenderState> render(state: S) {
+            val renderer = Minecraft.getInstance().blockEntityRenderDispatcher.getRenderer<E, S>(blockEntity)!!
+
+            val storage = SubmitNodeStorage()
+            val features = FeatureRenderDispatcher(
+                storage,
+                Minecraft.getInstance().blockRenderer,
+                WrapperUtil.INSTANCE.unwrapStupid(
+                    { buffers.getBuffer(it) },
+                    { }
+                ),
+                Minecraft.getInstance().atlasManager,
+                object : OutlineBufferSource() {
+                    override fun getBuffer(renderType: RenderType): VertexConsumer {
+                        return WrapperUtil.INSTANCE.unwrap(EmptyVertexConsumer)
+                    }
+                },
+                WrapperUtil.INSTANCE.unwrapStupid(
+                    { EmptyVertexConsumer },
+                    { }
+                ),
+                Minecraft.getInstance().font
+            )
+
+            renderer.submit(state, pose, storage, Minecraft.getInstance().gameRenderer.levelRenderState.cameraRenderState)
+
+            storage.endFrame()
+            features.renderAllFeatures()
+            features.endFrame()
+        }
+
+        //? fabric {
+        /*render(Minecraft.getInstance().blockEntityRenderDispatcher.tryExtractRenderState(blockEntity, tickDelta, null)!!)
+        *///? } neoforge {
+        render(Minecraft.getInstance().blockEntityRenderDispatcher.tryExtractRenderState(blockEntity, tickDelta, null, null)!!)
+        //? }
         //? }
     }
 }

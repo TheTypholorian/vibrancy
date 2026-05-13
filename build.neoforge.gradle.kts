@@ -133,7 +133,7 @@ dependencies {
 
     implementation(libs.sodium)
     implementation(libs.bigShot)
-    implementation(libs.yacl)
+    implementation("maven.modrinth:yacl:${property("deps.yacl")}")
 
     if (sc.current.version == "1.21") {
         jarJar(libs.sableCompanion)

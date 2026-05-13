@@ -18,7 +18,6 @@ sodium="mc1.21.1-0.6.13-neoforge"
 
 bigShot="4.7.6"
 
-yacl = "3.6.6+1.20.1-forge"
 modmenu = "11.0.3"
 sableCompanion = "1.6.0"
 
@@ -32,7 +31,6 @@ mixin = { group = "org.spongepowered", name = "mixin", version.ref = "mixin" }
 mixinExtras-common = { group = "io.github.llamalad7", name = "mixinextras-common", version.ref = "mixinExtras" }
 sodium = { group = "maven.modrinth", name = "sodium", version.ref = "sodium" }
 bigShot = { group = "net.typho", name = "big_shot_lib", version.ref = "bigShot" }
-yacl = { group = "dev.isxander", name = "yet-another-config-lib", version.ref = "yacl" }
 modmenu = { group = "maven.modrinth", name = "modmenu", version.ref = "modmenu" }
 sableCompanion = { group = "dev.ryanhcode.sable-companion", name = "sable-companion-common-1.21.1", version.ref = "sableCompanion" }
 sableCompanionFabric = { group = "dev.ryanhcode.sable-companion", name = "sable-companion-fabric-1.21.1", version.ref = "sableCompanion" }

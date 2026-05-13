@@ -129,7 +129,7 @@ dependencies {
 
     modImplementation(libs.sodium)
     modImplementation(libs.bigShot)
-    modImplementation(libs.yacl)
+    modImplementation("maven.modrinth:yacl:${property("deps.yacl")}")
     modCompileOnly(libs.modmenu)
 
     if (sc.current.version == "1.21") {
