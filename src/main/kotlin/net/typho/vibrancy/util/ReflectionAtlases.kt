@@ -31,8 +31,10 @@ import com.mojang.blaze3d.textures.TextureFormat
 //? }
 
 //? if >=1.21.6 {
-/*import com.mojang.blaze3d.textures.GpuTexture
-*///? }
+import com.mojang.blaze3d.textures.GpuTexture
+import net.minecraft.client.resources.metadata.animation.AnimationMetadataSection
+
+//? }
 
 object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigShotClientEntrypoint {
     private class Animation(
@@ -129,7 +131,7 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
                     }
                 }
                 *///? } else {
-                val loader = SpriteResourceLoader.create(SpriteLoader.DEFAULT_METADATA_SECTIONS)
+                val loader = SpriteResourceLoader.create(setOf(AnimationMetadataSection.TYPE))
 
                 for (resource in idConverter.listMatchingResources(resources)) {
                     val id = idConverter.fileToId(resource.key)

@@ -4,14 +4,9 @@ package net.typho.vibrancy.sky.impl
 /*import dev.ryanhcode.sable.companion.SableCompanion
 *///? }
 
-import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.vertex.PoseStack
-import net.minecraft.client.Minecraft
-import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
-import net.minecraft.util.ARGB
-import net.minecraft.util.Mth
 import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
@@ -38,6 +33,7 @@ import net.typho.big_shot_lib.api.client.rendering.util.BlockChunkLayer
 import net.typho.big_shot_lib.api.client.rendering.util.FogUtil
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
+import net.typho.big_shot_lib.api.client.rendering.util.NeoMultiBufferSource
 import net.typho.big_shot_lib.api.client.rendering.util.NeoRenderSettings
 import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
@@ -46,14 +42,12 @@ import net.typho.big_shot_lib.api.math.rect.AbstractRect3
 import net.typho.big_shot_lib.api.math.rect.NeoRect2i
 import net.typho.big_shot_lib.api.math.rect.NeoRect3i
 import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
-import net.typho.big_shot_lib.api.math.vec.NeoVec3d
 import net.typho.big_shot_lib.api.math.vec.NeoVec3f
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.big_shot_lib.api.math.vec.NeoVec4f
 import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.big_shot_lib.api.util.NeoColor
-import net.typho.big_shot_lib.api.util.WrapperUtil
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
 import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.LightManager
@@ -285,15 +279,15 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
             profiler.push("dynamicShadows")
             val quads = hashMapOf<Pair<Boolean, NeoIdentifier>, MutableList<NeoBakedQuad>>()
             val buffers = hashMapOf<NeoIdentifier, NeoBakedQuad.Consumer>()
-            val bufferSource = WrapperUtil.INSTANCE.unwrap { settings: NeoRenderSettings ->
-                val texture = settings.drawState.shader.textures.getOrNull(0)?.location ?: return@unwrap EmptyVertexConsumer
+            val bufferSource = NeoMultiBufferSource { settings: NeoRenderSettings ->
+                val texture = settings.drawState.shader.textures.getOrNull(0)?.location ?: return@NeoMultiBufferSource EmptyVertexConsumer
 
                 if (GlTexture2D[texture] == null) {
-                    return@unwrap EmptyVertexConsumer
+                    return@NeoMultiBufferSource EmptyVertexConsumer
                 }
 
                 if (texture.equals("minecraft", "textures/entity/beacon_beam.png")) {
-                    return@unwrap EmptyVertexConsumer
+                    return@NeoMultiBufferSource EmptyVertexConsumer
                 }
 
                 buffers.computeIfAbsent(texture) {

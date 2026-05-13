@@ -5,21 +5,10 @@ package net.typho.vibrancy.block.impl
 *///? }
 
 //? if >=1.21.9 {
-/*import com.mojang.blaze3d.vertex.VertexConsumer
-import net.minecraft.client.renderer.OutlineBufferSource
-import net.minecraft.client.renderer.RenderType
-import net.minecraft.client.renderer.SubmitNodeStorage
-import net.minecraft.client.renderer.culling.Frustum
-import net.minecraft.client.renderer.feature.FeatureRenderDispatcher
-import net.minecraft.client.renderer.state.CameraRenderState
-*///? }
+//? }
 
 import com.mojang.blaze3d.vertex.PoseStack
-import net.minecraft.client.Minecraft
-import net.minecraft.client.renderer.MultiBufferSource
-import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.core.BlockPos
-import net.minecraft.util.Mth
 import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
@@ -45,11 +34,9 @@ import net.typho.big_shot_lib.api.math.rect.NeoRect3f
 import net.typho.big_shot_lib.api.math.rect.NeoRect3i
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
-import net.typho.big_shot_lib.api.math.vec.NeoVec3d
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.BlockUtil
-import net.typho.big_shot_lib.api.util.WrapperUtil
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
 import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.LightManager
@@ -342,15 +329,15 @@ open class RayPointLight(
                 data class Node(
                     val quads: MutableMap<NeoIdentifier, MutableList<NeoBakedQuad>> = hashMapOf(),
                     val buffers: MutableMap<NeoIdentifier, NeoBakedQuad.Consumer> = hashMapOf(),
-                    val bufferSource: MultiBufferSource = WrapperUtil.INSTANCE.unwrap { settings: NeoRenderSettings ->
-                        val texture = settings.drawState.shader.textures.getOrNull(0)?.location ?: return@unwrap EmptyVertexConsumer
+                    val bufferSource: NeoMultiBufferSource = NeoMultiBufferSource { settings: NeoRenderSettings ->
+                        val texture = settings.drawState.shader.textures.getOrNull(0)?.location ?: return@NeoMultiBufferSource EmptyVertexConsumer
 
                         if (GlTexture2D[texture] == null) {
-                            return@unwrap EmptyVertexConsumer
+                            return@NeoMultiBufferSource EmptyVertexConsumer
                         }
 
                         if (texture.equals("minecraft", "textures/entity/beacon_beam.png")) {
-                            return@unwrap EmptyVertexConsumer
+                            return@NeoMultiBufferSource EmptyVertexConsumer
                         }
 
                         allTextures.add(texture)
