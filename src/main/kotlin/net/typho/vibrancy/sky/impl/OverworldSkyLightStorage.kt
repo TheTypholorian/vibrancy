@@ -230,40 +230,44 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
                     profiler.push("chunks")
                     for ((pos, chunk) in chunks) {
-                        profiler.push("transforms")
-                        val blockPos = NeoVec3i(pos.minBlockX, 0, pos.minBlockZ)
+                        val mesh = mesh(chunk)
 
-                        //? if 1.21 {
-                        /*val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
+                        if (mesh.size > 0) {
+                            profiler.push("transforms")
+                            val blockPos = NeoVec3i(pos.minBlockX, 0, pos.minBlockZ)
 
-                        if (subLevel == null) {
+                            //? if 1.21 {
+                            /*val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
+
+                            if (subLevel == null) {
+                                if (chunk.shouldDraw(shadowFrustum, data)) {
+                                    settings.shader.setUniform("ChunkOffset") { setFloatVec(blockPos.toFloat()) }
+                                    mesh(chunk).draw()
+                                }
+                            } else {
+                                val pose = subLevel.renderPose(Vibrancy.tickDelta)
+                                val orientation = Quaternionf(pose.orientation())
+                                val origin = NeoVec3d(pose.transformPosition(blockPos.toDouble().toJOML())).toFloat()
+                                settings.shader.setUniform("ShadowMat") {
+                                    set(
+                                        Matrix4f()
+                                            .rotate(orientation)
+                                            .mul(shadowMat)
+                                    )
+                                }
+                                settings.shader.setUniform("ChunkOffset") { setFloatVec(origin) }
+                                mesh(chunk).draw()
+                                settings.shader.setUniform("ShadowMat") { set(shadowMat) }
+                            }
+                            *///? } else {
                             if (chunk.shouldDraw(shadowFrustum, data)) {
                                 settings.shader.setUniform("ChunkOffset") { setFloatVec(blockPos.toFloat()) }
                                 mesh(chunk).draw()
                             }
-                        } else {
-                            val pose = subLevel.renderPose(Vibrancy.tickDelta)
-                            val orientation = Quaternionf(pose.orientation())
-                            val origin = NeoVec3d(pose.transformPosition(blockPos.toDouble().toJOML())).toFloat()
-                            settings.shader.setUniform("ShadowMat") {
-                                set(
-                                    Matrix4f()
-                                        .rotate(orientation)
-                                        .mul(shadowMat)
-                                )
-                            }
-                            settings.shader.setUniform("ChunkOffset") { setFloatVec(origin) }
-                            mesh(chunk).draw()
-                            settings.shader.setUniform("ShadowMat") { set(shadowMat) }
-                        }
-                        *///? } else {
-                        if (chunk.shouldDraw(shadowFrustum, data)) {
-                            settings.shader.setUniform("ChunkOffset") { setFloatVec(blockPos.toFloat()) }
-                            mesh(chunk).draw()
-                        }
-                        //? }
+                            //? }
 
-                        profiler.pop()
+                            profiler.pop()
+                        }
                     }
                     profiler.pop()
                 }
@@ -432,14 +436,55 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                 ))
 
                 for ((pos, chunk) in chunks) {
-                    //if (chunk.box == null || data.frustum.testAab((chunk.box!!.min.toFloat() - data.camera.pos).toJOML(), (chunk.box!!.min.toFloat() + 1f - data.camera.pos).toJOML())) {
-                    profiler.push("transforms")
-                    val blockPos = NeoVec3i(pos.minBlockX, 0, pos.minBlockZ)
+                    if (chunk.mesh.size > 0 || chunk.translucentMesh.size > 0) {
+                        //if (chunk.box == null || data.frustum.testAab((chunk.box!!.min.toFloat() - data.camera.pos).toJOML(), (chunk.box!!.min.toFloat() + 1f - data.camera.pos).toJOML())) {
+                        profiler.push("transforms")
+                        val blockPos = NeoVec3i(pos.minBlockX, 0, pos.minBlockZ)
 
-                    //? if 1.21 {
-                    /*val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
+                        //? if 1.21 {
+                        /*val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
 
-                    if (subLevel == null) {
+                        if (subLevel == null) {
+                            settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((blockPos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
+                            settings.shader.setUniform("SableMat") {
+                                set(
+                                    Matrix4f()
+                                        .translate((blockPos.toFloat() - data.camera.pos).toFloat().toJOML())
+                                )
+                            }
+                            settings.shader.setUniform("SpecularMat") {
+                                set(
+                                    Matrix4f()
+                                        .translate(blockPos.toFloat().toJOML())
+                                )
+                            }
+                        } else {
+                            val pose = subLevel.renderPose(Vibrancy.tickDelta)
+                            val orientation = Quaternionf(pose.orientation())
+                            val pos = NeoVec3d(pose.transformPosition(blockPos.toDouble().toJOML()))
+                            settings.shader.setUniform("ModelViewMat") {
+                                set(
+                                    data.modelViewMat
+                                        .translate((pos.toFloat() - data.camera.pos).toJOML(), Matrix4f())
+                                        .rotate(orientation)
+                                )
+                            }
+                            settings.shader.setUniform("SableMat") {
+                                set(
+                                    Matrix4f()
+                                        .translate((pos.toFloat() - data.camera.pos).toJOML())
+                                        .rotate(orientation)
+                                )
+                            }
+                            settings.shader.setUniform("SpecularMat") {
+                                set(
+                                    Matrix4f()
+                                        .translate(pos.toFloat().toJOML())
+                                        .rotate(orientation)
+                                )
+                            }
+                        }
+                        *///? } else {
                         settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((blockPos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
                         settings.shader.setUniform("SableMat") {
                             set(
@@ -453,52 +498,13 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                                     .translate(blockPos.toFloat().toJOML())
                             )
                         }
-                    } else {
-                        val pose = subLevel.renderPose(Vibrancy.tickDelta)
-                        val orientation = Quaternionf(pose.orientation())
-                        val pos = NeoVec3d(pose.transformPosition(blockPos.toDouble().toJOML()))
-                        settings.shader.setUniform("ModelViewMat") {
-                            set(
-                                data.modelViewMat
-                                    .translate((pos.toFloat() - data.camera.pos).toJOML(), Matrix4f())
-                                    .rotate(orientation)
-                            )
-                        }
-                        settings.shader.setUniform("SableMat") {
-                            set(
-                                Matrix4f()
-                                    .translate((pos.toFloat() - data.camera.pos).toJOML())
-                                    .rotate(orientation)
-                            )
-                        }
-                        settings.shader.setUniform("SpecularMat") {
-                            set(
-                                Matrix4f()
-                                    .translate(pos.toFloat().toJOML())
-                                    .rotate(orientation)
-                            )
-                        }
-                    }
-                    *///? } else {
-                    settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((blockPos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
-                    settings.shader.setUniform("SableMat") {
-                        set(
-                            Matrix4f()
-                                .translate((blockPos.toFloat() - data.camera.pos).toFloat().toJOML())
-                        )
-                    }
-                    settings.shader.setUniform("SpecularMat") {
-                        set(
-                            Matrix4f()
-                                .translate(blockPos.toFloat().toJOML())
-                        )
-                    }
-                    //? }
-                    profiler.pop()
+                        //? }
+                        profiler.pop()
 
-                    chunk.mesh.draw()
-                    chunk.translucentMesh.draw()
-                    //}
+                        chunk.mesh.draw()
+                        chunk.translucentMesh.draw()
+                        //}
+                    }
                 }
             }
             profiler.pop()

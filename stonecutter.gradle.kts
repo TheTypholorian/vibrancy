@@ -7,6 +7,9 @@ plugins {
 }
 
 stonecutter active "mc1_21_5_fabric"
+stonecutter handlers {
+    inherit("vsh", "glsl")
+}
 stonecutter parameters {
     constants.match(node.metadata.project.substringAfterLast('_'), "fabric", "neoforge")
     filters.include("**/*.fsh", "**/*.vsh")

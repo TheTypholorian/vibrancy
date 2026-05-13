@@ -24,6 +24,7 @@ import net.typho.vibrancy.block.BlockLightType
 import net.typho.vibrancy.block.HashMapBlockLightStorage
 import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.util.ReflectionAtlases
+import org.joml.Matrix4f
 import org.lwjgl.opengl.GL30.glBindBufferRange
 
 object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightStorage<RayPointLightInfo, RayPointLight>> {
