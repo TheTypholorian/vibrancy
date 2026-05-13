@@ -1,7 +1,7 @@
 package net.typho.vibrancy
 
 //? fabric {
-/*import com.terraformersmc.modmenu.api.ConfigScreenFactory
+import com.terraformersmc.modmenu.api.ConfigScreenFactory
 import com.terraformersmc.modmenu.api.ModMenuApi
 
 object VibrancyModMenuCompat : ModMenuApi {
@@ -9,8 +9,8 @@ object VibrancyModMenuCompat : ModMenuApi {
         return ConfigScreenFactory { parent -> VibrancyConfig.createScreen(parent) }
     }
 }
-*///? } neoforge {
-import net.neoforged.api.distmarker.Dist
+//? } neoforge {
+/*import net.neoforged.api.distmarker.Dist
 import net.neoforged.bus.api.IEventBus
 import net.neoforged.fml.ModContainer
 import net.neoforged.fml.common.Mod
@@ -22,4 +22,4 @@ class VibrancyModMenuCompat(eventBus: IEventBus, modContainer: ModContainer) {
         //modContainer.registerExtensionPoint(IConfigScreenFactory::class.java, IConfigScreenFactory { container, modListScreen -> VibrancyConfig.createScreen(modListScreen) })
     }
 }
-//? }
+*///? }

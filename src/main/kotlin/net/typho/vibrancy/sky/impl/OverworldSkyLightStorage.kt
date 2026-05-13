@@ -5,14 +5,17 @@ package net.typho.vibrancy.sky.impl
 *///? }
 
 import com.mojang.blaze3d.vertex.PoseStack
+import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.util.profiling.ProfilerFiller
+import net.minecraft.world.attribute.EnvironmentAttributes
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.LightLayer
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkAccess
+import net.minecraft.world.level.dimension.DimensionType
 import net.minecraft.world.level.material.Fluids
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
@@ -55,6 +58,7 @@ import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyConfig
 import net.typho.vibrancy.collectors.BlockMeshCollector
 import net.typho.vibrancy.collectors.SkyLightBlockMeshCollector
+import net.typho.vibrancy.mixin.LevelRendererAccessor
 import net.typho.vibrancy.shadows.LightFace
 import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.shadows.LightTexture
@@ -172,12 +176,21 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
         profiler.pop()
 
         profiler.push("prep")
-        var lightAngle = (data.level!!.getSunAngle(Vibrancy.tickDelta) + PI.toFloat() / 2) % (PI.toFloat() * 2)
+        //? if <1.21.11 {
+        /*var lightAngle = (data.level!!.getSunAngle(Vibrancy.tickDelta) + PI.toFloat() / 2) % (PI.toFloat() * 2)
+        *///? } else {
+        val skyRenderState = (Minecraft.getInstance().levelRenderer as LevelRendererAccessor).`vibrancy$getLevelRenderState`().skyRenderState
+        var lightAngle = (skyRenderState.sunAngle + PI.toFloat() / 2) % (PI.toFloat() * 2)
+        //? }
         var lightColor = info!!.sunColor
 
         if (lightAngle > PI.toFloat()) {
             lightAngle -= PI.toFloat()
-            lightColor = info!!.moonColor * data.level!!.moonBrightness
+            //? if <1.21.11 {
+            /*lightColor = info!!.moonColor * data.level!!.moonBrightness
+            *///? } else {
+            lightColor = info!!.moonColor * DimensionType.MOON_BRIGHTNESS_PER_PHASE[skyRenderState.moonPhase.ordinal]
+            //? }
         } else {
             //? if <1.21.5 {
             /*val sunriseColor = data.level!!.effects().getSunriseColor(data.level!!.getTimeOfDay(Vibrancy.tickDelta), Vibrancy.tickDelta)
@@ -186,12 +199,8 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                 lightColor = lightColor.lerp(sunriseColor[0], sunriseColor[1], sunriseColor[2], sunriseColor[3])
             }
             *///? } else {
-            val timeOfDay = data.level!!.getTimeOfDay(Vibrancy.tickDelta)
-
-            if (data.level!!.effects().isSunriseOrSunset(timeOfDay)) {
-                val sunriseColor = NeoColor.argbF(data.level!!.effects().getSunriseOrSunsetColor(timeOfDay))
-                lightColor = lightColor.lerp(sunriseColor.redF, sunriseColor.greenF, sunriseColor.blueF, sunriseColor.alphaF)
-            }
+            val sunriseColor = NeoColor.argbF(skyRenderState.sunriseAndSunsetColor)
+            lightColor = lightColor.lerp(sunriseColor.redF, sunriseColor.greenF, sunriseColor.blueF, sunriseColor.alphaF)
             //? }
         }
 
@@ -669,10 +678,11 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                                 ))
                             }
 
-                            writeInt(vertex.color!!.toRGBA())
-                            writeByte((vertex.normal!!.x * 127).toInt())
-                            writeByte((vertex.normal!!.y * 127).toInt())
-                            writeByte((vertex.normal!!.z * 127).toInt())
+                            writeInt((vertex.color ?: NeoColor.FULL_ON).toRGBA())
+                            val normal = vertex.normal ?: face.quad.direction?.toFloat() ?: NeoVec3f(0f, 1f, 0f)
+                            writeByte((normal.x * 127).toInt())
+                            writeByte((normal.y * 127).toInt())
+                            writeByte((normal.z * 127).toInt())
                         }
                     }
                 }

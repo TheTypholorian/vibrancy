@@ -2,10 +2,6 @@ package net.typho.vibrancy.util
 
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.texture.SpriteContents
-import net.minecraft.client.renderer.texture.SpriteLoader
-import net.minecraft.client.renderer.texture.SpriteTicker
-import net.minecraft.client.renderer.texture.atlas.SpriteResourceLoader
-import net.minecraft.resources.ResourceLocation
 import net.typho.big_shot_lib.api.client.rendering.opengl.GlQueue
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlFramebuffer
@@ -25,6 +21,16 @@ import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.Vibrancy
 import java.io.FileNotFoundException
 
+//? if <1.21.11 {
+/*import net.minecraft.client.renderer.texture.SpriteTicker
+import net.minecraft.client.renderer.texture.atlas.SpriteResourceLoader
+import net.minecraft.resources.ResourceLocation
+*///? }
+
+//? if <1.21 {
+/*import net.minecraft.client.renderer.texture.SpriteLoader
+*///? }
+
 //? if >=1.21.5 {
 import net.typho.vibrancy.mixin.GlTextureAccessor
 import com.mojang.blaze3d.textures.TextureFormat
@@ -33,7 +39,6 @@ import com.mojang.blaze3d.textures.TextureFormat
 //? if >=1.21.6 {
 import com.mojang.blaze3d.textures.GpuTexture
 import net.minecraft.client.resources.metadata.animation.AnimationMetadataSection
-
 //? }
 
 object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigShotClientEntrypoint {
@@ -44,8 +49,10 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
         val y: Int,
         @JvmField
         val contents: SpriteContents,
-        @JvmField
+        //? if <1.21.11 {
+        /*@JvmField
         val ticker: SpriteTicker
+        *///? }
     )
 
     private class Atlas(
@@ -66,7 +73,10 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
 
             for (animation in atlas.animations) {
                 animation.contents.close()
-                animation.ticker.close()
+
+                //? if <1.21.11 {
+                /*animation.ticker.close()
+                *///? }
             }
         } }
         atlases.clear()
@@ -130,8 +140,8 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
                         }
                     }
                 }
-                *///? } else {
-                val loader = SpriteResourceLoader.create(setOf(AnimationMetadataSection.TYPE))
+                *///? } else if <1.21.11 {
+                /*val loader = SpriteResourceLoader.create(setOf(AnimationMetadataSection.TYPE))
 
                 for (resource in idConverter.listMatchingResources(resources)) {
                     val id = idConverter.fileToId(resource.key)
@@ -155,7 +165,7 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
                         }
                     }
                 }
-                //? }
+                *///? }
 
                 return@computeIfAbsent Atlas(texture.resource, animations)
             }

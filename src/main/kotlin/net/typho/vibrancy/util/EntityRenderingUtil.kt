@@ -21,10 +21,10 @@ import net.minecraft.world.phys.Vec3
 import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
 *///? } else {
 //? if <1.21.11 {
-import net.minecraft.client.renderer.RenderType
-//? } else {
-/*import net.minecraft.client.renderer.rendertype.RenderType
-*///? }
+/*import net.minecraft.client.renderer.RenderType
+*///? } else {
+import net.minecraft.client.renderer.rendertype.RenderType
+//? }
 import net.minecraft.client.renderer.SubmitNodeStorage
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer
 import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState
@@ -158,10 +158,10 @@ object EntityRenderingUtil {
         }
 
         //? fabric {
-        /*render(Minecraft.getInstance().blockEntityRenderDispatcher.tryExtractRenderState(blockEntity, tickDelta, null)!!)
-        *///? } neoforge {
-        render(Minecraft.getInstance().blockEntityRenderDispatcher.tryExtractRenderState(blockEntity, tickDelta, null, null)!!)
-        //? }
+        render(Minecraft.getInstance().blockEntityRenderDispatcher.tryExtractRenderState(blockEntity, tickDelta, null)!!)
+        //? } neoforge {
+        /*render(Minecraft.getInstance().blockEntityRenderDispatcher.tryExtractRenderState(blockEntity, tickDelta, null, null)!!)
+        *///? }
         //? }
     }
 }

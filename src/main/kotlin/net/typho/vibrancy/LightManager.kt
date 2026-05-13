@@ -148,11 +148,9 @@ open class LightManager {
 
     //? if <1.21.5 {
     /*fun render(data: RenderEventData, result: GlFramebuffer, temp: GlFramebuffer, profiler: ProfilerFiller = Minecraft.getInstance().profiler) {
-    *///? } else if <1.21.11 {
+    *///? } else {
     fun render(data: RenderEventData, result: GlFramebuffer, temp: GlFramebuffer, profiler: ProfilerFiller = Profiler.get()) {
-    //? } else {
-    /*fun render(data: RenderEventData, result: GlFramebuffer, temp: GlFramebuffer, profiler: ProfilerFiller = ProfilerFiller.get()) {
-    *///? }
+    //? }
         profiler.push("vibrancy")
         debugInfo.clear()
 

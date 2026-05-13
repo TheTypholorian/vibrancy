@@ -32,9 +32,11 @@ import net.typho.big_shot_lib.api.math.rect.AbstractRect3
 import net.typho.big_shot_lib.api.math.rect.AbstractRect3.Companion.iterator
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
+import net.typho.big_shot_lib.api.math.vec.NeoVec3f
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.BlockUtil
+import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.VibrancyConfig
@@ -293,10 +295,11 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                         writeFloat(vertex.textureUV!!.x)
                         writeFloat(vertex.textureUV!!.y)
                         writeInt(quad.second)
-                        writeInt(vertex.color!!.toRGBA())
-                        writeByte((vertex.normal!!.x * 127).toInt())
-                        writeByte((vertex.normal!!.y * 127).toInt())
-                        writeByte((vertex.normal!!.z * 127).toInt())
+                        writeInt((vertex.color ?: NeoColor.FULL_ON).toRGBA())
+                        val normal = vertex.normal ?: quad.first.direction?.toFloat() ?: NeoVec3f(0f, 1f, 0f)
+                        writeByte((normal.x * 127).toInt())
+                        writeByte((normal.y * 127).toInt())
+                        writeByte((normal.z * 127).toInt())
                     }
                 }
             }
