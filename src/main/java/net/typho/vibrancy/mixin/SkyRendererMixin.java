@@ -4,14 +4,14 @@ import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import com.mojang.math.Axis;
 import dev.kikugie.fletching_table.annotation.MixinEnvironment;
-import net.minecraft.client.renderer.LevelRenderer;
-import net.minecraft.client.renderer.SkyRenderer;
 import org.joml.Quaternionf;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
 //? if <1.21.5 {
-/*@MixinEnvironment(type = MixinEnvironment.Env.CLIENT)
+import net.minecraft.client.renderer.LevelRenderer;
+
+@MixinEnvironment(type = MixinEnvironment.Env.CLIENT)
 @Mixin(LevelRenderer.class)
 public class SkyRendererMixin {
     @WrapOperation(
@@ -26,7 +26,9 @@ public class SkyRendererMixin {
         return original.call(instance, f - 15);
     }
 }
-*///? } else {
+//? } else {
+/*import net.minecraft.client.renderer.SkyRenderer;
+
 @MixinEnvironment(type = MixinEnvironment.Env.CLIENT)
 @Mixin(SkyRenderer.class)
 public class SkyRendererMixin {
@@ -42,4 +44,4 @@ public class SkyRendererMixin {
         return original.call(instance, f - 15);
     }
 }
-//? }
+*///? }

@@ -1,7 +1,5 @@
 package net.typho.vibrancy.block.impl
 
-import com.mojang.blaze3d.opengl.GlBuffer
-import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.block.state.StateDefinition
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBlendEquation
@@ -24,8 +22,6 @@ import net.typho.vibrancy.block.BlockLightType
 import net.typho.vibrancy.block.HashMapBlockLightStorage
 import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.util.ReflectionAtlases
-import org.joml.Matrix4f
-import org.lwjgl.opengl.GL30.glBindBufferRange
 
 object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightStorage<RayPointLightInfo, RayPointLight>> {
     override fun infoCodec(stateDefinition: StateDefinition<*, *>) = RayPointLightInfo.codec(stateDefinition)

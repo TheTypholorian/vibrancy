@@ -1,8 +1,8 @@
 package net.typho.vibrancy.block.impl
 
 //? if 1.21 {
-/*import dev.ryanhcode.sable.companion.SableCompanion
-*///? }
+import dev.ryanhcode.sable.companion.SableCompanion
+//? }
 
 //? if >=1.21.9 {
 //? }
@@ -34,6 +34,7 @@ import net.typho.big_shot_lib.api.math.rect.NeoRect3f
 import net.typho.big_shot_lib.api.math.rect.NeoRect3i
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
+import net.typho.big_shot_lib.api.math.vec.NeoVec3d
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.BlockUtil
@@ -55,6 +56,7 @@ import net.typho.vibrancy.util.EntityRenderingUtil
 import net.typho.vibrancy.util.PointLight
 import net.typho.vibrancy.util.QuadListVertexConsumer
 import org.joml.Matrix4f
+import org.joml.Quaternionf
 import org.joml.Vector4f
 import org.lwjgl.system.NativeResource
 import kotlin.math.ceil
@@ -160,16 +162,20 @@ open class RayPointLight(
     )
 
     //? if 1.21 {
-    /*override val absolutePos: IVec3<Float>
+    override val absolutePos: IVec3<Float>
         get() = SableCompanion.INSTANCE.getContainingClient((pos.toDouble() + offset.toDouble()).toJOML())?.let { NeoVec3d(it.renderPose(Vibrancy.tickDelta).transformPosition((pos.toDouble() + offset.toDouble()).toJOML())).toFloat() } ?: (pos.toFloat() + offset)
     val absoluteBlockPos: IVec3<Float>
-        get() = SableCompanion.INSTANCE.getContainingClient(pos.toDouble().toJOML())?.let { NeoVec3d(it.renderPose(Vibrancy.tickDelta).transformPosition(pos.toDouble().toJOML())).toFloat() } ?: pos.toFloat()
-    *///? } else {
-    override val absolutePos: IVec3<Float>
+        get() = SableCompanion.INSTANCE.getContainingClient(pos.toDouble().toJOML())?.let { NeoVec3d(
+            it.renderPose(
+                Vibrancy.tickDelta
+            ).transformPosition(pos.toDouble().toJOML())
+        ).toFloat() } ?: pos.toFloat()
+    //? } else {
+    /*override val absolutePos: IVec3<Float>
         get() = pos.toFloat() + offset
     val absoluteBlockPos: IVec3<Float>
         get() = pos.toFloat()
-    //? }
+    *///? }
     override val boundingBox: AbstractRect3<Int>
         get() = NeoRect3i(pos - radius.toInt(), pos + radius.toInt())
     override val shadowBox: AbstractRect3<Int>
@@ -313,16 +319,16 @@ open class RayPointLight(
                 val absoluteBlockPos = absoluteBlockPos
 
                 //? if 1.21 {
-                /*val subLevel = SableCompanion.INSTANCE.getContainingClient(pos.toDouble().toJOML())
+                val subLevel = SableCompanion.INSTANCE.getContainingClient(pos.toDouble().toJOML())
                 val subLevelPose = subLevel?.renderPose()
                 val transform = if (subLevelPose == null) {
                     Matrix4f().translate((-absoluteBlockPos).toJOML())
                 } else {
                     Matrix4f().rotate(Quaternionf(subLevelPose.orientation()).invert()).translate((-absoluteBlockPos).toJOML())
                 }
-                *///? } else {
-                val transform = Matrix4f().translate((-absoluteBlockPos).toJOML())
-                //? }
+                //? } else {
+                /*val transform = Matrix4f().translate((-absoluteBlockPos).toJOML())
+                *///? }
 
                 val allTextures = hashSetOf<NeoIdentifier>()
 
@@ -385,10 +391,10 @@ open class RayPointLight(
                     profiler.push("entityShadows")
                     for (entity in level.getEntities(null, AABB.ofSize(Vec3(absolutePos.toJOML()), radius.toDouble() * 2, radius.toDouble() * 2, radius.toDouble() * 2))) {
                         //? if 1.21 {
-                        /*if (subLevel != null || meshCollector.cache.checked.contains(entity.blockPosition())) {
-                        *///? } else {
-                        if (meshCollector.cache.checked.contains(entity.blockPosition())) {
-                        //? }
+                        if (subLevel != null || meshCollector.cache.checked.contains(entity.blockPosition())) {
+                        //? } else {
+                        /*if (meshCollector.cache.checked.contains(entity.blockPosition())) {
+                        *///? }
                             val node = Node()
                             debugOut("entityShadows", 1)
                             EntityRenderingUtil.render(entity, poseStack, node.bufferSource)
@@ -410,16 +416,16 @@ open class RayPointLight(
                             poseStack.pushPose()
 
                             //? if 1.21 {
-                            /*if (subLevelPose == null) {
+                            if (subLevelPose == null) {
                                 poseStack.translate(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
                             } else {
                                 val pos = subLevelPose.transformPosition(NeoVec3i(pos).toDouble().toJOML())
                                 poseStack.translate(pos.x, pos.y, pos.z)
                                 poseStack.mulPose(Quaternionf(subLevelPose.orientation()))
                             }
-                            *///? } else {
-                            poseStack.translate(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
-                            //? }
+                            //? } else {
+                            /*poseStack.translate(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
+                            *///? }
 
                             EntityRenderingUtil.renderBlockEntity(blockEntity, poseStack, node.bufferSource, data)
 
@@ -526,7 +532,7 @@ open class RayPointLight(
 
         profiler.push("transforms")
         //? if 1.21 {
-        /*val subLevel = SableCompanion.INSTANCE.getContainingClient(pos.toDouble().toJOML())
+        val subLevel = SableCompanion.INSTANCE.getContainingClient(pos.toDouble().toJOML())
 
         if (subLevel == null) {
             shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((pos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
@@ -551,11 +557,11 @@ open class RayPointLight(
             }
             shader.setUniform("CameraPos") { setFloatVec(data.camera.pos - pos.toFloat()) }
         }
-        *///? } else {
-        shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((pos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
+        //? } else {
+        /*shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((pos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
         shader.setUniform("SpecularMat") { set(Matrix4f()) }
         shader.setUniform("CameraPos") { setFloatVec(data.camera.pos - pos.toFloat()) }
-        //? }
+        *///? }
         profiler.pop()
 
         profiler.push("uniforms")

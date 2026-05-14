@@ -5,7 +5,6 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import dev.kikugie.fletching_table.annotation.MixinEnvironment;
 import net.minecraft.client.gui.GuiGraphics;
 import net.minecraft.client.gui.screens.Screen;
-import net.minecraft.client.multiplayer.LevelLoadTracker;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.typho.vibrancy.Vibrancy;
@@ -25,10 +24,11 @@ import org.spongepowered.asm.mixin.injection.ModifyArg;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 //? if <1.21.9 {
-/*import net.minecraft.client.gui.screens.ReceivingLevelScreen;
-*///? } else {
-import net.minecraft.client.gui.screens.LevelLoadingScreen;
-//? }
+import net.minecraft.client.gui.screens.ReceivingLevelScreen;
+//? } else {
+/*import net.minecraft.client.gui.screens.LevelLoadingScreen;
+import net.minecraft.client.multiplayer.LevelLoadTracker;
+*///? }
 
 //? if <1.21 {
 /*import org.spongepowered.asm.mixin.Unique;
@@ -38,10 +38,10 @@ import java.util.function.BooleanSupplier;
 
 @MixinEnvironment(type = MixinEnvironment.Env.CLIENT)
 //? if <1.21.9 {
-/*@Mixin(ReceivingLevelScreen.class)
-*///? } else {
-@Mixin(LevelLoadingScreen.class)
-//? }
+@Mixin(ReceivingLevelScreen.class)
+//? } else {
+/*@Mixin(LevelLoadingScreen.class)
+*///? }
 public abstract class ReceivingLevelScreenMixin extends Screen {
     protected ReceivingLevelScreenMixin(Component component) {
         super(component);
@@ -126,7 +126,7 @@ public abstract class ReceivingLevelScreenMixin extends Screen {
         }
     }
     *///? } else if <1.21.9 {
-    /*@Shadow
+    @Shadow
     @Final
     private long createdAt;
 
@@ -200,8 +200,8 @@ public abstract class ReceivingLevelScreenMixin extends Screen {
     private boolean tick(BooleanSupplier instance, Operation<Boolean> original) {
         return original.call(instance) && (VibrancyThreadPool.INSTANCE.getQueue().size() < 10 || System.currentTimeMillis() > createdAt + 15000L);
     }
-    *///? } else {
-    @Unique
+    //? } else {
+    /*@Unique
     private final long vibrancy$createdAt = System.currentTimeMillis();
     @Shadow
     private LevelLoadTracker loadTracker;
@@ -272,5 +272,5 @@ public abstract class ReceivingLevelScreenMixin extends Screen {
     private boolean tick(LevelLoadTracker instance, Operation<Boolean> original) {
         return original.call(instance) && (VibrancyThreadPool.INSTANCE.getQueue().size() < 10 || System.currentTimeMillis() > vibrancy$createdAt + 15000L);
     }
-    //? }
+    *///? }
 }

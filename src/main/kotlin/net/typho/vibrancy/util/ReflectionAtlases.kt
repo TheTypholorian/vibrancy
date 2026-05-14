@@ -2,6 +2,7 @@ package net.typho.vibrancy.util
 
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.texture.SpriteContents
+import net.minecraft.client.renderer.texture.SpriteLoader
 import net.typho.big_shot_lib.api.client.rendering.opengl.GlQueue
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlFramebuffer
@@ -22,24 +23,25 @@ import net.typho.vibrancy.Vibrancy
 import java.io.FileNotFoundException
 
 //? if <1.21.11 {
-/*import net.minecraft.client.renderer.texture.SpriteTicker
+import net.minecraft.client.renderer.texture.SpriteTicker
 import net.minecraft.client.renderer.texture.atlas.SpriteResourceLoader
+import net.minecraft.client.resources.metadata.animation.AnimationMetadataSection
 import net.minecraft.resources.ResourceLocation
-*///? }
+//? }
 
 //? if <1.21 {
 /*import net.minecraft.client.renderer.texture.SpriteLoader
 *///? }
 
 //? if >=1.21.5 {
-import net.typho.vibrancy.mixin.GlTextureAccessor
+/*import net.typho.vibrancy.mixin.GlTextureAccessor
 import com.mojang.blaze3d.textures.TextureFormat
-//? }
+*///? }
 
 //? if >=1.21.6 {
-import com.mojang.blaze3d.textures.GpuTexture
+/*import com.mojang.blaze3d.textures.GpuTexture
 import net.minecraft.client.resources.metadata.animation.AnimationMetadataSection
-//? }
+*///? }
 
 object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigShotClientEntrypoint {
     private class Animation(
@@ -50,9 +52,9 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
         @JvmField
         val contents: SpriteContents,
         //? if <1.21.11 {
-        /*@JvmField
+        @JvmField
         val ticker: SpriteTicker
-        *///? }
+        //? }
     )
 
     private class Atlas(
@@ -75,8 +77,8 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
                 animation.contents.close()
 
                 //? if <1.21.11 {
-                /*animation.ticker.close()
-                *///? }
+                animation.ticker.close()
+                //? }
             }
         } }
         atlases.clear()
@@ -87,6 +89,24 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
             for ((key, atlas) in atlases) {
                 atlas.texture.bind(GlTextureTarget.TEXTURE_2D).use { texture ->
                     for (animation in atlas.animations) {
+                        //? if <1.21.5 {
+                        animation.ticker.tickAndUpload(animation.x, animation.y)
+                        //? } else if <1.21.11 {
+                        /*animation.ticker.tickAndUpload(animation.x, animation.y, GlTextureAccessor.`vibrancy$init`(
+                            //? if >=1.21.6 {
+                            GpuTexture.USAGE_COPY_DST,
+                            //? }
+                            "Vibrancy Reflection Atlas $key",
+                            TextureFormat.RGBA8,
+                            atlas.texture.width!!,
+                            atlas.texture.height!!,
+                            //? if >=1.21.6 {
+                            1,
+                            //? }
+                            1,
+                            atlas.texture.glId
+                        ))
+                        *///? }
                     }
                 }
             }
@@ -140,7 +160,50 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
                         }
                     }
                 }
-                *///? } else if <1.21.11 {
+                *///? } else if <1.21.9 {
+                val loader = SpriteResourceLoader.create(SpriteLoader.DEFAULT_METADATA_SECTIONS)
+
+                for (resource in idConverter.listMatchingResources(resources)) {
+                    val id = idConverter.fileToId(resource.key)
+
+                    parent.sprites[id]?.let { sprite ->
+                        resource.value.open().use { stream ->
+                            loader.loadSprite(ResourceLocation.fromNamespaceAndPath(resource.key.namespace, resource.key.path), resource.value)?.let { contents ->
+                                //? if <1.21.5 {
+                                contents.uploadFirstFrame(sprite.x, sprite.y)
+                                //? } else {
+                                /*contents.uploadFirstFrame(sprite.x, sprite.y, GlTextureAccessor.`vibrancy$init`(
+                                    //? if >=1.21.6 {
+                                    GpuTexture.USAGE_COPY_DST,
+                                    //? }
+                                    "Vibrancy Reflection Atlas $key",
+                                    TextureFormat.RGBA8,
+                                    parent.width,
+                                    parent.height,
+                                    //? if >=1.21.6 {
+                                    1,
+                                    //? }
+                                    1,
+                                    parent.glId
+                                ))
+                                *///? }
+                                val ticker = contents.createTicker()
+
+                                if (ticker == null) {
+                                    contents.close()
+                                } else {
+                                    animations.add(Animation(
+                                        sprite.x,
+                                        sprite.y,
+                                        contents,
+                                        ticker
+                                    ))
+                                }
+                            }
+                        }
+                    }
+                }
+                //? } else if <1.21.11 {
                 /*val loader = SpriteResourceLoader.create(setOf(AnimationMetadataSection.TYPE))
 
                 for (resource in idConverter.listMatchingResources(resources)) {

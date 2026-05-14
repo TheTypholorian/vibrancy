@@ -56,10 +56,10 @@ class SkyLightBlockMeshCollector(
                 var y = chunk.getHeight(Heightmap.Types.WORLD_SURFACE, x, z)
 
                 //? if <1.21.5 {
-                /*while (y >= chunk.minBuildHeight) {
-                *///? } else {
-                while (y >= chunk.minY) {
-                //? }
+                while (y >= chunk.minBuildHeight) {
+                //? } else {
+                /*while (y >= chunk.minY) {
+                *///? }
                     pos.set(x + this.pos.minBlockX, y, z + this.pos.minBlockZ)
                     val state = chunk.getBlockState(pos)
 

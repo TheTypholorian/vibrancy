@@ -1,11 +1,11 @@
 package net.typho.vibrancy.block.impl
 
 //? if 1.21 {
-/*import dev.ryanhcode.sable.companion.SableCompanion
+import dev.ryanhcode.sable.companion.SableCompanion
 import net.typho.big_shot_lib.api.math.vec.NeoVec3d
 import net.typho.vibrancy.Vibrancy
 import org.joml.Quaternionf
-*///? }
+//? }
 
 import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.ChunkPos
@@ -326,7 +326,7 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                 val blockPos = NeoVec3i(pos.minBlockX, 0, pos.minBlockZ)
 
                 //? if 1.21 {
-                /*val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
+                val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
 
                 if (subLevel == null) {
                     shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((blockPos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
@@ -344,10 +344,10 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                     }
                     shader.setUniform("CameraPos") { setFloatVec(data.camera.pos - pos.toFloat()) }
                 }
-                *///? } else {
-                shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((blockPos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
+                //? } else {
+                /*shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((blockPos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
                 shader.setUniform("CameraPos") { setFloatVec(data.camera.pos - blockPos.toFloat()) }
-                //? }
+                *///? }
                 profiler.pop()
 
                 profiler.push("uniforms")
