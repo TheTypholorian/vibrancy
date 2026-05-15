@@ -38,6 +38,7 @@ import net.typho.big_shot_lib.api.math.vec.NeoVec3d
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.BlockUtil
+import net.typho.big_shot_lib.api.util.Stopwatch
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
 import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.LightManager
@@ -110,7 +111,7 @@ open class RayPointLight(
     }
 
     @JvmField
-    val meshCollector = FloodFillBlockMeshCollector(pos.blockPos)
+    val meshCollector = FloodFillBlockMeshCollector(pos.blockPos, boundingBox)
 
     var meshData: LightMesh.MeshData? = null
         protected set
@@ -183,94 +184,100 @@ open class RayPointLight(
             val shadowRadius = ceil(radius.coerceAtMost(VibrancyConfig.rayLightShadowRadius.toFloat())).toInt()
             return NeoRect3i(pos - shadowRadius, pos + shadowRadius)
         }
-    val shadowPredicate = object : BlockMeshCollector.Predicate {
-        override fun isBlockTransparent(level: Level, pos: BlockPos.MutableBlockPos, state: BlockState): Boolean {
-            return super.isBlockTransparent(level, pos, state) || BlockLightRegistry.get(state.block, RayPointLightType) != null
-        }
+    val shadowPredicate: BlockMeshCollector.Predicate
+        get() = object : BlockMeshCollector.Predicate {
+            val shadowBox = this@RayPointLight.shadowBox
 
-        override fun shouldCastBlock(
-            level: Level,
-            pos: BlockPos.MutableBlockPos,
-            state: BlockState?
-        ): Boolean {
-            return shadowBox.contains(NeoVec3i(pos)) && BlockLightRegistry.get((state ?: level.getBlockState(pos)).block, RayPointLightType) == null
-        }
+            override fun isBlockTransparent(level: Level, pos: BlockPos.MutableBlockPos, state: BlockState): Boolean {
+                return super.isBlockTransparent(level, pos, state) || BlockLightRegistry.get(state.block, RayPointLightType) != null
+            }
 
-        override fun shouldCastFace(
-            face: NeoDirection?,
-            level: Level,
-            pos: BlockPos.MutableBlockPos,
-            state: BlockState?
-        ): Boolean {
-            if (face == null) {
+            override fun shouldCastBlock(
+                level: Level,
+                pos: BlockPos.MutableBlockPos,
+                state: BlockState?
+            ): Boolean {
+                return shadowBox.contains(NeoVec3i(pos)) && BlockLightRegistry.get((state ?: level.getBlockState(pos)).block, RayPointLightType) == null
+            }
+
+            override fun shouldCastFace(
+                face: NeoDirection?,
+                level: Level,
+                pos: BlockPos.MutableBlockPos,
+                state: BlockState?
+            ): Boolean {
+                if (face == null) {
+                    return true
+                }
+
+                val sidePos = pos.relative(face.mojang)
+
+                if (sidePos == this@RayPointLight.pos) {
+                    return true
+                }
+
+                val state = state ?: level.getBlockState(pos)
+
+                if (BlockUtil.INSTANCE.getBlockChunkLayer(state) == BlockChunkLayer.SOLID && !face.isPointingTowards(pos, this@RayPointLight.pos)) {
+                    return false
+                }
+
+                if (
+                    !BlockUtil.INSTANCE.shouldRenderFace(
+                        level,
+                        pos,
+                        face,
+                        state
+                    ) && BlockLightRegistry.get(level.getBlockState(sidePos).block, RayPointLightType) == null
+                ) {
+                    return false
+                }
+
                 return true
             }
+        }
+    val lightPredicate: BlockMeshCollector.Predicate
+        get() = object : BlockMeshCollector.Predicate {
+            val boundingBox = this@RayPointLight.boundingBox
 
-            val sidePos = pos.relative(face.mojang)
+            override fun shouldCastBlock(
+                level: Level,
+                pos: BlockPos.MutableBlockPos,
+                state: BlockState?
+            ): Boolean {
+                return boundingBox.contains(NeoVec3i(pos))
+            }
 
-            if (sidePos == this@RayPointLight.pos) {
+            override fun shouldCastFace(
+                face: NeoDirection?,
+                level: Level,
+                pos: BlockPos.MutableBlockPos,
+                state: BlockState?
+            ): Boolean {
+                if (face == null) {
+                    return true
+                }
+
+                val state = state ?: level.getBlockState(pos)
+
+                if (BlockUtil.INSTANCE.getBlockChunkLayer(state) == BlockChunkLayer.SOLID && !face.isPointingTowards(pos, this@RayPointLight.pos)) {
+                    return false
+                }
+
+                if (
+                    !BlockUtil.INSTANCE.shouldRenderFace(
+                        level,
+                        pos,
+                        face,
+                        state
+                    )
+                ) {
+                    return false
+                }
+
                 return true
             }
-
-            val state = state ?: level.getBlockState(pos)
-
-            if (BlockUtil.INSTANCE.getBlockChunkLayer(state) == BlockChunkLayer.SOLID && !face.isPointingTowards(pos, this@RayPointLight.pos)) {
-                return false
-            }
-
-            if (
-                !BlockUtil.INSTANCE.shouldRenderFace(
-                    level,
-                    pos,
-                    face,
-                    state
-                ) && BlockLightRegistry.get(level.getBlockState(sidePos).block, RayPointLightType) == null
-            ) {
-                return false
-            }
-
-            return true
         }
-    }
-    val lightPredicate = object : BlockMeshCollector.Predicate {
-        override fun shouldCastBlock(
-            level: Level,
-            pos: BlockPos.MutableBlockPos,
-            state: BlockState?
-        ): Boolean {
-            return boundingBox.contains(NeoVec3i(pos))
-        }
-
-        override fun shouldCastFace(
-            face: NeoDirection?,
-            level: Level,
-            pos: BlockPos.MutableBlockPos,
-            state: BlockState?
-        ): Boolean {
-            if (face == null) {
-                return true
-            }
-
-            val state = state ?: level.getBlockState(pos)
-
-            if (BlockUtil.INSTANCE.getBlockChunkLayer(state) == BlockChunkLayer.SOLID && !face.isPointingTowards(pos, this@RayPointLight.pos)) {
-                return false
-            }
-
-            if (
-                !BlockUtil.INSTANCE.shouldRenderFace(
-                    level,
-                    pos,
-                    face,
-                    state
-                )
-            ) {
-                return false
-            }
-
-            return true
-        }
-    }
 
     fun reload() {
         synchronized(meshCollector) {
@@ -391,9 +398,9 @@ open class RayPointLight(
                     profiler.push("entityShadows")
                     for (entity in level.getEntities(null, AABB.ofSize(Vec3(absolutePos.toJOML()), radius.toDouble() * 2, radius.toDouble() * 2, radius.toDouble() * 2))) {
                         //? if 1.21 {
-                        if (subLevel != null || meshCollector.cache.checked.contains(entity.blockPosition())) {
+                        if (subLevel != null || meshCollector.cache.checked[entity.blockPosition()]) {
                         //? } else {
-                        /*if (meshCollector.cache.checked.contains(entity.blockPosition())) {
+                        /*if (meshCollector.cache.checked[entity.blockPosition()]) {
                         *///? }
                             val node = Node()
                             debugOut("entityShadows", 1)
