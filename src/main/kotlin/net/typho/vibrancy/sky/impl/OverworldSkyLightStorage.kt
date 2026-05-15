@@ -576,7 +576,6 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
             isCancelled: () -> Boolean,
             manager: LightManager
         ): Pair<AutoCloseable, () -> AbstractRect3<Int>?> {
-            val watch = Stopwatch()
             val level = manager.getLevel() ?: throw NullPointerException("No level?")
             var box: AbstractRect3<Int>? = null
 
@@ -736,8 +735,6 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
             val solid = upload(lightFaces, mesh)
             val translucent = upload(translucentFaces, translucentMesh)
-
-            println("Finished in ${watch.stop()} ms")
 
             return AutoCloseable {
                 solid.first.close()

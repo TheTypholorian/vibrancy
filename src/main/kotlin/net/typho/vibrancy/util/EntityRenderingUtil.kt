@@ -116,7 +116,7 @@ object EntityRenderingUtil {
     fun <E : BlockEntity> renderBlockEntity(blockEntity: E, pose: PoseStack, buffers: NeoMultiBufferSource, data: RenderEventData, tickDelta: Float = Vibrancy.tickDelta, light: Int = LightTexture.FULL_BRIGHT) {
         try {
             //? if <1.21.5 {
-            Minecraft.getInstance().blockEntityRenderDispatcher.getRenderer(blockEntity)!!.render(
+            Minecraft.getInstance().blockEntityRenderDispatcher.getRenderer(blockEntity)?.render(
                 blockEntity,
                 tickDelta,
                 pose,
@@ -125,7 +125,7 @@ object EntityRenderingUtil {
                 OverlayTexture.NO_OVERLAY
             )
             //? } else if <1.21.9 {
-            /*Minecraft.getInstance().blockEntityRenderDispatcher.getRenderer(blockEntity)!!.render(
+            /*Minecraft.getInstance().blockEntityRenderDispatcher.getRenderer(blockEntity)?.render(
                 blockEntity,
                 tickDelta,
                 pose,
