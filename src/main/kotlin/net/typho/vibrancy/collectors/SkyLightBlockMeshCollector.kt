@@ -1,6 +1,7 @@
 package net.typho.vibrancy.collectors
 
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
@@ -53,14 +54,13 @@ class SkyLightBlockMeshCollector(
                     return false
                 }
 
-                var y = chunk.getHeight(Heightmap.Types.WORLD_SURFACE, x, z)
+                pos.set(x + this.pos.minBlockX, chunk.getHeight(Heightmap.Types.WORLD_SURFACE, x, z), z + this.pos.minBlockZ)
 
                 //? if <1.21.5 {
-                while (y >= chunk.minBuildHeight) {
+                while (pos.y >= chunk.minBuildHeight) {
                 //? } else {
                 /*while (y >= chunk.minY) {
                 *///? }
-                    pos.set(x + this.pos.minBlockX, y, z + this.pos.minBlockZ)
                     val state = chunk.getBlockState(pos)
 
                     if (consumers.any { it.predicate.shouldCastBlock(level, pos, state) }) {
@@ -69,20 +69,7 @@ class SkyLightBlockMeshCollector(
                         break
                     }
 
-                    /*
-                    if (!state.propagatesSkylightDown(level, pos.blockPos)) {
-                        if (
-                            level.getBrightness(LightLayer.SKY, pos.blockPos.north()) <= 0 &&
-                            level.getBrightness(LightLayer.SKY, pos.blockPos.south()) <= 0 &&
-                            level.getBrightness(LightLayer.SKY, pos.blockPos.east()) <= 0 &&
-                            level.getBrightness(LightLayer.SKY, pos.blockPos.west()) <= 0
-                        ) {
-                            break
-                        }
-                    }
-                     */
-
-                    y--
+                    pos.move(Direction.DOWN)
                 }
             }
         }

@@ -19,7 +19,7 @@ import net.neoforged.neoforge.client.gui.IConfigScreenFactory
 @Mod(value = Vibrancy.MOD_ID, dist = [Dist.CLIENT])
 class VibrancyModMenuCompat(eventBus: IEventBus, modContainer: ModContainer) {
     init {
-        //modContainer.registerExtensionPoint(IConfigScreenFactory::class.java, IConfigScreenFactory { container, modListScreen -> VibrancyConfig.createScreen(modListScreen) })
+        modContainer.registerExtensionPoint(IConfigScreenFactory::class.java, IConfigScreenFactory { container, modListScreen -> VibrancyConfig.createScreen(modListScreen) })
     }
 }
 *///? }
