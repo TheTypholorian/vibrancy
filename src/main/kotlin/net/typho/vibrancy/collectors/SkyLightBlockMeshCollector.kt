@@ -65,6 +65,8 @@ class SkyLightBlockMeshCollector(
 
                     if (consumers.any { it.predicate.shouldCastBlock(level, pos, state) }) {
                         collect(pos, state)
+                    } else {
+                        break
                     }
 
                     /*

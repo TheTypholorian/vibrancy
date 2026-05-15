@@ -5,16 +5,16 @@ import dev.ryanhcode.sable.companion.SableCompanion
 //? }
 
 import com.mojang.blaze3d.vertex.PoseStack
-import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.LightLayer
+import net.minecraft.world.level.block.LeavesBlock
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkAccess
-import net.minecraft.world.level.dimension.DimensionType
+import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.level.material.Fluids
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
@@ -51,6 +51,7 @@ import net.typho.big_shot_lib.api.math.vec.NeoVec4f
 import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.big_shot_lib.api.util.NeoColor
+import net.typho.big_shot_lib.api.util.Stopwatch
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
 import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.LightManager
@@ -58,7 +59,6 @@ import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyConfig
 import net.typho.vibrancy.collectors.BlockMeshCollector
 import net.typho.vibrancy.collectors.SkyLightBlockMeshCollector
-import net.typho.vibrancy.mixin.LevelRendererAccessor
 import net.typho.vibrancy.shadows.LightFace
 import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.shadows.LightTexture
@@ -576,8 +576,31 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
             isCancelled: () -> Boolean,
             manager: LightManager
         ): Pair<AutoCloseable, () -> AbstractRect3<Int>?> {
+            val watch = Stopwatch()
             val level = manager.getLevel() ?: throw NullPointerException("No level?")
             var box: AbstractRect3<Int>? = null
+
+            val lightX = pos.minBlockX - 1
+            val lightZ = pos.minBlockZ - 1
+            val lightIterPos = BlockPos.MutableBlockPos()
+            val lightArray = Array(18) { x -> Array(18) { z ->
+                val y = level.getHeight(Heightmap.Types.WORLD_SURFACE, x + lightX, z + lightZ)
+                lightIterPos.set(x + lightX, level.minBuildHeight, z + lightZ)
+
+                while (lightIterPos.y <= y) {
+                    if (level.getBrightness(LightLayer.SKY, lightIterPos) > 0) {
+                        return@Array lightIterPos.y
+                    }
+
+                    lightIterPos.move(Direction.UP)
+                }
+
+                return@Array y
+            } }
+
+            fun couldHaveLight(x: Int, y: Int, z: Int): Boolean {
+                return lightArray[x - lightX][z - lightZ] <= y
+            }
 
             val lightFaces = arrayListOf<LightFace>()
             val translucentFaces = arrayListOf<LightFace>()
@@ -594,18 +617,20 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                                 pos: BlockPos.MutableBlockPos,
                                 state: BlockState?
                             ): Boolean {
-                                val passed = Direction.entries.any {
-                                    val v = level.getBrightness(LightLayer.SKY, pos.move(it)) > 0
-                                    pos.move(it.opposite)
-                                    v
-                                }
-
-                                if (passed) {
+                                if (
+                                    couldHaveLight(pos.x, pos.y + 1, pos.z) ||
+                                    couldHaveLight(pos.x - 1, pos.y, pos.z) ||
+                                    couldHaveLight(pos.x + 1, pos.y, pos.z) ||
+                                    couldHaveLight(pos.x, pos.y, pos.z - 1) ||
+                                    couldHaveLight(pos.x, pos.y, pos.z + 1) ||
+                                    couldHaveLight(pos.x, pos.y, pos.z)
+                                ) {
                                     val pos1 = NeoVec3i(pos)
                                     box = box?.include(pos1) ?: NeoRect3i(pos1, pos1)
+                                    return true
                                 }
 
-                                return passed
+                                return false
                             }
 
                             override fun shouldCastFace(
@@ -619,6 +644,11 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                                 }
 
                                 val state = state ?: level.getBlockState(pos)
+                                val pos1 = pos.relative(face.mojang)
+
+                                if (state.block is LeavesBlock && level.getBlockState(pos1).block is LeavesBlock) {
+                                    return false
+                                }
 
                                 if (
                                     !BlockUtil.INSTANCE.shouldRenderFace(
@@ -628,6 +658,10 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                                         state
                                     )
                                 ) {
+                                    return false
+                                }
+
+                                if (level.getBrightness(LightLayer.SKY, pos1) == 0) {
                                     return false
                                 }
 
@@ -701,6 +735,8 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
             val solid = upload(lightFaces, mesh)
             val translucent = upload(translucentFaces, translucentMesh)
+
+            println("Finished in ${watch.stop()} ms")
 
             return AutoCloseable {
                 solid.first.close()

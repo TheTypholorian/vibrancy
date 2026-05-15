@@ -127,9 +127,9 @@ dependencies {
     modImplementation("net.fabricmc.fabric-api:fabric-api:${property("deps.fabric-api")}")
     modImplementation(libs.flk)
 
-    modImplementation(libs.sodium)
-    modImplementation(libs.bigShot)
-    modImplementation("maven.modrinth:yacl:${property("deps.yacl")}")
+    modCompileOnly(libs.sodium)
+    modCompileOnly(libs.bigShot)
+    modCompileOnly("maven.modrinth:yacl:${property("deps.yacl")}")
     modCompileOnly(libs.modmenu)
 
     if (sc.current.version == "1.21") {

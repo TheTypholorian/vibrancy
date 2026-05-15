@@ -131,9 +131,9 @@ repositories {
 dependencies {
     implementation(libs.kff)
 
-    implementation(libs.sodium)
-    implementation(libs.bigShot)
-    implementation("maven.modrinth:yacl:${property("deps.yacl")}")
+    compileOnly(libs.sodium)
+    compileOnly(libs.bigShot)
+    compileOnly("maven.modrinth:yacl:${property("deps.yacl")}")
 
     if (sc.current.version == "1.21") {
         jarJar(libs.sableCompanion)
