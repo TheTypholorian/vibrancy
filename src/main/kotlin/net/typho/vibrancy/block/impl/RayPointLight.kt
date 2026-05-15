@@ -38,7 +38,6 @@ import net.typho.big_shot_lib.api.math.vec.NeoVec3d
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.BlockUtil
-import net.typho.big_shot_lib.api.util.Stopwatch
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
 import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.LightManager
@@ -58,7 +57,6 @@ import net.typho.vibrancy.util.PointLight
 import net.typho.vibrancy.util.QuadListVertexConsumer
 import org.joml.Matrix4f
 import org.joml.Quaternionf
-import org.joml.Vector4f
 import org.lwjgl.system.NativeResource
 import kotlin.math.ceil
 
@@ -325,18 +323,6 @@ open class RayPointLight(
                 val absolutePos = absolutePos
                 val absoluteBlockPos = absoluteBlockPos
 
-                //? if 1.21 {
-                val subLevel = SableCompanion.INSTANCE.getContainingClient(pos.toDouble().toJOML())
-                val subLevelPose = subLevel?.renderPose()
-                val transform = if (subLevelPose == null) {
-                    Matrix4f().translate((-absoluteBlockPos).toJOML())
-                } else {
-                    Matrix4f().rotate(Quaternionf(subLevelPose.orientation()).invert()).translate((-absoluteBlockPos).toJOML())
-                }
-                //? } else {
-                /*val transform = Matrix4f().translate((-absoluteBlockPos).toJOML())
-                *///? }
-
                 val allTextures = hashSetOf<NeoIdentifier>()
 
                 data class Node(
@@ -356,17 +342,7 @@ open class RayPointLight(
                         allTextures.add(texture)
 
                         buffers.computeIfAbsent(texture) {
-                            val quads = quads.computeIfAbsent(texture) { texture -> arrayListOf() }
-                            object : QuadListVertexConsumer(quads) {
-                                override fun vertex(
-                                    x: Float,
-                                    y: Float,
-                                    z: Float
-                                ): NeoVertexConsumer {
-                                    val pos = transform.transform(Vector4f(x, y, z, 1f))
-                                    return super.vertex(pos.x, pos.y, pos.z)
-                                }
-                            }
+                            QuadListVertexConsumer(quads.computeIfAbsent(texture) { texture -> arrayListOf<NeoBakedQuad>() })
                         }
                     }
                 ) {
@@ -393,6 +369,19 @@ open class RayPointLight(
 
                 val nodes = arrayListOf<Node>()
                 val poseStack = PoseStack()
+
+                poseStack.pushPose()
+
+                //? if 1.21 {
+                val subLevel = SableCompanion.INSTANCE.getContainingClient(pos.toDouble().toJOML())
+                val subLevelPose = subLevel?.renderPose()
+
+                if (subLevelPose != null) {
+                    poseStack.mulPose(Quaternionf(subLevelPose.orientation()).invert())
+                }
+                //? }
+
+                poseStack.translate(-absoluteBlockPos.x, -absoluteBlockPos.y, -absoluteBlockPos.z)
 
                 if (VibrancyConfig.entityShadowsEnabled) {
                     profiler.push("entityShadows")
@@ -444,6 +433,8 @@ open class RayPointLight(
                     Vibrancy.disableFlywheelInstancing = false
                     profiler.pop()
                 }
+
+                poseStack.popPose()
                 profiler.pop()
 
                 profiler.push("calculate")

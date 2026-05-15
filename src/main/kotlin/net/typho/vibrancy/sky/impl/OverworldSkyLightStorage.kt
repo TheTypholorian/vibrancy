@@ -5,6 +5,7 @@ import dev.ryanhcode.sable.companion.SableCompanion
 //? }
 
 import com.mojang.blaze3d.vertex.PoseStack
+import net.minecraft.commands.arguments.coordinates.BlockPosArgument.blockPos
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.util.profiling.ProfilerFiller
@@ -222,7 +223,6 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
         profiler.push("shadows")
         shadowDrawState.bind().use { settings ->
             settings.shader.setUniform("ShadowMat") { set(shadowMat) }
-            settings.shader.setUniform("CameraPos") { setFloatVec(data.camera.pos) }
 
             fun drawChunks(name: String, to: LightTexture, mesh: (chunk: Chunk) -> Mesh) {
                 profiler.push(name)
@@ -244,23 +244,26 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
                             if (subLevel == null) {
                                 if (chunk.shouldDraw(shadowFrustum, data)) {
-                                    settings.shader.setUniform("ChunkOffset") { setFloatVec(blockPos.toFloat()) }
+                                    settings.shader.setUniform("SableMat") {
+                                        set(
+                                            Matrix4f()
+                                                .translate((blockPos.toFloat() - data.camera.pos).toJOML())
+                                        )
+                                    }
                                     mesh(chunk).draw()
                                 }
                             } else {
                                 val pose = subLevel.renderPose(Vibrancy.tickDelta)
                                 val orientation = Quaternionf(pose.orientation())
-                                val origin = NeoVec3d(pose.transformPosition(blockPos.toDouble().toJOML())).toFloat()
-                                settings.shader.setUniform("ShadowMat") {
+                                val pos = NeoVec3d(pose.transformPosition(blockPos.toDouble().toJOML())).toFloat()
+                                settings.shader.setUniform("SableMat") {
                                     set(
                                         Matrix4f()
+                                            .translate((pos.toFloat() - data.camera.pos).toJOML())
                                             .rotate(orientation)
-                                            .mul(shadowMat)
                                     )
                                 }
-                                settings.shader.setUniform("ChunkOffset") { setFloatVec(origin) }
                                 mesh(chunk).draw()
-                                settings.shader.setUniform("ShadowMat") { set(shadowMat) }
                             }
                             //? } else {
                             /*if (chunk.shouldDraw(shadowFrustum, data)) {
@@ -366,8 +369,12 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                         fun draw(state: GlDrawState, to: LightTexture) {
                             state.bind().use { settings ->
                                 settings.shader.setUniform("ShadowMat") { set(shadowMat) }
-                                settings.shader.setUniform("CameraPos") { setFloatVec(data.camera.pos) }
-                                settings.shader.setUniform("ChunkOffset") { setFloatVec(NeoVec3f(0f, 0f, 0f)) }
+                                settings.shader.setUniform("SableMat") {
+                                    set(
+                                        Matrix4f()
+                                            .translate((-data.camera.pos).toJOML())
+                                    )
+                                }
                                 settings.shader.setTexture(
                                     0,
                                     GlTextureBinding.FromInstance(
