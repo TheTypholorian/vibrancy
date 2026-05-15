@@ -290,7 +290,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
             profiler.push("dynamicShadows")
             val quads = hashMapOf<Pair<Boolean, NeoIdentifier>, MutableList<NeoBakedQuad>>()
-            val buffers = hashMapOf<NeoIdentifier, NeoBakedQuad.Consumer>()
+            val buffers = hashMapOf<Pair<Boolean, NeoIdentifier>, NeoBakedQuad.Consumer>()
             val bufferSource = NeoMultiBufferSource { settings: NeoRenderSettings ->
                 val texture = settings.drawState.shader.textures.getOrNull(0)?.location ?: return@NeoMultiBufferSource EmptyVertexConsumer
 
@@ -302,14 +302,16 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                     return@NeoMultiBufferSource EmptyVertexConsumer
                 }
 
-                buffers.computeIfAbsent(texture) {
-                    QuadListVertexConsumer(quads.computeIfAbsent((settings.drawState.blend is GlBlendShard.Enabled) to texture) { texture -> arrayListOf() })
+                val key = (settings.drawState.blend is GlBlendShard.Enabled) to texture
+                buffers.computeIfAbsent(key) {
+                    QuadListVertexConsumer(quads.computeIfAbsent(key) { arrayListOf() })
                 }
             }
             val poseStack = PoseStack()
             val radius = VibrancyConfig.entityShadowDistance * 16
 
             profiler.push("collect")
+            Vibrancy.disableFlywheelInstancing = true
             if (VibrancyConfig.entityShadowsEnabled) {
                 profiler.push("entityShadows")
                 for (entity in data.level!!.getEntities(null, AABB.ofSize(Vec3(data.camera.pos.toJOML()), radius.toDouble() * 2, radius.toDouble() * 2, radius.toDouble() * 2))) {
@@ -320,16 +322,13 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
             if (VibrancyConfig.blockEntityShadows) {
                 profiler.push("blockEntityShadows")
-                Vibrancy.disableFlywheelInstancing = true
 
                 for ((pos, chunk) in chunks) {
                     for (blockPos in chunk.blockEntities) {
                         //? if 1.21 {
                         val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
                         val subLevelPose = subLevel?.renderPose()
-                        val transformedPos = subLevelPose?.transformPosition(NeoVec3i(blockPos).toDouble().toJOML())?.let { NeoVec3d(
-                            it
-                        ).toFloat() } ?: NeoVec3i(blockPos).toFloat()
+                        val transformedPos = subLevelPose?.transformPosition(NeoVec3i(blockPos).toDouble().toJOML())?.let { NeoVec3d(it).toFloat() } ?: NeoVec3i(blockPos).toFloat()
 
                         if (transformedPos.inDistance(data.camera.pos, radius.toFloat())) {
                         //? } else {
@@ -355,9 +354,9 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                     }
                 }
 
-                Vibrancy.disableFlywheelInstancing = false
                 profiler.pop()
             }
+            Vibrancy.disableFlywheelInstancing = false
             profiler.pop()
 
             profiler.push("calculate")

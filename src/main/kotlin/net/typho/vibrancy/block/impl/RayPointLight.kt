@@ -342,7 +342,7 @@ open class RayPointLight(
                         allTextures.add(texture)
 
                         buffers.computeIfAbsent(texture) {
-                            QuadListVertexConsumer(quads.computeIfAbsent(texture) { texture -> arrayListOf<NeoBakedQuad>() })
+                            QuadListVertexConsumer(quads.computeIfAbsent(texture) { arrayListOf() })
                         }
                     }
                 ) {
@@ -383,6 +383,7 @@ open class RayPointLight(
 
                 poseStack.translate(-absoluteBlockPos.x, -absoluteBlockPos.y, -absoluteBlockPos.z)
 
+                Vibrancy.disableFlywheelInstancing = true
                 if (VibrancyConfig.entityShadowsEnabled) {
                     profiler.push("entityShadows")
                     for (entity in level.getEntities(null, AABB.ofSize(Vec3(absolutePos.toJOML()), radius.toDouble() * 2, radius.toDouble() * 2, radius.toDouble() * 2))) {
@@ -402,7 +403,6 @@ open class RayPointLight(
 
                 if (VibrancyConfig.blockEntityShadows) {
                     profiler.push("blockEntityShadows")
-                    Vibrancy.disableFlywheelInstancing = true
 
                     for (pos in meshCollector.blockEntities) {
                         level.getBlockEntity(pos)?.let { blockEntity ->
@@ -430,9 +430,9 @@ open class RayPointLight(
                         }
                     }
 
-                    Vibrancy.disableFlywheelInstancing = false
                     profiler.pop()
                 }
+                Vibrancy.disableFlywheelInstancing = false
 
                 poseStack.popPose()
                 profiler.pop()

@@ -4,16 +4,6 @@
 
 uniform float ShadowMapPower = 8;
 
-float fog_distance(vec3 pos, int shape) {
-    if (shape == 0) {
-        return length(pos);
-    } else {
-        float distXZ = length(pos.xz);
-        float distY = abs(pos.y);
-        return max(distXZ, distY);
-    }
-}
-
 uniform mat4 ModelViewMat;
 uniform mat4 ProjMat;
 uniform mat4 SableMat;
@@ -44,5 +34,5 @@ void main() {
     vertexColor = Color;
     vertexPosition = (SpecularMat * vec4(Position, 1)).xyz;
     fogPosition = sablePos.xyz;
-    vertexNormal = normalize(mat3(SableMat) * Normal);
+    vertexNormal = mat3(SableMat) * Normal;
 }
