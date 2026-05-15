@@ -719,6 +719,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                             writeByte((normal.x * 127).toInt())
                             writeByte((normal.y * 127).toInt())
                             writeByte((normal.z * 127).toInt())
+                            writeByte(0)
                         }
                     }
                 }

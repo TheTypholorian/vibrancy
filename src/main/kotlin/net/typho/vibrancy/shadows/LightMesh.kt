@@ -33,6 +33,7 @@ open class LightMesh(
             .add("UV1", NeoVertexFormat.Element.OVERLAY_UV)
             .add("Color", NeoVertexFormat.Element.COLOR)
             .add("Normal", NeoVertexFormat.Element.NORMAL)
+            .padding(1)
             .build()
         @JvmField
         val INVENTORY_VERTEX_FORMAT = NeoVertexFormat.builder()
@@ -53,6 +54,7 @@ open class LightMesh(
             .add("UV2", NeoVertexFormat.Element.LIGHT_UV)
             .add("Color", NeoVertexFormat.Element.COLOR)
             .add("Normal", NeoVertexFormat.Element.NORMAL)
+            .padding(1)
             .build()
 
         @JvmStatic
@@ -88,13 +90,6 @@ open class LightMesh(
         @JvmStatic
         fun initBlitMesh(mesh: Mesh, info: MeshData) {
             val vertexBuffer = NeoBuffer.GCNative(info.faces.size.toLong() * 4 * BLIT_VERTEX_FORMAT.vertexSizeBytes)
-            val indexCount = info.faces.size * 6
-            val indexType = when (indexCount) {
-                indexCount and BYTE_MASK -> GlIndexDataType.BYTE
-                indexCount and SHORT_MASK -> GlIndexDataType.SHORT
-                else -> GlIndexDataType.INT
-            }
-            val indexBuffer = NeoBuffer.GCNative(indexCount.toLong() * VERTEX_FORMAT.vertexSizeBytes)
 
             vertexBuffer.write().run {
                 fun vertex(pos: IVec3<Float>, texX: Float, texY: Float) {
@@ -114,23 +109,12 @@ open class LightMesh(
                     vertex(face.quad.v3.pos, texture.min.x.toFloat(), texture.max.y.toFloat())
                 }
             }
-            indexBuffer.write().run {
-                var vertex = 0
 
-                repeat(info.faces.size) {
-                    indexType.write(this, vertex)
-                    indexType.write(this, vertex + 1)
-                    indexType.write(this, vertex + 2)
-                    indexType.write(this, vertex + 2)
-                    indexType.write(this, vertex + 3)
-                    indexType.write(this, vertex)
-                    vertex += 4
-                }
-            }
+            val indices = mesh.generateIndices(info.faces.size * 4)
 
-            mesh.rawUpload(indexCount, indexType, vertexBuffer, indexBuffer)
+            mesh.rawUpload(info.faces.size * 6, indices.second, vertexBuffer, indices.first)
             vertexBuffer.free()
-            indexBuffer.free()
+            indices.first.free()
         }
     }
 
@@ -175,6 +159,7 @@ open class LightMesh(
                     writeByte((normal.x * 127).toInt())
                     writeByte((normal.y * 127).toInt())
                     writeByte((normal.z * 127).toInt())
+                    writeByte(0)
                 }
             }
         }
@@ -213,6 +198,7 @@ open class LightMesh(
                     writeByte((normal.x * 127).toInt())
                     writeByte((normal.y * 127).toInt())
                     writeByte((normal.z * 127).toInt())
+                    writeByte(0)
                 }
             }
         }
@@ -248,6 +234,7 @@ open class LightMesh(
                     writeByte((normal.x * 127).toInt())
                     writeByte((normal.y * 127).toInt())
                     writeByte((normal.z * 127).toInt())
+                    writeByte(0)
                 }
             }
         }
