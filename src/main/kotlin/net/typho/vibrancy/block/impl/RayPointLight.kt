@@ -59,6 +59,13 @@ import net.typho.vibrancy.util.QuadListVertexConsumer
 import org.joml.Matrix4f
 import org.joml.Quaternionf
 import org.joml.Vector4f
+import org.lwjgl.opengl.GL15.GL_ARRAY_BUFFER
+import org.lwjgl.opengl.GL30.GL_MAP_WRITE_BIT
+import org.lwjgl.opengl.GL30.nglMapBufferRange
+import org.lwjgl.opengl.GL44.GL_MAP_COHERENT_BIT
+import org.lwjgl.opengl.GL44.GL_MAP_PERSISTENT_BIT
+import org.lwjgl.opengl.GL44.glBufferStorage
+import org.lwjgl.system.MemoryUtil
 import org.lwjgl.system.NativeResource
 import kotlin.math.ceil
 
@@ -105,7 +112,7 @@ open class RayPointLight(
                 setUniform("LightColor") { setFloatVec(color * VibrancyConfig.rayLightBrightness) }
                 setUniform("LightRadius") { set(radius) }
 
-                setShaderStorageBuffer("ShadowQuadBuffer", shadowBuffer)
+                setShaderStorageBufferRange("ShadowQuadBuffer", shadowBuffer, 0, shadowBuffer.sizeBytes)
             }.bind().use { blitMesh.draw() }
         }
     }
@@ -119,11 +126,39 @@ open class RayPointLight(
     @JvmField
     val dynamicTexture = LightTexture()
     @JvmField
-    val dynamicBuffer = ShadowBuffer(GlBufferUsage.STREAM_DRAW)
+    val dynamicBuffer = ShadowBuffer.PersistentMapped(1L shl 18)
     @JvmField
     val dynamicBVHBuffer = NeoGlBuffer()
     @JvmField
+    val mappedDynamicBVHBuffer = dynamicBVHBuffer.bind(GlBufferTarget.ARRAY_BUFFER).use {
+        // TODO
+        val size = 1L shl 12
+        val access = GL_MAP_WRITE_BIT or GL_MAP_PERSISTENT_BIT or GL_MAP_COHERENT_BIT
+        glBufferStorage(GL_ARRAY_BUFFER, size, access)
+        val pointer = nglMapBufferRange(GL_ARRAY_BUFFER, 0, size, access)
+
+        if (pointer == MemoryUtil.NULL) {
+            throw NullPointerException("Failed to map buffer GL_ARRAY_BUFFER")
+        }
+
+        return@use NeoBuffer.Native(pointer, size)
+    }
+    @JvmField
     val dynamicTextureInfoBuffer = NeoGlBuffer()
+    @JvmField
+    val mappedDynamicTextureInfoBuffer = dynamicTextureInfoBuffer.bind(GlBufferTarget.ARRAY_BUFFER).use {
+        // TODO
+        val size = 1L shl 16
+        val access = GL_MAP_WRITE_BIT or GL_MAP_PERSISTENT_BIT or GL_MAP_COHERENT_BIT
+        glBufferStorage(GL_ARRAY_BUFFER, size, access)
+        val pointer = nglMapBufferRange(GL_ARRAY_BUFFER, 0, size, access)
+
+        if (pointer == MemoryUtil.NULL) {
+            throw NullPointerException("Failed to map buffer GL_ARRAY_BUFFER")
+        }
+
+        return@use NeoBuffer.Native(pointer, size)
+    }
     @JvmField
     protected var dynamicCleared = true
 
@@ -289,7 +324,13 @@ open class RayPointLight(
     override fun free() {
         dynamicTexture.free()
         dynamicBuffer.free()
+        dynamicBVHBuffer.bind(GlBufferTarget.ARRAY_BUFFER).use {
+            it.unmapBuffer()
+        }
         dynamicBVHBuffer.free()
+        dynamicTextureInfoBuffer.bind(GlBufferTarget.ARRAY_BUFFER).use {
+            it.unmapBuffer()
+        }
         dynamicTextureInfoBuffer.free()
         staticTexture.free()
         mesh.free()
@@ -458,9 +499,7 @@ open class RayPointLight(
                         val nodes = nodes.mapNotNull { node -> node.computeBox(textures)?.let { node to it } }
 
                         if (nodes.isNotEmpty()) {
-                            val bvhBuffer = NeoBuffer.Native(nodes.size * 32L)
-
-                            bvhBuffer.write().run {
+                            mappedDynamicBVHBuffer.write().run {
                                 var index = 0
 
                                 for (node in nodes) {
@@ -477,11 +516,6 @@ open class RayPointLight(
                                 }
                             }
 
-                            dynamicBVHBuffer.bind(GlBufferTarget.ARRAY_BUFFER).use {
-                                it.bufferData(bvhBuffer, GlBufferUsage.STREAM_DRAW)
-                            }
-                            bvhBuffer.free()
-
                             if (!cleared) {
                                 dynamicTexture.clear()
                                 cleared = true
@@ -490,18 +524,11 @@ open class RayPointLight(
                             val quads = nodes.flatMap { it.first.getQuads(textures) }
                             val textures = textures.map { GlTexture2D[it]!! }
 
-                            val texBuffer = NeoBuffer.Native(quads.size * 4L)
-
-                            texBuffer.write().run {
+                            mappedDynamicTextureInfoBuffer.write().run {
                                 for (quad in quads) {
                                     writeInt(quad.second)
                                 }
                             }
-
-                            dynamicTextureInfoBuffer.bind(GlBufferTarget.ARRAY_BUFFER).use {
-                                it.bufferData(texBuffer, GlBufferUsage.STREAM_DRAW)
-                            }
-                            texBuffer.free()
 
                             dynamicBuffer.lazyUploadQuads(textures, quads)()
                             blit(
@@ -509,8 +536,8 @@ open class RayPointLight(
                                 dynamicBuffer,
                                 {
                                     setTextureArray(0, "Samplers", *textures.map { GlTextureBinding.FromInstance(it, GlTextureTarget.TEXTURE_2D) }.toTypedArray())
-                                    setShaderStorageBuffer("BVHBuffer", dynamicBVHBuffer)
-                                    setShaderStorageBuffer("TextureInfoBuffer", dynamicTextureInfoBuffer)
+                                    setShaderStorageBufferRange("BVHBuffer", dynamicBVHBuffer, 0, nodes.size * 32L)
+                                    setShaderStorageBufferRange("TextureInfoBuffer", dynamicTextureInfoBuffer, 0, quads.size * 4L)
                                 },
                                 Vibrancy.id("block/raytraced/dynamic_blit")
                             )
