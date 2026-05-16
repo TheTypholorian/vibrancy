@@ -239,6 +239,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
                         //? if 1.21 {
                         val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
+                        var shouldDraw = true
 
                         if (subLevel == null) {
                             if (chunk.shouldDraw(shadowFrustum, data)) {
@@ -248,7 +249,8 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                                             .translate((blockPos.toFloat() - data.camera.pos).toJOML())
                                     )
                                 }
-                                chunk.sections.forEach { section -> mesh(section).draw() }
+                            } else {
+                                shouldDraw = false
                             }
                         } else {
                             val pose = subLevel.renderPose(Vibrancy.tickDelta)
@@ -261,15 +263,25 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                                         .rotate(orientation)
                                 )
                             }
-                            chunk.sections.forEach { section -> mesh(section).draw() }
                         }
                         //? } else {
                         /*if (chunk.shouldDraw(shadowFrustum, data)) {
-                            settings.shader.setUniform("ChunkOffset") { setFloatVec(blockPos.toFloat()) }
-                            mesh(chunk).draw()
+                            settings.shader.setUniform("SableMat") {
+                                set(
+                                    Matrix4f()
+                                        .translate((blockPos.toFloat() - data.camera.pos).toJOML())
+                                )
+                            }
+                        } else {
+                            shouldDraw = false
                         }
                         *///? }
+                        profiler.pop()
 
+                        profiler.push("draw")
+                        if (shouldDraw) {
+                            chunk.sections.forEach { section -> mesh(section).draw() }
+                        }
                         profiler.pop()
                     }
                     profiler.pop()

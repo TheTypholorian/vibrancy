@@ -138,13 +138,14 @@ class SubtleLightStorage : ChunkedBlockLightStorage<SubtleLightInfo, SubtleLight
                         val lightArray = Array(chunk.sections.size) { arrayListOf<SubtleLight>() }
                         val quads = Array(chunk.sections.size) { arrayListOf<Pair<NeoBakedQuad, Int>>() }
 
-                        lights.forEachIndexed { index, light ->
+                        lights.forEach { light ->
                             if (isCancelled()) {
                                 return AutoCloseable { } to { }
                             }
 
                             val sectionY = SectionPos.blockToSectionCoord(light.pos.y) - data.level!!.minSection
 
+                            val index = lightArray[sectionY].size
                             lightArray[sectionY].add(light)
 
                             light.shadowBox.iterator().forEach { block ->
