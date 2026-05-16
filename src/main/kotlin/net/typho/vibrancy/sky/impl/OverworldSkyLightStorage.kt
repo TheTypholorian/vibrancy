@@ -5,6 +5,7 @@ import dev.ryanhcode.sable.companion.SableCompanion
 //? }
 
 import com.mojang.blaze3d.vertex.PoseStack
+import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.SectionPos
@@ -59,6 +60,7 @@ import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyConfig
 import net.typho.vibrancy.collectors.BlockMeshCollector
 import net.typho.vibrancy.collectors.SkyLightBlockMeshCollector
+import net.typho.vibrancy.mixin.LevelRendererAccessor
 import net.typho.vibrancy.shadows.LightFace
 import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.shadows.LightTexture
@@ -246,7 +248,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                                             .translate((blockPos.toFloat() - data.camera.pos).toJOML())
                                     )
                                 }
-                                chunk.sections.forEachIndexed { y, section -> mesh(section).draw() }
+                                chunk.sections.forEach { section -> mesh(section).draw() }
                             }
                         } else {
                             val pose = subLevel.renderPose(Vibrancy.tickDelta)
@@ -259,7 +261,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                                         .rotate(orientation)
                                 )
                             }
-                            chunk.sections.forEachIndexed { y, section -> mesh(section).draw() }
+                            chunk.sections.forEach { section -> mesh(section).draw() }
                         }
                         //? } else {
                         /*if (chunk.shouldDraw(shadowFrustum, data)) {
@@ -506,9 +508,11 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                     *///? }
                     profiler.pop()
 
-                    chunk.sections.forEachIndexed { y, section ->
-                        section.mesh.draw()
-                        section.translucentMesh.draw()
+                    chunk.sections.forEach { section ->
+                        if (manager.isSectionVisible(section.pos)) {
+                            section.mesh.draw()
+                            section.translucentMesh.draw()
+                        }
                     }
                     //}
                 }
@@ -547,7 +551,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                 GlBufferUsage.STATIC_DRAW
             )
             @JvmField
-            val pos = SectionPos.of(this@Chunk.pos.x, y - minSection, this@Chunk.pos.z)
+            val pos = SectionPos.of(this@Chunk.pos.x, y + minSection, this@Chunk.pos.z)
 
             override fun free() {
                 mesh.free()

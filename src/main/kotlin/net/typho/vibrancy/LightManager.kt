@@ -3,11 +3,13 @@ package net.typho.vibrancy
 //? if 1.21 {
 import dev.ryanhcode.sable.companion.ClientSubLevelAccess
 import dev.ryanhcode.sable.companion.SableCompanion
+import net.caffeinemc.mods.sodium.client.world.LevelRendererExtension
 //? }
 
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
+import net.minecraft.core.SectionPos
 import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
@@ -22,7 +24,6 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlBlendShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
-import net.typho.big_shot_lib.api.client.rendering.opengl.state.NeoGlStateManager
 import net.typho.big_shot_lib.api.client.rendering.opengl.util.BlendFunction
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
@@ -30,12 +31,15 @@ import net.typho.big_shot_lib.api.math.rect.AbstractRect3
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
 import net.typho.big_shot_lib.api.math.vec.NeoVec3d
+import net.typho.big_shot_lib.api.util.platform.PlatformUtil
 import net.typho.big_shot_lib.api.util.resource.NeoResourceKey
 import net.typho.vibrancy.Vibrancy.id
 import net.typho.vibrancy.block.BlockLightInfo
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.block.BlockLightStorage
 import net.typho.vibrancy.block.BlockLightType
+import net.typho.vibrancy.mixin.LevelRendererAccessor
+import net.typho.vibrancy.mixin.SodiumWorldRendererAccessor
 import net.typho.vibrancy.sky.SkyLightRegistry
 import net.typho.vibrancy.sky.SkyLightStorage
 import net.typho.vibrancy.sky.SkyLightType
@@ -56,6 +60,9 @@ open class LightManager {
     var skyLight: Pair<SkyLightType<*, *>, SkyLightStorage<*>>? = null
     @JvmField
     protected val debugInfo = HashMap<NeoResourceKey<*>?, HashMap<String, Int>>()
+    private val visibleSections = hashSetOf<SectionPos>()
+    @JvmField
+    val hasSodium = PlatformUtil.INSTANCE.mods.any { it.modId == "sodium" }
 
     fun getLevel(): ClientLevel? = Minecraft.getInstance().level
 
@@ -149,6 +156,22 @@ open class LightManager {
         profiler.pop()
     }
 
+    protected fun updateSodiumVisibleSections() {
+        val renderer = (Minecraft.getInstance().levelRenderer as LevelRendererExtension).`sodium$getWorldRenderer`()
+        val sectionManager = (renderer as SodiumWorldRendererAccessor).`vibrancy$getRenderSectionManager`()
+        sectionManager.renderLists.iterator().forEach { list ->
+            repeat(256) { index ->
+                list.region.getSection(index)?.let {
+                    visibleSections.add(it.position)
+                }
+            }
+        }
+    }
+
+    fun isSectionVisible(pos: SectionPos): Boolean {
+        return visibleSections.contains(pos)
+    }
+
     //? if <1.21.5 {
     fun render(data: RenderEventData, result: GlFramebuffer, temp: GlFramebuffer, profiler: ProfilerFiller = Minecraft.getInstance().profiler) {
     //? } else {
@@ -156,6 +179,13 @@ open class LightManager {
     *///? }
         profiler.push("vibrancy")
         debugInfo.clear()
+        visibleSections.clear()
+
+        if (hasSodium) {
+            updateSodiumVisibleSections() // I think I need to do this for class loading if sodium isn't present
+        } else {
+            (Minecraft.getInstance().levelRenderer as LevelRendererAccessor).`vibrancy$getVisibleSections`().mapTo(visibleSections) { SectionPos.of(it.origin) }
+        }
 
         for (entry in blockLights) {
             castAndRender(data, result, temp, entry.key, entry.value, profiler)

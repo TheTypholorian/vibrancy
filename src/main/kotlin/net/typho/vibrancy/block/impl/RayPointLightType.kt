@@ -1,5 +1,6 @@
 package net.typho.vibrancy.block.impl
 
+import net.minecraft.core.SectionPos
 import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.block.state.StateDefinition
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBlendEquation
@@ -45,7 +46,16 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
             synchronized(lights.map) {
                 profiler.push("cull")
                 val lights = lights.map.values
-                    .filter { light -> manager.testFrustum(light.pos, data, light.boundingBox) }
+                    .filter { light ->
+                        manager.testFrustum(light.pos, data, light.boundingBox) && SectionPos.betweenClosedStream(
+                            SectionPos.blockToSectionCoord(light.boundingBox.min.x),
+                            SectionPos.blockToSectionCoord(light.boundingBox.min.y),
+                            SectionPos.blockToSectionCoord(light.boundingBox.min.z),
+                            SectionPos.blockToSectionCoord(light.boundingBox.max.x),
+                            SectionPos.blockToSectionCoord(light.boundingBox.max.y),
+                            SectionPos.blockToSectionCoord(light.boundingBox.max.z)
+                        ).anyMatch { manager.isSectionVisible(it) }
+                    }
                     .map { light -> light to manager.getSortingOrder(data, light.pos) }
                     .sortedBy { it.second }
                     .take(VibrancyConfig.rayLightsMaxRendered)
