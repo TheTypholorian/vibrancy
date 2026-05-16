@@ -52,18 +52,18 @@ interface BlockMeshCollector {
     }
 
     interface FaceOrigin {
+        val pos: IVec3<Int>
+
         data class Block(
             @JvmField
             val block: BlockState,
-            @JvmField
-            val pos: IVec3<Int>
+            override val pos: IVec3<Int>
         ) : FaceOrigin
 
         data class Fluid(
             @JvmField
             val fluid: FluidState,
-            @JvmField
-            val pos: IVec3<Int>
+            override val pos: IVec3<Int>
         ) : FaceOrigin
     }
 

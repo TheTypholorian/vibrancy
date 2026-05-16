@@ -9,11 +9,8 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.GlQueue
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlFramebuffer
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlTexture2D
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlResourceType
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.TextureMipmapLevel
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.*
-import net.typho.big_shot_lib.api.client.rendering.opengl.util.BlendFunction
 import net.typho.big_shot_lib.api.client.rendering.opengl.util.ColorMask
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
@@ -38,7 +35,6 @@ import net.typho.vibrancy.sky.SkyLightInfo
 import net.typho.vibrancy.sky.SkyLightInfoLoader
 import net.typho.vibrancy.sky.SkyLightRegistry
 import net.typho.vibrancy.sky.SkyLightStorage
-import net.typho.vibrancy.sky.impl.OverworldSkyLightStorage
 import org.lwjgl.opengl.GL
 import org.lwjgl.system.NativeResource
 import org.lwjgl.system.Platform
@@ -57,6 +53,14 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
     var disableFlywheelInstancing = false
     @JvmField
     var tickDelta = 0f
+
+    @JvmField
+    val entityShadowTextureBlacklist = hashSetOf(
+        NeoIdentifier("minecraft", "textures/entity/beacon_beam.png"),
+        NeoIdentifier("minecraft", "textures/misc/enchanted_glint_entity.png"),
+        NeoIdentifier("minecraft", "textures/misc/enchanted_glint_item.png"),
+        NeoIdentifier("minecraft", "textures/misc/enchanted_item_glint.png"),
+    )
 
     /*
     @JvmField

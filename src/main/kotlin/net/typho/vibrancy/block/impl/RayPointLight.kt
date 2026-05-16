@@ -331,11 +331,11 @@ open class RayPointLight(
                     val bufferSource: NeoMultiBufferSource = NeoMultiBufferSource { settings: NeoRenderSettings ->
                         val texture = settings.drawState.shader.textures.getOrNull(0)?.location ?: return@NeoMultiBufferSource EmptyVertexConsumer
 
-                        if (GlTexture2D[texture] == null) {
+                        if (Vibrancy.entityShadowTextureBlacklist.contains(texture)) {
                             return@NeoMultiBufferSource EmptyVertexConsumer
                         }
 
-                        if (texture.equals("minecraft", "textures/entity/beacon_beam.png")) {
+                        if (GlTexture2D[texture] == null) {
                             return@NeoMultiBufferSource EmptyVertexConsumer
                         }
 

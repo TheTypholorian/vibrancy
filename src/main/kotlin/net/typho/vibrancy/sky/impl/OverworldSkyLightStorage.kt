@@ -5,9 +5,9 @@ import dev.ryanhcode.sable.companion.SableCompanion
 //? }
 
 import com.mojang.blaze3d.vertex.PoseStack
-import net.minecraft.commands.arguments.coordinates.BlockPosArgument.blockPos
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
+import net.minecraft.core.SectionPos
 import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
@@ -52,7 +52,6 @@ import net.typho.big_shot_lib.api.math.vec.NeoVec4f
 import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.big_shot_lib.api.util.NeoColor
-import net.typho.big_shot_lib.api.util.Stopwatch
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
 import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.LightManager
@@ -143,7 +142,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
     override fun createChunk(
         manager: LightManager,
         pos: ChunkPos
-    ) = Chunk(pos)
+    ) = Chunk(pos, manager.getLevel()!!.minSection, manager.getLevel()!!.sectionsCount)
 
     override fun load(
         manager: LightManager,
@@ -224,7 +223,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
         shadowDrawState.bind().use { settings ->
             settings.shader.setUniform("ShadowMat") { set(shadowMat) }
 
-            fun drawChunks(name: String, to: LightTexture, mesh: (chunk: Chunk) -> Mesh) {
+            fun drawChunks(name: String, to: LightTexture, mesh: (chunk: Chunk.Section) -> Mesh) {
                 profiler.push(name)
                 to.framebuffer.bind(NeoRect2i(0, 0, to.width!!, to.height!!)).use { fbo ->
                     profiler.push("clear")
@@ -233,57 +232,53 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
                     profiler.push("chunks")
                     for ((pos, chunk) in chunks) {
-                        val mesh = mesh(chunk)
+                        profiler.push("transforms")
+                        val blockPos = NeoVec3i(pos.minBlockX, 0, pos.minBlockZ)
 
-                        if (mesh.size > 0) {
-                            profiler.push("transforms")
-                            val blockPos = NeoVec3i(pos.minBlockX, 0, pos.minBlockZ)
+                        //? if 1.21 {
+                        val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
 
-                            //? if 1.21 {
-                            val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
-
-                            if (subLevel == null) {
-                                if (chunk.shouldDraw(shadowFrustum, data)) {
-                                    settings.shader.setUniform("SableMat") {
-                                        set(
-                                            Matrix4f()
-                                                .translate((blockPos.toFloat() - data.camera.pos).toJOML())
-                                        )
-                                    }
-                                    mesh(chunk).draw()
-                                }
-                            } else {
-                                val pose = subLevel.renderPose(Vibrancy.tickDelta)
-                                val orientation = Quaternionf(pose.orientation())
-                                val pos = NeoVec3d(pose.transformPosition(blockPos.toDouble().toJOML())).toFloat()
+                        if (subLevel == null) {
+                            if (chunk.shouldDraw(shadowFrustum, data)) {
                                 settings.shader.setUniform("SableMat") {
                                     set(
                                         Matrix4f()
-                                            .translate((pos.toFloat() - data.camera.pos).toJOML())
-                                            .rotate(orientation)
+                                            .translate((blockPos.toFloat() - data.camera.pos).toJOML())
                                     )
                                 }
-                                mesh(chunk).draw()
+                                chunk.sections.forEachIndexed { y, section -> mesh(section).draw() }
                             }
-                            //? } else {
-                            /*if (chunk.shouldDraw(shadowFrustum, data)) {
-                                settings.shader.setUniform("ChunkOffset") { setFloatVec(blockPos.toFloat()) }
-                                mesh(chunk).draw()
+                        } else {
+                            val pose = subLevel.renderPose(Vibrancy.tickDelta)
+                            val orientation = Quaternionf(pose.orientation())
+                            val pos = NeoVec3d(pose.transformPosition(blockPos.toDouble().toJOML())).toFloat()
+                            settings.shader.setUniform("SableMat") {
+                                set(
+                                    Matrix4f()
+                                        .translate((pos.toFloat() - data.camera.pos).toJOML())
+                                        .rotate(orientation)
+                                )
                             }
-                            *///? }
-
-                            profiler.pop()
+                            chunk.sections.forEachIndexed { y, section -> mesh(section).draw() }
                         }
+                        //? } else {
+                        /*if (chunk.shouldDraw(shadowFrustum, data)) {
+                            settings.shader.setUniform("ChunkOffset") { setFloatVec(blockPos.toFloat()) }
+                            mesh(chunk).draw()
+                        }
+                        *///? }
+
+                        profiler.pop()
                     }
                     profiler.pop()
                 }
                 profiler.pop()
             }
 
-            drawChunks("solid", texture, Chunk::mesh)
+            drawChunks("solid", texture, Chunk.Section::mesh)
 
             if (VibrancyConfig.skyLightTranslucentEnabled) {
-                drawChunks("translucent", translucent, Chunk::translucentMesh)
+                drawChunks("translucent", translucent, Chunk.Section::translucentMesh)
             } else {
                 translucent.clear()
             }
@@ -294,11 +289,11 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
             val bufferSource = NeoMultiBufferSource { settings: NeoRenderSettings ->
                 val texture = settings.drawState.shader.textures.getOrNull(0)?.location ?: return@NeoMultiBufferSource EmptyVertexConsumer
 
-                if (GlTexture2D[texture] == null) {
+                if (Vibrancy.entityShadowTextureBlacklist.contains(texture)) {
                     return@NeoMultiBufferSource EmptyVertexConsumer
                 }
 
-                if (texture.equals("minecraft", "textures/entity/beacon_beam.png")) {
+                if (GlTexture2D[texture] == null) {
                     return@NeoMultiBufferSource EmptyVertexConsumer
                 }
 
@@ -447,60 +442,19 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                 ))
 
                 for ((pos, chunk) in chunks) {
-                    if (chunk.mesh.size > 0 || chunk.translucentMesh.size > 0) {
-                        //if (chunk.box == null || data.frustum.testAab((chunk.box!!.min.toFloat() - data.camera.pos).toJOML(), (chunk.box!!.min.toFloat() + 1f - data.camera.pos).toJOML())) {
-                        profiler.push("transforms")
-                        val blockPos = NeoVec3i(pos.minBlockX, 0, pos.minBlockZ)
+                    //if (chunk.box == null || data.frustum.testAab((chunk.box!!.min.toFloat() - data.camera.pos).toJOML(), (chunk.box!!.min.toFloat() + 1f - data.camera.pos).toJOML())) {
+                    profiler.push("transforms")
+                    val blockPos = NeoVec3i(pos.minBlockX, 0, pos.minBlockZ)
 
-                        //? if 1.21 {
-                        val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
+                    //? if 1.21 {
+                    val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
 
-                        if (subLevel == null) {
-                            settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((blockPos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
-                            settings.shader.setUniform("SableMat") {
-                                set(
-                                    Matrix4f()
-                                        .translate((blockPos.toFloat() - data.camera.pos).toFloat().toJOML())
-                                )
-                            }
-                            settings.shader.setUniform("SpecularMat") {
-                                set(
-                                    Matrix4f()
-                                        .translate(blockPos.toFloat().toJOML())
-                                )
-                            }
-                        } else {
-                            val pose = subLevel.renderPose(Vibrancy.tickDelta)
-                            val orientation = Quaternionf(pose.orientation())
-                            val pos = NeoVec3d(pose.transformPosition(blockPos.toDouble().toJOML()))
-                            settings.shader.setUniform("ModelViewMat") {
-                                set(
-                                    data.modelViewMat
-                                        .translate((pos.toFloat() - data.camera.pos).toJOML(), Matrix4f())
-                                        .rotate(orientation)
-                                )
-                            }
-                            settings.shader.setUniform("SableMat") {
-                                set(
-                                    Matrix4f()
-                                        .translate((pos.toFloat() - data.camera.pos).toJOML())
-                                        .rotate(orientation)
-                                )
-                            }
-                            settings.shader.setUniform("SpecularMat") {
-                                set(
-                                    Matrix4f()
-                                        .translate(pos.toFloat().toJOML())
-                                        .rotate(orientation)
-                                )
-                            }
-                        }
-                        //? } else {
-                        /*settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((blockPos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
+                    if (subLevel == null) {
+                        settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((blockPos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
                         settings.shader.setUniform("SableMat") {
                             set(
                                 Matrix4f()
-                                    .translate((blockPos.toFloat() - data.camera.pos).toFloat().toJOML())
+                                    .translate((blockPos.toFloat() - data.camera.pos).toJOML())
                             )
                         }
                         settings.shader.setUniform("SpecularMat") {
@@ -509,13 +463,54 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                                     .translate(blockPos.toFloat().toJOML())
                             )
                         }
-                        *///? }
-                        profiler.pop()
-
-                        chunk.mesh.draw()
-                        chunk.translucentMesh.draw()
-                        //}
+                    } else {
+                        val pose = subLevel.renderPose(Vibrancy.tickDelta)
+                        val orientation = Quaternionf(pose.orientation())
+                        val pos = NeoVec3d(pose.transformPosition(blockPos.toDouble().toJOML()))
+                        settings.shader.setUniform("ModelViewMat") {
+                            set(
+                                data.modelViewMat
+                                    .translate((pos.toFloat() - data.camera.pos).toJOML(), Matrix4f())
+                                    .rotate(orientation)
+                            )
+                        }
+                        settings.shader.setUniform("SableMat") {
+                            set(
+                                Matrix4f()
+                                    .translate((pos.toFloat() - data.camera.pos).toJOML())
+                                    .rotate(orientation)
+                            )
+                        }
+                        settings.shader.setUniform("SpecularMat") {
+                            set(
+                                Matrix4f()
+                                    .translate(pos.toFloat().toJOML())
+                                    .rotate(orientation)
+                            )
+                        }
                     }
+                    //? } else {
+                    /*settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((blockPos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
+                    settings.shader.setUniform("SableMat") {
+                        set(
+                            Matrix4f()
+                                .translate((blockPos.toFloat() - data.camera.pos).toFloat().toJOML())
+                        )
+                    }
+                    settings.shader.setUniform("SpecularMat") {
+                        set(
+                            Matrix4f()
+                                .translate(blockPos.toFloat().toJOML())
+                        )
+                    }
+                    *///? }
+                    profiler.pop()
+
+                    chunk.sections.forEachIndexed { y, section ->
+                        section.mesh.draw()
+                        section.translucentMesh.draw()
+                    }
+                    //}
                 }
             }
             profiler.pop()
@@ -529,32 +524,50 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
     class Chunk(
         @JvmField
-        val pos: ChunkPos
+        val pos: ChunkPos,
+        minSection: Int,
+        height: Int
     ) : SkyLightStorage<OverworldSkyLightInfo>, NativeResource {
+        inner class Section(
+            minSection: Int,
+            y: Int
+        ) : NativeResource {
+            @JvmField
+            val mesh = Mesh(
+                LightMesh.SKY_VERTEX_FORMAT,
+                GlBeginMode.QUADS,
+                GlBufferWriter.Mode.REGULAR,
+                GlBufferUsage.STATIC_DRAW
+            )
+            @JvmField
+            val translucentMesh = Mesh(
+                LightMesh.SKY_VERTEX_FORMAT,
+                GlBeginMode.QUADS,
+                GlBufferWriter.Mode.REGULAR,
+                GlBufferUsage.STATIC_DRAW
+            )
+            @JvmField
+            val pos = SectionPos.of(this@Chunk.pos.x, y - minSection, this@Chunk.pos.z)
+
+            override fun free() {
+                mesh.free()
+                translucentMesh.free()
+            }
+        }
+
         @JvmField
-        val mesh = Mesh(
-            LightMesh.SKY_VERTEX_FORMAT,
-            GlBeginMode.QUADS,
-            GlBufferWriter.Mode.REGULAR,
-            GlBufferUsage.STATIC_DRAW
-        )
+        val sections = Array(height) { Section(minSection, it) }
         @JvmField
-        val translucentMesh = Mesh(
-            LightMesh.SKY_VERTEX_FORMAT,
-            GlBeginMode.QUADS,
-            GlBufferWriter.Mode.REGULAR,
-            GlBufferUsage.STATIC_DRAW
-        )
+        var dirty = true // TODO
         var box: AbstractRect3<Int>? = null
             private set
         var blockEntities: MutableSet<BlockPos> = hashSetOf()
             private set
-        private var dirty = true
         private var asyncTask: GlTask<AbstractRect3<Int>?>? = null
 
         override fun free() {
-            mesh.free()
             asyncTask?.cancel()
+            sections.forEach { it.free() }
         }
 
         fun shouldDraw(shadowFrustum: FrustumIntersection, data: RenderEventData) = box == null || shadowFrustum.testAab((box!!.min.toFloat() - data.camera.pos).toJOML(), (box!!.max.toFloat() - data.camera.pos).toJOML())
@@ -607,8 +620,8 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                 return lightArray[x - lightX][z - lightZ] <= y
             }
 
-            val lightFaces = arrayListOf<LightFace>()
-            val translucentFaces = arrayListOf<LightFace>()
+            val lightFaces = Array(sections.size) { arrayListOf<LightFace>() }
+            val translucentFaces = Array(sections.size) { arrayListOf<LightFace>() }
             val mesher = SkyLightBlockMeshCollector(pos)
             if (!mesher.submit(
                     isCancelled,
@@ -677,18 +690,18 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                         override fun collect(faces: Iterable<LightFace>, origin: BlockMeshCollector.FaceOrigin) {
                             if (origin is BlockMeshCollector.FaceOrigin.Block) {
                                 if (BlockUtil.INSTANCE.getBlockChunkLayer(origin.block) == BlockChunkLayer.TRANSLUCENT) {
-                                    translucentFaces.addAll(faces)
+                                    translucentFaces[SectionPos.blockToSectionCoord(origin.pos.y) - level.minSection].addAll(faces)
                                 } else {
-                                    lightFaces.addAll(faces)
+                                    lightFaces[SectionPos.blockToSectionCoord(origin.pos.y) - level.minSection].addAll(faces)
                                 }
                             } else if (origin is BlockMeshCollector.FaceOrigin.Fluid) {
                                 if (origin.fluid.isSourceOfType(Fluids.WATER)) {
-                                    translucentFaces.addAll(faces)
+                                    translucentFaces[SectionPos.blockToSectionCoord(origin.pos.y) - level.minSection].addAll(faces)
                                 } else {
-                                    lightFaces.addAll(faces)
+                                    lightFaces[SectionPos.blockToSectionCoord(origin.pos.y) - level.minSection].addAll(faces)
                                 }
                             } else {
-                                lightFaces.addAll(faces)
+                                lightFaces[SectionPos.blockToSectionCoord(origin.pos.y) - level.minSection].addAll(faces)
                             }
                         }
                     }
@@ -739,15 +752,15 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                 }
             }
 
-            val solid = upload(lightFaces, mesh)
-            val translucent = upload(translucentFaces, translucentMesh)
+            val solid = lightFaces.mapIndexed { y, faces -> upload(faces, sections[y].mesh) }
+            val translucent = translucentFaces.mapIndexed { y, faces -> upload(faces, sections[y].translucentMesh) }
 
             return AutoCloseable {
-                solid.first.close()
-                translucent.first.close()
+                solid.forEach { it.first.close() }
+                translucent.forEach { it.first.close() }
             } to {
-                solid.second()
-                translucent.second()
+                solid.forEach { it.second() }
+                translucent.forEach { it.second() }
                 box
             }
         }
