@@ -4,6 +4,7 @@ import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
 import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunkSection
 import net.typho.big_shot_lib.api.math.rect.AbstractRect3
@@ -21,10 +22,17 @@ class ChunkSectionCache(
         level.getChunk(pos.x, pos.z).let { it.getSection(it.getSectionIndexFromSectionY(pos.y)) }
     }
 
-    operator fun get(pos: BlockPos) = get(SectionPos.of(pos)).getBlockState(pos.x and 15, pos.y and 15, pos.z and 15)
+    operator fun get(pos: BlockPos) = if (level.isOutsideBuildHeight(pos)) {
+        Blocks.VOID_AIR.defaultBlockState()
+    } else {
+        get(SectionPos.of(pos)).getBlockState(pos.x and 15, pos.y and 15, pos.z and 15)
+    }
 
     fun get(min: BlockPos, max: BlockPos): Iterator<Pair<BlockPos, BlockState>> {
-        val pos = BlockPos.MutableBlockPos()
+        val min = min.atY(min.y.coerceAtLeast(level.minBuildHeight).coerceAtMost(level.maxBuildHeight))
+        val max = max.atY(max.y.coerceAtLeast(level.minBuildHeight).coerceAtMost(level.maxBuildHeight))
+
+        val pos = BlockPos.MutableBlockPos().set(min)
         val minSection = SectionPos.of(min)
         val maxSection = SectionPos.of(max)
         val sections = Offset3DArray(
@@ -34,7 +42,7 @@ class ChunkSectionCache(
 
         return object : Iterator<Pair<BlockPos, BlockState>> {
             override fun hasNext(): Boolean {
-                return pos.x < max.x
+                return pos.x <= max.x
             }
 
             override fun next(): Pair<BlockPos, BlockState> {
@@ -42,11 +50,11 @@ class ChunkSectionCache(
 
                 pos.z++
 
-                if (pos.z >= max.z) {
-                    pos.z = min.x
+                if (pos.z > max.z) {
+                    pos.z = min.z
                     pos.y++
 
-                    if (pos.y >= max.y) {
+                    if (pos.y > max.y) {
                         pos.y = min.y
                         pos.x++
                     }

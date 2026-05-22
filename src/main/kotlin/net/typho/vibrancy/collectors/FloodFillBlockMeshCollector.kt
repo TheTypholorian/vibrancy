@@ -1,7 +1,6 @@
 package net.typho.vibrancy.collectors
 
 import net.minecraft.core.BlockPos
-import net.minecraft.core.SectionPos
 import net.minecraft.world.level.Level
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoVertexData
@@ -113,7 +112,6 @@ class FloodFillBlockMeshCollector(
                     state,
                     level,
                     blockPos,
-                    atlas,
                     { face ->
                         face.copy( // TODO
                             quad = face.quad.withVertices { index, vertex -> NeoVertexData(vertex, pos = vertex.pos + offset) }

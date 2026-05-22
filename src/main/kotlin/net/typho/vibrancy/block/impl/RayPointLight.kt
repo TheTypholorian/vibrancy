@@ -186,13 +186,13 @@ open class RayPointLight(
         get() = object : BlockMeshCollector.Predicate {
             val shadowBox = this@RayPointLight.shadowBox
 
-            override fun isBlockTransparent(level: Level, pos: BlockPos.MutableBlockPos, state: BlockState): Boolean {
+            override fun isBlockTransparent(level: Level, pos: BlockPos, state: BlockState): Boolean {
                 return super.isBlockTransparent(level, pos, state) || BlockLightRegistry.get(state.block, RayPointLightType) != null
             }
 
             override fun shouldCastBlock(
                 level: Level,
-                pos: BlockPos.MutableBlockPos,
+                pos: BlockPos,
                 state: BlockState?
             ): Boolean {
                 return shadowBox.contains(NeoVec3i(pos)) && BlockLightRegistry.get((state ?: level.getBlockState(pos)).block, RayPointLightType) == null
@@ -201,7 +201,7 @@ open class RayPointLight(
             override fun shouldCastFace(
                 face: NeoDirection?,
                 level: Level,
-                pos: BlockPos.MutableBlockPos,
+                pos: BlockPos,
                 state: BlockState?
             ): Boolean {
                 if (face == null) {
@@ -240,7 +240,7 @@ open class RayPointLight(
 
             override fun shouldCastBlock(
                 level: Level,
-                pos: BlockPos.MutableBlockPos,
+                pos: BlockPos,
                 state: BlockState?
             ): Boolean {
                 return boundingBox.contains(NeoVec3i(pos))
@@ -249,7 +249,7 @@ open class RayPointLight(
             override fun shouldCastFace(
                 face: NeoDirection?,
                 level: Level,
-                pos: BlockPos.MutableBlockPos,
+                pos: BlockPos,
                 state: BlockState?
             ): Boolean {
                 if (face == null) {

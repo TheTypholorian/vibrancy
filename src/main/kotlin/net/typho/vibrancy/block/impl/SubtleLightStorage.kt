@@ -30,7 +30,6 @@ import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.math.NeoDirection
 import net.typho.big_shot_lib.api.math.rect.AbstractRect3
-import net.typho.big_shot_lib.api.math.rect.AbstractRect3.Companion.iterator
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
 import net.typho.big_shot_lib.api.math.vec.NeoVec3f
@@ -46,7 +45,9 @@ import net.typho.vibrancy.block.HashMapBlockLightStorage
 import net.typho.vibrancy.block.SectionedBlockLightStorage
 import net.typho.vibrancy.collectors.BlockMeshCollector
 import net.typho.vibrancy.shadows.LightFace
+import net.typho.vibrancy.util.ChunkSectionCache
 import net.typho.vibrancy.util.GlTask
+import net.typho.vibrancy.util.SectionMeshCache
 import net.typho.vibrancy.util.VibrancyThreadPool
 import org.joml.Matrix4f
 import org.lwjgl.system.NativeResource
@@ -117,6 +118,8 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
 
                         val lightList = arrayListOf<SubtleLight>()
                         val quads = arrayListOf<Pair<Pair<NeoBakedQuad, IVec3<Int>>, Int>>()
+                        val caches = hashMapOf<SectionPos, SectionMeshCache?>()
+                        val chunkCache = ChunkSectionCache(data.level!!)
 
                         lights.forEach { light ->
                             if (isCancelled()) {
@@ -126,24 +129,18 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
                             val index = lightList.size
                             lightList.add(light)
 
-                            light.shadowBox.iterator().forEach { block ->
-                                //if (
-                                //    block.x >= pos.minBlockX && block.x <= pos.maxBlockX &&
-                                //    block.z >= pos.minBlockZ && block.z <= pos.maxBlockZ
-                                //) {
-                                val block1 = BlockPos.MutableBlockPos().set(block.blockPos)
+                            chunkCache[light.shadowBox].forEach { (pos, state) ->
                                 BlockMeshCollector.collectLightFaces(
                                     manager,
-                                    data.level!!.getBlockState(block1),
+                                    caches,
+                                    state,
                                     data.level!!,
-                                    block1,
-                                    //block - origin,
-                                    NeoAtlas.blocks,
+                                    pos,
                                     object : BlockMeshCollector.Consumer {
                                         override val predicate = object : BlockMeshCollector.Predicate {
                                             override fun shouldCastBlock(
                                                 level: Level,
-                                                pos: BlockPos.MutableBlockPos,
+                                                pos: BlockPos,
                                                 state: BlockState?
                                             ): Boolean {
                                                 return true
@@ -152,7 +149,7 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
                                             override fun shouldCastFace(
                                                 face: NeoDirection?,
                                                 level: Level,
-                                                pos: BlockPos.MutableBlockPos,
+                                                pos: BlockPos,
                                                 state: BlockState?
                                             ): Boolean {
                                                 return face == null || BlockUtil.INSTANCE.shouldRenderFace(
@@ -169,11 +166,10 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
                                             section: SectionPos,
                                             translucent: Boolean
                                         ) {
-                                            faces.mapTo(quads) { it.quad to (block - origin) to index }
+                                            faces.mapTo(quads) { it.quad to NeoVec3i(pos.x - origin.x, pos.y - origin.y, pos.z - origin.z) to index }
                                         }
                                     }
                                 )
-                                //}
                             }
                         }
                         profiler?.pop()

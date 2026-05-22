@@ -16,7 +16,6 @@ import net.minecraft.world.level.block.LeavesBlock
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkAccess
 import net.minecraft.world.level.levelgen.Heightmap
-import net.minecraft.world.level.material.Fluids
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlAlphaFunction
@@ -32,7 +31,6 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDepthShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
-import net.typho.big_shot_lib.api.client.rendering.util.BlockChunkLayer
 import net.typho.big_shot_lib.api.client.rendering.util.FogUtil
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
@@ -646,7 +644,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                         override val predicate: BlockMeshCollector.Predicate = object : BlockMeshCollector.Predicate {
                             override fun shouldCastBlock(
                                 level: Level,
-                                pos: BlockPos.MutableBlockPos,
+                                pos: BlockPos,
                                 state: BlockState?
                             ): Boolean {
                                 if (
@@ -668,7 +666,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                             override fun shouldCastFace(
                                 face: NeoDirection?,
                                 level: Level,
-                                pos: BlockPos.MutableBlockPos,
+                                pos: BlockPos,
                                 state: BlockState?
                             ): Boolean {
                                 if (face == null) {

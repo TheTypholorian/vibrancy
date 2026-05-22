@@ -2,7 +2,6 @@ package net.typho.vibrancy.collectors
 
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
-import net.minecraft.core.SectionPos
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
@@ -38,7 +37,6 @@ class SkyLightBlockMeshCollector(
                 state,
                 level,
                 pos,
-                atlas,
                 { face ->
                     face.copy( // TODO
                         quad = face.quad.withVertices { index, vertex -> NeoVertexData(vertex, pos = vertex.pos + offset) }

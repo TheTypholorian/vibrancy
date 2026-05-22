@@ -34,6 +34,8 @@ public class BlockRendererMixin {
     private ChunkBuildBuffers buffers;
     @Unique
     private BlockPos vibrancy$block;
+    @Unique
+    private NeoAtlas vibrancy$atlas;
 
     @Inject(
             method = "renderModel",
@@ -41,6 +43,7 @@ public class BlockRendererMixin {
     )
     private void renderModel(BakedModel model, BlockState state, BlockPos pos, BlockPos origin, CallbackInfo ci) {
         vibrancy$block = pos.immutable();
+        vibrancy$atlas = NeoAtlas.Companion.getBlocks();
     }
 
     @Inject(
@@ -56,12 +59,11 @@ public class BlockRendererMixin {
         SectionMeshCache cache = ((SectionMeshCache.Holder) buffers).getVibrancy$sectionMeshCache();
 
         if (cache != null && vibrancy$block != null) {
-            var block = cache.get(vibrancy$block);
-            block.computeIfAbsent(material.isTranslucent(), translucent -> new ArrayList<>()).add(
+            cache.get(vibrancy$block).get(material.isTranslucent()).add(
                     new LightFace(
                             vibrancy$block,
                             WrapperUtil.Companion.getINSTANCE().wrap(quad.toBakedQuad(null)),
-                            NeoAtlas.Companion.getBlocks()
+                            vibrancy$atlas
                     )
             );
         }

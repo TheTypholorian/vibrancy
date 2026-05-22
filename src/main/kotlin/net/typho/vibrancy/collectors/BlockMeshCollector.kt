@@ -10,8 +10,8 @@ import net.typho.big_shot_lib.api.math.NeoDirection
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.vibrancy.LightManager
-import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.shadows.LightFace
+import net.typho.vibrancy.util.SectionMeshCache
 
 interface BlockMeshCollector {
     fun submit(
@@ -25,20 +25,20 @@ interface BlockMeshCollector {
     interface Predicate {
         fun isBlockTransparent(
             level: Level,
-            pos: BlockPos.MutableBlockPos,
+            pos: BlockPos,
             state: BlockState
         ): Boolean = !BlockUtil.INSTANCE.isSolidRender(state, pos, level)
 
         fun shouldCastBlock(
             level: Level,
-            pos: BlockPos.MutableBlockPos,
+            pos: BlockPos,
             state: BlockState?
         ): Boolean
 
         fun shouldCastFace(
             face: NeoDirection?,
             level: Level,
-            pos: BlockPos.MutableBlockPos,
+            pos: BlockPos,
             state: BlockState?
         ): Boolean
     }
@@ -69,20 +69,21 @@ interface BlockMeshCollector {
         @JvmStatic
         fun collectLightFaces(
             manager: LightManager,
+            caches: MutableMap<SectionPos, SectionMeshCache?>,
             state: BlockState,
             level: Level,
-            pos: BlockPos.MutableBlockPos,
-            atlas: NeoAtlas,
+            pos: BlockPos,
             vararg consumers: Consumer
         ) {
             val section = SectionPos.of(pos)
-            val cache = Vibrancy.lightManager.sectionMeshCaches[section]
+            val cache = caches.computeIfAbsent(section) { manager.sectionMeshCaches[it] }
 
             if (cache != null) {
                 val model = cache[pos]
                 consumers.forEach {
                     if (it.predicate.shouldCastBlock(level, pos, state)) {
-                        model.forEach { (translucent, faces) -> it.collect(faces, section, translucent) }
+                        it.collect(model.solidFaces, section, false)
+                        it.collect(model.translucentFaces, section, true)
                     }
                 }
             }
@@ -93,19 +94,41 @@ interface BlockMeshCollector {
             manager: LightManager,
             state: BlockState,
             level: Level,
-            pos: BlockPos.MutableBlockPos,
-            atlas: NeoAtlas,
-            transmute: (face: LightFace) -> LightFace,
+            pos: BlockPos,
             vararg consumers: Consumer
         ) {
             val section = SectionPos.of(pos)
-            val cache = Vibrancy.lightManager.sectionMeshCaches[section]
+            val cache = manager.sectionMeshCaches[section]
 
             if (cache != null) {
                 val model = cache[pos]
                 consumers.forEach {
                     if (it.predicate.shouldCastBlock(level, pos, state)) {
-                        model.forEach { (translucent, faces) -> it.collect(faces.map(transmute), section, translucent) }
+                        it.collect(model.solidFaces, section, false)
+                        it.collect(model.translucentFaces, section, true)
+                    }
+                }
+            }
+        }
+
+        @JvmStatic
+        fun collectLightFaces(
+            manager: LightManager,
+            state: BlockState,
+            level: Level,
+            pos: BlockPos,
+            transmute: (face: LightFace) -> LightFace,
+            vararg consumers: Consumer
+        ) {
+            val section = SectionPos.of(pos)
+            val cache = manager.sectionMeshCaches[section]
+
+            if (cache != null) {
+                val model = cache[pos]
+                consumers.forEach {
+                    if (it.predicate.shouldCastBlock(level, pos, state)) {
+                        it.collect(model.solidFaces, section, false)
+                        it.collect(model.translucentFaces, section, true)
                     }
                 }
             }
