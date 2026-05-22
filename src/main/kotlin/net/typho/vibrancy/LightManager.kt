@@ -31,7 +31,6 @@ import net.typho.big_shot_lib.api.math.rect.AbstractRect3
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
 import net.typho.big_shot_lib.api.math.vec.NeoVec3d
-import net.typho.big_shot_lib.api.util.platform.PlatformUtil
 import net.typho.big_shot_lib.api.util.resource.NeoResourceKey
 import net.typho.vibrancy.Vibrancy.id
 import net.typho.vibrancy.block.BlockLightInfo
@@ -43,6 +42,7 @@ import net.typho.vibrancy.mixin.SodiumWorldRendererAccessor
 import net.typho.vibrancy.sky.SkyLightRegistry
 import net.typho.vibrancy.sky.SkyLightStorage
 import net.typho.vibrancy.sky.SkyLightType
+import net.typho.vibrancy.util.SectionMeshCache
 import java.util.*
 import java.util.function.Consumer
 import kotlin.use
@@ -62,13 +62,14 @@ open class LightManager {
     protected val debugInfo = HashMap<NeoResourceKey<*>?, HashMap<String, Int>>()
     private val visibleSections = hashSetOf<SectionPos>()
     @JvmField
-    val hasSodium = PlatformUtil.INSTANCE.mods.any { it.modId == "sodium" }
+    val sectionMeshCaches = hashMapOf<SectionPos, SectionMeshCache>()
 
     fun getLevel(): ClientLevel? = Minecraft.getInstance().level
 
     fun clear() {
         blockLights.values.forEach { storage -> storage.clear(this) }
         skyLight?.second?.clear(this)
+        sectionMeshCaches.clear()
     }
 
     fun reload() {
@@ -156,18 +157,6 @@ open class LightManager {
         profiler.pop()
     }
 
-    protected fun updateSodiumVisibleSections() {
-        val renderer = (Minecraft.getInstance().levelRenderer as LevelRendererExtension).`sodium$getWorldRenderer`()
-        val sectionManager = (renderer as SodiumWorldRendererAccessor).`vibrancy$getRenderSectionManager`()
-        sectionManager.renderLists.iterator().forEach { list ->
-            repeat(256) { index ->
-                list.region.getSection(index)?.let {
-                    visibleSections.add(it.position)
-                }
-            }
-        }
-    }
-
     fun isSectionVisible(pos: SectionPos): Boolean {
         return visibleSections.contains(pos)
     }
@@ -181,10 +170,14 @@ open class LightManager {
         debugInfo.clear()
         visibleSections.clear()
 
-        if (hasSodium) {
-            updateSodiumVisibleSections() // I think I need to do this for class loading if sodium isn't present
-        } else {
-            (Minecraft.getInstance().levelRenderer as LevelRendererAccessor).`vibrancy$getVisibleSections`().mapTo(visibleSections) { SectionPos.of(it.origin) }
+        val renderer = (Minecraft.getInstance().levelRenderer as LevelRendererExtension).`sodium$getWorldRenderer`()
+        val sectionManager = (renderer as SodiumWorldRendererAccessor).`vibrancy$getRenderSectionManager`()
+        sectionManager.renderLists.iterator().forEach { list ->
+            repeat(256) { index ->
+                list.region.getSection(index)?.let {
+                    visibleSections.add(it.position)
+                }
+            }
         }
 
         for (entry in blockLights) {

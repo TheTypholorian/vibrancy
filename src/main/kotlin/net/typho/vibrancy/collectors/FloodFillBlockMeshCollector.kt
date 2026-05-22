@@ -1,19 +1,12 @@
 package net.typho.vibrancy.collectors
 
 import net.minecraft.core.BlockPos
+import net.minecraft.core.SectionPos
 import net.minecraft.world.level.Level
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
-import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlasSprite
-import net.typho.big_shot_lib.api.client.rendering.util.quad.BasicBakedQuad
-import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
 import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoVertexData
 import net.typho.big_shot_lib.api.math.NeoDirection
 import net.typho.big_shot_lib.api.math.rect.AbstractRect3
-import net.typho.big_shot_lib.api.math.vec.IVec3
-import net.typho.big_shot_lib.api.math.vec.NeoVec2f
-import net.typho.big_shot_lib.api.math.vec.NeoVec3f
-import net.typho.big_shot_lib.api.math.vec.NeoVec3i
-import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy.isPointingTowardsInclusive
 import net.typho.vibrancy.util.Offset3DArray
@@ -102,7 +95,7 @@ class FloodFillBlockMeshCollector(
         } while (cursors.isNotEmpty())
 
         val blockEntities = hashSetOf<BlockPos>()
-        val pos1 = BlockPos.MutableBlockPos()
+        val blockPos = BlockPos.MutableBlockPos()
 
         cache.collect.forEach { (pos, value) ->
             if (isCancelled()) {
@@ -111,22 +104,26 @@ class FloodFillBlockMeshCollector(
 
             if (value) {
                 val pos = pos + boundingBox.min
-                pos1.set(pos.x, pos.y, pos.z)
-                val state = level.getBlockState(pos1)
+                blockPos.set(pos.x, pos.y, pos.z)
+                val state = level.getBlockState(blockPos)
+                val offset = pos.minus(this.pos.x, this.pos.y, this.pos.z).toFloat()
 
                 BlockMeshCollector.collectLightFaces(
                     manager,
                     state,
                     level,
-                    pos1,
-                    pos.minus(this.pos.x, this.pos.y, this.pos.z),
+                    blockPos,
                     atlas,
-                    true,
+                    { face ->
+                        face.copy( // TODO
+                            quad = face.quad.withVertices { index, vertex -> NeoVertexData(vertex, pos = vertex.pos + offset) }
+                        )
+                    },
                     *consumers
                 )
 
-                if (level.getBlockEntity(pos1) != null) {
-                    blockEntities.add(pos1.immutable())
+                if (level.getBlockEntity(blockPos) != null) {
+                    blockEntities.add(blockPos.immutable())
                 }
             }
         }

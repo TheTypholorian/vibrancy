@@ -115,9 +115,8 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
 
                         profiler?.push("collect")
 
-                        val modelCache = hashMapOf<BlockPos, List<NeoBakedQuad>>()
                         val lightList = arrayListOf<SubtleLight>()
-                        val quads = arrayListOf<Pair<NeoBakedQuad, Int>>()
+                        val quads = arrayListOf<Pair<Pair<NeoBakedQuad, IVec3<Int>>, Int>>()
 
                         lights.forEach { light ->
                             if (isCancelled()) {
@@ -132,53 +131,48 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
                                 //    block.x >= pos.minBlockX && block.x <= pos.maxBlockX &&
                                 //    block.z >= pos.minBlockZ && block.z <= pos.maxBlockZ
                                 //) {
-                                val model = modelCache.computeIfAbsent(block.blockPos) {
-                                    val quads = arrayListOf<NeoBakedQuad>()
-                                    val block1 = BlockPos.MutableBlockPos().set(block.blockPos)
-                                    BlockMeshCollector.collectLightFaces(
-                                        manager,
-                                        data.level!!.getBlockState(block1),
-                                        data.level!!,
-                                        block1,
-                                        block - origin,
-                                        NeoAtlas.blocks,
-                                        true,
-                                        object : BlockMeshCollector.Consumer {
-                                            override val predicate = object : BlockMeshCollector.Predicate {
-                                                override fun shouldCastBlock(
-                                                    level: Level,
-                                                    pos: BlockPos.MutableBlockPos,
-                                                    state: BlockState?
-                                                ): Boolean {
-                                                    return true
-                                                }
-
-                                                override fun shouldCastFace(
-                                                    face: NeoDirection?,
-                                                    level: Level,
-                                                    pos: BlockPos.MutableBlockPos,
-                                                    state: BlockState?
-                                                ): Boolean {
-                                                    return face == null || BlockUtil.INSTANCE.shouldRenderFace(
-                                                        level,
-                                                        pos,
-                                                        face,
-                                                        state ?: level.getBlockState(pos)
-                                                    )
-                                                }
+                                val block1 = BlockPos.MutableBlockPos().set(block.blockPos)
+                                BlockMeshCollector.collectLightFaces(
+                                    manager,
+                                    data.level!!.getBlockState(block1),
+                                    data.level!!,
+                                    block1,
+                                    //block - origin,
+                                    NeoAtlas.blocks,
+                                    object : BlockMeshCollector.Consumer {
+                                        override val predicate = object : BlockMeshCollector.Predicate {
+                                            override fun shouldCastBlock(
+                                                level: Level,
+                                                pos: BlockPos.MutableBlockPos,
+                                                state: BlockState?
+                                            ): Boolean {
+                                                return true
                                             }
 
-                                            override fun collect(
-                                                faces: Iterable<LightFace>,
-                                                origin: BlockMeshCollector.FaceOrigin
-                                            ) {
-                                                faces.mapTo(quads) { it.quad }
+                                            override fun shouldCastFace(
+                                                face: NeoDirection?,
+                                                level: Level,
+                                                pos: BlockPos.MutableBlockPos,
+                                                state: BlockState?
+                                            ): Boolean {
+                                                return face == null || BlockUtil.INSTANCE.shouldRenderFace(
+                                                    level,
+                                                    pos,
+                                                    face,
+                                                    state ?: level.getBlockState(pos)
+                                                )
                                             }
                                         }
-                                    )
-                                    quads
-                                }
-                                model.mapTo(quads) { it to index }
+
+                                        override fun collect(
+                                            faces: Iterable<LightFace>,
+                                            section: SectionPos,
+                                            translucent: Boolean
+                                        ) {
+                                            faces.mapTo(quads) { it.quad to (block - origin) to index }
+                                        }
+                                    }
+                                )
                                 //}
                             }
                         }
@@ -262,7 +256,7 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
         @JvmField
         val ssbo = NeoGlBuffer()
 
-        fun lazyUpload(isCancelled: () -> Boolean, quads: Collection<Pair<NeoBakedQuad, Int>>): Pair<AutoCloseable, () -> Unit> {
+        fun lazyUpload(isCancelled: () -> Boolean, quads: Collection<Pair<Pair<NeoBakedQuad, IVec3<Int>>, Int>>): Pair<AutoCloseable, () -> Unit> {
             val vertexBuffer = NeoBuffer.GCNative(quads.size.toLong() * 4 * VERTEX_FORMAT.vertexSizeBytes)
 
             vertexBuffer.write().run {
@@ -271,15 +265,15 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
                         return vertexBuffer to { }
                     }
 
-                    for (vertex in quad.first.vertices) {
-                        writeFloat(vertex.pos.x)
-                        writeFloat(vertex.pos.y)
-                        writeFloat(vertex.pos.z)
+                    for (vertex in quad.first.first.vertices) {
+                        writeFloat(vertex.pos.x + quad.first.second.x)
+                        writeFloat(vertex.pos.y + quad.first.second.y)
+                        writeFloat(vertex.pos.z + quad.first.second.z)
                         writeFloat(vertex.textureUV!!.x)
                         writeFloat(vertex.textureUV!!.y)
                         writeInt(quad.second)
                         writeInt((vertex.color ?: NeoColor.FULL_ON).toRGBA())
-                        val normal = vertex.normal ?: quad.first.direction?.toFloat() ?: NeoVec3f(0f, 1f, 0f)
+                        val normal = vertex.normal ?: quad.first.first.direction?.toFloat() ?: NeoVec3f(0f, 1f, 0f)
                         writeByte((normal.x * 127).toInt())
                         writeByte((normal.y * 127).toInt())
                         writeByte((normal.z * 127).toInt())

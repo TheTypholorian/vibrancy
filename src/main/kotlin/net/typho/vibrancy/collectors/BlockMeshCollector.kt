@@ -1,18 +1,16 @@
 package net.typho.vibrancy.collectors
 
-import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
+import net.minecraft.core.SectionPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.material.FluidState
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
-import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoVertexData
 import net.typho.big_shot_lib.api.math.NeoDirection
 import net.typho.big_shot_lib.api.math.vec.IVec3
-import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.big_shot_lib.api.util.BlockUtil
-import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.vibrancy.LightManager
+import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.shadows.LightFace
 
 interface BlockMeshCollector {
@@ -48,7 +46,7 @@ interface BlockMeshCollector {
     interface Consumer {
         val predicate: Predicate
 
-        fun collect(faces: Iterable<LightFace>, origin: FaceOrigin)
+        fun collect(faces: Iterable<LightFace>, section: SectionPos, translucent: Boolean)
     }
 
     interface FaceOrigin {
@@ -74,75 +72,41 @@ interface BlockMeshCollector {
             state: BlockState,
             level: Level,
             pos: BlockPos.MutableBlockPos,
-            offset: IVec3<Int>,
             atlas: NeoAtlas,
-            collectFluid: Boolean,
             vararg consumers: Consumer
         ) {
-            if (!state.isAir) {
-                val consumers = consumers.filter { it.predicate.shouldCastBlock(level, pos, state) }
-                val pos1 = NeoVec3i(pos)
+            val section = SectionPos.of(pos)
+            val cache = Vibrancy.lightManager.sectionMeshCaches[section]
 
-                BlockUtil.INSTANCE.getBlockQuads(state, level, pos) { dir, quads ->
-                    val faces = quads.map { quad ->
-                        val tintColor = if (quad.tintIndex != null) NeoColor.RGB(Minecraft.getInstance().blockColors.getColor(state, level, pos, quad.tintIndex!!)) else null
-
-                        LightFace(
-                            pos1,
-                            state,
-                            quad.withVertices { index, vertex ->
-                                NeoVertexData(
-                                    vertex,
-                                    pos = vertex.pos + offset.toFloat(),
-                                    color = tintColor,
-                                    normal = quad.direction?.toFloat()
-                                )
-                            },
-                            atlas
-                        )
-                    }
-
-                    val origin = FaceOrigin.Block(state, pos1)
-
-                    for (consumer in consumers) {
-                        if (consumer.predicate.shouldCastFace(dir, level, pos, state)) {
-                            consumer.collect(faces, origin)
-                        }
+            if (cache != null) {
+                val model = cache[pos]
+                consumers.forEach {
+                    if (it.predicate.shouldCastBlock(level, pos, state)) {
+                        model.forEach { (translucent, faces) -> it.collect(faces, section, translucent) }
                     }
                 }
+            }
+        }
 
-                if (collectFluid) {
-                    val fluid = level.getFluidState(pos)
-                    val origin = FaceOrigin.Fluid(fluid, pos1)
+        @JvmStatic
+        fun collectLightFaces(
+            manager: LightManager,
+            state: BlockState,
+            level: Level,
+            pos: BlockPos.MutableBlockPos,
+            atlas: NeoAtlas,
+            transmute: (face: LightFace) -> LightFace,
+            vararg consumers: Consumer
+        ) {
+            val section = SectionPos.of(pos)
+            val cache = Vibrancy.lightManager.sectionMeshCaches[section]
 
-                    BlockUtil.INSTANCE.getFluidQuads(
-                        state,
-                        fluid,
-                        level,
-                        pos,
-                        { level, from, direction, otherState -> false },
-                        { quad ->
-                            val face = listOf(LightFace(
-                                pos1,
-                                state,
-                                quad.withVertices { index, vertex ->
-                                    NeoVertexData(
-                                        vertex,
-                                        pos = vertex.pos.minus(
-                                            (pos.x and 15).toFloat(),
-                                            (pos.y and 15).toFloat(),
-                                            (pos.z and 15).toFloat()
-                                        ) + offset.toFloat()
-                                    )
-                                },
-                                atlas
-                            ))
-
-                            for (consumer in consumers) {
-                                consumer.collect(face, origin)
-                            }
-                        }
-                    )
+            if (cache != null) {
+                val model = cache[pos]
+                consumers.forEach {
+                    if (it.predicate.shouldCastBlock(level, pos, state)) {
+                        model.forEach { (translucent, faces) -> it.collect(faces.map(transmute), section, translucent) }
+                    }
                 }
             }
         }

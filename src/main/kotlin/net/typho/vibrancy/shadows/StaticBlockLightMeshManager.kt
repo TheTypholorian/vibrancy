@@ -1,10 +1,10 @@
 package net.typho.vibrancy.shadows
 
+import net.minecraft.core.SectionPos
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.math.vec.IVec3
-import net.typho.big_shot_lib.api.util.Stopwatch
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyConfig
@@ -72,14 +72,14 @@ open class StaticBlockLightMeshManager(
             object : BlockMeshCollector.Consumer {
                 override val predicate: BlockMeshCollector.Predicate = shadowPredicate
 
-                override fun collect(faces: Iterable<LightFace>, origin: BlockMeshCollector.FaceOrigin) {
+                override fun collect(faces: Iterable<LightFace>, section: SectionPos, translucent: Boolean) {
                     shadowFaces.addAll(faces)
                 }
             },
             object : BlockMeshCollector.Consumer {
                 override val predicate: BlockMeshCollector.Predicate = lightPredicate
 
-                override fun collect(faces: Iterable<LightFace>, origin: BlockMeshCollector.FaceOrigin) {
+                override fun collect(faces: Iterable<LightFace>, section: SectionPos, translucent: Boolean) {
                     lightFaces.addAll(faces)
                 }
             }

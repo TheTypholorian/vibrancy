@@ -5,7 +5,6 @@ import dev.ryanhcode.sable.companion.SableCompanion
 //? }
 
 import com.mojang.blaze3d.vertex.PoseStack
-import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.SectionPos
@@ -60,7 +59,6 @@ import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyConfig
 import net.typho.vibrancy.collectors.BlockMeshCollector
 import net.typho.vibrancy.collectors.SkyLightBlockMeshCollector
-import net.typho.vibrancy.mixin.LevelRendererAccessor
 import net.typho.vibrancy.shadows.LightFace
 import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.shadows.LightTexture
@@ -703,21 +701,16 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                             }
                         }
 
-                        override fun collect(faces: Iterable<LightFace>, origin: BlockMeshCollector.FaceOrigin) {
-                            if (origin is BlockMeshCollector.FaceOrigin.Block) {
-                                if (BlockUtil.INSTANCE.getBlockChunkLayer(origin.block) == BlockChunkLayer.TRANSLUCENT) {
-                                    translucentFaces[SectionPos.blockToSectionCoord(origin.pos.y) - level.minSection].addAll(faces)
-                                } else {
-                                    lightFaces[SectionPos.blockToSectionCoord(origin.pos.y) - level.minSection].addAll(faces)
-                                }
-                            } else if (origin is BlockMeshCollector.FaceOrigin.Fluid) {
-                                if (origin.fluid.isSourceOfType(Fluids.WATER)) {
-                                    translucentFaces[SectionPos.blockToSectionCoord(origin.pos.y) - level.minSection].addAll(faces)
-                                } else {
-                                    lightFaces[SectionPos.blockToSectionCoord(origin.pos.y) - level.minSection].addAll(faces)
+                        override fun collect(faces: Iterable<LightFace>, section: SectionPos, translucent: Boolean) {
+                            // TODO
+                            if (translucent) {
+                                for (face in faces) {
+                                    translucentFaces[SectionPos.blockToSectionCoord(face.blockPos!!.y) - level.minSection].add(face)
                                 }
                             } else {
-                                lightFaces[SectionPos.blockToSectionCoord(origin.pos.y) - level.minSection].addAll(faces)
+                                for (face in faces) {
+                                    lightFaces[SectionPos.blockToSectionCoord(face.blockPos!!.y) - level.minSection].add(face)
+                                }
                             }
                         }
                     }
@@ -741,7 +734,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                             if (face.blockPos == null || face.quad.direction == null) {
                                 writeInt(net.minecraft.client.renderer.LightTexture.FULL_BRIGHT)
                             } else {
-                                val pos = (face.blockPos + face.quad.direction!!).blockPos
+                                val pos = face.blockPos.relative(face.quad.direction!!.mojang)
                                 writeInt(net.minecraft.client.renderer.LightTexture.pack(
                                     level.getBrightness(LightLayer.BLOCK, pos),
                                     level.getBrightness(LightLayer.SKY, pos)

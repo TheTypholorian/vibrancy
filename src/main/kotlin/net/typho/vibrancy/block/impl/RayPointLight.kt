@@ -388,9 +388,9 @@ open class RayPointLight(
                     profiler.push("entityShadows")
                     for (entity in level.getEntities(null, AABB.ofSize(Vec3(absolutePos.toJOML()), radius.toDouble() * 2, radius.toDouble() * 2, radius.toDouble() * 2))) {
                         //? if 1.21 {
-                        if (subLevel != null || meshCollector.cache.checked[entity.blockPosition()]) {
+                        if (subLevel != null || (meshCollector.cache.checked.isInBounds(entity.blockPosition()) && meshCollector.cache.checked[entity.blockPosition()])) {
                         //? } else {
-                        /*if (meshCollector.cache.checked[entity.blockPosition()]) {
+                        /*if ((meshCollector.cache.checked.isInBounds(entity.blockPosition()) && meshCollector.cache.checked[entity.blockPosition()])) {
                         *///? }
                             val node = Node()
                             debugOut("entityShadows", 1)
