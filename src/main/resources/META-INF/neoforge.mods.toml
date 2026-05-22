@@ -39,6 +39,12 @@ versionRange = "*"
 ordering = "NONE"
 side = "BOTH"
 [[dependencies."${mod_id}"]]
+modId = "kotlinforforge"
+type="required"
+versionRange = "*"
+ordering = "NONE"
+side = "BOTH"
+[[dependencies."${mod_id}"]]
 modId = "iris"
 type="incompatible"
 versionRange = "*"

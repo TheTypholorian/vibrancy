@@ -401,7 +401,7 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
         }
          */
         factory.chunkChanged.add { level, old, new ->
-            if (VibrancyConfig.modEnabled && level.isClientSide()) {
+            if (VibrancyConfig.modEnabled && level.isClientSide) {
                 GlQueue.INSTANCE.runOrQueue {
                     if (old != null) {
                         lightManager.deloadChunk(old)

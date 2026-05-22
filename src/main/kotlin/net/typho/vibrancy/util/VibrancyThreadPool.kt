@@ -1,5 +1,6 @@
 package net.typho.vibrancy.util
 
+import net.minecraft.core.SectionPos
 import net.minecraft.world.level.ChunkPos
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.math.vec.IVec3
@@ -17,6 +18,7 @@ object VibrancyThreadPool : ThreadPoolExecutor(
     TimeUnit.MINUTES,
     PriorityBlockingQueue(11, Comparator.comparingDouble { a -> if (a is SortedAsyncTask) a.sortingOrder else 0.0 })
 ) {
+    @Suppress("AssignedValueIsNeverRead")
     @JvmStatic
     fun <T> submit(sort: Double, task: (isCancelled: () -> Boolean) -> Pair<AutoCloseable, () -> T>): GlTask<T> {
         val future = CompletableFuture<Pair<AutoCloseable, () -> T>>()
@@ -67,6 +69,11 @@ object VibrancyThreadPool : ThreadPoolExecutor(
 
     @JvmStatic
     fun <T> submit(data: RenderEventData, chunk: ChunkPos, manager: LightManager, task: (isCancelled: () -> Boolean) -> Pair<AutoCloseable, () -> T>): GlTask<T> {
+        return submit(manager.getSortingOrder(data, chunk).toDouble(), task)
+    }
+
+    @JvmStatic
+    fun <T> submit(data: RenderEventData, chunk: SectionPos, manager: LightManager, task: (isCancelled: () -> Boolean) -> Pair<AutoCloseable, () -> T>): GlTask<T> {
         return submit(manager.getSortingOrder(data, chunk).toDouble(), task)
     }
 

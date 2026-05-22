@@ -1,6 +1,7 @@
 package net.typho.vibrancy.mixin;
 
-import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
+//? neoforge {
+/*import it.unimi.dsi.fastutil.longs.Long2ObjectMap;
 import it.unimi.dsi.fastutil.longs.Long2ObjectMaps;
 import net.minecraft.core.BlockPos;
 import net.minecraft.world.level.Level;
@@ -34,3 +35,4 @@ public class ModelDataManagerMixin {
         modelDataCache = Long2ObjectMaps.synchronize(modelDataCache);
     }
 }
+*///? }

@@ -206,6 +206,10 @@ open class LightManager {
         return testFrustum(SableCompanion.INSTANCE.getContainingClient(origin), data, box)
     }
 
+    fun testFrustum(origin: SectionPos, data: RenderEventData, box: AbstractRect3<Int>): Boolean {
+        return testFrustum(SableCompanion.INSTANCE.getContainingClient(origin), data, box)
+    }
+
     fun testFrustum(subLevel: ClientSubLevelAccess?, data: RenderEventData, box: AbstractRect3<Int>): Boolean {
         if (subLevel == null) {
             return data.frustum.testAab(
@@ -226,6 +230,10 @@ open class LightManager {
     }
 
     fun testFrustum(origin: ChunkPos, data: RenderEventData, box: AbstractRect3<Int>): Boolean {
+        return testFrustum(data, box)
+    }
+
+    fun testFrustum(origin: SectionPos, data: RenderEventData, box: AbstractRect3<Int>): Boolean {
         return testFrustum(data, box)
     }
 
@@ -275,10 +283,30 @@ open class LightManager {
         }
     }
 
+    fun inRenderDistance(data: RenderEventData, pos: SectionPos, distance: Int): Boolean {
+        val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
+
+        return if (subLevel == null) {
+            data.camera.pos.inDistance(pos.minBlockX() + 8f, pos.minBlockY() + 8f, pos.minBlockZ() + 8f, clampToChunkRenderDistance(distance) * 16f)
+        } else {
+            data.camera.pos.inDistance(NeoVec3d(subLevel.renderPose().position()).toFloat(), clampToChunkRenderDistance(distance) * 16f)
+        }
+    }
+
     fun getSortingOrder(data: RenderEventData, pos: IVec3<Int>): Float {
         val a = pos.toFloat() + 0.5f
         val b = data.camera.pos
         return SableCompanion.INSTANCE.distanceSquaredWithSubLevels(data.level!!, a.x.toDouble(), a.y.toDouble(), a.z.toDouble(), b.x.toDouble(), b.y.toDouble(), b.z.toDouble()).toFloat()
+    }
+
+    fun getSortingOrder(data: RenderEventData, pos: SectionPos): Float {
+        val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
+
+        return if (subLevel == null) {
+            data.camera.pos.distanceSquared(pos.minBlockX() + 8f, pos.minBlockY() + 8f, pos.minBlockZ() + 8f)
+        } else {
+            data.camera.pos.distanceSquared(NeoVec3d(subLevel.renderPose().position()).toFloat())
+        }
     }
 
     fun getSortingOrder(data: RenderEventData, pos: ChunkPos): Float {
@@ -295,8 +323,16 @@ open class LightManager {
         return data.camera.pos.xz.inDistance(pos.middleBlockX.toFloat(), pos.middleBlockZ.toFloat(), clampToChunkRenderDistance(distance) * 16f)
     }
 
+    fun inRenderDistance(data: RenderEventData, pos: SectionPos, distance: Int): Boolean {
+        return data.camera.pos.xz.inDistance(pos.minBlockX() + 8f, pos.minBlockY() + 8f, pos.minBlockZ() + 8f, clampToChunkRenderDistance(distance) * 16f)
+    }
+
     fun getSortingOrder(data: RenderEventData, pos: IVec3<Int>): Float {
         return (pos.toFloat() + 0.5f).distanceSquared(data.camera.pos)
+    }
+
+    fun getSortingOrder(data: RenderEventData, pos: SectionPos): Float {
+        return data.camera.pos.distanceSquared(pos.minBlockX() + 8f, pos.minBlockY() + 8f, pos.minBlockZ() + 8f)
     }
 
     fun getSortingOrder(data: RenderEventData, pos: ChunkPos): Float {
