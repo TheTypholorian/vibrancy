@@ -127,8 +127,8 @@ interface BlockMeshCollector {
                 val model = cache[pos]
                 consumers.forEach {
                     if (it.predicate.shouldCastBlock(level, pos, state)) {
-                        it.collect(model.solidFaces, section, false)
-                        it.collect(model.translucentFaces, section, true)
+                        it.collect(model.solidFaces.map(transmute), section, false)
+                        it.collect(model.translucentFaces.map(transmute), section, true)
                     }
                 }
             }

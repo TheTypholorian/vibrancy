@@ -131,7 +131,7 @@ repositories {
 dependencies {
     implementation(libs.kff)
 
-    compileOnly(libs.sodium)
+    compileOnly("maven.modrinth:sodium:${property("deps.sodium")}")
     compileOnly(libs.bigShot)
     compileOnly("maven.modrinth:yacl:${property("deps.yacl")}")
 

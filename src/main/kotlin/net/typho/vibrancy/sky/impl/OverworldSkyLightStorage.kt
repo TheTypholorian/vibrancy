@@ -207,6 +207,12 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
         lightColor *= info!!.brightness
         lightColor *= VibrancyConfig.skyLightBrightness
 
+        val lightLen = lightColor.lengthSquared
+
+        if (lightLen > 1) {
+            lightColor /= sqrt(lightLen)
+        }
+
         val shadowRot = Quaternionf()
             .rotateX(lightAngle)
             .rotateY(-PI.toFloat() / 2)

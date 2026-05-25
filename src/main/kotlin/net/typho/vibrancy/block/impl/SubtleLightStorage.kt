@@ -38,6 +38,7 @@ import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
+import net.typho.big_shot_lib.api.util.buffer.packInt
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.VibrancyConfig
 import net.typho.vibrancy.block.BlockLightRegistry
@@ -88,6 +89,10 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
         profiler.push("submit")
         checkDirty@ for ((pos, chunk) in chunks) {
             if (chunk.dirty) {
+                if (chunk.isCompiledEmpty && chunk.map.isEmpty()) {
+                    continue@checkDirty
+                }
+
                 for (x in (pos.x - 1)..(pos.x + 1)) {
                     for (z in (pos.z - 1)..(pos.z + 1)) {
                         if (!data.level!!.hasChunk(x, z)) {
@@ -251,8 +256,12 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
         )
         @JvmField
         val ssbo = NeoGlBuffer()
+        @JvmField
+        var isCompiledEmpty = true
 
         fun lazyUpload(isCancelled: () -> Boolean, quads: Collection<Pair<Pair<NeoBakedQuad, IVec3<Int>>, Int>>): Pair<AutoCloseable, () -> Unit> {
+            isCompiledEmpty = quads.isEmpty()
+
             val vertexBuffer = NeoBuffer.GCNative(quads.size.toLong() * 4 * VERTEX_FORMAT.vertexSizeBytes)
 
             vertexBuffer.write().run {
