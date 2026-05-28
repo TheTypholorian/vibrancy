@@ -1,12 +1,14 @@
 package net.typho.vibrancy.mixin.sodium;
 
 import com.llamalad7.mixinextras.sugar.Local;
+import kotlin.Pair;
 import net.caffeinemc.mods.sodium.client.render.chunk.compile.ChunkBuildBuffers;
 import net.caffeinemc.mods.sodium.client.render.chunk.compile.ChunkBuildContext;
 import net.caffeinemc.mods.sodium.client.render.chunk.compile.ChunkBuildOutput;
 import net.caffeinemc.mods.sodium.client.render.chunk.compile.tasks.ChunkBuilderMeshingTask;
 import net.caffeinemc.mods.sodium.client.util.task.CancellationToken;
 import net.caffeinemc.mods.sodium.client.world.cloned.ChunkRenderContext;
+import net.typho.big_shot_lib.api.math.rect.NeoRect3i;
 import net.typho.vibrancy.Vibrancy;
 import net.typho.vibrancy.util.SectionMeshCache;
 import org.spongepowered.asm.mixin.Final;
@@ -35,7 +37,7 @@ public class ChunkBuilderMeshingTaskMixin {
             CallbackInfoReturnable<ChunkBuildOutput> cir,
             @Local ChunkBuildBuffers buffers
     ) {
-        ((SectionMeshCache.Holder) buffers).setVibrancy$sectionMeshCache(new SectionMeshCache(renderContext.getOrigin()));
+        ((SectionMeshCache.Holder) buffers).setVibrancy$sectionMeshCache(SectionMeshCache.get(renderContext.getOrigin()));
     }
 
     @Inject(
@@ -52,7 +54,15 @@ public class ChunkBuilderMeshingTaskMixin {
         var cache = holder.getVibrancy$sectionMeshCache();
 
         if (cache != null) {
-            Vibrancy.lightManager.sectionMeshCaches.put(cache.pos, cache);
+            SectionMeshCache old = Vibrancy.lightManager.sectionMeshCaches.put(cache.pos, cache);
+
+            if (old != null) {
+                SectionMeshCache.getPool().add(old);
+            }
+
+            synchronized (Vibrancy.lightManager.dirtySectionLock) {
+                Vibrancy.lightManager.nextDirtySections.add(new Pair<>(cache.pos, new NeoRect3i(cache.pos.minBlockX(), cache.pos.minBlockY(), cache.pos.minBlockZ(), cache.pos.maxBlockX(), cache.pos.maxBlockY(), cache.pos.maxBlockZ())));
+            }
         }
 
         holder.setVibrancy$sectionMeshCache(null);

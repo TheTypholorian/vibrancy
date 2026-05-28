@@ -113,9 +113,7 @@ class FloodFillBlockMeshCollector(
                     level,
                     blockPos,
                     { face ->
-                        face.copy( // TODO
-                            quad = face.quad.withVertices { index, vertex -> NeoVertexData(vertex, pos = vertex.pos + offset) }
-                        )
+                        face.copyWithOffset(offset.x, offset.y, offset.z) // TODO
                     },
                     *consumers
                 )

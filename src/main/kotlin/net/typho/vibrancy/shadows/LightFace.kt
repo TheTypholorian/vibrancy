@@ -1,48 +1,124 @@
 package net.typho.vibrancy.shadows
 
-import net.minecraft.core.BlockPos
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
 import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoVertexData
 import net.typho.big_shot_lib.api.math.rect.AbstractRect2
+import net.typho.big_shot_lib.api.math.vec.IVec2
 import net.typho.big_shot_lib.api.math.vec.IVec3
+import net.typho.big_shot_lib.api.util.NeoColor
+import net.typho.vibrancy.util.EmptyVertexConsumer.quad
 import kotlin.math.abs
 import kotlin.math.ceil
 
 @JvmRecord
 data class LightFace(
     @JvmField
-    val blockPos: BlockPos?,
+    val v0: Vertex,
     @JvmField
-    val quad: NeoBakedQuad,
+    val v1: Vertex,
+    @JvmField
+    val v2: Vertex,
+    @JvmField
+    val v3: Vertex,
     @JvmField
     val width: Int,
     @JvmField
     val height: Int
 ) {
     constructor(
-        blockPos: BlockPos?,
-        quad: NeoBakedQuad,
+        v0: Vertex,
+        v1: Vertex,
+        v2: Vertex,
+        v3: Vertex,
         atlas: NeoAtlas
     ) : this(
-        blockPos,
-        quad,
-        ceil(abs(quad.vertices[0].textureUV!!.y - quad.vertices[2].textureUV!!.y) * atlas.height).toInt(),
-        ceil(abs(quad.vertices[0].textureUV!!.x - quad.vertices[2].textureUV!!.x) * atlas.width).toInt()
+        v0,
+        v1,
+        v2,
+        v3,
+        ceil(abs(v0.v - v2.v) * atlas.height).toInt(),
+        ceil(abs(v0.u - v2.u) * atlas.width).toInt()
     )
 
-    fun applyOverlay(sprite: AbstractRect2<Int>): NeoBakedQuad {
-        return quad.withVertices { index, vertex ->
-            NeoVertexData(
-                vertex,
-                overlayUV = when (index) {
-                    0 -> sprite.min
-                    1 -> sprite.maxMin
-                    2 -> sprite.max
-                    else -> sprite.minMax
-                }
+    class Vertex(
+        @JvmField
+        var x: Float,
+        @JvmField
+        var y: Float,
+        @JvmField
+        var z: Float,
+        @JvmField
+        var color: Int,
+        @JvmField
+        var u: Float,
+        @JvmField
+        var v: Float,
+        @JvmField
+        var light: Int,
+        @JvmField
+        var normal: Int
+    ) {
+        constructor() : this(0f, 0f, 0f, 0, 0f, 0f, 0, 0)
+    }
+
+    fun copyWithOffset(x: Float, y: Float, z: Float): LightFace {
+        return copy(
+            v0 = Vertex(
+                v0.x + x,
+                v0.y + y,
+                v0.z + z,
+                v0.color,
+                v0.u,
+                v0.v,
+                v0.light,
+                v0.normal
+            ),
+            v1 = Vertex(
+                v1.x + x,
+                v1.y + y,
+                v1.z + z,
+                v1.color,
+                v1.u,
+                v1.v,
+                v1.light,
+                v1.normal
+            ),
+            v2 = Vertex(
+                v2.x + x,
+                v2.y + y,
+                v2.z + z,
+                v2.color,
+                v2.u,
+                v2.v,
+                v2.light,
+                v2.normal
+            ),
+            v3 = Vertex(
+                v3.x + x,
+                v3.y + y,
+                v3.z + z,
+                v3.color,
+                v3.u,
+                v3.v,
+                v3.light,
+                v3.normal
             )
-        }
+        )
+    }
+
+    fun apply(out: (vertex: Vertex, index: Int) -> Unit) {
+        out(v0, 0)
+        out(v1, 1)
+        out(v2, 2)
+        out(v3, 3)
+    }
+
+    fun apply(out: (vertex: Vertex) -> Unit) {
+        out(v0)
+        out(v1)
+        out(v2)
+        out(v3)
     }
 
     /*

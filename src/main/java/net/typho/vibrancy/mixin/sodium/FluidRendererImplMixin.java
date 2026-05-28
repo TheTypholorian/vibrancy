@@ -26,6 +26,7 @@ import net.minecraft.world.level.material.FluidState;
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas;
 import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad;
 import net.typho.big_shot_lib.api.util.WrapperUtil;
+import net.typho.vibrancy.shadows.LightFace;
 import net.typho.vibrancy.util.SectionMeshCache;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -51,15 +52,15 @@ public class FluidRendererImplMixin {
             TranslucentGeometryCollector collector,
             ChunkBuildBuffers buffers,
             CallbackInfo ci,
-            @Local ChunkModelBuilder builder,
+            @Local ChunkModelBuilder meshBuilder,
             @Local Material material
     ) {
         SectionMeshCache cache = ((SectionMeshCache.Holder) buffers).getVibrancy$sectionMeshCache();
 
         if (cache == null) {
-            ((SectionMeshCache.ConsumerExtension) builder).setVibrancy$sectionMeshConsumer(null);
+            ((SectionMeshCache.ConsumerExtension) meshBuilder).setVibrancy$sectionMeshConsumer(null);
         } else {
-            ((SectionMeshCache.ConsumerExtension) builder).setVibrancy$sectionMeshConsumer(cache.createVertexConsumer(blockPos.immutable(), material.isTranslucent(), NeoAtlas.Companion.getBlocks(), -SectionPos.sectionRelative(blockPos.getX()), -SectionPos.sectionRelative(blockPos.getY()), -SectionPos.sectionRelative(blockPos.getZ())));
+            ((SectionMeshCache.ConsumerExtension) meshBuilder).setVibrancy$sectionMeshConsumer(cache.createVertexConsumer(blockPos, material.isTranslucent(), NeoAtlas.Companion.getBlocks(), -SectionPos.sectionRelative(blockPos.getX()), -SectionPos.sectionRelative(blockPos.getY()), -SectionPos.sectionRelative(blockPos.getZ())));
         }
     }
 
@@ -79,9 +80,9 @@ public class FluidRendererImplMixin {
             FluidState fluidState,
             FluidRendering.DefaultRenderer defaultRenderer,
             Operation<Void> original,
-            @Local ChunkModelBuilder builder
+            @Local ChunkModelBuilder meshBuilder
     ) {
-        NeoBakedQuad.Consumer consumer = ((SectionMeshCache.ConsumerExtension) builder).getVibrancy$sectionMeshConsumer();
+        SectionMeshCache.Consumer consumer = ((SectionMeshCache.ConsumerExtension) meshBuilder).getVibrancy$sectionMeshConsumer();
 
         if (consumer == null) {
             original.call(handler, world, pos, vertexConsumer, blockState, fluidState, defaultRenderer);
@@ -103,15 +104,15 @@ public class FluidRendererImplMixin {
             TranslucentGeometryCollector collector,
             ChunkBuildBuffers buffers,
             CallbackInfo ci,
-            @Local ChunkModelBuilder builder
+            @Local ChunkModelBuilder meshBuilder
     ) {
-        NeoBakedQuad.Consumer consumer = ((SectionMeshCache.ConsumerExtension) builder).getVibrancy$sectionMeshConsumer();
+        SectionMeshCache.Consumer consumer = ((SectionMeshCache.ConsumerExtension) meshBuilder).getVibrancy$sectionMeshConsumer();
 
         if (consumer != null) {
             consumer.flush();
         }
 
-        ((SectionMeshCache.ConsumerExtension) builder).setVibrancy$sectionMeshConsumer(null);
+        ((SectionMeshCache.ConsumerExtension) meshBuilder).setVibrancy$sectionMeshConsumer(null);
     }
     //? } neoforge {
     /*@WrapOperation(

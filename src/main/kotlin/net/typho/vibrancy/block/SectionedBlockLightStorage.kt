@@ -43,9 +43,11 @@ abstract class SectionedBlockLightStorage<I : BlockLightInfo, C : BlockLightStor
         chunk: ChunkAccess
     ) {
         for (i in chunk.minSection until chunk.maxSection) {
-            getOrCreateChunk(manager, SectionPos.of(chunk.pos, i)).loadChunk(manager, chunk)
+            loadSection(manager, chunk, SectionPos.of(chunk.pos, i))
         }
     }
+
+    abstract fun loadSection(manager: LightManager, chunk: ChunkAccess, pos: SectionPos)
 
     override fun deloadChunk(
         manager: LightManager,

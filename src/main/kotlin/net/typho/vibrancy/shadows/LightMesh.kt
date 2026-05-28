@@ -1,5 +1,6 @@
 package net.typho.vibrancy.shadows
 
+import net.minecraft.client.gui.components.ImageWidget.texture
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
@@ -93,10 +94,10 @@ open class LightMesh(
             val vertexBuffer = NeoBuffer.GCNative(info.faces.size.toLong() * 4 * BLIT_VERTEX_FORMAT.vertexSizeBytes)
 
             vertexBuffer.write().run {
-                fun vertex(pos: IVec3<Float>, texX: Float, texY: Float) {
-                    writeFloat(pos.x)
-                    writeFloat(pos.y)
-                    writeFloat(pos.z)
+                fun vertex(vertex: LightFace.Vertex, texX: Float, texY: Float) {
+                    writeFloat(vertex.x)
+                    writeFloat(vertex.y)
+                    writeFloat(vertex.z)
                     writeFloat(texX / info.sections.size.x.toFloat())
                     writeFloat(texY / info.sections.size.y.toFloat())
                 }
@@ -104,10 +105,10 @@ open class LightMesh(
                 info.faces.forEachIndexed { index, face ->
                     val texture = info.sections.textures[index]
 
-                    vertex(face.quad.v0.pos, texture.min.x.toFloat(), texture.min.y.toFloat())
-                    vertex(face.quad.v1.pos, texture.max.x.toFloat(), texture.min.y.toFloat())
-                    vertex(face.quad.v2.pos, texture.max.x.toFloat(), texture.max.y.toFloat())
-                    vertex(face.quad.v3.pos, texture.min.x.toFloat(), texture.max.y.toFloat())
+                    vertex(face.v0, texture.min.x.toFloat(), texture.min.y.toFloat())
+                    vertex(face.v1, texture.max.x.toFloat(), texture.min.y.toFloat())
+                    vertex(face.v2, texture.max.x.toFloat(), texture.max.y.toFloat())
+                    vertex(face.v3, texture.min.x.toFloat(), texture.max.y.toFloat())
                 }
             }
 
@@ -147,20 +148,21 @@ open class LightMesh(
 
         vertexBuffer.write().run {
             lightFaces.forEachIndexed { index, face ->
-                for (vertex in face.applyOverlay(result.textures[index]).vertices) {
-                    writeFloat(vertex.pos.x)
-                    writeFloat(vertex.pos.y)
-                    writeFloat(vertex.pos.z)
-                    writeFloat(vertex.textureUV!!.x)
-                    writeFloat(vertex.textureUV!!.y)
-                    writeShort(vertex.overlayUV!!.x)
-                    writeShort(vertex.overlayUV!!.y)
-                    writeInt((vertex.color ?: NeoColor.FULL_ON).toRGBA())
-                    val normal = vertex.normal ?: face.quad.direction?.toFloat() ?: NeoVec3f(0f, 1f, 0f)
-                    writeByte((normal.x * 127).toInt())
-                    writeByte((normal.y * 127).toInt())
-                    writeByte((normal.z * 127).toInt())
-                    writeByte(0)
+                val texture = result.textures[index]
+
+                face.apply { vertex, index ->
+                    writeFloat(vertex.x)
+                    writeFloat(vertex.y)
+                    writeFloat(vertex.z)
+
+                    writeFloat(vertex.u)
+                    writeFloat(vertex.v)
+
+                    writeShort(if (index == 0 || index == 3) texture.min.x else texture.max.x)
+                    writeShort(if (index == 0 || index == 1) texture.min.y else texture.max.y)
+
+                    writeInt(vertex.color)
+                    writeInt(vertex.normal)
                 }
             }
         }
@@ -186,20 +188,18 @@ open class LightMesh(
 
         vertexBuffer.write().run {
             faces.forEachIndexed { index, face ->
-                for (vertex in face.quad.vertices) {
-                    writeFloat(vertex.pos.x)
-                    writeFloat(vertex.pos.y)
-                    writeFloat(vertex.pos.z)
-                    writeFloat(vertex.textureUV!!.x)
-                    writeFloat(vertex.textureUV!!.y)
-                    writeShort(vertex.overlayUV?.x ?: 0)
-                    writeShort(vertex.overlayUV?.y ?: 0)
-                    writeInt((vertex.color ?: NeoColor.FULL_ON).toRGBA())
-                    val normal = vertex.normal ?: face.quad.direction?.toFloat() ?: NeoVec3f(0f, 1f, 0f)
-                    writeByte((normal.x * 127).toInt())
-                    writeByte((normal.y * 127).toInt())
-                    writeByte((normal.z * 127).toInt())
-                    writeByte(0)
+                face.apply { vertex ->
+                    writeFloat(vertex.x)
+                    writeFloat(vertex.y)
+                    writeFloat(vertex.z)
+
+                    writeFloat(vertex.u)
+                    writeFloat(vertex.v)
+
+                    writeInt(0) // padding
+
+                    writeInt(vertex.color)
+                    writeInt(vertex.normal)
                 }
             }
         }

@@ -87,8 +87,8 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                     val threshold = 2f * 2f * 16f * 16f
 
                     temp.bind().use { fbo ->
-                        lights.forEach { light ->
-                            if (light.second < threshold) {
+                        lights.forEachIndexed { index, light ->
+                            if (light.second < threshold && index <= VibrancyConfig.rayLightMaxHighQuality) {
                                 profiler.push("clear")
                                 fbo.clear(GlClearBit.Color(NeoColor.FULL_OFF))
                                 profiler.pop()
@@ -112,8 +112,8 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                         if (VibrancyConfig.limitLightBrightness) GlBlendEquation.MAX else GlBlendEquation.ADD
                     ).bind().use {
                         result.bind().use { fbo ->
-                            lights.forEach { light ->
-                                if (light.second >= threshold) {
+                            lights.forEachIndexed { index, light ->
+                                if (light.second >= threshold || index > VibrancyConfig.rayLightMaxHighQuality) {
                                     profiler.push("render")
                                     light.first.render(data, settings.shader, debugOut, profiler)
                                     profiler.pop()

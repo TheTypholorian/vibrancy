@@ -26,19 +26,15 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
-import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.math.NeoDirection
 import net.typho.big_shot_lib.api.math.rect.AbstractRect3
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
-import net.typho.big_shot_lib.api.math.vec.NeoVec3f
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.BlockUtil
-import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
-import net.typho.big_shot_lib.api.util.buffer.packInt
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.VibrancyConfig
 import net.typho.vibrancy.block.BlockLightRegistry
@@ -63,11 +59,20 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
             .add("LightIndex", NeoVertexFormat.Element.create(0, GlDataType.UNSIGNED_INT, null, 1))
             .add("Color", NeoVertexFormat.Element.COLOR)
             .add("Normal", NeoVertexFormat.Element.NORMAL)
+            .padding(1)
             .build()
     }
 
     override fun createChunk(manager: LightManager, pos: SectionPos): Chunk {
         return Chunk(pos)
+    }
+
+    override fun loadSection(manager: LightManager, chunk: ChunkAccess, pos: SectionPos) {
+        val section = chunk.getSection(chunk.getSectionIndexFromSectionY(pos.y))
+
+        if (section.maybeHas { BlockLightRegistry.get(it.block, SubtleLightType) != null }) {
+            getOrCreateChunk(manager, pos).loadChunk(manager, chunk)
+        }
     }
 
     fun checkDirty(
@@ -86,10 +91,17 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
         }
         profiler.pop()
 
+        profiler.push("loadDirty")
+        for (section in manager.dirtySections) {
+            chunks[section.first]?.dirty = true
+        }
+        profiler.pop()
+
         profiler.push("submit")
         checkDirty@ for ((pos, chunk) in chunks) {
             if (chunk.dirty) {
                 if (chunk.isCompiledEmpty && chunk.map.isEmpty()) {
+                    chunk.dirty = false
                     continue@checkDirty
                 }
 
@@ -122,16 +134,52 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
                         profiler?.push("collect")
 
                         val lightList = arrayListOf<SubtleLight>()
-                        val quads = arrayListOf<Pair<Pair<NeoBakedQuad, IVec3<Int>>, Int>>()
+                        val quads = arrayListOf<Pair<Pair<LightFace, Short>, Int>>()
                         val caches = hashMapOf<SectionPos, SectionMeshCache?>()
                         val chunkCache = ChunkSectionCache(data.level!!)
+                        var lightIndex = 0
+                        val consumer = object : BlockMeshCollector.Consumer {
+                            override val predicate = object : BlockMeshCollector.Predicate {
+                                override fun shouldCastBlock(
+                                    level: Level,
+                                    pos: BlockPos,
+                                    state: BlockState?
+                                ): Boolean {
+                                    return true
+                                }
+
+                                override fun shouldCastFace(
+                                    face: NeoDirection?,
+                                    level: Level,
+                                    pos: BlockPos,
+                                    state: BlockState?
+                                ): Boolean {
+                                    return face == null || BlockUtil.INSTANCE.shouldRenderFace(
+                                        level,
+                                        pos,
+                                        face,
+                                        state ?: level.getBlockState(pos)
+                                    )
+                                }
+                            }
+
+                            override fun collect(
+                                faces: Iterable<LightFace>,
+                                section: SectionPos,
+                                block: BlockPos,
+                                translucent: Boolean
+                            ) {
+                                val offset = SectionPos.sectionRelativePos(block)
+                                faces.mapTo(quads) { it to offset to lightIndex }
+                            }
+                        }
 
                         lights.forEach { light ->
                             if (isCancelled()) {
                                 return AutoCloseable { } to { }
                             }
 
-                            val index = lightList.size
+                            lightIndex = lightList.size
                             lightList.add(light)
 
                             chunkCache[light.shadowBox].forEach { (pos, state) ->
@@ -141,39 +189,7 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
                                     state,
                                     data.level!!,
                                     pos,
-                                    object : BlockMeshCollector.Consumer {
-                                        override val predicate = object : BlockMeshCollector.Predicate {
-                                            override fun shouldCastBlock(
-                                                level: Level,
-                                                pos: BlockPos,
-                                                state: BlockState?
-                                            ): Boolean {
-                                                return true
-                                            }
-
-                                            override fun shouldCastFace(
-                                                face: NeoDirection?,
-                                                level: Level,
-                                                pos: BlockPos,
-                                                state: BlockState?
-                                            ): Boolean {
-                                                return face == null || BlockUtil.INSTANCE.shouldRenderFace(
-                                                    level,
-                                                    pos,
-                                                    face,
-                                                    state ?: level.getBlockState(pos)
-                                                )
-                                            }
-                                        }
-
-                                        override fun collect(
-                                            faces: Iterable<LightFace>,
-                                            section: SectionPos,
-                                            translucent: Boolean
-                                        ) {
-                                            faces.mapTo(quads) { it.quad to NeoVec3i(pos.x - origin.x, pos.y - origin.y, pos.z - origin.z) to index }
-                                        }
-                                    }
+                                    consumer
                                 )
                             }
                         }
@@ -259,7 +275,7 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
         @JvmField
         var isCompiledEmpty = true
 
-        fun lazyUpload(isCancelled: () -> Boolean, quads: Collection<Pair<Pair<NeoBakedQuad, IVec3<Int>>, Int>>): Pair<AutoCloseable, () -> Unit> {
+        fun lazyUpload(isCancelled: () -> Boolean, quads: Collection<Pair<Pair<LightFace, Short>, Int>>): Pair<AutoCloseable, () -> Unit> {
             isCompiledEmpty = quads.isEmpty()
 
             val vertexBuffer = NeoBuffer.GCNative(quads.size.toLong() * 4 * VERTEX_FORMAT.vertexSizeBytes)
@@ -270,18 +286,17 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
                         return vertexBuffer to { }
                     }
 
-                    for (vertex in quad.first.first.vertices) {
-                        writeFloat(vertex.pos.x + quad.first.second.x)
-                        writeFloat(vertex.pos.y + quad.first.second.y)
-                        writeFloat(vertex.pos.z + quad.first.second.z)
-                        writeFloat(vertex.textureUV!!.x)
-                        writeFloat(vertex.textureUV!!.y)
+                    quad.first.first.apply { vertex ->
+                        writeFloat(vertex.x + SectionPos.sectionRelativeX(quad.first.second))
+                        writeFloat(vertex.y + SectionPos.sectionRelativeY(quad.first.second))
+                        writeFloat(vertex.z + SectionPos.sectionRelativeZ(quad.first.second))
+
+                        writeFloat(vertex.u)
+                        writeFloat(vertex.v)
+
                         writeInt(quad.second)
-                        writeInt((vertex.color ?: NeoColor.FULL_ON).toRGBA())
-                        val normal = vertex.normal ?: quad.first.first.direction?.toFloat() ?: NeoVec3f(0f, 1f, 0f)
-                        writeByte((normal.x * 127).toInt())
-                        writeByte((normal.y * 127).toInt())
-                        writeByte((normal.z * 127).toInt())
+                        writeInt(vertex.color)
+                        writeInt(vertex.normal)
                     }
                 }
             }

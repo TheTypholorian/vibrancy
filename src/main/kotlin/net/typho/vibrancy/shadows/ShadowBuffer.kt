@@ -30,11 +30,11 @@ open class ShadowBuffer(
 
             buffer.write().run {
                 faces.forEachIndexed { index, face ->
-                    for (vertex in face.quad.vertices) {
-                        writeFloat(vertex.pos.x)
-                        writeFloat(vertex.pos.y)
-                        writeFloat(vertex.pos.z)
-                        writeInt(((vertex.textureUV!!.x * texWidth).toInt() shl 16) or (vertex.textureUV!!.y * texHeight).toInt())
+                    face.apply { vertex ->
+                        writeFloat(vertex.x)
+                        writeFloat(vertex.y)
+                        writeFloat(vertex.z)
+                        writeInt(((vertex.u * texWidth).toInt() shl 16) or (vertex.v * texHeight).toInt())
                     }
                 }
             }

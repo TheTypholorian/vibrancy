@@ -46,7 +46,7 @@ interface BlockMeshCollector {
     interface Consumer {
         val predicate: Predicate
 
-        fun collect(faces: Iterable<LightFace>, section: SectionPos, translucent: Boolean)
+        fun collect(faces: Iterable<LightFace>, section: SectionPos, block: BlockPos, translucent: Boolean)
     }
 
     interface FaceOrigin {
@@ -82,8 +82,8 @@ interface BlockMeshCollector {
                 val model = cache[pos]
                 consumers.forEach {
                     if (it.predicate.shouldCastBlock(level, pos, state)) {
-                        it.collect(model.solidFaces, section, false)
-                        it.collect(model.translucentFaces, section, true)
+                        it.collect(model.solidFaces, section, pos, false)
+                        it.collect(model.translucentFaces, section, pos, true)
                     }
                 }
             }
@@ -104,8 +104,8 @@ interface BlockMeshCollector {
                 val model = cache[pos]
                 consumers.forEach {
                     if (it.predicate.shouldCastBlock(level, pos, state)) {
-                        it.collect(model.solidFaces, section, false)
-                        it.collect(model.translucentFaces, section, true)
+                        it.collect(model.solidFaces, section, pos, false)
+                        it.collect(model.translucentFaces, section, pos, true)
                     }
                 }
             }
@@ -127,8 +127,8 @@ interface BlockMeshCollector {
                 val model = cache[pos]
                 consumers.forEach {
                     if (it.predicate.shouldCastBlock(level, pos, state)) {
-                        it.collect(model.solidFaces.map(transmute), section, false)
-                        it.collect(model.translucentFaces.map(transmute), section, true)
+                        it.collect(model.solidFaces.map(transmute), section, pos, false)
+                        it.collect(model.translucentFaces.map(transmute), section, pos, true)
                     }
                 }
             }

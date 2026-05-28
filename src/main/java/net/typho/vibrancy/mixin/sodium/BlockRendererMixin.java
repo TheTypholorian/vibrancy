@@ -1,20 +1,18 @@
 package net.typho.vibrancy.mixin.sodium;
 
+import com.llamalad7.mixinextras.sugar.Local;
 import net.caffeinemc.mods.sodium.client.render.chunk.compile.ChunkBuildBuffers;
 import net.caffeinemc.mods.sodium.client.render.chunk.compile.pipeline.BlockRenderer;
 import net.caffeinemc.mods.sodium.client.render.chunk.terrain.material.Material;
+import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.TranslucentGeometryCollector;
+import net.caffeinemc.mods.sodium.client.render.chunk.vertex.format.ChunkVertexEncoder;
 import net.caffeinemc.mods.sodium.client.render.frapi.mesh.MutableQuadViewImpl;
-import net.minecraft.client.renderer.RenderType;
+import net.caffeinemc.mods.sodium.client.world.LevelSlice;
 import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.core.BlockPos;
+import net.minecraft.core.SectionPos;
 import net.minecraft.world.level.block.state.BlockState;
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas;
-import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlasSprite;
-import net.typho.big_shot_lib.api.client.rendering.util.quad.BasicBakedQuad;
-import net.typho.big_shot_lib.api.math.NeoDirection;
-import net.typho.big_shot_lib.api.math.NeoDirectionKt;
-import net.typho.big_shot_lib.api.math.vec.NeoVec3i;
-import net.typho.big_shot_lib.api.util.WrapperUtil;
 import net.typho.vibrancy.shadows.LightFace;
 import net.typho.vibrancy.util.SectionMeshCache;
 import org.spongepowered.asm.mixin.Mixin;
@@ -23,10 +21,6 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
 
 @Mixin(BlockRenderer.class)
 public class BlockRendererMixin {
@@ -42,8 +36,29 @@ public class BlockRendererMixin {
             at = @At("HEAD")
     )
     private void renderModel(BakedModel model, BlockState state, BlockPos pos, BlockPos origin, CallbackInfo ci) {
-        vibrancy$block = pos.immutable();
+        vibrancy$block = pos;
+    }
+
+    @Inject(
+            method = "prepare",
+            at = @At("TAIL")
+    )
+    private void prepare(ChunkBuildBuffers buffers, LevelSlice level, TranslucentGeometryCollector collector, CallbackInfo ci) {
         vibrancy$atlas = NeoAtlas.Companion.getBlocks();
+    }
+
+    @Unique
+    private LightFace.Vertex vibrancy$convertVertex(ChunkVertexEncoder.Vertex vertex, int normal, float offX, float offY, float offZ) {
+        return new LightFace.Vertex(
+                vertex.x + offX,
+                vertex.y + offY,
+                vertex.z + offZ,
+                vertex.color,
+                vertex.u,
+                vertex.v,
+                vertex.light,
+                normal
+        );
     }
 
     @Inject(
@@ -54,15 +69,22 @@ public class BlockRendererMixin {
             MutableQuadViewImpl quad,
             float[] brightnesses,
             Material material,
-            CallbackInfo ci
+            CallbackInfo ci,
+            @Local ChunkVertexEncoder.Vertex[] vertices
     ) {
         SectionMeshCache cache = ((SectionMeshCache.Holder) buffers).getVibrancy$sectionMeshCache();
 
         if (cache != null && vibrancy$block != null) {
+            float offX = -SectionPos.sectionRelative(vibrancy$block.getX());
+            float offY = -SectionPos.sectionRelative(vibrancy$block.getY());
+            float offZ = -SectionPos.sectionRelative(vibrancy$block.getZ());
+
             cache.get(vibrancy$block).get(material.isTranslucent()).add(
                     new LightFace(
-                            vibrancy$block,
-                            WrapperUtil.Companion.getINSTANCE().wrap(quad.toBakedQuad(null)),
+                            vibrancy$convertVertex(vertices[0], quad.getVertexNormal(0), offX, offY, offZ),
+                            vibrancy$convertVertex(vertices[1], quad.getVertexNormal(1), offX, offY, offZ),
+                            vibrancy$convertVertex(vertices[2], quad.getVertexNormal(2), offX, offY, offZ),
+                            vibrancy$convertVertex(vertices[3], quad.getVertexNormal(3), offX, offY, offZ),
                             vibrancy$atlas
                     )
             );

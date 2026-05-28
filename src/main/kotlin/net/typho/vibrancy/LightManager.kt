@@ -37,7 +37,6 @@ import net.typho.vibrancy.block.BlockLightInfo
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.block.BlockLightStorage
 import net.typho.vibrancy.block.BlockLightType
-import net.typho.vibrancy.mixin.LevelRendererAccessor
 import net.typho.vibrancy.mixin.SodiumWorldRendererAccessor
 import net.typho.vibrancy.sky.SkyLightRegistry
 import net.typho.vibrancy.sky.SkyLightStorage
@@ -53,7 +52,11 @@ import kotlin.use
 
 open class LightManager {
     @JvmField
-    val dirtyBlocks = LinkedList<IVec3<Int>>()
+    val dirtySectionLock = Any()
+    @JvmField
+    var nextDirtySections: MutableList<Pair<SectionPos, AbstractRect3<Int>>> = LinkedList()
+    @JvmField
+    var dirtySections: MutableList<Pair<SectionPos, AbstractRect3<Int>>> = LinkedList()
     @JvmField
     val blockLights = HashMap<BlockLightType<*, *>, BlockLightStorage<*>>()
     @JvmField
@@ -112,8 +115,6 @@ open class LightManager {
 
             BlockLightRegistry.get(new.block, entry.key)?.let { addBlockLight(pos, level, new, entry.key, it) }
         }
-
-        dirtyBlocks.add(pos)
     }
 
     fun loadChunk(chunk: ChunkAccess) {
@@ -170,6 +171,11 @@ open class LightManager {
         debugInfo.clear()
         visibleSections.clear()
 
+        synchronized(dirtySectionLock) {
+            dirtySections = nextDirtySections
+            nextDirtySections = LinkedList()
+        }
+
         val renderer = (Minecraft.getInstance().levelRenderer as LevelRendererExtension).`sodium$getWorldRenderer`()
         val sectionManager = (renderer as SodiumWorldRendererAccessor).`vibrancy$getRenderSectionManager`()
         sectionManager.renderLists.iterator().forEach { list ->
@@ -186,7 +192,7 @@ open class LightManager {
 
         skyLight?.let { castAndRender(data, result, temp, it.first, it.second, profiler) }
 
-        dirtyBlocks.clear()
+        dirtySections.clear()
         profiler.pop()
     }
 

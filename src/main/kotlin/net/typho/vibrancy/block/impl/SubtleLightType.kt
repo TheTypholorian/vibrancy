@@ -78,7 +78,7 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
                     profiler.push("sort")
                     val chunks = lights.chunks.values
                         .filter {
-                            manager.inRenderDistance(data, it.pos, VibrancyConfig.subtleLightsRenderDistance)
+                            !it.isCompiledEmpty && manager.inRenderDistance(data, it.pos, VibrancyConfig.subtleLightsRenderDistance)
                         }
                     profiler.pop()
 

@@ -1,5 +1,6 @@
 package net.typho.vibrancy.shadows
 
+import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
@@ -72,14 +73,24 @@ open class StaticBlockLightMeshManager(
             object : BlockMeshCollector.Consumer {
                 override val predicate: BlockMeshCollector.Predicate = shadowPredicate
 
-                override fun collect(faces: Iterable<LightFace>, section: SectionPos, translucent: Boolean) {
+                override fun collect(
+                    faces: Iterable<LightFace>,
+                    section: SectionPos,
+                    block: BlockPos,
+                    translucent: Boolean
+                ) {
                     shadowFaces.addAll(faces)
                 }
             },
             object : BlockMeshCollector.Consumer {
                 override val predicate: BlockMeshCollector.Predicate = lightPredicate
 
-                override fun collect(faces: Iterable<LightFace>, section: SectionPos, translucent: Boolean) {
+                override fun collect(
+                    faces: Iterable<LightFace>,
+                    section: SectionPos,
+                    block: BlockPos,
+                    translucent: Boolean
+                ) {
                     lightFaces.addAll(faces)
                 }
             }

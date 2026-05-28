@@ -63,7 +63,7 @@ bool raycastQuad(bool checkDir, vec3 origin, vec3 dir, float len, float margin, 
 
     if (a < -margin || b < -margin || a > 1 + margin || b > 1 + margin) return false;
 
-    uv = clamp(vec2(a, b), 0, 1);
+    uv = clamp(vec2(a, b), margin, 1 - margin);
 
     return true;
 }

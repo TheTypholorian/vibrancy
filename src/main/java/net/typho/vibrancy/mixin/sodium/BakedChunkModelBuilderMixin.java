@@ -9,15 +9,15 @@ import org.spongepowered.asm.mixin.Unique;
 @Mixin(BakedChunkModelBuilder.class)
 public class BakedChunkModelBuilderMixin implements SectionMeshCache.ConsumerExtension {
     @Unique
-    private NeoBakedQuad.Consumer vibrancy$sectionMeshConsumer;
+    private SectionMeshCache.Consumer vibrancy$sectionMeshConsumer;
 
     @Override
-    public NeoBakedQuad.Consumer getVibrancy$sectionMeshConsumer() {
+    public SectionMeshCache.Consumer getVibrancy$sectionMeshConsumer() {
         return vibrancy$sectionMeshConsumer;
     }
 
     @Override
-    public void setVibrancy$sectionMeshConsumer(NeoBakedQuad.Consumer consumer) {
+    public void setVibrancy$sectionMeshConsumer(SectionMeshCache.Consumer consumer) {
         vibrancy$sectionMeshConsumer = consumer;
     }
 }

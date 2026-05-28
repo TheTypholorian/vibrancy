@@ -44,10 +44,8 @@ import net.typho.big_shot_lib.api.math.rect.NeoRect2i
 import net.typho.big_shot_lib.api.math.rect.NeoRect3i
 import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
 import net.typho.big_shot_lib.api.math.vec.NeoVec3d
-import net.typho.big_shot_lib.api.math.vec.NeoVec3f
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.big_shot_lib.api.math.vec.NeoVec4f
-import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
@@ -300,7 +298,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
             }
 
             profiler.push("dynamicShadows")
-            val quads = hashMapOf<Pair<Boolean, NeoIdentifier>, MutableList<NeoBakedQuad>>()
+            val quads = hashMapOf<Pair<Boolean, NeoIdentifier>, MutableList<NeoBakedQuad>>() // TODO change to compact light face vertices
             val buffers = hashMapOf<Pair<Boolean, NeoIdentifier>, NeoBakedQuad.Consumer>()
             val bufferSource = NeoMultiBufferSource { settings: NeoRenderSettings ->
                 val texture = settings.drawState.shader.textures.getOrNull(0)?.location ?: return@NeoMultiBufferSource EmptyVertexConsumer
@@ -705,15 +703,20 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                             }
                         }
 
-                        override fun collect(faces: Iterable<LightFace>, section: SectionPos, translucent: Boolean) {
+                        override fun collect(
+                            faces: Iterable<LightFace>,
+                            section: SectionPos,
+                            block: BlockPos,
+                            translucent: Boolean
+                        ) {
                             // TODO
                             if (translucent) {
                                 for (face in faces) {
-                                    translucentFaces[SectionPos.blockToSectionCoord(face.blockPos!!.y) - level.minSection].add(face)
+                                    translucentFaces[SectionPos.blockToSectionCoord(block.y) - level.minSection].add(face)
                                 }
                             } else {
                                 for (face in faces) {
-                                    lightFaces[SectionPos.blockToSectionCoord(face.blockPos!!.y) - level.minSection].add(face)
+                                    lightFaces[SectionPos.blockToSectionCoord(block.y) - level.minSection].add(face)
                                 }
                             }
                         }
@@ -728,29 +731,17 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
                 vertexBuffer.write().run {
                     faces.forEachIndexed { index, face ->
-                        for (vertex in face.quad.vertices) {
-                            writeFloat(vertex.pos.x)
-                            writeFloat(vertex.pos.y)
-                            writeFloat(vertex.pos.z)
-                            writeFloat(vertex.textureUV!!.x)
-                            writeFloat(vertex.textureUV!!.y)
+                        face.apply { vertex ->
+                            writeFloat(vertex.x)
+                            writeFloat(vertex.y)
+                            writeFloat(vertex.z)
 
-                            if (face.blockPos == null || face.quad.direction == null) {
-                                writeInt(net.minecraft.client.renderer.LightTexture.FULL_BRIGHT)
-                            } else {
-                                val pos = face.blockPos.relative(face.quad.direction!!.mojang)
-                                writeInt(net.minecraft.client.renderer.LightTexture.pack(
-                                    level.getBrightness(LightLayer.BLOCK, pos),
-                                    level.getBrightness(LightLayer.SKY, pos)
-                                ))
-                            }
+                            writeFloat(vertex.u)
+                            writeFloat(vertex.v)
 
-                            writeInt((vertex.color ?: NeoColor.FULL_ON).toRGBA())
-                            val normal = vertex.normal ?: face.quad.direction?.toFloat() ?: NeoVec3f(0f, 1f, 0f)
-                            writeByte((normal.x * 127).toInt())
-                            writeByte((normal.y * 127).toInt())
-                            writeByte((normal.z * 127).toInt())
-                            writeByte(0)
+                            writeInt(vertex.light)
+                            writeInt(vertex.color)
+                            writeInt(vertex.normal)
                         }
                     }
                 }
@@ -779,8 +770,8 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
         }
 
         fun update(data: RenderEventData, manager: LightManager) {
-            for (pos in manager.dirtyBlocks) {
-                if (ChunkPos(pos.blockPos) == this.pos) {
+            for (section in manager.dirtySections) {
+                if (section.first.x == pos.x && section.first.z == pos.z) {
                     dirty = true
                     break
                 }

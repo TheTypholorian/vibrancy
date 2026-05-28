@@ -296,9 +296,12 @@ open class RayPointLight(
     fun update(data: RenderEventData, manager: LightManager, debugOut: (String, Int) -> Unit, dynamicShadows: Boolean, profiler: ProfilerFiller) {
         profiler.push("rebuildBlocks")
         synchronized(meshCollector) {
-            for (pos in manager.dirtyBlocks) {
-                if (boundingBox.contains(pos)) {
-                    shadowsDirty = shadowsDirty or meshCollector.markDirty(pos.blockPos)
+            val box = boundingBox
+            for (section in manager.dirtySections) {
+                if (section.second.intersects(box)) {
+                    meshCollector.markAllDirty()
+                    shadowsDirty = true
+                    break
                 }
             }
         }

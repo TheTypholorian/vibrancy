@@ -33,14 +33,17 @@ public class DefaultFluidRendererMixin {
             CallbackInfo ci,
             @Local ChunkVertexEncoder.Vertex[] vertices
     ) {
-        NeoBakedQuad.Consumer consumer = ((SectionMeshCache.ConsumerExtension) builder).getVibrancy$sectionMeshConsumer();
+        SectionMeshCache.Consumer consumer = ((SectionMeshCache.ConsumerExtension) builder).getVibrancy$sectionMeshConsumer();
 
         if (consumer != null) {
+            int index = 0;
+
             for (ChunkVertexEncoder.Vertex vertex : vertices) {
                 consumer.vertex(vertex.x, vertex.y, vertex.z)
                         .color(vertex.color)
                         .textureUV(vertex.u, vertex.v)
-                        .lightUV(vertex.light);
+                        .lightUV(vertex.light)
+                        .normal(quad.getVertexNormal(index++));
             }
             consumer.flush();
         }

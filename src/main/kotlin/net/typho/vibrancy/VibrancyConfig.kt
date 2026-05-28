@@ -95,6 +95,8 @@ object VibrancyConfig {
     var rayLightBrightness: Float = 1f
     @JvmField
     var rayLightShadowRadius: Int = 6
+    @JvmField
+    var rayLightMaxHighQuality: Int = 10
 
     var subtleLightsEnabled = true
         set(value) {
@@ -176,6 +178,7 @@ object VibrancyConfig {
                 .name("maxRendered").value(rayLightsMaxRendered)
                 .name("brightness").value(rayLightBrightness)
                 .name("shadowRadius").value(rayLightShadowRadius)
+                .name("maxHighQuality").value(rayLightMaxHighQuality)
 
                 .endObject()
 
@@ -237,6 +240,7 @@ object VibrancyConfig {
                         raytraced.getAsJsonPrimitive("maxRendered")?.let { rayLightsMaxRendered = it.asInt }
                         raytraced.getAsJsonPrimitive("brightness")?.let { rayLightBrightness = it.asFloat }
                         raytraced.getAsJsonPrimitive("shadowRadius")?.let { rayLightShadowRadius = it.asInt }
+                        raytraced.getAsJsonPrimitive("maxHighQuality")?.let { rayLightMaxHighQuality = it.asInt }
                     }
 
                     blockLights.getAsJsonObject("subtle")?.let { subtle ->
@@ -363,6 +367,19 @@ object VibrancyConfig {
                             IntegerSliderControllerBuilder.create(opt)
                                 .range(1, 16)
                                 .step(1)
+                        }
+                        .build())
+
+                    .option(Option.createBuilder<Int>()
+                        .name(Component.translatable("config.vibrancy.blockLights.raytraced.maxHighQuality"))
+                        .binding(10, VibrancyConfig::rayLightMaxHighQuality)
+                        .description(OptionDescription.of(
+                            Component.translatable("config.vibrancy.blockLights.raytraced.maxHighQuality.tooltip")
+                        ))
+                        .controller { opt ->
+                            IntegerSliderControllerBuilder.create(opt)
+                                .range(0, 30)
+                                .step(5)
                         }
                         .build())
                     .build())
