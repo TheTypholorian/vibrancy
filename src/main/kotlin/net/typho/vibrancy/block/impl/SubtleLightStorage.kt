@@ -63,6 +63,9 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
             .build()
     }
 
+    @JvmField
+    val dirty = hashSetOf<Chunk>()
+
     override fun createChunk(manager: LightManager, pos: SectionPos): Chunk {
         return Chunk(pos)
     }
@@ -93,173 +96,172 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
 
         profiler.push("loadDirty")
         for (section in manager.dirtySections) {
-            chunks[section.first]?.dirty = true
+            chunks[section.first]?.let {
+                dirty.add(it)
+            }
         }
         profiler.pop()
 
         profiler.push("submit")
-        checkDirty@ for ((pos, chunk) in chunks) {
-            if (chunk.dirty) {
-                if (chunk.isCompiledEmpty && chunk.map.isEmpty()) {
-                    chunk.dirty = false
-                    continue@checkDirty
-                }
+        dirty.removeIf { chunk ->
+            if (chunk.isCompiledEmpty && chunk.map.isEmpty()) {
+                return@removeIf true
+            }
 
-                for (x in (pos.x - 1)..(pos.x + 1)) {
-                    for (z in (pos.z - 1)..(pos.z + 1)) {
-                        if (!data.level!!.hasChunk(x, z)) {
-                            continue@checkDirty
-                        }
+            for (x in (chunk.pos.x - 1)..(chunk.pos.x + 1)) {
+                for (z in (chunk.pos.z - 1)..(chunk.pos.z + 1)) {
+                    if (!data.level!!.hasChunk(x, z)) {
+                        return@removeIf false
                     }
                 }
+            }
 
-                chunk.dirty = false
+            fun impl(isCancelled: () -> Boolean, profiler: ProfilerFiller?): Pair<AutoCloseable, () -> Unit> {
+                synchronized(chunk.map) {
+                    profiler?.push("fold")
+                    chunk.box = chunk.map.values.fold(null) { box, light ->
+                        box?.include(light.boundingBox) ?: light.boundingBox
+                    }
+                    profiler?.pop()
 
-                fun impl(isCancelled: () -> Boolean, profiler: ProfilerFiller?): Pair<AutoCloseable, () -> Unit> {
-                    synchronized(chunk.map) {
-                        profiler?.push("fold")
-                        chunk.box = chunk.map.values.fold(null) { box, light ->
-                            box?.include(light.boundingBox) ?: light.boundingBox
-                        }
-                        profiler?.pop()
+                    if (isCancelled() || chunk.map.isEmpty()) {
+                        return AutoCloseable { } to { }
+                    }
 
-                        if (isCancelled() || chunk.map.isEmpty()) {
-                            return AutoCloseable { } to { }
-                        }
+                    val origin = NeoVec3i(chunk.pos.minBlockX(), chunk.pos.minBlockY(), chunk.pos.minBlockZ())
 
-                        val origin = NeoVec3i(pos.minBlockX(), pos.minBlockY(), pos.minBlockZ())
+                    val lights = chunk.map.values.toList()
 
-                        val lights = chunk.map.values.toList()
+                    profiler?.push("collect")
 
-                        profiler?.push("collect")
-
-                        val lightList = arrayListOf<SubtleLight>()
-                        val quads = arrayListOf<Pair<Pair<LightFace, Short>, Int>>()
-                        val caches = hashMapOf<SectionPos, SectionMeshCache?>()
-                        val chunkCache = ChunkSectionCache(data.level!!)
-                        var lightIndex = 0
-                        val consumer = object : BlockMeshCollector.Consumer {
-                            override val predicate = object : BlockMeshCollector.Predicate {
-                                override fun shouldCastBlock(
-                                    level: Level,
-                                    pos: BlockPos,
-                                    state: BlockState?
-                                ): Boolean {
-                                    return true
-                                }
-
-                                override fun shouldCastFace(
-                                    face: NeoDirection?,
-                                    level: Level,
-                                    pos: BlockPos,
-                                    state: BlockState?
-                                ): Boolean {
-                                    return face == null || BlockUtil.INSTANCE.shouldRenderFace(
-                                        level,
-                                        pos,
-                                        face,
-                                        state ?: level.getBlockState(pos)
-                                    )
-                                }
+                    val lightList = arrayListOf<SubtleLight>()
+                    val quads = arrayListOf<Pair<Pair<LightFace, Short>, Int>>()
+                    val caches = hashMapOf<SectionPos, SectionMeshCache?>()
+                    val chunkCache = ChunkSectionCache(data.level!!)
+                    var lightIndex = 0
+                    val consumer = object : BlockMeshCollector.Consumer {
+                        override val predicate = object : BlockMeshCollector.Predicate {
+                            override fun shouldCastBlock(
+                                level: Level,
+                                pos: BlockPos,
+                                state: BlockState?
+                            ): Boolean {
+                                return true
                             }
 
-                            override fun collect(
-                                faces: Iterable<LightFace>,
-                                section: SectionPos,
-                                block: BlockPos,
-                                translucent: Boolean
-                            ) {
-                                val offset = SectionPos.sectionRelativePos(block)
-                                faces.mapTo(quads) { it to offset to lightIndex }
-                            }
-                        }
-
-                        lights.forEach { light ->
-                            if (isCancelled()) {
-                                return AutoCloseable { } to { }
-                            }
-
-                            lightIndex = lightList.size
-                            lightList.add(light)
-
-                            chunkCache[light.shadowBox].forEach { (pos, state) ->
-                                BlockMeshCollector.collectLightFaces(
-                                    manager,
-                                    caches,
-                                    state,
-                                    data.level!!,
+                            override fun shouldCastFace(
+                                face: NeoDirection?,
+                                level: Level,
+                                pos: BlockPos,
+                                state: BlockState?
+                            ): Boolean {
+                                return face == null || BlockUtil.INSTANCE.shouldRenderFace(
+                                    level,
                                     pos,
-                                    consumer
+                                    face,
+                                    state ?: level.getBlockState(pos)
                                 )
                             }
                         }
-                        profiler?.pop()
 
+                        override fun collect(
+                            faces: Iterable<LightFace>,
+                            section: SectionPos,
+                            block: BlockPos,
+                            translucent: Boolean
+                        ) {
+                            val offset = SectionPos.sectionRelativePos(block)
+                            faces.mapTo(quads) { it to offset to lightIndex }
+                        }
+                    }
+
+                    lights.forEach { light ->
                         if (isCancelled()) {
                             return AutoCloseable { } to { }
                         }
 
-                        profiler?.push("ssbo")
-                        val buffer = NeoBuffer.GCNative(lightList.size.toLong() * 8 * Float.SIZE_BYTES)
+                        lightIndex = lightList.size
+                        lightList.add(light)
 
-                        buffer.write().run {
-                            for (light in lightList) {
-                                if (isCancelled()) {
-                                    return buffer to { }
-                                }
-
-                                val color = light.color
-                                val pos = (light.pos - origin).toFloat() + light.offset
-
-                                writeFloat(pos.x)
-                                writeFloat(pos.y)
-                                writeFloat(pos.z)
-                                writeInt(light.shape)
-
-                                writeFloat(color.x)
-                                writeFloat(color.y)
-                                writeFloat(color.z)
-                                writeFloat(0f)
-                            }
+                        chunkCache[light.shadowBox].forEach { (pos, state) ->
+                            BlockMeshCollector.collectLightFaces(
+                                manager,
+                                caches,
+                                state,
+                                data.level!!,
+                                pos,
+                                consumer
+                            )
                         }
+                    }
+                    profiler?.pop()
 
-                        profiler?.pop()
+                    if (isCancelled()) {
+                        return AutoCloseable { } to { }
+                    }
 
-                        if (isCancelled()) {
-                            return buffer to { }
-                        }
+                    profiler?.push("ssbo")
+                    val buffer = NeoBuffer.GCNative(lightList.size.toLong() * 8 * Float.SIZE_BYTES)
 
-                        profiler?.push("upload")
-                        val task = chunk.lazyUpload(isCancelled, quads)
-                        profiler?.pop()
-
-                        return AutoCloseable {
-                            buffer.free()
-                            task.first.close()
-                        } to {
-                            task.second()
-
-                            chunk.ssbo.bind(GlBufferTarget.SHADER_STORAGE_BUFFER).use { ssbo ->
-                                ssbo.bufferData(buffer, GlBufferUsage.STATIC_DRAW)
+                    buffer.write().run {
+                        for (light in lightList) {
+                            if (isCancelled()) {
+                                return buffer to { }
                             }
+
+                            val color = light.color
+                            val pos = (light.pos - origin).toFloat() + light.offset
+
+                            writeFloat(pos.x)
+                            writeFloat(pos.y)
+                            writeFloat(pos.z)
+                            writeInt(light.shape)
+
+                            writeFloat(color.x)
+                            writeFloat(color.y)
+                            writeFloat(color.z)
+                            writeFloat(0f)
+                        }
+                    }
+
+                    profiler?.pop()
+
+                    if (isCancelled()) {
+                        return buffer to { }
+                    }
+
+                    profiler?.push("upload")
+                    val task = chunk.lazyUpload(isCancelled, quads)
+                    profiler?.pop()
+
+                    return AutoCloseable {
+                        buffer.free()
+                        task.first.close()
+                    } to {
+                        task.second()
+
+                        chunk.ssbo.bind(GlBufferTarget.SHADER_STORAGE_BUFFER).use { ssbo ->
+                            ssbo.bufferData(buffer, GlBufferUsage.STATIC_DRAW)
                         }
                     }
                 }
-
-                if (VibrancyConfig.useMultithreading) {
-                    chunk.task?.cancel()
-                    chunk.task = VibrancyThreadPool.submit(data, pos, manager) { impl(it, null) }
-                } else {
-                    val result = impl({ false }, profiler)
-                    result.second()
-                    result.first.close()
-                }
             }
+
+            if (VibrancyConfig.useMultithreading) {
+                chunk.task?.cancel()
+                chunk.task = VibrancyThreadPool.submit(data, chunk.pos, manager) { impl(it, null) }
+            } else {
+                val result = impl({ false }, profiler)
+                result.second()
+                result.first.close()
+            }
+
+            return@removeIf true
         }
         profiler.pop()
     }
 
-    class Chunk(
+    inner class Chunk(
         @JvmField
         val pos: SectionPos
     ) : HashMapBlockLightStorage<SubtleLightInfo, SubtleLight>(SubtleLightType), NativeResource {
@@ -274,6 +276,10 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
         val ssbo = NeoGlBuffer()
         @JvmField
         var isCompiledEmpty = true
+        @JvmField
+        var box: AbstractRect3<Int>? = null
+        var task: GlTask<Unit>? = null
+            internal set
 
         fun lazyUpload(isCancelled: () -> Boolean, quads: Collection<Pair<Pair<LightFace, Short>, Int>>): Pair<AutoCloseable, () -> Unit> {
             isCompiledEmpty = quads.isEmpty()
@@ -310,13 +316,6 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
                 mesh.rawUpload(quads.size * 6, indices.second, vertexBuffer, indices.first)
             }
         }
-
-        @JvmField
-        var box: AbstractRect3<Int>? = null
-        var dirty = true
-            internal set
-        var task: GlTask<Unit>? = null
-            internal set
 
         fun render(manager: LightManager, data: RenderEventData, shader: GlBoundProgram, debugOut: (key: String, value: Int) -> Unit, profiler: ProfilerFiller) {
             if (
@@ -426,12 +425,12 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
                 }
             }
 
-            dirty = true
+            dirty.add(this)
         }
 
         override fun deloadChunk(manager: LightManager, chunk: ChunkAccess) {
             super.deloadChunk(manager, chunk)
-            dirty = true
+            dirty.add(this)
         }
 
         override fun addLight(
@@ -442,12 +441,12 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
             info: SubtleLightInfo
         ) {
             super.addLight(manager, level, state, pos, info)
-            dirty = true
+            dirty.add(this)
         }
 
         override fun removeLight(manager: LightManager, level: Level, pos: IVec3<Int>): Boolean {
             if (super.removeLight(manager, level, pos)) {
-                dirty = true
+                dirty.add(this)
                 return true
             } else {
                 return false
@@ -455,7 +454,7 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
         }
 
         override fun reload(manager: LightManager, chunk: ChunkPos?) {
-            dirty = true
+            dirty.add(this)
         }
 
         override fun free() {
@@ -466,7 +465,7 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
 
         override fun clear(manager: LightManager) {
             super.clear(manager)
-            dirty = true
+            dirty.add(this)
         }
     }
 }
