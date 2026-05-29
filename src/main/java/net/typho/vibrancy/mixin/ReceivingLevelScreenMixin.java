@@ -74,7 +74,7 @@ public abstract class ReceivingLevelScreenMixin extends Screen {
             var subtleLights = Vibrancy.lightManager.blockLights.get(SubtleLightType.INSTANCE);
 
             if (subtleLights != null) {
-                var loading = ((SubtleLightStorage) subtleLights).chunks.values().stream().filter(chunk -> chunk.getTask() != null).count();
+                var loading = ((SubtleLightStorage) subtleLights).tasks.size();
                 var max = ((SubtleLightStorage) subtleLights).chunks.size();
                 guiGraphics.drawCenteredString(font, Component.translatable("loading.vibrancy.subtle", loading == 0 ? CommonComponents.GUI_DONE : (max - loading) + " / " + max), width / 2, y, 16777215);
                 y += font.lineHeight;
@@ -153,7 +153,7 @@ public abstract class ReceivingLevelScreenMixin extends Screen {
             var subtleLights = Vibrancy.lightManager.blockLights.get(SubtleLightType.INSTANCE);
 
             if (subtleLights != null) {
-                var loading = ((SubtleLightStorage) subtleLights).chunks.values().stream().filter(chunk -> chunk.getTask() != null).count();
+                var loading = ((SubtleLightStorage) subtleLights).tasks.size();
                 var max = ((SubtleLightStorage) subtleLights).chunks.size();
                 guiGraphics.drawCenteredString(font, Component.translatable("loading.vibrancy.subtle", loading == 0 ? CommonComponents.GUI_DONE : (max - loading) + " / " + max), width / 2, y, 16777215);
                 y += font.lineHeight;

@@ -121,6 +121,14 @@ data class LightFace(
         out(v3)
     }
 
+    fun any(out: (vertex: Vertex, index: Int) -> Boolean): Boolean {
+        return out(v0, 0) || out(v1, 1) || out(v2, 2) || out(v3, 3)
+    }
+
+    fun any(out: (vertex: Vertex) -> Boolean): Boolean {
+        return out(v0) || out(v1) || out(v2) || out(v3)
+    }
+
     /*
     open class Consumer(
         @JvmField

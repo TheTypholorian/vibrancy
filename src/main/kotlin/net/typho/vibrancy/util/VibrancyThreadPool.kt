@@ -18,7 +18,6 @@ object VibrancyThreadPool : ThreadPoolExecutor(
     TimeUnit.MINUTES,
     PriorityBlockingQueue(11, Comparator.comparingDouble { a -> if (a is SortedAsyncTask) a.sortingOrder else 0.0 })
 ) {
-    @Suppress("AssignedValueIsNeverRead")
     @JvmStatic
     fun <T> submit(sort: Double, task: (isCancelled: () -> Boolean) -> Pair<AutoCloseable, () -> T>): GlTask<T> {
         val future = CompletableFuture<Pair<AutoCloseable, () -> T>>()

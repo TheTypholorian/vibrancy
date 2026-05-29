@@ -34,13 +34,6 @@ interface BlockMeshCollector {
             pos: BlockPos,
             state: BlockState?
         ): Boolean
-
-        fun shouldCastFace(
-            face: NeoDirection?,
-            level: Level,
-            pos: BlockPos,
-            state: BlockState?
-        ): Boolean
     }
 
     interface Consumer {

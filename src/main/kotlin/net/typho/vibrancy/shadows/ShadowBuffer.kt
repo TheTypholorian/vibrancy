@@ -12,6 +12,9 @@ open class ShadowBuffer(
     @JvmField
     val usage: GlBufferUsage
 ) : NeoGlBuffer() {
+    var size: Int = 0
+        protected set
+
     companion object {
         @JvmField
         val VERTEX_FORMAT = NeoVertexFormat.builder()
@@ -23,6 +26,7 @@ open class ShadowBuffer(
     fun lazyUpload(texWidth: Int, texHeight: Int, faces: List<LightFace>): Pair<AutoCloseable, () -> Unit> {
         if (faces.isEmpty()) {
             return AutoCloseable { } to {
+                size = 0
                 bind(GlBufferTarget.ARRAY_BUFFER).use { it.bufferData(0L, usage) }
             }
         } else {
@@ -40,6 +44,7 @@ open class ShadowBuffer(
             }
 
             return buffer to {
+                size = faces.size
                 bind(GlBufferTarget.ARRAY_BUFFER).use { it.bufferData(buffer, usage) }
             }
         }
@@ -48,6 +53,7 @@ open class ShadowBuffer(
     fun lazyUploadQuads(texWidth: Int, texHeight: Int, faces: List<NeoBakedQuad>): Pair<AutoCloseable, () -> Unit> {
         if (faces.isEmpty()) {
             return AutoCloseable { } to {
+                size = 0
                 bind(GlBufferTarget.ARRAY_BUFFER).use { it.bufferData(0L, usage) }
             }
         } else {
@@ -65,6 +71,7 @@ open class ShadowBuffer(
             }
 
             return buffer to {
+                size = faces.size
                 bind(GlBufferTarget.ARRAY_BUFFER).use { it.bufferData(buffer, usage) }
             }
         }
@@ -73,6 +80,7 @@ open class ShadowBuffer(
     fun lazyUploadQuads(textures: List<GlTexture2D>, faces: List<Pair<NeoBakedQuad, Int>>): () -> Unit {
         if (faces.isEmpty()) {
             return {
+                size = 0
                 bind(GlBufferTarget.ARRAY_BUFFER).use { it.bufferData(0L, usage) }
             }
         } else {
@@ -92,6 +100,7 @@ open class ShadowBuffer(
             }
 
             return {
+                size = faces.size
                 bind(GlBufferTarget.ARRAY_BUFFER).use { it.bufferData(buffer, usage) }
                 buffer.free()
             }

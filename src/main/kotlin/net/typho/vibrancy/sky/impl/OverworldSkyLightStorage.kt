@@ -5,6 +5,7 @@ import dev.ryanhcode.sable.companion.SableCompanion
 //? }
 
 import com.mojang.blaze3d.vertex.PoseStack
+import net.minecraft.client.Minecraft.getInstance
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.SectionPos
@@ -12,7 +13,6 @@ import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.LightLayer
-import net.minecraft.world.level.block.LeavesBlock
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkAccess
 import net.minecraft.world.level.levelgen.Heightmap
@@ -38,7 +38,6 @@ import net.typho.big_shot_lib.api.client.rendering.util.NeoMultiBufferSource
 import net.typho.big_shot_lib.api.client.rendering.util.NeoRenderSettings
 import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
-import net.typho.big_shot_lib.api.math.NeoDirection
 import net.typho.big_shot_lib.api.math.rect.AbstractRect3
 import net.typho.big_shot_lib.api.math.rect.NeoRect2i
 import net.typho.big_shot_lib.api.math.rect.NeoRect3i
@@ -46,7 +45,6 @@ import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
 import net.typho.big_shot_lib.api.math.vec.NeoVec3d
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.big_shot_lib.api.math.vec.NeoVec4f
-import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
 import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
@@ -216,7 +214,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
             .rotateY(-PI.toFloat() / 2)
             .rotateY(Math.toRadians(15.0).toFloat())
         val shadowMat = Matrix4f()
-            .scale(1f / (manager.clampToChunkRenderDistance(VibrancyConfig.skyLightShadowDistance) * 16))
+            .scale(1f / (VibrancyConfig.skyLightShadowDistance.coerceAtMost(getInstance().options.effectiveRenderDistance) * 16))
             .rotate(shadowRot)
         val shadowFrustum = FrustumIntersection(shadowMat)
         profiler.pop()
@@ -666,41 +664,6 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
                                 return false
                             }
-
-                            override fun shouldCastFace(
-                                face: NeoDirection?,
-                                level: Level,
-                                pos: BlockPos,
-                                state: BlockState?
-                            ): Boolean {
-                                if (face == null) {
-                                    return true
-                                }
-
-                                val state = state ?: level.getBlockState(pos)
-                                val pos1 = pos.relative(face.mojang)
-
-                                if (state.block is LeavesBlock && level.getBlockState(pos1).block is LeavesBlock) {
-                                    return false
-                                }
-
-                                if (
-                                    !BlockUtil.INSTANCE.shouldRenderFace(
-                                        level,
-                                        pos,
-                                        face,
-                                        state
-                                    )
-                                ) {
-                                    return false
-                                }
-
-                                if (level.getBrightness(LightLayer.SKY, pos1) == 0) {
-                                    return false
-                                }
-
-                                return true
-                            }
                         }
 
                         override fun collect(
@@ -712,7 +675,9 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                             // TODO
                             if (translucent) {
                                 for (face in faces) {
-                                    translucentFaces[SectionPos.blockToSectionCoord(block.y) - level.minSection].add(face)
+                                    if (face.any { (it.light ushr 16) and 0xFFFF != 0 }) {
+                                        translucentFaces[SectionPos.blockToSectionCoord(block.y) - level.minSection].add(face)
+                                    }
                                 }
                             } else {
                                 for (face in faces) {

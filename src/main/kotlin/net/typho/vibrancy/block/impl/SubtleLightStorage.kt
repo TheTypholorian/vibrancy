@@ -65,6 +65,8 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
 
     @JvmField
     val dirty = hashSetOf<Chunk>()
+    @JvmField
+    val tasks = hashMapOf<SectionPos, GlTask<Unit>>()
 
     override fun createChunk(manager: LightManager, pos: SectionPos): Chunk {
         return Chunk(pos)
@@ -84,12 +86,12 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
         profiler: ProfilerFiller
     ) {
         profiler.push("finish")
-        for ((pos, chunk) in chunks) {
-            chunk.task?.let {
-                if (it.isDoneOrCancelled()) {
-                    it.finish()
-                    chunk.task = null
-                }
+        tasks.values.removeIf {
+            if (it.isDoneOrCancelled()) {
+                it.finish()
+                true
+            } else {
+                false
             }
         }
         profiler.pop()
@@ -147,20 +149,6 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
                                 state: BlockState?
                             ): Boolean {
                                 return true
-                            }
-
-                            override fun shouldCastFace(
-                                face: NeoDirection?,
-                                level: Level,
-                                pos: BlockPos,
-                                state: BlockState?
-                            ): Boolean {
-                                return face == null || BlockUtil.INSTANCE.shouldRenderFace(
-                                    level,
-                                    pos,
-                                    face,
-                                    state ?: level.getBlockState(pos)
-                                )
                             }
                         }
 
@@ -248,8 +236,7 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
             }
 
             if (VibrancyConfig.useMultithreading) {
-                chunk.task?.cancel()
-                chunk.task = VibrancyThreadPool.submit(data, chunk.pos, manager) { impl(it, null) }
+                tasks.put(chunk.pos, VibrancyThreadPool.submit(data, chunk.pos, manager) { impl(it, null) })?.cancel()
             } else {
                 val result = impl({ false }, profiler)
                 result.second()
@@ -278,8 +265,6 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
         var isCompiledEmpty = true
         @JvmField
         var box: AbstractRect3<Int>? = null
-        var task: GlTask<Unit>? = null
-            internal set
 
         fun lazyUpload(isCancelled: () -> Boolean, quads: Collection<Pair<Pair<LightFace, Short>, Int>>): Pair<AutoCloseable, () -> Unit> {
             isCompiledEmpty = quads.isEmpty()
@@ -458,7 +443,7 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
         }
 
         override fun free() {
-            task?.cancel()
+            tasks[pos]?.cancel()
             mesh.free()
             ssbo.free()
         }

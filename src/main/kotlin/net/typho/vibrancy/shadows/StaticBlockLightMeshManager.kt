@@ -79,7 +79,7 @@ open class StaticBlockLightMeshManager(
                     block: BlockPos,
                     translucent: Boolean
                 ) {
-                    shadowFaces.addAll(faces)
+                    faces.filterTo(shadowFaces) { face -> face.any { it.light and 0xFFFF != 0 } }
                 }
             },
             object : BlockMeshCollector.Consumer {
@@ -91,7 +91,7 @@ open class StaticBlockLightMeshManager(
                     block: BlockPos,
                     translucent: Boolean
                 ) {
-                    lightFaces.addAll(faces)
+                    faces.filterTo(lightFaces) { face -> face.any { it.light and 0xFFFF != 0 } }
                 }
             }
         )) {

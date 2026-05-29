@@ -63,7 +63,6 @@ open class LightManager {
     var skyLight: Pair<SkyLightType<*, *>, SkyLightStorage<*>>? = null
     @JvmField
     protected val debugInfo = HashMap<NeoResourceKey<*>?, HashMap<String, Int>>()
-    private val visibleSections = hashSetOf<SectionPos>()
     @JvmField
     val sectionMeshCaches = hashMapOf<SectionPos, SectionMeshCache>()
 
@@ -140,6 +139,10 @@ open class LightManager {
     }
 
     protected fun getDebugOutput(key: NeoResourceKey<*>?): (String, Int) -> Unit {
+        if (!Minecraft.getInstance().debugOverlay.showDebugScreen()) {
+            return { key, value -> }
+        }
+
         val debugMap = debugInfo.computeIfAbsent(key) { HashMap() }
         return { key, value -> debugMap.compute(key) { k, v -> if (v == null) value else v + value } }
     }
@@ -159,7 +162,9 @@ open class LightManager {
     }
 
     fun isSectionVisible(pos: SectionPos): Boolean {
-        return visibleSections.contains(pos)
+        val renderer = (Minecraft.getInstance().levelRenderer as LevelRendererExtension).`sodium$getWorldRenderer`()
+        val sectionManager = (renderer as SodiumWorldRendererAccessor).`vibrancy$getRenderSectionManager`()
+        return sectionManager.isSectionVisible(pos.x, pos.y, pos.z)
     }
 
     //? if <1.21.5 {
@@ -169,21 +174,10 @@ open class LightManager {
     *///? }
         profiler.push("vibrancy")
         debugInfo.clear()
-        visibleSections.clear()
 
         synchronized(dirtySectionLock) {
             dirtySections = nextDirtySections
             nextDirtySections = LinkedList()
-        }
-
-        val renderer = (Minecraft.getInstance().levelRenderer as LevelRendererExtension).`sodium$getWorldRenderer`()
-        val sectionManager = (renderer as SodiumWorldRendererAccessor).`vibrancy$getRenderSectionManager`()
-        sectionManager.renderLists.iterator().forEach { list ->
-            repeat(256) { index ->
-                list.region.getSection(index)?.let {
-                    visibleSections.add(it.position)
-                }
-            }
         }
 
         for (entry in blockLights) {
@@ -262,33 +256,29 @@ open class LightManager {
         }
     }
 
-    fun clampToChunkRenderDistance(distance: Int): Int {
-        return distance.coerceAtMost(Minecraft.getInstance().options.effectiveRenderDistance)
-    }
-
-    fun inRenderDistance(testDistanceSquared: Float, renderDistance: Int): Boolean {
-        val x = clampToChunkRenderDistance(renderDistance) * 16f
-        return testDistanceSquared <= x * x
+    fun getRenderDistance(chunks: Int): Int {
+        val d = chunks.coerceAtMost(Minecraft.getInstance().options.effectiveRenderDistance)
+        return d * d * 256
     }
 
     //? if 1.21 {
-    fun inRenderDistance(data: RenderEventData, pos: ChunkPos, distance: Int): Boolean {
+    fun inRenderDistance(data: RenderEventData, pos: ChunkPos, distance: Float): Boolean {
         val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
 
         return if (subLevel == null) {
-            data.camera.pos.xz.inDistance(pos.middleBlockX.toFloat(), pos.middleBlockZ.toFloat(), clampToChunkRenderDistance(distance) * 16f)
+            data.camera.pos.xz.inDistanceSquared(pos.middleBlockX.toFloat(), pos.middleBlockZ.toFloat(), distance)
         } else {
-            data.camera.pos.inDistance(NeoVec3d(subLevel.renderPose().position()).toFloat(), clampToChunkRenderDistance(distance) * 16f)
+            data.camera.pos.inDistanceSquared(NeoVec3d(subLevel.renderPose().position()).toFloat(), distance)
         }
     }
 
-    fun inRenderDistance(data: RenderEventData, pos: SectionPos, distance: Int): Boolean {
+    fun inRenderDistance(data: RenderEventData, pos: SectionPos, distance: Float): Boolean {
         val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
 
         return if (subLevel == null) {
-            data.camera.pos.inDistance(pos.minBlockX() + 8f, pos.minBlockY() + 8f, pos.minBlockZ() + 8f, clampToChunkRenderDistance(distance) * 16f)
+            data.camera.pos.inDistanceSquared(pos.minBlockX() + 8f, pos.minBlockY() + 8f, pos.minBlockZ() + 8f, distance)
         } else {
-            data.camera.pos.inDistance(NeoVec3d(subLevel.renderPose().position()).toFloat(), clampToChunkRenderDistance(distance) * 16f)
+            data.camera.pos.inDistanceSquared(NeoVec3d(subLevel.renderPose().position()).toFloat(), distance)
         }
     }
 
@@ -319,11 +309,11 @@ open class LightManager {
     }
     //? } else {
     /*fun inRenderDistance(data: RenderEventData, pos: ChunkPos, distance: Int): Boolean {
-        return data.camera.pos.xz.inDistance(pos.middleBlockX.toFloat(), pos.middleBlockZ.toFloat(), clampToChunkRenderDistance(distance) * 16f)
+        return data.camera.pos.xz.inDistanceSquared(pos.middleBlockX.toFloat(), pos.middleBlockZ.toFloat(), distance)
     }
 
     fun inRenderDistance(data: RenderEventData, pos: SectionPos, distance: Int): Boolean {
-        return data.camera.pos.xz.inDistance(pos.minBlockX() + 8f, pos.minBlockY() + 8f, pos.minBlockZ() + 8f, clampToChunkRenderDistance(distance) * 16f)
+        return data.camera.pos.xz.inDistanceSquared(pos.minBlockX() + 8f, pos.minBlockY() + 8f, pos.minBlockZ() + 8f, distance)
     }
 
     fun getSortingOrder(data: RenderEventData, pos: IVec3<Int>): Float {

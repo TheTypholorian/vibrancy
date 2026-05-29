@@ -4,11 +4,9 @@ package net.typho.vibrancy.block.impl
 import dev.ryanhcode.sable.companion.SableCompanion
 //? }
 
-//? if >=1.21.9 {
-//? }
-
 import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.core.BlockPos
+import net.minecraft.core.SectionPos
 import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
@@ -27,7 +25,6 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.util.BlendFunction
 import net.typho.big_shot_lib.api.client.rendering.util.*
 import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
-import net.typho.big_shot_lib.api.math.NeoDirection
 import net.typho.big_shot_lib.api.math.rect.AbstractRect3
 import net.typho.big_shot_lib.api.math.rect.NeoRect2i
 import net.typho.big_shot_lib.api.math.rect.NeoRect3f
@@ -37,12 +34,10 @@ import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
 import net.typho.big_shot_lib.api.math.vec.NeoVec3d
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.big_shot_lib.api.math.vec.blockPos
-import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
 import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
-import net.typho.vibrancy.Vibrancy.isPointingTowards
 import net.typho.vibrancy.VibrancyConfig
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.collectors.BlockMeshCollector
@@ -58,6 +53,7 @@ import net.typho.vibrancy.util.QuadListVertexConsumer
 import org.joml.Matrix4f
 import org.joml.Quaternionf
 import org.lwjgl.system.NativeResource
+import java.util.stream.Stream
 import kotlin.math.ceil
 
 open class RayPointLight(
@@ -197,42 +193,6 @@ open class RayPointLight(
             ): Boolean {
                 return shadowBox.contains(NeoVec3i(pos)) && BlockLightRegistry.get((state ?: level.getBlockState(pos)).block, RayPointLightType) == null
             }
-
-            override fun shouldCastFace(
-                face: NeoDirection?,
-                level: Level,
-                pos: BlockPos,
-                state: BlockState?
-            ): Boolean {
-                if (face == null) {
-                    return true
-                }
-
-                val sidePos = pos.relative(face.mojang)
-
-                if (sidePos == this@RayPointLight.pos) {
-                    return true
-                }
-
-                val state = state ?: level.getBlockState(pos)
-
-                if (BlockUtil.INSTANCE.getBlockChunkLayer(state) == BlockChunkLayer.SOLID && !face.isPointingTowards(pos, this@RayPointLight.pos)) {
-                    return false
-                }
-
-                if (
-                    !BlockUtil.INSTANCE.shouldRenderFace(
-                        level,
-                        pos,
-                        face,
-                        state
-                    ) && BlockLightRegistry.get(level.getBlockState(sidePos).block, RayPointLightType) == null
-                ) {
-                    return false
-                }
-
-                return true
-            }
         }
     val lightPredicate: BlockMeshCollector.Predicate
         get() = object : BlockMeshCollector.Predicate {
@@ -244,36 +204,6 @@ open class RayPointLight(
                 state: BlockState?
             ): Boolean {
                 return boundingBox.contains(NeoVec3i(pos))
-            }
-
-            override fun shouldCastFace(
-                face: NeoDirection?,
-                level: Level,
-                pos: BlockPos,
-                state: BlockState?
-            ): Boolean {
-                if (face == null) {
-                    return true
-                }
-
-                val state = state ?: level.getBlockState(pos)
-
-                if (BlockUtil.INSTANCE.getBlockChunkLayer(state) == BlockChunkLayer.SOLID && !face.isPointingTowards(pos, this@RayPointLight.pos)) {
-                    return false
-                }
-
-                if (
-                    !BlockUtil.INSTANCE.shouldRenderFace(
-                        level,
-                        pos,
-                        face,
-                        state
-                    )
-                ) {
-                    return false
-                }
-
-                return true
             }
         }
 
@@ -292,6 +222,15 @@ open class RayPointLight(
         staticTexture.free()
         mesh.free()
     }
+
+    fun streamSections(level: Level): Stream<SectionPos> = SectionPos.betweenClosedStream(
+        SectionPos.blockToSectionCoord(boundingBox.min.x),
+        SectionPos.blockToSectionCoord(boundingBox.min.y).coerceAtLeast(level.minSection).coerceAtMost(level.maxSection),
+        SectionPos.blockToSectionCoord(boundingBox.min.z),
+        SectionPos.blockToSectionCoord(boundingBox.max.x),
+        SectionPos.blockToSectionCoord(boundingBox.max.y).coerceAtLeast(level.minSection).coerceAtMost(level.maxSection),
+        SectionPos.blockToSectionCoord(boundingBox.max.z)
+    )
 
     fun update(data: RenderEventData, manager: LightManager, debugOut: (String, Int) -> Unit, dynamicShadows: Boolean, profiler: ProfilerFiller) {
         profiler.push("rebuildBlocks")
@@ -484,6 +423,8 @@ open class RayPointLight(
                             val quads = nodes.flatMap { it.first.getQuads(textures) }
                             val textures = textures.map { GlTexture2D[it]!! }
 
+                            debugOut("numDynamicShadowFaces", quads.size)
+
                             val texBuffer = NeoBuffer.Native(quads.size * 4L)
 
                             texBuffer.write().run {
@@ -524,7 +465,7 @@ open class RayPointLight(
         }
     }
 
-    fun render(data: RenderEventData, shader: GlBoundProgram, debugOut: (key: String, value: Int) -> Unit, profiler: ProfilerFiller) {
+    fun render(data: RenderEventData, shader: GlBoundProgram, atlas: NeoAtlas, debugOut: (key: String, value: Int) -> Unit, profiler: ProfilerFiller) {
         debugOut("lightsRendered", 1)
 
         if (mesh.isTaskActive()) {
@@ -570,7 +511,7 @@ open class RayPointLight(
         shader.setUniform("LightColor") { setFloatVec(color) }
         shader.setUniform("LightRadius") { set(radius) }
         shader.setTexture(0, GlTextureBinding.FromInstance(
-            NeoAtlas.blocks,
+            atlas,
             GlTextureTarget.TEXTURE_2D
         ))
         shader.setTexture(1, GlTextureBinding.FromInstance(
@@ -586,5 +527,8 @@ open class RayPointLight(
         profiler.push("draw")
         mesh.lightMesh.draw()
         profiler.pop()
+
+        debugOut("numLightFaces", mesh.lightMesh.mesh.size / 6)
+        debugOut("numShadowFaces", mesh.shadowBuffer.size / 4)
     }
 }

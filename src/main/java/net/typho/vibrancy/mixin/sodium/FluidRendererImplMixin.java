@@ -6,6 +6,7 @@ import net.fabricmc.fabric.api.client.render.fluid.v1.FluidRenderHandler;
 import net.fabricmc.fabric.api.client.render.fluid.v1.FluidRendering;
 *///? } neoforge {
 import net.caffeinemc.mods.sodium.neoforge.render.FluidRendererImpl;
+import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
 //? }
 
 import com.llamalad7.mixinextras.sugar.Local;
@@ -23,7 +24,6 @@ import net.minecraft.core.SectionPos;
 import net.minecraft.world.level.BlockAndTintGetter;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.material.FluidState;
-import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas;
 import net.typho.big_shot_lib.api.util.WrapperUtil;
 import net.typho.vibrancy.util.SectionMeshCache;
