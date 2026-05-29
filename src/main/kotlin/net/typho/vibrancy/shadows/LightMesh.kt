@@ -1,6 +1,5 @@
 package net.typho.vibrancy.shadows
 
-import net.minecraft.client.gui.components.ImageWidget.texture
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
@@ -10,14 +9,10 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.util.PolygonOffset
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
 import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
-import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.NeoVec2i
 import net.typho.big_shot_lib.api.math.vec.NeoVec3f
 import net.typho.big_shot_lib.api.util.NeoColor
-import net.typho.big_shot_lib.api.util.buffer.BYTE_MASK
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
-import net.typho.big_shot_lib.api.util.buffer.SHORT_MASK
-import net.typho.big_shot_lib.api.util.buffer.packInt
 import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.TextureAtlas
 import net.typho.vibrancy.VibrancyConfig
@@ -28,6 +23,13 @@ open class LightMesh(
     val usage: GlBufferUsage
 ) : NativeResource {
     companion object {
+        @JvmField
+        val COMPACT_POSITION = NeoVertexFormat.Element.create(0, GlDataType.UNSIGNED_BYTE, true, 3)
+        @JvmField
+        val COMPACT_TEXTURE_UV = NeoVertexFormat.Element.create(0, GlDataType.UNSIGNED_SHORT, true, 2)
+        @JvmField
+        val LIGHT_INDEX = NeoVertexFormat.Element.create(0, GlDataType.UNSIGNED_BYTE, null, 1)
+
         @JvmField
         val VERTEX_FORMAT = NeoVertexFormat.builder()
             .add("Position", NeoVertexFormat.Element.POSITION)

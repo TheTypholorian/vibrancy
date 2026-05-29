@@ -345,8 +345,10 @@ open class RayPointLight(
                 if (VibrancyConfig.entityShadowsEnabled) {
                     profiler.push("entityShadows")
                     for (entity in level.getEntities(null, AABB.ofSize(Vec3(absolutePos.toJOML()), radius.toDouble() * 2, radius.toDouble() * 2, radius.toDouble() * 2))) {
+                        //if (subLevel != null || (meshCollector.cache.checked.contains(meshCollector.positionRelative(entity.blockPosition())))) {
+
                         //? if 1.21 {
-                        if (subLevel != null || (meshCollector.cache.checked.isInBounds(entity.blockPosition()) && meshCollector.cache.checked[entity.blockPosition()])) {
+                        if (subLevel != null || (meshCollector.cache.checked.contains(entity.blockPosition()))) {
                         //? } else {
                         /*if ((meshCollector.cache.checked.isInBounds(entity.blockPosition()) && meshCollector.cache.checked[entity.blockPosition()])) {
                         *///? }

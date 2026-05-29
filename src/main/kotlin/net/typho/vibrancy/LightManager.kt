@@ -9,6 +9,7 @@ import net.caffeinemc.mods.sodium.client.world.LevelRendererExtension
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
+import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
 import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.ChunkPos
@@ -57,6 +58,8 @@ open class LightManager {
     var nextDirtySections: MutableList<Pair<SectionPos, AbstractRect3<Int>>> = LinkedList()
     @JvmField
     var dirtySections: MutableList<Pair<SectionPos, AbstractRect3<Int>>> = LinkedList()
+    @JvmField
+    var dirtyBlocks: MutableList<IVec3<Int>> = LinkedList()
     @JvmField
     val blockLights = HashMap<BlockLightType<*, *>, BlockLightStorage<*>>()
     @JvmField
@@ -114,6 +117,8 @@ open class LightManager {
 
             BlockLightRegistry.get(new.block, entry.key)?.let { addBlockLight(pos, level, new, entry.key, it) }
         }
+
+        dirtyBlocks.add(pos)
     }
 
     fun loadChunk(chunk: ChunkAccess) {

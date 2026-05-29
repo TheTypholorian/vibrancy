@@ -54,11 +54,11 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
     companion object {
         @JvmField
         val VERTEX_FORMAT = NeoVertexFormat.builder()
-            .add("Position", NeoVertexFormat.Element.POSITION)
-            .add("UV0", NeoVertexFormat.Element.TEXTURE_UV)
-            .add("LightIndex", NeoVertexFormat.Element.create(0, GlDataType.UNSIGNED_INT, null, 1))
-            .add("Color", NeoVertexFormat.Element.COLOR)
-            .add("Normal", NeoVertexFormat.Element.NORMAL)
+            .add("Position", NeoVertexFormat.Element.POSITION) // 3 bytes / 12 bytes
+            .add("UV0", NeoVertexFormat.Element.TEXTURE_UV) // 4 bytes / 8 bytes
+            .add("LightIndex", NeoVertexFormat.Element.create(0, GlDataType.UNSIGNED_INT, null, 1)) // 2 bytes / 4 bytes
+            .add("Color", NeoVertexFormat.Element.COLOR) // 4 (maybe 3?) bytes / 4 bytes
+            .add("Normal", NeoVertexFormat.Element.NORMAL) // 3 bytes / 4 bytes
             .padding(1)
             .build()
     }
