@@ -326,8 +326,7 @@ open class RayPointLight(
                 val allTextures = hashSetOf<NeoIdentifier>()
 
                 data class Node(
-                    val quads: MutableMap<NeoIdentifier, MutableList<NeoBakedQuad>> = hashMapOf(),
-                    val buffers: MutableMap<NeoIdentifier, NeoBakedQuad.Consumer> = hashMapOf(),
+                    val buffers: MutableMap<NeoIdentifier, QuadListVertexConsumer> = hashMapOf(),
                     val bufferSource: NeoMultiBufferSource = NeoMultiBufferSource { settings: NeoRenderSettings ->
                         val texture = settings.drawState.shader.textures.getOrNull(0)?.location ?: return@NeoMultiBufferSource EmptyVertexConsumer
 
@@ -342,20 +341,20 @@ open class RayPointLight(
                         allTextures.add(texture)
 
                         buffers.computeIfAbsent(texture) {
-                            QuadListVertexConsumer(quads.computeIfAbsent(texture) { arrayListOf() })
+                            QuadListVertexConsumer(arrayListOf())
                         }
                     }
                 ) {
-                    fun getQuads(textures: List<NeoIdentifier>) = textures.mapIndexedNotNull { index, texture -> quads[texture]?.map { it to index } }.flatten()
+                    fun getQuads(textures: List<NeoIdentifier>) = textures.mapIndexedNotNull { index, texture -> buffers[texture]?.list?.map { it to index } }.flatten()
 
                     fun computeBox(textures: List<NeoIdentifier>): AbstractRect3<Float>? {
                         var min: IVec3<Float>? = null
                         var max: IVec3<Float>? = null
 
                         for (texture in textures) {
-                            quads[texture]?.let { builder ->
-                                min = builder.fold(min) { accum: IVec3<Float>?, quad -> quad.v0.pos.min(quad.v1.pos.min(quad.v2.pos.min(if (accum == null) quad.v3.pos else quad.v3.pos.min(accum)))) }
-                                max = builder.fold(max) { accum: IVec3<Float>?, quad -> quad.v0.pos.max(quad.v1.pos.max(quad.v2.pos.max(if (accum == null) quad.v3.pos else quad.v3.pos.max(accum)))) }
+                            buffers[texture]?.let { builder ->
+                                min = builder.list.fold(min) { accum: IVec3<Float>?, quad -> quad.v0.pos.min(quad.v1.pos.min(quad.v2.pos.min(if (accum == null) quad.v3.pos else quad.v3.pos.min(accum)))) }
+                                max = builder.list.fold(max) { accum: IVec3<Float>?, quad -> quad.v0.pos.max(quad.v1.pos.max(quad.v2.pos.max(if (accum == null) quad.v3.pos else quad.v3.pos.max(accum)))) }
                             }
                         }
 
