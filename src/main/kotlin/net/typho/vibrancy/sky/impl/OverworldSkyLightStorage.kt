@@ -296,8 +296,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
             }
 
             profiler.push("dynamicShadows")
-            val quads = hashMapOf<Pair<Boolean, NeoIdentifier>, MutableList<NeoBakedQuad>>() // TODO change to compact light face vertices
-            val buffers = hashMapOf<Pair<Boolean, NeoIdentifier>, NeoBakedQuad.Consumer>()
+            val buffers = hashMapOf<Pair<Boolean, NeoIdentifier>, QuadListVertexConsumer>()
             val bufferSource = NeoMultiBufferSource { settings: NeoRenderSettings ->
                 val texture = settings.drawState.shader.textures.getOrNull(0)?.location ?: return@NeoMultiBufferSource EmptyVertexConsumer
 
@@ -311,7 +310,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
                 val key = (settings.drawState.blend is GlBlendShard.Enabled) to texture
                 buffers.computeIfAbsent(key) {
-                    QuadListVertexConsumer(quads.computeIfAbsent(key) { arrayListOf() })
+                    QuadListVertexConsumer(arrayListOf())
                 }
             }
             val poseStack = PoseStack()
@@ -367,10 +366,10 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
             profiler.pop()
 
             profiler.push("calculate")
-            for ((key, quads) in quads) {
-                if (quads.isNotEmpty()) {
+            for ((key, buffer) in buffers) {
+                if (buffer.list.isNotEmpty()) {
                     GlTexture2D[key.second]?.let { texture ->
-                        tempMesh.lazyUploadQuadsNoAtlas(quads)()
+                        tempMesh.lazyUploadQuadsNoAtlas(buffer.list)()
 
                         fun draw(state: GlDrawState, to: LightTexture) {
                             state.bind().use { settings ->
