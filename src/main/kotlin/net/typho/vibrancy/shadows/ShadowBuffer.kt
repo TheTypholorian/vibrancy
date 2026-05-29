@@ -23,7 +23,7 @@ open class ShadowBuffer(
             .build()
     }
 
-    fun lazyUpload(texWidth: Int, texHeight: Int, faces: List<LightFace>): Pair<AutoCloseable, () -> Unit> {
+    fun lazyUpload(texWidth: Int, texHeight: Int, faces: List<PrimitiveQuad>): Pair<AutoCloseable, () -> Unit> {
         if (faces.isEmpty()) {
             return AutoCloseable { } to {
                 size = 0
@@ -50,34 +50,7 @@ open class ShadowBuffer(
         }
     }
 
-    fun lazyUploadQuads(texWidth: Int, texHeight: Int, faces: List<NeoBakedQuad>): Pair<AutoCloseable, () -> Unit> {
-        if (faces.isEmpty()) {
-            return AutoCloseable { } to {
-                size = 0
-                bind(GlBufferTarget.ARRAY_BUFFER).use { it.bufferData(0L, usage) }
-            }
-        } else {
-            val buffer = NeoBuffer.GCNative(faces.size.toLong() * 4 * VERTEX_FORMAT.vertexSizeBytes)
-
-            buffer.write().run {
-                faces.forEachIndexed { index, quad ->
-                    for (vertex in quad.vertices) {
-                        writeFloat(vertex.pos.x)
-                        writeFloat(vertex.pos.y)
-                        writeFloat(vertex.pos.z)
-                        writeInt(((vertex.textureUV!!.x * texWidth).toInt() shl 16) or (vertex.textureUV!!.y * texHeight).toInt())
-                    }
-                }
-            }
-
-            return buffer to {
-                size = faces.size
-                bind(GlBufferTarget.ARRAY_BUFFER).use { it.bufferData(buffer, usage) }
-            }
-        }
-    }
-
-    fun lazyUploadQuads(textures: List<GlTexture2D>, faces: List<Pair<NeoBakedQuad, Int>>): () -> Unit {
+    fun lazyUploadQuads(textures: List<GlTexture2D>, faces: List<Pair<PrimitiveQuad, Int>>): () -> Unit {
         if (faces.isEmpty()) {
             return {
                 size = 0
@@ -90,11 +63,11 @@ open class ShadowBuffer(
                 faces.forEachIndexed { index, quad ->
                     val texture = textures[quad.second]
 
-                    for (vertex in quad.first.vertices) {
-                        writeFloat(vertex.pos.x)
-                        writeFloat(vertex.pos.y)
-                        writeFloat(vertex.pos.z)
-                        writeInt(((vertex.textureUV!!.x * texture.width!!).toInt() shl 16) or (vertex.textureUV!!.y * texture.height!!).toInt())
+                    quad.first.apply { vertex ->
+                        writeFloat(vertex.x)
+                        writeFloat(vertex.y)
+                        writeFloat(vertex.z)
+                        writeInt(((vertex.u * texture.width!!).toInt() shl 16) or (vertex.v * texture.height!!).toInt())
                     }
                 }
             }

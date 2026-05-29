@@ -94,7 +94,7 @@ open class LightMesh(
             val vertexBuffer = NeoBuffer.GCNative(info.faces.size.toLong() * 4 * BLIT_VERTEX_FORMAT.vertexSizeBytes)
 
             vertexBuffer.write().run {
-                fun vertex(vertex: LightFace.Vertex, texX: Float, texY: Float) {
+                fun vertex(vertex: PrimitiveVertex, texX: Float, texY: Float) {
                     writeFloat(vertex.x)
                     writeFloat(vertex.y)
                     writeFloat(vertex.z)

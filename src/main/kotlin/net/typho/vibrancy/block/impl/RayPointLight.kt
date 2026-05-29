@@ -42,8 +42,10 @@ import net.typho.vibrancy.VibrancyConfig
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.collectors.BlockMeshCollector
 import net.typho.vibrancy.collectors.FloodFillBlockMeshCollector
+import net.typho.vibrancy.shadows.DynamicLightFace
 import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.shadows.LightTexture
+import net.typho.vibrancy.shadows.PrimitiveVertex
 import net.typho.vibrancy.shadows.ShadowBuffer
 import net.typho.vibrancy.shadows.StaticBlockLightMeshManager
 import net.typho.vibrancy.util.EmptyVertexConsumer
@@ -54,6 +56,7 @@ import org.joml.Matrix4f
 import org.joml.Quaternionf
 import org.lwjgl.system.NativeResource
 import java.util.stream.Stream
+import kotlin.and
 import kotlin.math.ceil
 
 open class RayPointLight(
@@ -246,7 +249,7 @@ open class RayPointLight(
         }
 
         if (shadowsDirty) {
-            mesh.rebuildBlocksAsync(data, pos, manager, meshCollector, shadowPredicate, lightPredicate)
+            mesh.rebuildBlocksAsync(data, pos, manager, meshCollector, shadowPredicate, lightPredicate) { face -> face.any { it.light and 0xFFFF != 0 } }
             shadowsDirty = false
         }
         profiler.pop()
@@ -268,7 +271,7 @@ open class RayPointLight(
                 val allTextures = hashSetOf<NeoIdentifier>()
 
                 data class Node(
-                    val buffers: MutableMap<NeoIdentifier, QuadListVertexConsumer> = hashMapOf(),
+                    val buffers: MutableMap<NeoIdentifier, Pair<DynamicLightFace.Consumer, MutableList<DynamicLightFace>>> = hashMapOf(),
                     val bufferSource: NeoMultiBufferSource = NeoMultiBufferSource { settings: NeoRenderSettings ->
                         val texture = settings.drawState.shader.textures.getOrNull(0)?.location ?: return@NeoMultiBufferSource EmptyVertexConsumer
 
@@ -283,25 +286,39 @@ open class RayPointLight(
                         allTextures.add(texture)
 
                         buffers.computeIfAbsent(texture) {
-                            QuadListVertexConsumer(arrayListOf())
-                        }
+                            val list = arrayListOf<DynamicLightFace>()
+                            DynamicLightFace.Consumer(list::add) to list
+                        }.first
                     }
                 ) {
-                    fun getQuads(textures: List<NeoIdentifier>) = textures.mapIndexedNotNull { index, texture -> buffers[texture]?.list?.map { it to index } }.flatten()
+                    fun getQuads(textures: List<NeoIdentifier>) = textures.mapIndexedNotNull { index, texture -> buffers[texture]?.second?.map { it to index } }.flatten()
 
                     fun computeBox(textures: List<NeoIdentifier>): AbstractRect3<Float>? {
-                        var min: IVec3<Float>? = null
-                        var max: IVec3<Float>? = null
+                        var minX: Float? = null
+                        var minY: Float? = null
+                        var minZ: Float? = null
+                        var maxX: Float? = null
+                        var maxY: Float? = null
+                        var maxZ: Float? = null
 
                         for (texture in textures) {
                             buffers[texture]?.let { builder ->
-                                min = builder.list.fold(min) { accum: IVec3<Float>?, quad -> quad.v0.pos.min(quad.v1.pos.min(quad.v2.pos.min(if (accum == null) quad.v3.pos else quad.v3.pos.min(accum)))) }
-                                max = builder.list.fold(max) { accum: IVec3<Float>?, quad -> quad.v0.pos.max(quad.v1.pos.max(quad.v2.pos.max(if (accum == null) quad.v3.pos else quad.v3.pos.max(accum)))) }
+                                for (face in builder.second) {
+                                    face.apply { vertex ->
+                                        minX = minX?.let { vertex.x.coerceAtMost(it) } ?: vertex.x
+                                        minY = minY?.let { vertex.y.coerceAtMost(it) } ?: vertex.y
+                                        minZ = minZ?.let { vertex.z.coerceAtMost(it) } ?: vertex.z
+
+                                        maxX = maxX?.let { vertex.x.coerceAtLeast(it) } ?: vertex.x
+                                        maxY = maxY?.let { vertex.y.coerceAtLeast(it) } ?: vertex.y
+                                        maxZ = maxZ?.let { vertex.z.coerceAtLeast(it) } ?: vertex.z
+                                    }
+                                }
                             }
                         }
 
-                        if (min != null && max != null) {
-                            return NeoRect3f(min, max)
+                        if (minX != null && minY != null && minZ != null && maxX != null && maxY != null && maxZ != null) {
+                            return NeoRect3f(minX, minY, minZ, maxX, maxY, maxZ)
                         }
 
                         return null
@@ -382,7 +399,7 @@ open class RayPointLight(
                 dynamicTexture.framebuffer.bind(NeoRect2i(0, 0, dynamicTexture.width!!, dynamicTexture.height!!)).use { fbo ->
                     var cleared = false
 
-                    nodes.forEach { it.buffers.forEach { (texture, consumer) -> consumer.flush() } }
+                    nodes.forEach { it.buffers.forEach { (texture, consumer) -> consumer.first.flush() } }
 
                     val chunkedTextures = allTextures.chunked(8)
 

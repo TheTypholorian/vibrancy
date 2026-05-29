@@ -33,7 +33,7 @@ public class DefaultFluidRendererMixin {
             CallbackInfo ci,
             @Local ChunkVertexEncoder.Vertex[] vertices
     ) {
-        SectionMeshCache.Consumer consumer = ((SectionMeshCache.ConsumerExtension) builder).getVibrancy$sectionMeshConsumer();
+        var consumer = ((SectionMeshCache.ConsumerExtension) builder).getVibrancy$sectionMeshConsumer();
 
         if (consumer != null) {
             int index = 0;

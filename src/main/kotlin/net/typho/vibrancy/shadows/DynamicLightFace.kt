@@ -1,42 +1,16 @@
 package net.typho.vibrancy.shadows
 
 import net.caffeinemc.mods.sodium.api.util.ColorARGB
-import net.minecraft.core.BlockPos
-import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexConsumer
-import net.typho.big_shot_lib.api.math.vec.IVec3
-import net.typho.big_shot_lib.api.math.vec.NeoVec3f
-import org.joml.Vector3f
-import kotlin.math.abs
-import kotlin.math.ceil
 
 @JvmRecord
-data class LightFace(
+data class DynamicLightFace(
     override val v0: PrimitiveVertex,
     override val v1: PrimitiveVertex,
     override val v2: PrimitiveVertex,
     override val v3: PrimitiveVertex,
-    @JvmField
-    val width: Int,
-    @JvmField
-    val height: Int
 ) : PrimitiveQuad {
-    constructor(
-        v0: PrimitiveVertex,
-        v1: PrimitiveVertex,
-        v2: PrimitiveVertex,
-        v3: PrimitiveVertex,
-        atlas: NeoAtlas
-    ) : this(
-        v0,
-        v1,
-        v2,
-        v3,
-        ceil(abs(v0.v - v2.v) * atlas.height).toInt(), // intentionally swapped U and V
-        ceil(abs(v0.u - v2.u) * atlas.width).toInt()
-    )
-
-    fun copyWithOffset(x: Float, y: Float, z: Float): LightFace {
+    fun copyWithOffset(x: Float, y: Float, z: Float): DynamicLightFace {
         return copy(
             v0 = PrimitiveVertex(v0, x, y, z),
             v1 = PrimitiveVertex(v1, x, y, z),
@@ -47,9 +21,7 @@ data class LightFace(
 
     open class Consumer(
         @JvmField
-        val out: (face: LightFace) -> Unit,
-        @JvmField
-        val atlas: NeoAtlas,
+        val out: (face: DynamicLightFace) -> Unit,
         @JvmField
         val offsetX: Float = 0f,
         @JvmField
@@ -67,7 +39,7 @@ data class LightFace(
         fun flush() {
             if (index == 4) {
                 index = 0
-                out(LightFace(v0, v1, v2, v3, atlas))
+                out(DynamicLightFace(v0, v1, v2, v3))
                 v0 = PrimitiveVertex()
                 v1 = PrimitiveVertex()
                 v2 = PrimitiveVertex()

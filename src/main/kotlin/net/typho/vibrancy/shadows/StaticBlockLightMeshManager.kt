@@ -59,7 +59,8 @@ open class StaticBlockLightMeshManager(
         manager: LightManager,
         collector: BlockMeshCollector,
         shadowPredicate: BlockMeshCollector.Predicate,
-        lightPredicate: BlockMeshCollector.Predicate
+        lightPredicate: BlockMeshCollector.Predicate,
+        facePredicate: (face: LightFace) -> Boolean
     ): Pair<AutoCloseable, () -> LightMesh.MeshData?> {
         val level = manager.getLevel() ?: throw NullPointerException("No level?")
 
@@ -79,7 +80,7 @@ open class StaticBlockLightMeshManager(
                     block: BlockPos,
                     translucent: Boolean
                 ) {
-                    faces.filterTo(shadowFaces) { face -> face.any { it.light and 0xFFFF != 0 } }
+                    faces.filterTo(shadowFaces, facePredicate)
                 }
             },
             object : BlockMeshCollector.Consumer {
@@ -91,7 +92,7 @@ open class StaticBlockLightMeshManager(
                     block: BlockPos,
                     translucent: Boolean
                 ) {
-                    faces.filterTo(lightFaces) { face -> face.any { it.light and 0xFFFF != 0 } }
+                    faces.filterTo(lightFaces, facePredicate)
                 }
             }
         )) {
@@ -128,13 +129,14 @@ open class StaticBlockLightMeshManager(
         manager: LightManager,
         collector: BlockMeshCollector,
         shadowPredicate: BlockMeshCollector.Predicate,
-        lightPredicate: BlockMeshCollector.Predicate
+        lightPredicate: BlockMeshCollector.Predicate,
+        facePredicate: (face: LightFace) -> Boolean
     ) {
         if (VibrancyConfig.useMultithreading) {
             asyncTask?.cancel()
-            asyncTask = VibrancyThreadPool.submit(data, pos, manager) { rebuildBlocksAsyncImpl(it, manager, collector, shadowPredicate, lightPredicate) }
+            asyncTask = VibrancyThreadPool.submit(data, pos, manager) { rebuildBlocksAsyncImpl(it, manager, collector, shadowPredicate, lightPredicate, facePredicate) }
         } else {
-            val result = rebuildBlocksAsyncImpl({ false }, manager, collector, shadowPredicate, lightPredicate)
+            val result = rebuildBlocksAsyncImpl({ false }, manager, collector, shadowPredicate, lightPredicate, facePredicate)
             result.second()?.let {
                 if (!lightMesh.empty) {
                     blit(this, it)

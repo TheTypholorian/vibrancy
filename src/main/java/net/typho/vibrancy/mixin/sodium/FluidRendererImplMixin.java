@@ -81,7 +81,7 @@ public class FluidRendererImplMixin {
             Operation<Void> original,
             @Local ChunkModelBuilder meshBuilder
     ) {
-        SectionMeshCache.Consumer consumer = ((SectionMeshCache.ConsumerExtension) meshBuilder).getVibrancy$sectionMeshConsumer();
+        var consumer = ((SectionMeshCache.ConsumerExtension) meshBuilder).getVibrancy$sectionMeshConsumer();
 
         if (consumer == null) {
             original.call(handler, world, pos, vertexConsumer, blockState, fluidState, defaultRenderer);
@@ -105,7 +105,7 @@ public class FluidRendererImplMixin {
             CallbackInfo ci,
             @Local ChunkModelBuilder meshBuilder
     ) {
-        SectionMeshCache.Consumer consumer = ((SectionMeshCache.ConsumerExtension) meshBuilder).getVibrancy$sectionMeshConsumer();
+        var consumer = ((SectionMeshCache.ConsumerExtension) meshBuilder).getVibrancy$sectionMeshConsumer();
 
         if (consumer != null) {
             consumer.flush();
@@ -159,7 +159,7 @@ public class FluidRendererImplMixin {
             Operation<Boolean> original,
             @Local ChunkModelBuilder meshBuilder
     ) {
-        SectionMeshCache.Consumer consumer = ((SectionMeshCache.ConsumerExtension) meshBuilder).getVibrancy$sectionMeshConsumer();
+        var consumer = ((SectionMeshCache.ConsumerExtension) meshBuilder).getVibrancy$sectionMeshConsumer();
 
         if (consumer == null) {
             original.call(instance, fluidState, getter, pos, vertexConsumer, blockState);
@@ -184,7 +184,7 @@ public class FluidRendererImplMixin {
             CallbackInfo ci,
             @Local ChunkModelBuilder meshBuilder
     ) {
-        SectionMeshCache.Consumer consumer = ((SectionMeshCache.ConsumerExtension) meshBuilder).getVibrancy$sectionMeshConsumer();
+        var consumer = ((SectionMeshCache.ConsumerExtension) meshBuilder).getVibrancy$sectionMeshConsumer();
 
         if (consumer != null) {
             consumer.flush();
