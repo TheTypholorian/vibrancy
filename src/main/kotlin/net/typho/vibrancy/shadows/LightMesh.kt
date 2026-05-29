@@ -24,11 +24,9 @@ open class LightMesh(
 ) : NativeResource {
     companion object {
         @JvmField
-        val COMPACT_POSITION = NeoVertexFormat.Element.create(0, GlDataType.UNSIGNED_BYTE, true, 3)
-        @JvmField
         val COMPACT_TEXTURE_UV = NeoVertexFormat.Element.create(0, GlDataType.UNSIGNED_SHORT, true, 2)
         @JvmField
-        val LIGHT_INDEX = NeoVertexFormat.Element.create(0, GlDataType.UNSIGNED_BYTE, null, 1)
+        val LIGHT_INDEX = NeoVertexFormat.Element.create(0, GlDataType.UNSIGNED_SHORT, null, 1)
 
         @JvmField
         val VERTEX_FORMAT = NeoVertexFormat.builder()

@@ -42,6 +42,7 @@ import net.typho.vibrancy.block.HashMapBlockLightStorage
 import net.typho.vibrancy.block.SectionedBlockLightStorage
 import net.typho.vibrancy.collectors.BlockMeshCollector
 import net.typho.vibrancy.shadows.LightFace
+import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.util.ChunkSectionCache
 import net.typho.vibrancy.util.GlTask
 import net.typho.vibrancy.util.SectionMeshCache
@@ -54,12 +55,11 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
     companion object {
         @JvmField
         val VERTEX_FORMAT = NeoVertexFormat.builder()
-            .add("Position", NeoVertexFormat.Element.POSITION) // 3 bytes / 12 bytes
-            .add("UV0", NeoVertexFormat.Element.TEXTURE_UV) // 4 bytes / 8 bytes
-            .add("LightIndex", NeoVertexFormat.Element.create(0, GlDataType.UNSIGNED_INT, null, 1)) // 2 bytes / 4 bytes
-            .add("Color", NeoVertexFormat.Element.COLOR) // 4 (maybe 3?) bytes / 4 bytes
-            .add("Normal", NeoVertexFormat.Element.NORMAL) // 3 bytes / 4 bytes
-            .padding(1)
+            .add("Position", NeoVertexFormat.Element.POSITION) // 12 bytes
+            .add("UV0", LightMesh.COMPACT_TEXTURE_UV) // 4 bytes
+            .add("LightIndex", LightMesh.LIGHT_INDEX) // 2 bytes
+            .add("Color", NeoVertexFormat.Element.COLOR) // 4 bytes
+            .add("Normal", NeoVertexFormat.Element.NORMAL) // 3 bytes
             .build()
     }
 
@@ -282,12 +282,15 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
                         writeFloat(vertex.y + SectionPos.sectionRelativeY(quad.first.second))
                         writeFloat(vertex.z + SectionPos.sectionRelativeZ(quad.first.second))
 
-                        writeFloat(vertex.u)
-                        writeFloat(vertex.v)
+                        writeShort((vertex.u * 0xFFFF).toInt())
+                        writeShort((vertex.v * 0xFFFF).toInt())
 
-                        writeInt(quad.second)
+                        writeShort(quad.second)
                         writeInt(vertex.color)
-                        writeInt(vertex.normal)
+
+                        writeByte(vertex.normal)
+                        writeByte(vertex.normal ushr 8)
+                        writeByte(vertex.normal ushr 16)
                     }
                 }
             }
