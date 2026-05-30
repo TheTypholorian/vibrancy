@@ -313,7 +313,7 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
                 && manager.isSectionVisible(pos)
             ) {
                 debugOut("lightsRendered", size)
-                debugOut("chunksRendered", 1)
+                debugOut("sectionsRendered", 1)
 
                 profiler.push("transforms")
                 val blockPos = NeoVec3i(pos.minBlockX(), pos.minBlockY(), pos.minBlockZ())

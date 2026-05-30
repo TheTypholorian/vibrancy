@@ -253,7 +253,7 @@ open class RayPointLight(
         }
 
         if (shadowsDirty) {
-            mesh.rebuildBlocksAsync(data, pos, manager, meshCollector, shadowPredicate, lightPredicate) { face -> face.any { it.light and 0xFFFF != 0 } }
+            mesh.rebuildBlocksAsync(data, pos, manager, meshCollector, shadowPredicate, lightPredicate) { true }// { face -> face.any { it.light and 0xFFFF != 0 } }
             shadowsDirty = false
         }
         profiler.pop()

@@ -5,7 +5,7 @@ import net.minecraft.world.level.Level
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.math.NeoDirection
 import net.typho.big_shot_lib.api.math.rect.AbstractRect3
-import net.typho.big_shot_lib.api.math.vec.NeoVec3i
+import net.typho.big_shot_lib.api.math.vec.NeoVec3f
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy.isPointingTowardsInclusive
 
@@ -60,7 +60,6 @@ class FloodFillBlockMeshCollector(
     ): Boolean {
         var cursors = dirty.toMutableList()
         var newCursors = arrayListOf<BlockPos>()
-        val mutable = BlockPos.MutableBlockPos()
 
         do {
             while (cursors.isNotEmpty()) {
@@ -69,27 +68,24 @@ class FloodFillBlockMeshCollector(
                 }
 
                 val cursor = cursors.removeLast()
-                mutable.set(cursor)
 
-                if (consumers.any { it.predicate.shouldCastBlock(level, mutable, null) }) {
+                if (consumers.any { it.predicate.shouldCastBlock(level, cursor, null) }) {
                     cache.checked.add(cursor)
                     cache.collect.add(cursor)
                 }
 
                 for (direction in NeoDirection.entries) {
-                    mutable.setWithOffset(cursor, direction.mojang)
-
                     if (direction.isPointingTowardsInclusive(this.pos, cursor)) {// && cache.checked.isInBounds(mutable)) {
-                        val immutable = mutable.immutable()
+                        val check = cursor.relative(direction.mojang)
 
-                        if (cache.checked.add(immutable)) {
-                            val state = level.getBlockState(mutable)
+                        if (cache.checked.add(check)) {
+                            val state = level.getBlockState(check)
 
-                            if (consumers.any { it.predicate.shouldCastBlock(level, mutable, state) }) {
-                                cache.collect.add(immutable)
+                            if (consumers.any { it.predicate.shouldCastBlock(level, check, state) }) {
+                                cache.collect.add(check)
 
-                                if (consumers.any { it.predicate.isBlockTransparent(level, mutable, state) }) {
-                                    newCursors.add(mutable)
+                                if (consumers.any { it.predicate.isBlockTransparent(level, check, state) }) {
+                                    newCursors.add(check)
                                 }
                             }
                         }
@@ -102,31 +98,30 @@ class FloodFillBlockMeshCollector(
         } while (cursors.isNotEmpty())
 
         val blockEntities = hashSetOf<BlockPos>()
-        val blockPos = BlockPos.MutableBlockPos()
+        val mutable = BlockPos.MutableBlockPos()
 
         cache.collect.forEach { pos ->
             if (isCancelled()) {
                 return false
             }
 
-            val pos = NeoVec3i(pos) + boundingBox.min
-            blockPos.set(pos.x, pos.y, pos.z)
-            val state = level.getBlockState(blockPos)
-            val offset = pos.minus(this.pos.x, this.pos.y, this.pos.z).toFloat()
+            mutable.set(pos.x, pos.y, pos.z)
+            val state = level.getBlockState(mutable)
+            val offset = NeoVec3f((pos.x - this.pos.x).toFloat(), (pos.y - this.pos.y).toFloat(), (pos.z - this.pos.z).toFloat())
 
             BlockMeshCollector.collectLightFaces(
                 manager,
                 state,
                 level,
-                blockPos,
+                mutable,
                 { face ->
                     face.copyWithOffset(offset.x, offset.y, offset.z) // TODO
                 },
                 *consumers
             )
 
-            if (level.getBlockEntity(blockPos) != null) {
-                blockEntities.add(blockPos.immutable())
+            if (level.getBlockEntity(mutable) != null) {
+                blockEntities.add(mutable.immutable())
             }
         }
 
