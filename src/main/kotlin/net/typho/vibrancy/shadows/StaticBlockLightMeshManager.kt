@@ -2,6 +2,8 @@ package net.typho.vibrancy.shadows
 
 import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
+import net.minecraft.world.level.Level
+import net.minecraft.world.level.block.state.BlockState
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
@@ -16,6 +18,12 @@ import org.lwjgl.system.NativeResource
 
 open class StaticBlockLightMeshManager(
     @JvmField
+    val lightPredicate: BlockMeshCollector.Predicate,
+    @JvmField
+    val shadowPredicate: BlockMeshCollector.Predicate,
+    @JvmField
+    val collector: BlockMeshCollector,
+    @JvmField
     val blit: (manager: StaticBlockLightMeshManager, info: LightMesh.MeshData) -> Unit
 ) : NativeResource {
     @JvmField
@@ -23,18 +31,44 @@ open class StaticBlockLightMeshManager(
     @JvmField
     val shadowBuffer = ShadowBuffer(GlBufferUsage.STATIC_DRAW)
     @JvmField
-    protected var asyncTask: GlTask<LightMesh.MeshData?>? = null
+    protected var scanTask: GlTask<Unit>? = null
+    @JvmField
+    protected var meshTask: GlTask<LightMesh.MeshData?>? = null
+    var shouldScan = true
+        protected set
+    var shouldMesh = true
+        protected set
+
+    fun queueScan() {
+        shouldScan = true
+        shouldMesh = true
+    }
+
+    fun queueScan(level: Level, pos: BlockPos, stateChange: Pair<BlockState, BlockState>) {
+        if (lightPredicate.requiresScan(level, pos, stateChange.first, stateChange.second) || shadowPredicate.requiresScan(level, pos, stateChange.first, stateChange.second)) {
+            queueScan()
+        }
+    }
+
+    fun queueMesh() {
+        shouldMesh = true
+    }
 
     override fun free() {
         lightMesh.free()
         shadowBuffer.free()
-        asyncTask?.cancel()
+        scanTask?.cancel()
+        meshTask?.cancel()
     }
 
-    fun isTaskActive() = asyncTask?.let { task -> !task.isDone } ?: false
+    fun numActiveTasks(): Int = (scanTask?.let { task -> if (task.isDone) 0 else 1 } ?: 0) + (meshTask?.let { task -> if (task.isDone) 0 else 1 } ?: 0)
 
-    fun checkIfFinished(): Boolean {
-        asyncTask?.let { task ->
+    fun tick(
+        data: RenderEventData,
+        pos: IVec3<Int>,
+        manager: LightManager
+    ) {
+        meshTask?.let { task ->
             if (task.isDoneOrCancelled()) {
                 try {
                     task.finish()?.let {
@@ -42,62 +76,97 @@ open class StaticBlockLightMeshManager(
                             blit(this, it)
                         }
                     }
-                } catch (e: NullPointerException) {
-                    Vibrancy.LOGGER.warn("Error finishing block light task", e)
+                } catch (e: Exception) {
+                    Vibrancy.LOGGER.warn("Error finishing block light mesh task", e)
                 }
 
-                asyncTask = null
-                return true
+                meshTask = null
+            }
+        }
+        scanTask?.let { task ->
+            if (task.isDoneOrCancelled()) {
+                try {
+                    task.finish()
+
+                    if (shouldMesh) {
+                        mesh(data, pos, manager)
+                        shouldMesh = false
+                    }
+                } catch (e: Exception) {
+                    Vibrancy.LOGGER.warn("Error finishing block light scan task", e)
+                }
+
+                scanTask = null
             }
         }
 
-        return false
+        if (shouldScan) {
+            scan(data, pos, manager)
+            meshTask?.cancel()
+            shouldScan = false
+        } else if (scanTask == null && shouldMesh) {
+            mesh(data, pos, manager)
+            shouldMesh = false
+        }
     }
 
-    protected fun rebuildBlocksAsyncImpl(
+    protected fun scanImpl(
         isCancelled: () -> Boolean,
-        manager: LightManager,
-        collector: BlockMeshCollector,
-        shadowPredicate: BlockMeshCollector.Predicate,
-        lightPredicate: BlockMeshCollector.Predicate,
-        facePredicate: (face: LightFace) -> Boolean
+        manager: LightManager
+    ) {
+        collector.scan(
+            isCancelled,
+            manager,
+            manager.getLevel() ?: throw NullPointerException("No level?"),
+            lightPredicate or shadowPredicate
+        )
+    }
+
+    fun scan(
+        data: RenderEventData,
+        pos: IVec3<Int>,
+        manager: LightManager
+    ) {
+        println("Scanning $pos")
+        if (VibrancyConfig.useMultithreading) {
+            scanTask?.cancel()
+            scanTask = VibrancyThreadPool.submitClean(data, pos, manager) { scanImpl(it, manager) }
+        } else {
+            scanImpl({ false }, manager)
+        }
+    }
+
+    protected fun meshImpl(
+        isCancelled: () -> Boolean,
+        manager: LightManager
     ): Pair<AutoCloseable, () -> LightMesh.MeshData?> {
         val level = manager.getLevel() ?: throw NullPointerException("No level?")
 
         val shadowFaces = arrayListOf<LightFace>()
         val lightFaces = arrayListOf<LightFace>()
-        if (!collector.submit(
+        collector.mesh(
             isCancelled,
             manager,
             level,
-            NeoAtlas.blocks,
             object : BlockMeshCollector.Consumer {
-                override val predicate: BlockMeshCollector.Predicate = shadowPredicate
-
                 override fun collect(
                     faces: Iterable<LightFace>,
                     section: SectionPos,
                     block: BlockPos,
                     translucent: Boolean
                 ) {
-                    faces.filterTo(shadowFaces, facePredicate)
-                }
-            },
-            object : BlockMeshCollector.Consumer {
-                override val predicate: BlockMeshCollector.Predicate = lightPredicate
+                    val state = level.getBlockState(block)
 
-                override fun collect(
-                    faces: Iterable<LightFace>,
-                    section: SectionPos,
-                    block: BlockPos,
-                    translucent: Boolean
-                ) {
-                    faces.filterTo(lightFaces, facePredicate)
+                    if (shadowPredicate.shouldCastBlock(level, block, state)) {
+                        faces.filterTo(shadowFaces) { shadowPredicate.shouldCastFace(level, block, state, it) }
+                    }
+
+                    if (lightPredicate.shouldCastBlock(level, block, state)) {
+                        faces.filterTo(lightFaces) { lightPredicate.shouldCastFace(level, block, state, it) }
+                    }
                 }
             }
-        )) {
-            return AutoCloseable { } to { null }
-        }
+        )
 
         if (isCancelled()) {
             return AutoCloseable { } to { null }
@@ -123,20 +192,17 @@ open class StaticBlockLightMeshManager(
         }
     }
 
-    fun rebuildBlocksAsync(
+    fun mesh(
         data: RenderEventData,
         pos: IVec3<Int>,
-        manager: LightManager,
-        collector: BlockMeshCollector,
-        shadowPredicate: BlockMeshCollector.Predicate,
-        lightPredicate: BlockMeshCollector.Predicate,
-        facePredicate: (face: LightFace) -> Boolean
+        manager: LightManager
     ) {
+        println("Meshing $pos")
         if (VibrancyConfig.useMultithreading) {
-            asyncTask?.cancel()
-            asyncTask = VibrancyThreadPool.submit(data, pos, manager) { rebuildBlocksAsyncImpl(it, manager, collector, shadowPredicate, lightPredicate, facePredicate) }
+            meshTask?.cancel()
+            meshTask = VibrancyThreadPool.submit(data, pos, manager) { meshImpl(it, manager) }
         } else {
-            val result = rebuildBlocksAsyncImpl({ false }, manager, collector, shadowPredicate, lightPredicate, facePredicate)
+            val result = meshImpl({ false }, manager)
             result.second()?.let {
                 if (!lightMesh.empty) {
                     blit(this, it)

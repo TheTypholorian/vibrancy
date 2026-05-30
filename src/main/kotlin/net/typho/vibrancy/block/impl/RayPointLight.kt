@@ -23,7 +23,6 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
 import net.typho.big_shot_lib.api.client.rendering.opengl.util.BlendFunction
 import net.typho.big_shot_lib.api.client.rendering.util.*
-import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.math.rect.AbstractRect3
 import net.typho.big_shot_lib.api.math.rect.NeoRect2i
@@ -43,21 +42,19 @@ import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.collectors.BlockMeshCollector
 import net.typho.vibrancy.collectors.FloodFillBlockMeshCollector
 import net.typho.vibrancy.shadows.DynamicLightFace
+import net.typho.vibrancy.shadows.LightFace
 import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.shadows.LightTexture
-import net.typho.vibrancy.shadows.PrimitiveVertex
 import net.typho.vibrancy.shadows.ShadowBuffer
 import net.typho.vibrancy.shadows.StaticBlockLightMeshManager
 import net.typho.vibrancy.util.EmptyVertexConsumer
 import net.typho.vibrancy.util.EntityRenderingUtil
 import net.typho.vibrancy.util.PointLight
-import net.typho.vibrancy.util.QuadListVertexConsumer
 import org.joml.Matrix4f
 import org.joml.Quaternionf
 import org.lwjgl.glfw.GLFW.glfwGetTime
 import org.lwjgl.system.NativeResource
 import java.util.stream.Stream
-import kotlin.and
 import kotlin.math.ceil
 
 open class RayPointLight(
@@ -88,6 +85,86 @@ open class RayPointLight(
         )
     }
 
+    //? if 1.21 {
+    override val absolutePos: IVec3<Float>
+        get() = SableCompanion.INSTANCE.getContainingClient((pos.toDouble() + offset.toDouble()).toJOML())?.let { NeoVec3d(it.renderPose(Vibrancy.tickDelta).transformPosition((pos.toDouble() + offset.toDouble()).toJOML())).toFloat() } ?: (pos.toFloat() + offset)
+    val absoluteBlockPos: IVec3<Float>
+        get() = SableCompanion.INSTANCE.getContainingClient(pos.toDouble().toJOML())?.let { NeoVec3d(
+            it.renderPose(
+                Vibrancy.tickDelta
+            ).transformPosition(pos.toDouble().toJOML())
+        ).toFloat() } ?: pos.toFloat()
+    //? } else {
+    /*override val absolutePos: IVec3<Float>
+        get() = pos.toFloat() + offset
+    val absoluteBlockPos: IVec3<Float>
+        get() = pos.toFloat()
+    *///? }
+    override val boundingBox: AbstractRect3<Int> = NeoRect3i(pos - radius.toInt(), pos + radius.toInt())
+    override var shadowBox: AbstractRect3<Int> = createShadowBox()
+
+    fun createShadowBox(): AbstractRect3<Int> {
+        val shadowRadius = ceil(radius.coerceAtMost(VibrancyConfig.rayLightShadowRadius.toFloat())).toInt()
+        return NeoRect3i(pos - shadowRadius, pos + shadowRadius)
+    }
+
+    val shadowPredicate: BlockMeshCollector.Predicate = object : BlockMeshCollector.Predicate {
+        override fun isBlockTransparent(level: Level, pos: BlockPos, state: BlockState): Boolean {
+            return super.isBlockTransparent(level, pos, state) || BlockLightRegistry.get(state.block, RayPointLightType) != null
+        }
+
+        override fun shouldCastBlock(
+            level: Level,
+            pos: BlockPos,
+            state: BlockState
+        ): Boolean {
+            return shadowBox.contains(NeoVec3i(pos)) && BlockLightRegistry.get(state.block, RayPointLightType) == null
+        }
+
+        override fun shouldCastFace(
+            level: Level,
+            pos: BlockPos,
+            state: BlockState,
+            face: LightFace
+        ): Boolean {
+            return face.any { it.light and 0xFFFF != 0 }
+        }
+
+        override fun requiresScan(level: Level, pos: BlockPos, old: BlockState, new: BlockState): Boolean {
+            if (!shadowBox.contains(NeoVec3i(pos))) {
+                return false
+            }
+
+            if (old.block == new.block) {
+                return false
+            }
+
+            return isBlockTransparent(level, pos, old) != isBlockTransparent(level, pos, new)
+        }
+    }
+    val lightPredicate: BlockMeshCollector.Predicate = object : BlockMeshCollector.Predicate {
+        override fun shouldCastBlock(
+            level: Level,
+            pos: BlockPos,
+            state: BlockState
+        ): Boolean {
+            return boundingBox.contains(NeoVec3i(pos))
+        }
+
+        override fun shouldCastFace(
+            level: Level,
+            pos: BlockPos,
+            state: BlockState,
+            face: LightFace
+        ): Boolean {
+            return face.any { it.light and 0xFFFF != 0 }
+        }
+
+        override fun requiresScan(level: Level, pos: BlockPos, old: BlockState, new: BlockState): Boolean {
+            return boundingBox.contains(NeoVec3i(pos)) && isBlockTransparent(level, pos, old) != isBlockTransparent(level, pos, new)
+        }
+    }
+
     @JvmField
     val blitMesh = Mesh(
         LightMesh.BLIT_VERTEX_FORMAT,
@@ -111,7 +188,7 @@ open class RayPointLight(
     }
 
     @JvmField
-    val meshCollector = FloodFillBlockMeshCollector(pos.blockPos, boundingBox)
+    val meshCollector = FloodFillBlockMeshCollector(pos.blockPos)
 
     var meshData: LightMesh.MeshData? = null
         protected set
@@ -130,7 +207,11 @@ open class RayPointLight(
     @JvmField
     val staticTexture = LightTexture()
     @JvmField
-    val mesh = StaticBlockLightMeshManager { mesh, info ->
+    val mesh = StaticBlockLightMeshManager(
+        lightPredicate,
+        shadowPredicate,
+        meshCollector
+    ) { mesh, info ->
         meshData = info
         staticTexture.resize(info.sections.size.x, info.sections.size.y)
         dynamicTexture.resize(info.sections.size.x, info.sections.size.y)
@@ -152,9 +233,6 @@ open class RayPointLight(
         dynamicTexture.clear()
     }
 
-    @JvmField
-    var shadowsDirty = true
-
     constructor(info: RayPointLightInfo, state: BlockState, pos: IVec3<Int>) : this(
         info.color(state) * info.brightness(state),
         info.flicker(state),
@@ -163,62 +241,11 @@ open class RayPointLight(
         pos
     )
 
-    //? if 1.21 {
-    override val absolutePos: IVec3<Float>
-        get() = SableCompanion.INSTANCE.getContainingClient((pos.toDouble() + offset.toDouble()).toJOML())?.let { NeoVec3d(it.renderPose(Vibrancy.tickDelta).transformPosition((pos.toDouble() + offset.toDouble()).toJOML())).toFloat() } ?: (pos.toFloat() + offset)
-    val absoluteBlockPos: IVec3<Float>
-        get() = SableCompanion.INSTANCE.getContainingClient(pos.toDouble().toJOML())?.let { NeoVec3d(
-            it.renderPose(
-                Vibrancy.tickDelta
-            ).transformPosition(pos.toDouble().toJOML())
-        ).toFloat() } ?: pos.toFloat()
-    //? } else {
-    /*override val absolutePos: IVec3<Float>
-        get() = pos.toFloat() + offset
-    val absoluteBlockPos: IVec3<Float>
-        get() = pos.toFloat()
-    *///? }
-    override val boundingBox: AbstractRect3<Int>
-        get() = NeoRect3i(pos - radius.toInt(), pos + radius.toInt())
-    override val shadowBox: AbstractRect3<Int>
-        get() {
-            val shadowRadius = ceil(radius.coerceAtMost(VibrancyConfig.rayLightShadowRadius.toFloat())).toInt()
-            return NeoRect3i(pos - shadowRadius, pos + shadowRadius)
-        }
-    val shadowPredicate: BlockMeshCollector.Predicate
-        get() = object : BlockMeshCollector.Predicate {
-            val shadowBox = this@RayPointLight.shadowBox
-
-            override fun isBlockTransparent(level: Level, pos: BlockPos, state: BlockState): Boolean {
-                return super.isBlockTransparent(level, pos, state) || BlockLightRegistry.get(state.block, RayPointLightType) != null
-            }
-
-            override fun shouldCastBlock(
-                level: Level,
-                pos: BlockPos,
-                state: BlockState?
-            ): Boolean {
-                return shadowBox.contains(NeoVec3i(pos)) && BlockLightRegistry.get((state ?: level.getBlockState(pos)).block, RayPointLightType) == null
-            }
-        }
-    val lightPredicate: BlockMeshCollector.Predicate
-        get() = object : BlockMeshCollector.Predicate {
-            val boundingBox = this@RayPointLight.boundingBox
-
-            override fun shouldCastBlock(
-                level: Level,
-                pos: BlockPos,
-                state: BlockState?
-            ): Boolean {
-                return boundingBox.contains(NeoVec3i(pos))
-            }
-        }
-
     fun reload() {
         synchronized(meshCollector) {
             meshCollector.markAllDirty()
         }
-        shadowsDirty = true
+        mesh.queueScan()
     }
 
     override fun free() {
@@ -243,23 +270,31 @@ open class RayPointLight(
         profiler.push("rebuildBlocks")
         synchronized(meshCollector) {
             val box = boundingBox
+
+            for (block in manager.dirtyBlocks) {
+                // TODO
+                if (box.contains(NeoVec3i(block.key)) && meshCollector.cache.checked.contains(block.key)) {
+                    mesh.queueScan(data.level!!, block.key, block.value)
+                    return@synchronized
+                }
+            }
+
             for (section in manager.dirtySections) {
                 if (section.second.intersects(box)) {
-                    meshCollector.markAllDirty()
-                    shadowsDirty = true
-                    break
+                    mesh.queueMesh()
+                    return@synchronized
                 }
             }
         }
 
-        if (shadowsDirty) {
-            mesh.rebuildBlocksAsync(data, pos, manager, meshCollector, shadowPredicate, lightPredicate) { true }// { face -> face.any { it.light and 0xFFFF != 0 } }
-            shadowsDirty = false
-        }
         profiler.pop()
 
-        profiler.push("finish")
-        mesh.checkIfFinished()
+        profiler.push("tickAsync")
+        mesh.tick(
+            data,
+            pos,
+            manager
+        )
         profiler.pop()
 
         if (dynamicShadows) {
@@ -489,10 +524,7 @@ open class RayPointLight(
 
     fun render(data: RenderEventData, shader: GlBoundProgram, atlas: NeoAtlas, debugOut: (key: String, value: Int) -> Unit, profiler: ProfilerFiller) {
         debugOut("lightsRendered", 1)
-
-        if (mesh.isTaskActive()) {
-            debugOut("numAsyncTasks", 1)
-        }
+        debugOut("numAsyncTasks", mesh.numActiveTasks())
 
         profiler.push("transforms")
         //? if 1.21 {

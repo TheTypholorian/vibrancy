@@ -143,16 +143,6 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
                     val chunkCache = ChunkSectionCache(data.level!!)
                     var lightIndex = 0
                     val consumer = object : BlockMeshCollector.Consumer {
-                        override val predicate = object : BlockMeshCollector.Predicate {
-                            override fun shouldCastBlock(
-                                level: Level,
-                                pos: BlockPos,
-                                state: BlockState?
-                            ): Boolean {
-                                return true
-                            }
-                        }
-
                         override fun collect(
                             faces: Iterable<LightFace>,
                             section: SectionPos,

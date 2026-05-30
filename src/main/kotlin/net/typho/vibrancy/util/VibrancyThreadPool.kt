@@ -80,4 +80,27 @@ object VibrancyThreadPool : ThreadPoolExecutor(
     fun <T> submit(data: RenderEventData, pos: IVec3<Int>, manager: LightManager, task: (isCancelled: () -> Boolean) -> Pair<AutoCloseable, () -> T>): GlTask<T> {
         return submit(manager.getSortingOrder(data, pos).toDouble(), task)
     }
+
+    @JvmStatic
+    fun <T> submitClean(sort: Double, task: (isCancelled: () -> Boolean) -> T): GlTask<T> {
+        return submit(sort) { isCancelled ->
+            val result = task(isCancelled)
+            AutoCloseable { } to { result }
+        }
+    }
+
+    @JvmStatic
+    fun <T> submitClean(data: RenderEventData, chunk: ChunkPos, manager: LightManager, task: (isCancelled: () -> Boolean) -> T): GlTask<T> {
+        return submitClean(manager.getSortingOrder(data, chunk).toDouble(), task)
+    }
+
+    @JvmStatic
+    fun <T> submitClean(data: RenderEventData, chunk: SectionPos, manager: LightManager, task: (isCancelled: () -> Boolean) -> T): GlTask<T> {
+        return submitClean(manager.getSortingOrder(data, chunk).toDouble(), task)
+    }
+
+    @JvmStatic
+    fun <T> submitClean(data: RenderEventData, pos: IVec3<Int>, manager: LightManager, task: (isCancelled: () -> Boolean) -> T): GlTask<T> {
+        return submitClean(manager.getSortingOrder(data, pos).toDouble(), task)
+    }
 }

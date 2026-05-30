@@ -5,8 +5,6 @@ import net.minecraft.core.SectionPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.material.FluidState
-import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
-import net.typho.big_shot_lib.api.math.NeoDirection
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.vibrancy.LightManager
@@ -14,13 +12,19 @@ import net.typho.vibrancy.shadows.LightFace
 import net.typho.vibrancy.util.SectionMeshCache
 
 interface BlockMeshCollector {
-    fun submit(
+    fun scan(
         isCancelled: () -> Boolean,
         manager: LightManager,
         level: Level,
-        atlas: NeoAtlas,
-        vararg consumers: Consumer
+        predicate: Predicate
     ): Boolean
+
+    fun mesh(
+        isCancelled: () -> Boolean,
+        manager: LightManager,
+        level: Level,
+        consumer: Consumer
+    )
 
     interface Predicate {
         fun isBlockTransparent(
@@ -32,13 +36,71 @@ interface BlockMeshCollector {
         fun shouldCastBlock(
             level: Level,
             pos: BlockPos,
-            state: BlockState?
+            state: BlockState
         ): Boolean
+
+        fun shouldCastFace(
+            level: Level,
+            pos: BlockPos,
+            state: BlockState,
+            face: LightFace
+        ): Boolean
+
+        fun requiresScan(
+            level: Level,
+            pos: BlockPos,
+            old: BlockState,
+            new: BlockState
+        ): Boolean {
+            return isBlockTransparent(level, pos, old) != isBlockTransparent(level, pos, new) || shouldCastBlock(level, pos, old) != shouldCastBlock(level, pos, new)
+        }
+
+        infix fun and(other: Predicate): Predicate {
+            val parent = this
+            return object : Predicate {
+                override fun shouldCastBlock(
+                    level: Level,
+                    pos: BlockPos,
+                    state: BlockState
+                ): Boolean {
+                    return parent.shouldCastBlock(level, pos, state) && other.shouldCastBlock(level, pos, state)
+                }
+
+                override fun shouldCastFace(
+                    level: Level,
+                    pos: BlockPos,
+                    state: BlockState,
+                    face: LightFace
+                ): Boolean {
+                    return parent.shouldCastFace(level, pos, state, face) && other.shouldCastFace(level, pos, state, face)
+                }
+            }
+        }
+
+        infix fun or(other: Predicate): Predicate {
+            val parent = this
+            return object : Predicate {
+                override fun shouldCastBlock(
+                    level: Level,
+                    pos: BlockPos,
+                    state: BlockState
+                ): Boolean {
+                    return parent.shouldCastBlock(level, pos, state) || other.shouldCastBlock(level, pos, state)
+                }
+
+                override fun shouldCastFace(
+                    level: Level,
+                    pos: BlockPos,
+                    state: BlockState,
+                    face: LightFace
+                ): Boolean {
+                    return parent.shouldCastFace(level, pos, state, face) || other.shouldCastFace(level, pos, state, face)
+                }
+            }
+        }
     }
 
     interface Consumer {
-        val predicate: Predicate
-
         fun collect(faces: Iterable<LightFace>, section: SectionPos, block: BlockPos, translucent: Boolean)
     }
 
@@ -66,19 +128,15 @@ interface BlockMeshCollector {
             state: BlockState,
             level: Level,
             pos: BlockPos,
-            vararg consumers: Consumer
+            consumer: Consumer
         ) {
             val section = SectionPos.of(pos)
             val cache = caches.computeIfAbsent(section) { manager.sectionMeshCaches[it] }
 
             if (cache != null) {
                 val model = cache[pos]
-                consumers.forEach {
-                    if (it.predicate.shouldCastBlock(level, pos, state)) {
-                        it.collect(model.solidFaces, section, pos, false)
-                        it.collect(model.translucentFaces, section, pos, true)
-                    }
-                }
+                consumer.collect(model.solidFaces, section, pos, false)
+                consumer.collect(model.translucentFaces, section, pos, true)
             }
         }
 
@@ -88,19 +146,15 @@ interface BlockMeshCollector {
             state: BlockState,
             level: Level,
             pos: BlockPos,
-            vararg consumers: Consumer
+            consumer: Consumer
         ) {
             val section = SectionPos.of(pos)
             val cache = manager.sectionMeshCaches[section]
 
             if (cache != null) {
                 val model = cache[pos]
-                consumers.forEach {
-                    if (it.predicate.shouldCastBlock(level, pos, state)) {
-                        it.collect(model.solidFaces, section, pos, false)
-                        it.collect(model.translucentFaces, section, pos, true)
-                    }
-                }
+                consumer.collect(model.solidFaces, section, pos, false)
+                consumer.collect(model.translucentFaces, section, pos, true)
             }
         }
 
@@ -111,19 +165,15 @@ interface BlockMeshCollector {
             level: Level,
             pos: BlockPos,
             transmute: (face: LightFace) -> LightFace,
-            vararg consumers: Consumer
+            consumer: Consumer
         ) {
             val section = SectionPos.of(pos)
             val cache = manager.sectionMeshCaches[section]
 
             if (cache != null) {
                 val model = cache[pos]
-                consumers.forEach {
-                    if (it.predicate.shouldCastBlock(level, pos, state)) {
-                        it.collect(model.solidFaces.map(transmute), section, pos, false)
-                        it.collect(model.translucentFaces.map(transmute), section, pos, true)
-                    }
-                }
+                consumer.collect(model.solidFaces.map(transmute), section, pos, false)
+                consumer.collect(model.translucentFaces.map(transmute), section, pos, true)
             }
         }
     }

@@ -635,7 +635,8 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
             val lightFaces = Array(sections.size) { arrayListOf<LightFace>() }
             val translucentFaces = Array(sections.size) { arrayListOf<LightFace>() }
-            val mesher = SkyLightBlockMeshCollector(pos)
+            val mesher = SkyLightBlockMeshCollector(pos) // TODO
+            /*
             if (!mesher.submit(
                     isCancelled,
                     manager,
@@ -688,6 +689,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                 )) {
                 return AutoCloseable { } to { null }
             }
+             */
             blockEntities = mesher.blockEntities
 
             fun upload(faces: List<LightFace>, mesh: Mesh): Pair<AutoCloseable, () -> Unit> {

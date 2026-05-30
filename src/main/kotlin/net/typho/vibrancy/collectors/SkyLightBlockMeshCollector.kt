@@ -12,6 +12,7 @@ import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoVertexData
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.vibrancy.LightManager
 
+// TODO
 class SkyLightBlockMeshCollector(
     @JvmField
     val pos: ChunkPos
@@ -19,14 +20,13 @@ class SkyLightBlockMeshCollector(
     var blockEntities: MutableSet<BlockPos> = hashSetOf()
         private set
 
-    @Suppress("USELESS_ELVIS")
-    override fun submit(
+    override fun scan(
         isCancelled: () -> Boolean,
         manager: LightManager,
         level: Level,
-        atlas: NeoAtlas,
-        vararg consumers: BlockMeshCollector.Consumer
+        predicate: BlockMeshCollector.Predicate
     ): Boolean {
+        /*
         val origin = NeoVec3i(pos.minBlockX, 0, pos.minBlockZ)
         val blockEntities = hashSetOf<BlockPos>()
 
@@ -62,9 +62,9 @@ class SkyLightBlockMeshCollector(
 
                 //? if <1.21.5 {
                 while (pos.y >= chunk.minBuildHeight) {
-                //? } else {
-                /*while (y >= chunk.minY) {
-                *///? }
+                    //? } else {
+                    /*while (y >= chunk.minY) {
+                    *///? }
                     val state = chunk.getBlockState(pos)
 
                     if (consumers.any { it.predicate.shouldCastBlock(level, pos, state) }) {
@@ -81,30 +81,15 @@ class SkyLightBlockMeshCollector(
         this.blockEntities = blockEntities
 
         return true
-
-        /*
-        while (cursors.isNotEmpty()) {
-            val cursor = cursors.first()
-            cursors.remove(cursor)
-
-            collect(cursor, level.getBlockState(cursor))
-
-            for (direction in NeoDirection.entries) {
-                val pos = cursor.relative(direction)
-
-                if (direction.isPointingTowardsInclusive(this.pos, cursor) && checked.add(pos)) {
-                    val state = level.getBlockState(pos)
-
-                    if (predicate.shouldCastBlock(level, pos, state) && predicate.isInLightRange(pos)) {
-                        if (BlockUtil.INSTANCE.isSolidRender(state, pos, level)) {
-                            collect(pos, state)
-                        } else {
-                            cursors.add(pos)
-                        }
-                    }
-                }
-            }
-        }
          */
+        return true
+    }
+
+    override fun mesh(
+        isCancelled: () -> Boolean,
+        manager: LightManager,
+        level: Level,
+        consumer: BlockMeshCollector.Consumer
+    ) {
     }
 }

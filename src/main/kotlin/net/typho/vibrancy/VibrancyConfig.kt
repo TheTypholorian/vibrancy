@@ -7,13 +7,17 @@ import dev.isxander.yacl3.api.controller.*
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
 import net.typho.big_shot_lib.api.client.rendering.opengl.GlQueue
+import net.typho.big_shot_lib.api.math.rect.NeoRect3i
 import net.typho.big_shot_lib.api.util.platform.PlatformUtil
+import net.typho.vibrancy.block.impl.RayPointLightStorage
+import net.typho.vibrancy.block.impl.RayPointLightType
 import net.typho.vibrancy.block.impl.SubtleLightCullingMode
 import net.typho.vibrancy.sky.impl.OverworldSkyLightStorage
 import net.typho.vibrancy.util.VibrancyThreadPool
 import org.lwjgl.opengl.GL11.GL_RENDERER
 import org.lwjgl.opengl.GL11.glGetString
 import java.nio.file.Files
+import kotlin.math.ceil
 import kotlin.reflect.KMutableProperty0
 
 internal fun <T : Any> Option.Builder<T>.binding(def: T, property: KMutableProperty0<T>): Option.Builder<T> {
@@ -95,8 +99,16 @@ object VibrancyConfig {
     var rayLightsMaxRendered: Int = if (isPotato) 200 else 400
     @JvmField
     var rayLightBrightness: Float = 1f
-    @JvmField
     var rayLightShadowRadius: Int = 6
+        set(value) {
+            field = value
+
+            Vibrancy.lightManager.blockLights[RayPointLightType]?.let {
+                for (light in (it as RayPointLightStorage).map.values) {
+                    light.shadowBox = light.createShadowBox()
+                }
+            }
+        }
     @JvmField
     var rayLightMaxHighQuality: Int = 10
 

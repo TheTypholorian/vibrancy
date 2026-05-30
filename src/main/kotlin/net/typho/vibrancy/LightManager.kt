@@ -32,6 +32,7 @@ import net.typho.big_shot_lib.api.math.rect.AbstractRect3
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
 import net.typho.big_shot_lib.api.math.vec.NeoVec3d
+import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.resource.NeoResourceKey
 import net.typho.vibrancy.Vibrancy.id
 import net.typho.vibrancy.block.BlockLightInfo
@@ -59,7 +60,7 @@ open class LightManager {
     @JvmField
     var dirtySections: MutableList<Pair<SectionPos, AbstractRect3<Int>>> = LinkedList()
     @JvmField
-    var dirtyBlocks: MutableList<IVec3<Int>> = LinkedList()
+    var dirtyBlocks: MutableMap<BlockPos, Pair<BlockState, BlockState>> = hashMapOf()
     @JvmField
     val blockLights = HashMap<BlockLightType<*, *>, BlockLightStorage<*>>()
     @JvmField
@@ -118,7 +119,7 @@ open class LightManager {
             BlockLightRegistry.get(new.block, entry.key)?.let { addBlockLight(pos, level, new, entry.key, it) }
         }
 
-        dirtyBlocks.add(pos)
+        dirtyBlocks[pos.blockPos] = old to new
     }
 
     fun loadChunk(chunk: ChunkAccess) {
@@ -192,6 +193,7 @@ open class LightManager {
         skyLight?.let { castAndRender(data, result, temp, it.first, it.second, profiler) }
 
         dirtySections.clear()
+        dirtyBlocks.clear()
         profiler.pop()
     }
 
