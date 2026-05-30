@@ -5,7 +5,7 @@ import dev.ryanhcode.sable.companion.SableCompanion
 //? }
 
 import com.mojang.blaze3d.vertex.PoseStack
-import net.minecraft.client.Minecraft
+import net.minecraft.client.Minecraft.getInstance
 import net.minecraft.core.BlockPos
 import net.minecraft.core.Direction
 import net.minecraft.core.SectionPos
@@ -13,11 +13,9 @@ import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.LightLayer
-import net.minecraft.world.level.block.LeavesBlock
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkAccess
 import net.minecraft.world.level.levelgen.Heightmap
-import net.minecraft.world.level.material.Fluids
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlAlphaFunction
@@ -33,7 +31,6 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDepthShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
-import net.typho.big_shot_lib.api.client.rendering.util.BlockChunkLayer
 import net.typho.big_shot_lib.api.client.rendering.util.FogUtil
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
@@ -41,17 +38,13 @@ import net.typho.big_shot_lib.api.client.rendering.util.NeoMultiBufferSource
 import net.typho.big_shot_lib.api.client.rendering.util.NeoRenderSettings
 import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
-import net.typho.big_shot_lib.api.math.NeoDirection
 import net.typho.big_shot_lib.api.math.rect.AbstractRect3
 import net.typho.big_shot_lib.api.math.rect.NeoRect2i
 import net.typho.big_shot_lib.api.math.rect.NeoRect3i
 import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
 import net.typho.big_shot_lib.api.math.vec.NeoVec3d
-import net.typho.big_shot_lib.api.math.vec.NeoVec3f
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.big_shot_lib.api.math.vec.NeoVec4f
-import net.typho.big_shot_lib.api.math.vec.blockPos
-import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
 import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
@@ -60,7 +53,6 @@ import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyConfig
 import net.typho.vibrancy.collectors.BlockMeshCollector
 import net.typho.vibrancy.collectors.SkyLightBlockMeshCollector
-import net.typho.vibrancy.mixin.LevelRendererAccessor
 import net.typho.vibrancy.shadows.LightFace
 import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.shadows.LightTexture
@@ -211,12 +203,18 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
         lightColor *= info!!.brightness
         lightColor *= VibrancyConfig.skyLightBrightness
 
+        val lightLen = lightColor.lengthSquared
+
+        if (lightLen > 1) {
+            lightColor /= sqrt(lightLen)
+        }
+
         val shadowRot = Quaternionf()
             .rotateX(lightAngle)
             .rotateY(-PI.toFloat() / 2)
             .rotateY(Math.toRadians(15.0).toFloat())
         val shadowMat = Matrix4f()
-            .scale(1f / (manager.clampToChunkRenderDistance(VibrancyConfig.skyLightShadowDistance) * 16))
+            .scale(1f / (VibrancyConfig.skyLightShadowDistance.coerceAtMost(getInstance().options.effectiveRenderDistance) * 16))
             .rotate(shadowRot)
         val shadowFrustum = FrustumIntersection(shadowMat)
         profiler.pop()
@@ -637,7 +635,8 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
             val lightFaces = Array(sections.size) { arrayListOf<LightFace>() }
             val translucentFaces = Array(sections.size) { arrayListOf<LightFace>() }
-            val mesher = SkyLightBlockMeshCollector(pos)
+            val mesher = SkyLightBlockMeshCollector(pos) // TODO
+            /*
             if (!mesher.submit(
                     isCancelled,
                     manager,
@@ -647,7 +646,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                         override val predicate: BlockMeshCollector.Predicate = object : BlockMeshCollector.Predicate {
                             override fun shouldCastBlock(
                                 level: Level,
-                                pos: BlockPos.MutableBlockPos,
+                                pos: BlockPos,
                                 state: BlockState?
                             ): Boolean {
                                 if (
@@ -665,64 +664,32 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
                                 return false
                             }
-
-                            override fun shouldCastFace(
-                                face: NeoDirection?,
-                                level: Level,
-                                pos: BlockPos.MutableBlockPos,
-                                state: BlockState?
-                            ): Boolean {
-                                if (face == null) {
-                                    return true
-                                }
-
-                                val state = state ?: level.getBlockState(pos)
-                                val pos1 = pos.relative(face.mojang)
-
-                                if (state.block is LeavesBlock && level.getBlockState(pos1).block is LeavesBlock) {
-                                    return false
-                                }
-
-                                if (
-                                    !BlockUtil.INSTANCE.shouldRenderFace(
-                                        level,
-                                        pos,
-                                        face,
-                                        state
-                                    )
-                                ) {
-                                    return false
-                                }
-
-                                if (level.getBrightness(LightLayer.SKY, pos1) == 0) {
-                                    return false
-                                }
-
-                                return true
-                            }
                         }
 
-                        override fun collect(faces: Iterable<LightFace>, origin: BlockMeshCollector.FaceOrigin) {
-                            if (origin is BlockMeshCollector.FaceOrigin.Block) {
-                                if (BlockUtil.INSTANCE.getBlockChunkLayer(origin.block) == BlockChunkLayer.TRANSLUCENT) {
-                                    translucentFaces[SectionPos.blockToSectionCoord(origin.pos.y) - level.minSection].addAll(faces)
-                                } else {
-                                    lightFaces[SectionPos.blockToSectionCoord(origin.pos.y) - level.minSection].addAll(faces)
-                                }
-                            } else if (origin is BlockMeshCollector.FaceOrigin.Fluid) {
-                                if (origin.fluid.isSourceOfType(Fluids.WATER)) {
-                                    translucentFaces[SectionPos.blockToSectionCoord(origin.pos.y) - level.minSection].addAll(faces)
-                                } else {
-                                    lightFaces[SectionPos.blockToSectionCoord(origin.pos.y) - level.minSection].addAll(faces)
+                        override fun collect(
+                            faces: Iterable<LightFace>,
+                            section: SectionPos,
+                            block: BlockPos,
+                            translucent: Boolean
+                        ) {
+                            // TODO
+                            if (translucent) {
+                                for (face in faces) {
+                                    if (face.any { (it.light ushr 16) and 0xFFFF != 0 }) {
+                                        translucentFaces[SectionPos.blockToSectionCoord(block.y) - level.minSection].add(face)
+                                    }
                                 }
                             } else {
-                                lightFaces[SectionPos.blockToSectionCoord(origin.pos.y) - level.minSection].addAll(faces)
+                                for (face in faces) {
+                                    lightFaces[SectionPos.blockToSectionCoord(block.y) - level.minSection].add(face)
+                                }
                             }
                         }
                     }
                 )) {
                 return AutoCloseable { } to { null }
             }
+             */
             blockEntities = mesher.blockEntities
 
             fun upload(faces: List<LightFace>, mesh: Mesh): Pair<AutoCloseable, () -> Unit> {
@@ -730,29 +697,17 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
                 vertexBuffer.write().run {
                     faces.forEachIndexed { index, face ->
-                        for (vertex in face.quad.vertices) {
-                            writeFloat(vertex.pos.x)
-                            writeFloat(vertex.pos.y)
-                            writeFloat(vertex.pos.z)
-                            writeFloat(vertex.textureUV!!.x)
-                            writeFloat(vertex.textureUV!!.y)
+                        face.apply { vertex ->
+                            writeFloat(vertex.x)
+                            writeFloat(vertex.y)
+                            writeFloat(vertex.z)
 
-                            if (face.blockPos == null || face.quad.direction == null) {
-                                writeInt(net.minecraft.client.renderer.LightTexture.FULL_BRIGHT)
-                            } else {
-                                val pos = (face.blockPos + face.quad.direction!!).blockPos
-                                writeInt(net.minecraft.client.renderer.LightTexture.pack(
-                                    level.getBrightness(LightLayer.BLOCK, pos),
-                                    level.getBrightness(LightLayer.SKY, pos)
-                                ))
-                            }
+                            writeFloat(vertex.u)
+                            writeFloat(vertex.v)
 
-                            writeInt((vertex.color ?: NeoColor.FULL_ON).toRGBA())
-                            val normal = vertex.normal ?: face.quad.direction?.toFloat() ?: NeoVec3f(0f, 1f, 0f)
-                            writeByte((normal.x * 127).toInt())
-                            writeByte((normal.y * 127).toInt())
-                            writeByte((normal.z * 127).toInt())
-                            writeByte(0)
+                            writeInt(vertex.light)
+                            writeInt(vertex.color)
+                            writeInt(vertex.normal)
                         }
                     }
                 }
@@ -781,8 +736,8 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
         }
 
         fun update(data: RenderEventData, manager: LightManager) {
-            for (pos in manager.dirtyBlocks) {
-                if (ChunkPos(pos.blockPos) == this.pos) {
+            for (section in manager.dirtySections) {
+                if (section.first.x == pos.x && section.first.z == pos.z) {
                     dirty = true
                     break
                 }

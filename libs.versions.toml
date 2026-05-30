@@ -1,7 +1,7 @@
 [versions]
 kotlin = "2.2.0"
 moddev = "2.0.140"
-loom = "1.15-SNAPSHOT"
+loom = "1.16-SNAPSHOT"
 dokka = "1.9.20"
 
 kff = "5.9.0"
@@ -13,8 +13,6 @@ flk = "1.13.4+kotlin.2.2.0"
 
 mixin = "0.8.5"
 mixinExtras = "0.5.3"
-
-sodium="mc1.21.1-0.6.13-neoforge"
 
 bigShot="4.7.6"
 
@@ -29,7 +27,6 @@ flk = { group = "net.fabricmc", name = "fabric-language-kotlin", version.ref = "
 kff = { group = "thedarkcolour", name = "kotlinforforge-neoforge", version.ref = "kff" }
 mixin = { group = "org.spongepowered", name = "mixin", version.ref = "mixin" }
 mixinExtras-common = { group = "io.github.llamalad7", name = "mixinextras-common", version.ref = "mixinExtras" }
-sodium = { group = "maven.modrinth", name = "sodium", version.ref = "sodium" }
 bigShot = { group = "net.typho", name = "big_shot_lib", version.ref = "bigShot" }
 modmenu = { group = "maven.modrinth", name = "modmenu", version.ref = "modmenu" }
 sableCompanion = { group = "dev.ryanhcode.sable-companion", name = "sable-companion-common-1.21.1", version.ref = "sableCompanion" }

@@ -29,7 +29,17 @@ vec3 specularReflection(vec3 baseColor, vec3 lightColor, vec3 lightDir, vec3 cam
     return baseColor + lightColor * texture(reflectionSampler, texCoord0).r * multiplier;
 }
 
+float hash4(vec4 v) {
+    return fract(sin(dot(v, vec4(12.9898, 87.233, 37.719, 17.853))) * 43758.5454);
+}
+
 vec3 applyLight(vec3 lightColor, vec4 blockColor, vec3 pos) {
     vec3 mixedColor = mix(lightColor, lightColor * blockColor.rgb, blockColor.a) * blockColor.a;
     return mixedColor * fogFade(pos);
+}
+
+vec3 applyLight(vec3 lightColor, vec4 blockColor, vec3 pos, vec3 lightPos, float flicker, float time) {
+    time *= 4;
+    vec3 flickeredColor = lightColor * (1 + flicker * (mix(hash4(vec4(lightPos, floor(time))), hash4(vec4(lightPos, floor(time) + 1)), fract(time)) * 2 - 1));
+    return applyLight(flickeredColor, blockColor, pos);
 }

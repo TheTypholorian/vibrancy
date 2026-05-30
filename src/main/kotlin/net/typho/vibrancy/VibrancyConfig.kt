@@ -7,13 +7,17 @@ import dev.isxander.yacl3.api.controller.*
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
 import net.typho.big_shot_lib.api.client.rendering.opengl.GlQueue
+import net.typho.big_shot_lib.api.math.rect.NeoRect3i
 import net.typho.big_shot_lib.api.util.platform.PlatformUtil
+import net.typho.vibrancy.block.impl.RayPointLightStorage
+import net.typho.vibrancy.block.impl.RayPointLightType
 import net.typho.vibrancy.block.impl.SubtleLightCullingMode
 import net.typho.vibrancy.sky.impl.OverworldSkyLightStorage
 import net.typho.vibrancy.util.VibrancyThreadPool
 import org.lwjgl.opengl.GL11.GL_RENDERER
 import org.lwjgl.opengl.GL11.glGetString
 import java.nio.file.Files
+import kotlin.math.ceil
 import kotlin.reflect.KMutableProperty0
 
 internal fun <T : Any> Option.Builder<T>.binding(def: T, property: KMutableProperty0<T>): Option.Builder<T> {
@@ -65,6 +69,8 @@ object VibrancyConfig {
         }
     @JvmField
     var limitLightBrightness = false
+    @JvmField
+    var flickerStrength = 1f
 
     @JvmField
     var reflectionsEnabled = true
@@ -93,8 +99,18 @@ object VibrancyConfig {
     var rayLightsMaxRendered: Int = if (isPotato) 200 else 400
     @JvmField
     var rayLightBrightness: Float = 1f
-    @JvmField
     var rayLightShadowRadius: Int = 6
+        set(value) {
+            field = value
+
+            Vibrancy.lightManager.blockLights[RayPointLightType]?.let {
+                for (light in (it as RayPointLightStorage).map.values) {
+                    light.shadowBox = light.createShadowBox()
+                }
+            }
+        }
+    @JvmField
+    var rayLightMaxHighQuality: Int = 10
 
     var subtleLightsEnabled = true
         set(value) {
@@ -150,6 +166,7 @@ object VibrancyConfig {
                 .name("useMultithreading").value(useMultithreading)
                 .name("asyncThreads").value(asyncThreads)
                 .name("limitLightBrightness").value(limitLightBrightness)
+                .name("flickerStrength").value(flickerStrength)
 
                 .name("specularReflections").beginObject()
 
@@ -176,6 +193,7 @@ object VibrancyConfig {
                 .name("maxRendered").value(rayLightsMaxRendered)
                 .name("brightness").value(rayLightBrightness)
                 .name("shadowRadius").value(rayLightShadowRadius)
+                .name("maxHighQuality").value(rayLightMaxHighQuality)
 
                 .endObject()
 
@@ -217,6 +235,7 @@ object VibrancyConfig {
                 json.getAsJsonPrimitive("useMultithreading")?.let { useMultithreading = it.asBoolean }
                 json.getAsJsonPrimitive("asyncThreads")?.let { asyncThreads = it.asInt }
                 json.getAsJsonPrimitive("limitLightBrightness")?.let { limitLightBrightness = it.asBoolean }
+                json.getAsJsonPrimitive("flickerStrength")?.let { flickerStrength = it.asFloat }
 
                 json.getAsJsonObject("specularReflections")?.let { reflections ->
                     reflections.getAsJsonPrimitive("enabled")?.let { reflectionsEnabled = it.asBoolean }
@@ -237,6 +256,7 @@ object VibrancyConfig {
                         raytraced.getAsJsonPrimitive("maxRendered")?.let { rayLightsMaxRendered = it.asInt }
                         raytraced.getAsJsonPrimitive("brightness")?.let { rayLightBrightness = it.asFloat }
                         raytraced.getAsJsonPrimitive("shadowRadius")?.let { rayLightShadowRadius = it.asInt }
+                        raytraced.getAsJsonPrimitive("maxHighQuality")?.let { rayLightMaxHighQuality = it.asInt }
                     }
 
                     blockLights.getAsJsonObject("subtle")?.let { subtle ->
@@ -313,6 +333,19 @@ object VibrancyConfig {
                     .binding(false, VibrancyConfig::limitLightBrightness)
                     .controller(TickBoxControllerBuilder::create)
                     .build())
+
+                .option(Option.createBuilder<Float>()
+                    .name(Component.translatable("config.vibrancy.general.flickerStrength"))
+                    .binding(1f, VibrancyConfig::flickerStrength)
+                    .description(OptionDescription.of(
+                        Component.translatable("config.vibrancy.blockLights.general.flickerStrength.tooltip")
+                    ))
+                    .controller { opt ->
+                        FloatSliderControllerBuilder.create(opt)
+                            .range(0f, 2f)
+                            .step(0.1f)
+                    }
+                    .build())
                 .build())
 
             .category(ConfigCategory.createBuilder()
@@ -363,6 +396,19 @@ object VibrancyConfig {
                             IntegerSliderControllerBuilder.create(opt)
                                 .range(1, 16)
                                 .step(1)
+                        }
+                        .build())
+
+                    .option(Option.createBuilder<Int>()
+                        .name(Component.translatable("config.vibrancy.blockLights.raytraced.maxHighQuality"))
+                        .binding(10, VibrancyConfig::rayLightMaxHighQuality)
+                        .description(OptionDescription.of(
+                            Component.translatable("config.vibrancy.blockLights.raytraced.maxHighQuality.tooltip")
+                        ))
+                        .controller { opt ->
+                            IntegerSliderControllerBuilder.create(opt)
+                                .range(0, 30)
+                                .step(5)
                         }
                         .build())
                     .build())

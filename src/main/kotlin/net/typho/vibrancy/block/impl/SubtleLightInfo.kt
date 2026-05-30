@@ -13,6 +13,8 @@ data class SubtleLightInfo(
     @JvmField
     val color: StateFunction<IVec3<Float>>,
     @JvmField
+    val flicker: StateFunction<Float>,
+    @JvmField
     val brightness: StateFunction<Float>,
     @JvmField
     val shape: StateFunction<Int>,
@@ -29,6 +31,9 @@ data class SubtleLightInfo(
                 StateFunction.codec(IVec3.FLOAT_CODEC, stateDefinition)
                     .fieldOf("color")
                     .forGetter { info -> info.color },
+                StateFunction.codec(Codec.FLOAT, stateDefinition)
+                    .optionalFieldOf("flicker", StateFunction(0f))
+                    .forGetter { info -> info.flicker },
                 StateFunction.codec(Codec.FLOAT, stateDefinition)
                     .fieldOf("brightness")
                     .forGetter { info -> info.brightness },

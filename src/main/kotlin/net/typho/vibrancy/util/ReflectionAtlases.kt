@@ -1,5 +1,6 @@
 package net.typho.vibrancy.util
 
+import net.caffeinemc.mods.sodium.client.render.texture.SpriteContentsExtension
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.texture.SpriteContents
 import net.minecraft.client.renderer.texture.SpriteLoader
@@ -169,6 +170,7 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
                     parent.sprites[id]?.let { sprite ->
                         resource.value.open().use { stream ->
                             loader.loadSprite(ResourceLocation.fromNamespaceAndPath(resource.key.namespace, resource.key.path), resource.value)?.let { contents ->
+                                (contents as SpriteContentsExtension).`sodium$setActive`(true)
                                 //? if <1.21.5 {
                                 contents.uploadFirstFrame(sprite.x, sprite.y)
                                 //? } else {

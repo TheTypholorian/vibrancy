@@ -1,6 +1,6 @@
 package net.typho.vibrancy.block.impl
 
-import net.minecraft.core.SectionPos
+import net.minecraft.client.Minecraft
 import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.block.state.StateDefinition
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBlendEquation
@@ -46,6 +46,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
             synchronized(lights.map) {
                 profiler.push("cull")
                 val lights = lights.map.values
+                    /*
                     .filter { light ->
                         manager.testFrustum(light.pos, data, light.boundingBox) && SectionPos.betweenClosedStream(
                             SectionPos.blockToSectionCoord(light.boundingBox.min.x),
@@ -56,6 +57,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                             SectionPos.blockToSectionCoord(light.boundingBox.max.z)
                         ).anyMatch { manager.isSectionVisible(it) }
                     }
+                     */
                     .map { light -> light to manager.getSortingOrder(data, light.pos) }
                     .sortedBy { it.second }
                     .take(VibrancyConfig.rayLightsMaxRendered)
@@ -63,13 +65,26 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                 profiler.pop()
 
                 profiler.push("update")
-                lights.forEachIndexed { index, light -> light.first.update(
-                    data,
-                    manager,
-                    debugOut,
-                    (VibrancyConfig.entityShadowsEnabled || VibrancyConfig.blockEntityShadows) && index < VibrancyConfig.entityShadowMaxBlockLights && manager.inRenderDistance(light.second, VibrancyConfig.entityShadowDistance),
-                    profiler
-                ) }
+                val entityShadowDistance = manager.getRenderDistance(VibrancyConfig.entityShadowDistance)
+                var forceLoadDistance = (Minecraft.getInstance().options.effectiveRenderDistance - 4).coerceAtLeast(2)
+                forceLoadDistance *= forceLoadDistance * 256
+                lights.forEachIndexed { index, light ->
+                    if (
+                        light.second < forceLoadDistance
+                        || light.first.streamSections(data.level!!).allMatch { pos ->
+                            manager.sectionMeshCaches.containsKey(pos) || data.level!!.getChunk(pos.x(), pos.z())
+                                .let { it.getSection(it.getSectionIndexFromSectionY(pos.y())) }.hasOnlyAir()
+                        }
+                    ) {
+                        light.first.update(
+                            data,
+                            manager,
+                            debugOut,
+                            (VibrancyConfig.entityShadowsEnabled || VibrancyConfig.blockEntityShadows) && index < VibrancyConfig.entityShadowMaxBlockLights && light.second < entityShadowDistance,
+                            profiler
+                        )
+                    }
+                }
                 profiler.pop()
 
                 profiler.push("draw")
@@ -84,17 +99,19 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                     FogUtil.INSTANCE.upload(settings.shader)
                     profiler.pop()
 
-                    val threshold = 2f * 2f * 16f * 16f
+                    val highQualityDistance = 2f * 2f * 16f * 16f
+                    val lights = lights.filter { it.first.streamSections(data.level!!).anyMatch { pos -> manager.isSectionVisible(pos) } }
+                    val atlas = NeoAtlas.blocks
 
                     temp.bind().use { fbo ->
-                        lights.forEach { light ->
-                            if (light.second < threshold) {
+                        lights.forEachIndexed { index, light ->
+                            if (light.second < highQualityDistance && index <= VibrancyConfig.rayLightMaxHighQuality) {
                                 profiler.push("clear")
                                 fbo.clear(GlClearBit.Color(NeoColor.FULL_OFF))
                                 profiler.pop()
 
                                 profiler.push("render")
-                                light.first.render(data, settings.shader, debugOut, profiler)
+                                light.first.render(data, settings.shader, atlas, debugOut, profiler)
                                 profiler.pop()
 
                                 profiler.push("blit")
@@ -112,10 +129,10 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                         if (VibrancyConfig.limitLightBrightness) GlBlendEquation.MAX else GlBlendEquation.ADD
                     ).bind().use {
                         result.bind().use { fbo ->
-                            lights.forEach { light ->
-                                if (light.second >= threshold) {
+                            lights.forEachIndexed { index, light ->
+                                if (light.second >= highQualityDistance || index > VibrancyConfig.rayLightMaxHighQuality) {
                                     profiler.push("render")
-                                    light.first.render(data, settings.shader, debugOut, profiler)
+                                    light.first.render(data, settings.shader, atlas, debugOut, profiler)
                                     profiler.pop()
                                 }
                             }

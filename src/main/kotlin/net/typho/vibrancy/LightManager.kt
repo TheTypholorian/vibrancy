@@ -9,6 +9,7 @@ import net.caffeinemc.mods.sodium.client.world.LevelRendererExtension
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
+import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
 import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.ChunkPos
@@ -31,18 +32,18 @@ import net.typho.big_shot_lib.api.math.rect.AbstractRect3
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
 import net.typho.big_shot_lib.api.math.vec.NeoVec3d
-import net.typho.big_shot_lib.api.util.platform.PlatformUtil
+import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.resource.NeoResourceKey
 import net.typho.vibrancy.Vibrancy.id
 import net.typho.vibrancy.block.BlockLightInfo
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.block.BlockLightStorage
 import net.typho.vibrancy.block.BlockLightType
-import net.typho.vibrancy.mixin.LevelRendererAccessor
 import net.typho.vibrancy.mixin.SodiumWorldRendererAccessor
 import net.typho.vibrancy.sky.SkyLightRegistry
 import net.typho.vibrancy.sky.SkyLightStorage
 import net.typho.vibrancy.sky.SkyLightType
+import net.typho.vibrancy.util.SectionMeshCache
 import java.util.*
 import java.util.function.Consumer
 import kotlin.use
@@ -53,22 +54,28 @@ import kotlin.use
 
 open class LightManager {
     @JvmField
-    val dirtyBlocks = LinkedList<IVec3<Int>>()
+    val dirtySectionLock = Any()
+    @JvmField
+    var nextDirtySections: MutableList<Pair<SectionPos, AbstractRect3<Int>>> = LinkedList()
+    @JvmField
+    var dirtySections: MutableList<Pair<SectionPos, AbstractRect3<Int>>> = LinkedList()
+    @JvmField
+    var dirtyBlocks: MutableMap<BlockPos, Pair<BlockState, BlockState>> = hashMapOf()
     @JvmField
     val blockLights = HashMap<BlockLightType<*, *>, BlockLightStorage<*>>()
     @JvmField
     var skyLight: Pair<SkyLightType<*, *>, SkyLightStorage<*>>? = null
     @JvmField
     protected val debugInfo = HashMap<NeoResourceKey<*>?, HashMap<String, Int>>()
-    private val visibleSections = hashSetOf<SectionPos>()
     @JvmField
-    val hasSodium = PlatformUtil.INSTANCE.mods.any { it.modId == "sodium" }
+    val sectionMeshCaches = hashMapOf<SectionPos, SectionMeshCache>()
 
     fun getLevel(): ClientLevel? = Minecraft.getInstance().level
 
     fun clear() {
         blockLights.values.forEach { storage -> storage.clear(this) }
         skyLight?.second?.clear(this)
+        sectionMeshCaches.clear()
     }
 
     fun reload() {
@@ -112,7 +119,7 @@ open class LightManager {
             BlockLightRegistry.get(new.block, entry.key)?.let { addBlockLight(pos, level, new, entry.key, it) }
         }
 
-        dirtyBlocks.add(pos)
+        dirtyBlocks[pos.blockPos] = old to new
     }
 
     fun loadChunk(chunk: ChunkAccess) {
@@ -138,6 +145,10 @@ open class LightManager {
     }
 
     protected fun getDebugOutput(key: NeoResourceKey<*>?): (String, Int) -> Unit {
+        if (!Minecraft.getInstance().debugOverlay.showDebugScreen()) {
+            return { key, value -> }
+        }
+
         val debugMap = debugInfo.computeIfAbsent(key) { HashMap() }
         return { key, value -> debugMap.compute(key) { k, v -> if (v == null) value else v + value } }
     }
@@ -156,20 +167,10 @@ open class LightManager {
         profiler.pop()
     }
 
-    protected fun updateSodiumVisibleSections() {
+    fun isSectionVisible(pos: SectionPos): Boolean {
         val renderer = (Minecraft.getInstance().levelRenderer as LevelRendererExtension).`sodium$getWorldRenderer`()
         val sectionManager = (renderer as SodiumWorldRendererAccessor).`vibrancy$getRenderSectionManager`()
-        sectionManager.renderLists.iterator().forEach { list ->
-            repeat(256) { index ->
-                list.region.getSection(index)?.let {
-                    visibleSections.add(it.position)
-                }
-            }
-        }
-    }
-
-    fun isSectionVisible(pos: SectionPos): Boolean {
-        return visibleSections.contains(pos)
+        return sectionManager.isSectionVisible(pos.x, pos.y, pos.z)
     }
 
     //? if <1.21.5 {
@@ -179,12 +180,10 @@ open class LightManager {
     *///? }
         profiler.push("vibrancy")
         debugInfo.clear()
-        visibleSections.clear()
 
-        if (hasSodium) {
-            updateSodiumVisibleSections() // I think I need to do this for class loading if sodium isn't present
-        } else {
-            (Minecraft.getInstance().levelRenderer as LevelRendererAccessor).`vibrancy$getVisibleSections`().mapTo(visibleSections) { SectionPos.of(it.origin) }
+        synchronized(dirtySectionLock) {
+            dirtySections = nextDirtySections
+            nextDirtySections = LinkedList()
         }
 
         for (entry in blockLights) {
@@ -193,6 +192,7 @@ open class LightManager {
 
         skyLight?.let { castAndRender(data, result, temp, it.first, it.second, profiler) }
 
+        dirtySections.clear()
         dirtyBlocks.clear()
         profiler.pop()
     }
@@ -263,33 +263,29 @@ open class LightManager {
         }
     }
 
-    fun clampToChunkRenderDistance(distance: Int): Int {
-        return distance.coerceAtMost(Minecraft.getInstance().options.effectiveRenderDistance)
-    }
-
-    fun inRenderDistance(testDistanceSquared: Float, renderDistance: Int): Boolean {
-        val x = clampToChunkRenderDistance(renderDistance) * 16f
-        return testDistanceSquared <= x * x
+    fun getRenderDistance(chunks: Int): Int {
+        val d = chunks.coerceAtMost(Minecraft.getInstance().options.effectiveRenderDistance)
+        return d * d * 256
     }
 
     //? if 1.21 {
-    fun inRenderDistance(data: RenderEventData, pos: ChunkPos, distance: Int): Boolean {
+    fun inRenderDistance(data: RenderEventData, pos: ChunkPos, distance: Float): Boolean {
         val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
 
         return if (subLevel == null) {
-            data.camera.pos.xz.inDistance(pos.middleBlockX.toFloat(), pos.middleBlockZ.toFloat(), clampToChunkRenderDistance(distance) * 16f)
+            data.camera.pos.xz.inDistanceSquared(pos.middleBlockX.toFloat(), pos.middleBlockZ.toFloat(), distance)
         } else {
-            data.camera.pos.inDistance(NeoVec3d(subLevel.renderPose().position()).toFloat(), clampToChunkRenderDistance(distance) * 16f)
+            data.camera.pos.inDistanceSquared(NeoVec3d(subLevel.renderPose().position()).toFloat(), distance)
         }
     }
 
-    fun inRenderDistance(data: RenderEventData, pos: SectionPos, distance: Int): Boolean {
+    fun inRenderDistance(data: RenderEventData, pos: SectionPos, distance: Float): Boolean {
         val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
 
         return if (subLevel == null) {
-            data.camera.pos.inDistance(pos.minBlockX() + 8f, pos.minBlockY() + 8f, pos.minBlockZ() + 8f, clampToChunkRenderDistance(distance) * 16f)
+            data.camera.pos.inDistanceSquared(pos.minBlockX() + 8f, pos.minBlockY() + 8f, pos.minBlockZ() + 8f, distance)
         } else {
-            data.camera.pos.inDistance(NeoVec3d(subLevel.renderPose().position()).toFloat(), clampToChunkRenderDistance(distance) * 16f)
+            data.camera.pos.inDistanceSquared(NeoVec3d(subLevel.renderPose().position()).toFloat(), distance)
         }
     }
 
@@ -320,11 +316,11 @@ open class LightManager {
     }
     //? } else {
     /*fun inRenderDistance(data: RenderEventData, pos: ChunkPos, distance: Int): Boolean {
-        return data.camera.pos.xz.inDistance(pos.middleBlockX.toFloat(), pos.middleBlockZ.toFloat(), clampToChunkRenderDistance(distance) * 16f)
+        return data.camera.pos.xz.inDistanceSquared(pos.middleBlockX.toFloat(), pos.middleBlockZ.toFloat(), distance)
     }
 
     fun inRenderDistance(data: RenderEventData, pos: SectionPos, distance: Int): Boolean {
-        return data.camera.pos.xz.inDistance(pos.minBlockX() + 8f, pos.minBlockY() + 8f, pos.minBlockZ() + 8f, clampToChunkRenderDistance(distance) * 16f)
+        return data.camera.pos.xz.inDistanceSquared(pos.minBlockX() + 8f, pos.minBlockY() + 8f, pos.minBlockZ() + 8f, distance)
     }
 
     fun getSortingOrder(data: RenderEventData, pos: IVec3<Int>): Float {

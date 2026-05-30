@@ -5,6 +5,7 @@ import net.typho.big_shot_lib.api.math.rect.AbstractRect3
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import org.joml.Vector3i
+import java.util.Arrays
 
 @Suppress("UNCHECKED_CAST")
 open class Offset3DArray<T>(
@@ -78,7 +79,13 @@ open class Offset3DArray<T>(
         }
     }
 
-    fun fill(value: T) = fill { x -> { y -> { z, old -> value } } }
+    fun fill(value: T) {
+        for (xa in array) {
+            for (ya in xa) {
+                Arrays.fill(ya, value)
+            }
+        }
+    }
 
     override fun iterator(): Iterator<Pair<IVec3<Int>, T>> {
         return object : Iterator<Pair<IVec3<Int>, T>> {

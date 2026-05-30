@@ -2,6 +2,35 @@
   "type": "vibrancy:subtle",
   "shape": 1,
   "color": [ 1, 1, 0.59 ],
+  "flicker": {
+    "default": 0,
+    "entries": [
+      {
+        "matches": {
+          "candles": "4"
+        },
+        "value": 0.05
+      },
+      {
+        "matches": {
+          "candles": "3"
+        },
+        "value": 0.1
+      },
+      {
+        "matches": {
+          "candles": "2"
+        },
+        "value": 0.15
+      },
+      {
+        "matches": {
+          "candles": "1"
+        },
+        "value": 0.2
+      }
+    ]
+  },
   "brightness": {
     "default": 0.8,
     "entries": [
@@ -9,13 +38,13 @@
         "matches": {
           "candles": "4"
         },
-        "value": 0.8
+        "value": 0.6
       },
       {
         "matches": {
           "candles": "3"
         },
-        "value": 0.6
+        "value": 0.5
       },
       {
         "matches": {
@@ -27,7 +56,7 @@
         "matches": {
           "candles": "1"
         },
-        "value": 0.2
+        "value": 0.3
       }
     ]
   },

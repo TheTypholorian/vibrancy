@@ -17,7 +17,6 @@ import net.typho.vibrancy.util.VibrancyThreadPool;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
-import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.ModifyArg;
@@ -74,7 +73,7 @@ public abstract class ReceivingLevelScreenMixin extends Screen {
             var subtleLights = Vibrancy.lightManager.blockLights.get(SubtleLightType.INSTANCE);
 
             if (subtleLights != null) {
-                var loading = ((SubtleLightStorage) subtleLights).chunks.values().stream().filter(chunk -> chunk.getTask() != null).count();
+                var loading = ((SubtleLightStorage) subtleLights).tasks.size();
                 var max = ((SubtleLightStorage) subtleLights).chunks.size();
                 guiGraphics.drawCenteredString(font, Component.translatable("loading.vibrancy.subtle", loading == 0 ? CommonComponents.GUI_DONE : (max - loading) + " / " + max), width / 2, y, 16777215);
                 y += font.lineHeight;
@@ -144,7 +143,7 @@ public abstract class ReceivingLevelScreenMixin extends Screen {
             var rayPointLights = Vibrancy.lightManager.blockLights.get(RayPointLightType.INSTANCE);
 
             if (rayPointLights != null) {
-                var loading = ((RayPointLightStorage) rayPointLights).getMap().values().stream().filter(light -> light.mesh.isTaskActive()).count();
+                var loading = ((RayPointLightStorage) rayPointLights).getMap().values().stream().mapToInt(light -> light.mesh.numActiveTasks()).sum();
                 var max = rayPointLights.getSize();
                 guiGraphics.drawCenteredString(font, Component.translatable("loading.vibrancy.raytraced_point", loading == 0 ? CommonComponents.GUI_DONE : (max - loading) + " / " + max), width / 2, y, 16777215);
                 y += font.lineHeight;
@@ -153,7 +152,7 @@ public abstract class ReceivingLevelScreenMixin extends Screen {
             var subtleLights = Vibrancy.lightManager.blockLights.get(SubtleLightType.INSTANCE);
 
             if (subtleLights != null) {
-                var loading = ((SubtleLightStorage) subtleLights).chunks.values().stream().filter(chunk -> chunk.getTask() != null).count();
+                var loading = ((SubtleLightStorage) subtleLights).tasks.size();
                 var max = ((SubtleLightStorage) subtleLights).chunks.size();
                 guiGraphics.drawCenteredString(font, Component.translatable("loading.vibrancy.subtle", loading == 0 ? CommonComponents.GUI_DONE : (max - loading) + " / " + max), width / 2, y, 16777215);
                 y += font.lineHeight;
@@ -216,7 +215,7 @@ public abstract class ReceivingLevelScreenMixin extends Screen {
             var rayPointLights = Vibrancy.lightManager.blockLights.get(RayPointLightType.INSTANCE);
 
             if (rayPointLights != null) {
-                var loading = ((RayPointLightStorage) rayPointLights).getMap().values().stream().filter(light -> light.mesh.isTaskActive()).count();
+                var loading = ((RayPointLightStorage) rayPointLights).getMap().values().stream().mapToInt(light -> light.mesh.numActiveTasks()).sum();
                 var max = rayPointLights.getSize();
                 guiGraphics.drawCenteredString(font, Component.translatable("loading.vibrancy.raytraced_point", loading == 0 ? CommonComponents.GUI_DONE : (max - loading) + " / " + max), width / 2, y, 16777215);
                 y += font.lineHeight;

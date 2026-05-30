@@ -1,6 +1,5 @@
 package net.typho.vibrancy.block.impl
 
-import com.mojang.blaze3d.systems.RenderSystem
 import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.block.state.StateDefinition
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBlendEquation
@@ -10,7 +9,6 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureTarg
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlFramebuffer
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlBlendShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
-import net.typho.big_shot_lib.api.client.rendering.opengl.state.NeoGlStateManager
 import net.typho.big_shot_lib.api.client.rendering.opengl.util.BlendFunction
 import net.typho.big_shot_lib.api.client.rendering.util.FogUtil
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
@@ -76,9 +74,10 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
                     profiler.pop()
 
                     profiler.push("sort")
+                    val distance = manager.getRenderDistance(VibrancyConfig.subtleLightsRenderDistance).toFloat()
                     val chunks = lights.chunks.values
                         .filter {
-                            manager.inRenderDistance(data, it.pos, VibrancyConfig.subtleLightsRenderDistance)
+                            !it.isCompiledEmpty && manager.inRenderDistance(data, it.pos, distance)
                         }
                     profiler.pop()
 

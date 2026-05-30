@@ -2,6 +2,7 @@
 
 #include "vibrancy:shadow_map"
 
+uniform vec3 CameraPos;
 uniform mat4 ModelViewMat;
 uniform mat4 ProjMat;
 uniform mat4 SpecularMat;
@@ -20,7 +21,7 @@ out vec3 fogPosition;
 out vec3 vertexNormal;
 
 void main() {
-    vec4 pos = ModelViewMat * vec4(Position, 1);
+    vec4 pos = ModelViewMat * vec4(Position - CameraPos, 1);
     gl_Position = ProjMat * pos;
     texCoord0 = UV0;
     texCoord1 = vec2(UV1);

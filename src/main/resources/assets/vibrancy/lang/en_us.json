@@ -9,6 +9,8 @@
   "config.vibrancy.general.limitLightBrightness": "Limit Light Brightness",
   "config.vibrancy.general.limitLightBrightness.tooltip0": "Limits how bright Vibrancy lights can make each pixel.",
   "config.vibrancy.general.limitLightBrightness.tooltip1": "Better for videos in some situations, but loses some detail and quality.",
+  "config.vibrancy.general.flickerStrength": "Flicker Strength",
+  "config.vibrancy.general.flickerStrength.tooltip": "Global multiplier for all light flickering, set to 0 to disable them.",
 
   "config.vibrancy.specularReflections": "Specular Reflections",
 
@@ -43,6 +45,8 @@
   "config.vibrancy.blockLights.raytraced.brightness.tooltip1": "Does not affect their radius.",
   "config.vibrancy.blockLights.raytraced.shadowRadius": "Shadow Radius",
   "config.vibrancy.blockLights.raytraced.shadowRadius.tooltip": "The maximum radius (in blocks) from each block light where blocks will cast shadows.",
+  "config.vibrancy.blockLights.raytraced.maxHighQuality": "Max High Quality",
+  "config.vibrancy.blockLights.raytraced.maxHighQuality.tooltip": "The maximum number of lights that use composite rendering, fixing the side of grass blocks not looking right.",
 
   "config.vibrancy.blockLights.subtle": "Subtle",
   "config.vibrancy.blockLights.subtle.enabled": "Enabled",

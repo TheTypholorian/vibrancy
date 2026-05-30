@@ -17,6 +17,9 @@ uniform bool SpecularReflectionsEnabled;
 uniform float SpecularReflectionStrength;
 uniform float SpecularReflectionExponent;
 
+uniform float LightFlicker;
+uniform float GLFWTime;
+
 in vec2 texCoord0;
 in vec2 texCoord1;
 in vec4 vertexColor;
@@ -39,5 +42,5 @@ void main() {
         lightColor = specularReflection(lightColor, lightColor, normalize(LightPos - vertexPosition), CameraPos, vertexPosition, vertexNormal, SpecularReflectionStrength, SpecularReflectionExponent, Sampler3, texCoord0);
     }
 
-    fragColor = applyLight(lightColor, block, fogPosition);
+    fragColor = applyLight(lightColor, block, fogPosition, LightPos, LightFlicker, GLFWTime);
 }

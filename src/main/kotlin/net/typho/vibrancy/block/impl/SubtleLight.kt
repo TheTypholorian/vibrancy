@@ -10,6 +10,8 @@ open class SubtleLight(
     @JvmField
     val color: IVec3<Float>,
     @JvmField
+    val flicker: Float,
+    @JvmField
     val shape: Int,
     @JvmField
     val offset: IVec3<Float>,
@@ -22,6 +24,7 @@ open class SubtleLight(
 
     constructor(info: SubtleLightInfo, state: BlockState, pos: IVec3<Int>) : this(
         info.color(state) * info.brightness(state),
+        info.flicker(state),
         info.shape(state),
         info.offset(state),
         pos

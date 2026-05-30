@@ -30,7 +30,8 @@
     "minecraft": "${minecraft}",
     "fabric-language-kotlin": "*",
     "big_shot_lib": ">=${big_shot_version}",
-    "yet_another_config_lib_v3": "*"
+    "yet_another_config_lib_v3": "*",
+    "sodium": "*"
   },
   "breaks": {
     "iris": "*"
