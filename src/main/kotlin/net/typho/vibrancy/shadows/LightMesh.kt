@@ -76,7 +76,7 @@ open class LightMesh(
             polygonOffset = GlPolygonOffsetShard.Enabled(
                 PolygonOffset(
                     -1f,
-                    -4f
+                    -10f
                 )
             ),
             shader = GlShaderShard.FromLocation(

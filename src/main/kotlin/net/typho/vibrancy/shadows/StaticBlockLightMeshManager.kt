@@ -127,7 +127,6 @@ open class StaticBlockLightMeshManager(
         pos: IVec3<Int>,
         manager: LightManager
     ) {
-        println("Scanning $pos")
         if (VibrancyConfig.useMultithreading) {
             scanTask?.cancel()
             scanTask = VibrancyThreadPool.submitClean(data, pos, manager) { scanImpl(it, manager) }
@@ -197,7 +196,6 @@ open class StaticBlockLightMeshManager(
         pos: IVec3<Int>,
         manager: LightManager
     ) {
-        println("Meshing $pos")
         if (VibrancyConfig.useMultithreading) {
             meshTask?.cancel()
             meshTask = VibrancyThreadPool.submit(data, pos, manager) { meshImpl(it, manager) }

@@ -531,7 +531,7 @@ open class RayPointLight(
         val subLevel = SableCompanion.INSTANCE.getContainingClient(pos.toDouble().toJOML())
 
         if (subLevel == null) {
-            shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((pos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
+            shader.setUniform("ModelViewMat") { set(data.modelViewMat) }
             shader.setUniform("SpecularMat") { set(Matrix4f()) }
             shader.setUniform("CameraPos") { setFloatVec(data.camera.pos - pos.toFloat()) }
         } else {
@@ -540,15 +540,12 @@ open class RayPointLight(
             val pos = NeoVec3d(pose.transformPosition(pos.toDouble().toJOML()))
             shader.setUniform("ModelViewMat") {
                 set(
-                    data.modelViewMat
-                        .translate((pos - data.camera.pos.toDouble()).toFloat().toJOML(), Matrix4f())
-                        .rotate(orientation)
+                    data.modelViewMat.rotate(orientation, Matrix4f())
                 )
             }
             shader.setUniform("SpecularMat") {
                 set(
-                    Matrix4f()
-                        .rotate(orientation)
+                    Matrix4f().rotate(orientation)
                 )
             }
             shader.setUniform("CameraPos") { setFloatVec(data.camera.pos - pos.toFloat()) }
