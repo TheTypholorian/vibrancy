@@ -6,6 +6,7 @@ struct Light {
     vec3 pos;
     uint shape;
     vec3 color;
+    float flicker;
 };
 
 uniform sampler2D Sampler0;
@@ -16,6 +17,9 @@ uniform float LightBrightness;
 uniform bool SpecularReflectionsEnabled;
 uniform float SpecularReflectionStrength;
 uniform float SpecularReflectionExponent;
+
+uniform float FlickerStrength;
+uniform float GLFWTime;
 
 uniform vec3 CameraPos;
 
@@ -47,5 +51,5 @@ void main() {
         }
     }
 
-    fragColor = applyLight(lightColor, block, fogPosition);
+    fragColor = applyLight(lightColor, block, fogPosition, light.pos, light.flicker * FlickerStrength, GLFWTime);
 }

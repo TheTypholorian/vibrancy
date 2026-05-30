@@ -48,6 +48,7 @@ import net.typho.vibrancy.util.GlTask
 import net.typho.vibrancy.util.SectionMeshCache
 import net.typho.vibrancy.util.VibrancyThreadPool
 import org.joml.Matrix4f
+import org.lwjgl.glfw.GLFW.glfwGetTime
 import org.lwjgl.system.NativeResource
 import kotlin.use
 
@@ -208,7 +209,7 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
                             writeFloat(color.x)
                             writeFloat(color.y)
                             writeFloat(color.z)
-                            writeFloat(0f)
+                            writeFloat(light.flicker)
                         }
                     }
 
@@ -349,6 +350,9 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
                     GlTextureTarget.TEXTURE_2D
                 ))
                 shader.setShaderStorageBuffer("LightBuffer", ssbo)
+
+                shader.setUniform("FlickerStrength") { set(VibrancyConfig.flickerStrength) }
+                shader.setUniform("GLFWTime") { set(glfwGetTime().toFloat()) }
                 profiler.pop()
 
                 profiler.push("draw")

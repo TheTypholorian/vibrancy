@@ -9,6 +9,8 @@
   "config.vibrancy.general.limitLightBrightness": "Limit Light Brightness",
   "config.vibrancy.general.limitLightBrightness.tooltip0": "Limits how bright Vibrancy lights can make each pixel.",
   "config.vibrancy.general.limitLightBrightness.tooltip1": "Better for videos in some situations, but loses some detail and quality.",
+  "config.vibrancy.general.flickerStrength": "Flicker Strength",
+  "config.vibrancy.general.flickerStrength.tooltip": "Global multiplier for all light flickering, set to 0 to disable them.",
 
   "config.vibrancy.specularReflections": "Specular Reflections",
 

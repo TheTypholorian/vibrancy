@@ -4,6 +4,7 @@ struct Light {
     vec3 pos;
     uint shape;
     vec3 color;
+    float flicker;
 };
 
 layout(std430) buffer LightBuffer {

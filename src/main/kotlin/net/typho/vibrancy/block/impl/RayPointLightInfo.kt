@@ -13,6 +13,8 @@ data class RayPointLightInfo(
     @JvmField
     val color: StateFunction<IVec3<Float>>,
     @JvmField
+    val flicker: StateFunction<Float>,
+    @JvmField
     val radius: StateFunction<Float>,
     @JvmField
     val brightness: StateFunction<Float>,
@@ -29,6 +31,9 @@ data class RayPointLightInfo(
                 StateFunction.codec(IVec3.FLOAT_CODEC, stateDefinition)
                     .fieldOf("color")
                     .forGetter { info -> info.color },
+                StateFunction.codec(Codec.FLOAT, stateDefinition)
+                    .optionalFieldOf("flicker", StateFunction(0f))
+                    .forGetter { info -> info.flicker },
                 StateFunction.codec(Codec.FLOAT, stateDefinition)
                     .fieldOf("radius")
                     .forGetter { info -> info.radius },

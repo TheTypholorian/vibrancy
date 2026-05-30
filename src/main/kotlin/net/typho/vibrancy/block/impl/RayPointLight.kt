@@ -54,6 +54,7 @@ import net.typho.vibrancy.util.PointLight
 import net.typho.vibrancy.util.QuadListVertexConsumer
 import org.joml.Matrix4f
 import org.joml.Quaternionf
+import org.lwjgl.glfw.GLFW.glfwGetTime
 import org.lwjgl.system.NativeResource
 import java.util.stream.Stream
 import kotlin.and
@@ -62,6 +63,8 @@ import kotlin.math.ceil
 open class RayPointLight(
     @JvmField
     val color: IVec3<Float>,
+    @JvmField
+    val flicker: Float,
     @JvmField
     val radius: Float,
     @JvmField
@@ -154,6 +157,7 @@ open class RayPointLight(
 
     constructor(info: RayPointLightInfo, state: BlockState, pos: IVec3<Int>) : this(
         info.color(state) * info.brightness(state),
+        info.flicker(state),
         info.radius(state),
         info.offset(state),
         pos
@@ -525,6 +529,9 @@ open class RayPointLight(
         profiler.pop()
 
         profiler.push("uniforms")
+        shader.setUniform("LightFlicker") { set(flicker * VibrancyConfig.flickerStrength) }
+        shader.setUniform("GLFWTime") { set(glfwGetTime().toFloat()) }
+
         shader.setUniform("LightPos") { setFloatVec(offset) }
         shader.setUniform("LightColor") { setFloatVec(color) }
         shader.setUniform("LightRadius") { set(radius) }

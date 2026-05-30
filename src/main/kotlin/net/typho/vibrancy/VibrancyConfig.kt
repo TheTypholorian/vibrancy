@@ -65,6 +65,8 @@ object VibrancyConfig {
         }
     @JvmField
     var limitLightBrightness = false
+    @JvmField
+    var flickerStrength = 1f
 
     @JvmField
     var reflectionsEnabled = true
@@ -152,6 +154,7 @@ object VibrancyConfig {
                 .name("useMultithreading").value(useMultithreading)
                 .name("asyncThreads").value(asyncThreads)
                 .name("limitLightBrightness").value(limitLightBrightness)
+                .name("flickerStrength").value(flickerStrength)
 
                 .name("specularReflections").beginObject()
 
@@ -220,6 +223,7 @@ object VibrancyConfig {
                 json.getAsJsonPrimitive("useMultithreading")?.let { useMultithreading = it.asBoolean }
                 json.getAsJsonPrimitive("asyncThreads")?.let { asyncThreads = it.asInt }
                 json.getAsJsonPrimitive("limitLightBrightness")?.let { limitLightBrightness = it.asBoolean }
+                json.getAsJsonPrimitive("flickerStrength")?.let { flickerStrength = it.asFloat }
 
                 json.getAsJsonObject("specularReflections")?.let { reflections ->
                     reflections.getAsJsonPrimitive("enabled")?.let { reflectionsEnabled = it.asBoolean }
@@ -316,6 +320,19 @@ object VibrancyConfig {
                     ))
                     .binding(false, VibrancyConfig::limitLightBrightness)
                     .controller(TickBoxControllerBuilder::create)
+                    .build())
+
+                .option(Option.createBuilder<Float>()
+                    .name(Component.translatable("config.vibrancy.general.flickerStrength"))
+                    .binding(1f, VibrancyConfig::flickerStrength)
+                    .description(OptionDescription.of(
+                        Component.translatable("config.vibrancy.blockLights.general.flickerStrength.tooltip")
+                    ))
+                    .controller { opt ->
+                        FloatSliderControllerBuilder.create(opt)
+                            .range(0f, 2f)
+                            .step(0.1f)
+                    }
                     .build())
                 .build())
 
