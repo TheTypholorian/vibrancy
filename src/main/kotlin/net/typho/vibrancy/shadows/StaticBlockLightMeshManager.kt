@@ -7,7 +7,9 @@ import net.minecraft.world.level.block.state.BlockState
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
+import net.typho.big_shot_lib.api.math.rect.AbstractRect3
 import net.typho.big_shot_lib.api.math.vec.IVec3
+import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyConfig
@@ -16,20 +18,24 @@ import net.typho.vibrancy.util.GlTask
 import net.typho.vibrancy.util.VibrancyThreadPool
 import org.lwjgl.system.NativeResource
 
-open class StaticBlockLightMeshManager(
+open class StaticBlockLightMeshManager<C : BlockMeshCollector>(
     @JvmField
     val lightPredicate: BlockMeshCollector.Predicate,
     @JvmField
     val shadowPredicate: BlockMeshCollector.Predicate,
     @JvmField
-    val collector: BlockMeshCollector,
+    val collector: C,
     @JvmField
-    val blit: (manager: StaticBlockLightMeshManager, info: LightMesh.MeshData) -> Unit
+    val pos: IVec3<Int>,
+    @JvmField
+    val bounds: (manager: StaticBlockLightMeshManager<C>) -> AbstractRect3<Int>,
+    @JvmField
+    val blit: (manager: StaticBlockLightMeshManager<C>, info: LightMesh.MeshData) -> Unit
 ) : NativeResource {
     @JvmField
     val lightMesh = LightMesh(GlBufferUsage.STATIC_DRAW)
     @JvmField
-    val shadowBuffer = ShadowBuffer(GlBufferUsage.STATIC_DRAW)
+    val shadowBuffer = ShadowBuffer.VoxelGrid(GlBufferUsage.STATIC_DRAW)
     @JvmField
     protected var scanTask: GlTask<Unit>? = null
     @JvmField
@@ -141,7 +147,7 @@ open class StaticBlockLightMeshManager(
     ): Pair<AutoCloseable, () -> LightMesh.MeshData?> {
         val level = manager.getLevel() ?: throw NullPointerException("No level?")
 
-        val shadowFaces = arrayListOf<LightFace>()
+        val shadowFaces = hashMapOf<IVec3<Int>, MutableList<PrimitiveQuad>>()
         val lightFaces = arrayListOf<LightFace>()
         collector.mesh(
             isCancelled,
@@ -157,7 +163,7 @@ open class StaticBlockLightMeshManager(
                     val state = level.getBlockState(block)
 
                     if (shadowPredicate.shouldCastBlock(level, block, state)) {
-                        faces.filterTo(shadowFaces) { shadowPredicate.shouldCastFace(level, block, state, it) }
+                        faces.filterTo(shadowFaces.computeIfAbsent(NeoVec3i(block) - pos) { arrayListOf() }) { shadowPredicate.shouldCastFace(level, block, state, it) }
                     }
 
                     if (lightPredicate.shouldCastBlock(level, block, state)) {
@@ -171,7 +177,7 @@ open class StaticBlockLightMeshManager(
             return AutoCloseable { } to { null }
         }
 
-        val shadows = shadowBuffer.lazyUpload(NeoAtlas.blocks.width, NeoAtlas.blocks.height, shadowFaces)
+        val shadows = shadowBuffer.lazyUpload(NeoAtlas.blocks.width, NeoAtlas.blocks.height, bounds(this), shadowFaces)
 
         if (isCancelled()) {
             return shadows.first to { null }

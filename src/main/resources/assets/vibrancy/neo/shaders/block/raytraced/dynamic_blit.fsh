@@ -35,6 +35,7 @@ out vec3 fragColor;
 struct Ray {
     vec3 pos;
     vec3 dir;
+    vec3 invDir;
     float len;
 };
 
@@ -42,7 +43,7 @@ Ray ray(vec3 pos) {
     vec3 delta = LightPos - pos;
     vec3 dir = normalize(delta);
     float len = length(delta);
-    return Ray(pos, dir, len);
+    return Ray(pos, dir, 1 / dir, len);
 }
 
 void main() {
@@ -57,7 +58,7 @@ void main() {
     for (uint i = 0u; i < boundingVolumes.length(); i++) {
         BVH bvh = boundingVolumes[i];
 
-        if (raycastAABB(ray.pos, ray.dir, ray.len, AABB(bvh.min, bvh.max))) {
+        if (raycastAABB(ray.pos, ray.invDir, ray.len, AABB(bvh.min, bvh.max))) {
             for (uint j = bvh.start; j < bvh.end; j++) {
                 float dist;
                 vec4 outColor;

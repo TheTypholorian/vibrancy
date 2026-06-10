@@ -53,6 +53,8 @@ import net.typho.vibrancy.util.PointLight
 import org.joml.Matrix4f
 import org.joml.Quaternionf
 import org.lwjgl.glfw.GLFW.glfwGetTime
+import org.lwjgl.opengl.GL30.glBindBufferBase
+import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.system.NativeResource
 import java.util.stream.Stream
 import kotlin.math.ceil
@@ -183,6 +185,10 @@ open class RayPointLight(
                 setUniform("LightRadius") { set(radius) }
 
                 setShaderStorageBuffer("ShadowQuadBuffer", shadowBuffer)
+
+                if (shadowBuffer is ShadowBuffer.VoxelGrid) {
+                    setShaderStorageBuffer("GridBuffer", shadowBuffer.gridBuffer)
+                }
             }.bind().use { blitMesh.draw() }
         }
     }
@@ -210,7 +216,13 @@ open class RayPointLight(
     val mesh = StaticBlockLightMeshManager(
         lightPredicate,
         shadowPredicate,
-        meshCollector
+        meshCollector,
+        pos,
+        {
+            val shadowRadius = ceil(radius.coerceAtMost(VibrancyConfig.rayLightShadowRadius.toFloat())).toInt()
+            val v = NeoVec3i(shadowRadius, shadowRadius, shadowRadius)
+            return@StaticBlockLightMeshManager NeoRect3i(-v, v)
+        }
     ) { mesh, info ->
         meshData = info
         staticTexture.resize(info.sections.size.x, info.sections.size.y)

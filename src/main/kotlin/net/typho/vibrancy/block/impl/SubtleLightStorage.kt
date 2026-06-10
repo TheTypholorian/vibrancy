@@ -68,17 +68,15 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
     val dirty = hashSetOf<Chunk>()
     @JvmField
     val tasks = hashMapOf<SectionPos, GlTask<Unit>>()
+    @JvmField
+    val sectionLoadQueue = hashSetOf<SectionPos>()
 
     override fun createChunk(manager: LightManager, pos: SectionPos): Chunk {
         return Chunk(pos)
     }
 
     override fun loadSection(manager: LightManager, chunk: ChunkAccess, pos: SectionPos) {
-        val section = chunk.getSection(chunk.getSectionIndexFromSectionY(pos.y))
-
-        if (section.maybeHas { BlockLightRegistry.get(it.block, SubtleLightType) != null }) {
-            getOrCreateChunk(manager, pos).loadChunk(manager, chunk)
-        }
+        sectionLoadQueue.add(pos)
     }
 
     fun checkDirty(
@@ -86,6 +84,24 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
         data: RenderEventData,
         profiler: ProfilerFiller
     ) {
+        // TODO major important fix this it's eating 60 fps
+        val distance = manager.getRenderDistance(VibrancyConfig.subtleLightsRenderDistance).toFloat()
+
+        sectionLoadQueue.removeIf { pos ->
+            if (manager.inRenderDistance(data, pos, distance)) {
+                val chunk = data.level!!.getChunk(pos.x, pos.z)
+                val section = chunk.getSection(chunk.getSectionIndexFromSectionY(pos.y))
+
+                if (section.maybeHas { BlockLightRegistry.get(it.block, SubtleLightType) != null }) {
+                    getOrCreateChunk(manager, pos).loadChunk(manager, chunk)
+                }
+
+                return@removeIf true
+            } else {
+                return@removeIf false
+            }
+        }
+
         profiler.push("finish")
         tasks.values.removeIf {
             if (it.isDoneOrCancelled()) {

@@ -3,9 +3,7 @@ struct AABB {
     vec3 max;
 };
 
-bool raycastAABB(vec3 origin, vec3 dir, float len, AABB aabb) {
-    vec3 invDir = 1 / dir;
-
+bool raycastAABB(vec3 origin, vec3 invDir, float len, AABB aabb) {
     vec3 t0 = (aabb.min - origin) * invDir;
     vec3 t1 = (aabb.max - origin) * invDir;
 
