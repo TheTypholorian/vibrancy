@@ -64,7 +64,7 @@ vec3 test(Ray ray) {
     vec3 tint = vec3(0);
     float denom = 0;
 
-    while (!(any(lessThan(voxel, gridMin)) || any(greaterThanEqual(voxel, gridMax)))) {
+    while (!(any(lessThan(voxel, gridMin)) || any(greaterThanEqual(voxel, gridMax)) || voxel == ivec3(0))) {
         uint cellIndex = getCellIndex(voxel);
 
         if (cellIndex < 0 || cellIndex > gridCells.length()) {
@@ -88,10 +88,6 @@ vec3 test(Ray ray) {
                     }
                 }
             }
-        }
-
-        if (voxel == ivec3(0)) {
-            break;
         }
 
         ivec3 oldVoxel = voxel;

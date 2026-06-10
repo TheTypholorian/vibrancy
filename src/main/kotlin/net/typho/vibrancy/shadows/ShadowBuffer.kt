@@ -1,26 +1,16 @@
 package net.typho.vibrancy.shadows
 
-import com.ibm.icu.text.UTF16.bounds
-import net.minecraft.core.SectionPos
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferTarget
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlBuffer
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
-import net.typho.big_shot_lib.api.math.rect.AbstractRect3
 import net.typho.big_shot_lib.api.math.rect.AbstractRect3.Companion.areaInclusive
 import net.typho.big_shot_lib.api.math.rect.AbstractRect3.Companion.sizeInclusive
-import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
-import net.typho.vibrancy.LightManager
-import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.util.Offset3DArray
-import net.typho.vibrancy.util.SectionMeshCache
 import org.lwjgl.system.MemoryUtil.memPutInt
 import org.lwjgl.system.MemoryUtil.memSet
-import org.lwjgl.system.MemoryUtil.nmemAllocChecked
-import org.lwjgl.system.MemoryUtil.nmemCallocChecked
-import org.lwjgl.system.MemoryUtil.nmemFree
 
 open class ShadowBuffer(
     @JvmField
