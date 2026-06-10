@@ -130,9 +130,6 @@ open class RayPointLight(
         }
     }
 
-    @JvmField
-    val meshCollector = FloodFillBlockMeshCollector(pos.blockPos)
-
     var meshData: LightMesh.ComplexMeshData? = null
         protected set
 
@@ -190,9 +187,6 @@ open class RayPointLight(
     )
 
     fun reload() {
-        synchronized(meshCollector) {
-            meshCollector.markAllDirty()
-        }
         mesh.queueMesh()
     }
 
@@ -216,14 +210,12 @@ open class RayPointLight(
 
     fun update(data: RenderEventData, manager: LightManager, debugOut: (String, Int) -> Unit, dynamicShadows: Boolean, profiler: ProfilerFiller) {
         profiler.push("rebuildBlocks")
-        synchronized(meshCollector) {
-            val box = boundingBox
+        val box = boundingBox
 
-            for (section in manager.dirtySections) {
-                if (section.second.intersects(box)) {
-                    mesh.queueMesh()
-                    return@synchronized
-                }
+        for (section in manager.dirtySections) {
+            if (section.second.intersects(box)) {
+                mesh.queueMesh()
+                break
             }
         }
 
@@ -324,13 +316,7 @@ open class RayPointLight(
                 if (VibrancyConfig.entityShadowsEnabled) {
                     profiler.push("entityShadows")
                     for (entity in level.getEntities(null, AABB.ofSize(Vec3(absolutePos.toJOML()), radius.toDouble() * 2, radius.toDouble() * 2, radius.toDouble() * 2))) {
-                        //if (subLevel != null || (meshCollector.cache.checked.contains(meshCollector.positionRelative(entity.blockPosition())))) {
-
-                        //? if 1.21 {
-                        if (subLevel != null || (meshCollector.cache.checked.contains(entity.blockPosition()))) {
-                        //? } else {
-                        /*if ((meshCollector.cache.checked.isInBounds(entity.blockPosition()) && meshCollector.cache.checked[entity.blockPosition()])) {
-                        *///? }
+                        if (boundingBox.contains(NeoVec3i(entity.blockPosition()))) {
                             val node = Node()
                             debugOut("entityShadows", 1)
                             EntityRenderingUtil.render(entity, poseStack, node.bufferSource)
@@ -343,7 +329,7 @@ open class RayPointLight(
                 if (VibrancyConfig.blockEntityShadows) {
                     profiler.push("blockEntityShadows")
 
-                    for (pos in meshCollector.blockEntities) {
+                    for (pos in mesh.blockEntities) {
                         level.getBlockEntity(pos)?.let { blockEntity ->
                             val node = Node()
                             debugOut("blockEntityShadows", 1)

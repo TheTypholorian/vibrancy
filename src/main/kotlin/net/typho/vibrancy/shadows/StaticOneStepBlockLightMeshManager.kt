@@ -1,6 +1,8 @@
 package net.typho.vibrancy.shadows
 
+import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
+import net.minecraft.world.level.block.entity.BlockEntity
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
@@ -27,6 +29,8 @@ open class StaticOneStepBlockLightMeshManager(
     val lightMesh = LightMesh(GlBufferUsage.STATIC_DRAW)
     @JvmField
     val shadowBuffer = ShadowBuffer.VoxelGrid(GlBufferUsage.STATIC_DRAW)
+    @JvmField
+    var blockEntities = arrayListOf<BlockPos>()
     @JvmField
     protected var meshTask: GlTask<LightMesh.ComplexMeshData?>? = null
     var shouldMesh = true
@@ -78,13 +82,17 @@ open class StaticOneStepBlockLightMeshManager(
         val sectionMeshes = hashMapOf<SectionPos, SectionMeshCache?>()
         var numFaces = 0
         val bounds = bounds(this)
+        val blockEntities = arrayListOf<BlockPos>()
         val faces = Offset3DArray(bounds, Offset3DArray.FlatInitializer<MutableList<LightFace>?> { x, y, z ->
             val ax = x + bounds.min.x + pos.x
             val ay = y + bounds.min.y + pos.y
             val az = z + bounds.min.z + pos.z
+            val block = BlockPos(ax, ay, az)
+
             val rx = x + bounds.min.x
             val ry = y + bounds.min.y
             val rz = z + bounds.min.z
+
             val pos = SectionPos.of(
                 SectionPos.blockToSectionCoord(ax),
                 SectionPos.blockToSectionCoord(ay),
@@ -98,6 +106,10 @@ open class StaticOneStepBlockLightMeshManager(
                     numFaces += list.size
                     return@FlatInitializer list
                 }
+            }
+
+            if (manager.getLevel()!!.getBlockEntity(block) != null) {
+                blockEntities.add(block)
             }
 
             return@FlatInitializer null
@@ -119,6 +131,7 @@ open class StaticOneStepBlockLightMeshManager(
             shadows.first.close()
             light.first.close()
         } to {
+            this.blockEntities = blockEntities
             shadows.second()
             LightMesh.ComplexMeshData(
                 faces,

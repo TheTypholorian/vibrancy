@@ -1,12 +1,8 @@
 package net.typho.vibrancy.shadows
 
 import net.caffeinemc.mods.sodium.api.util.ColorARGB
-import net.minecraft.core.BlockPos
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexConsumer
-import net.typho.big_shot_lib.api.math.vec.IVec3
-import net.typho.big_shot_lib.api.math.vec.NeoVec3f
-import org.joml.Vector3f
 import kotlin.math.abs
 import kotlin.math.ceil
 

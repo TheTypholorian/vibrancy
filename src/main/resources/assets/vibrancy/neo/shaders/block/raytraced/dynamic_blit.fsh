@@ -47,8 +47,6 @@ Ray ray(vec3 pos) {
 }
 
 void main() {
-    //vec2 step = 1 / (vec2(sprite.width, sprite.height) * 3);
-
     Ray ray = ray(vertexPos);
 
     fragColor = vec3(1);
