@@ -32,8 +32,8 @@ data class LightFace(
         v1,
         v2,
         v3,
-        ceil(abs(v0.v - v2.v) * atlas.height).toInt(), // intentionally swapped U and V
-        ceil(abs(v0.u - v2.u) * atlas.width).toInt()
+        ceil(abs(v0.u - v2.u) * atlas.width).toInt(),
+        ceil(abs(v0.v - v2.v) * atlas.height).toInt()
     )
 
     fun copyWithOffset(x: Float, y: Float, z: Float): LightFace {
