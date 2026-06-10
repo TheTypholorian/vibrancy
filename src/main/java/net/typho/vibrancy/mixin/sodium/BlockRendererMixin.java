@@ -82,7 +82,7 @@ public class BlockRendererMixin {
             float offY = -SectionPos.sectionRelative(vibrancy$block.getY());
             float offZ = -SectionPos.sectionRelative(vibrancy$block.getZ());
 
-            cache.get(vibrancy$block).get(material.isTranslucent()).add(
+            cache.getOrCreate(vibrancy$block).get(material.isTranslucent()).add(
                     new LightFace(
                             vibrancy$convertVertex(vertices[0], quad.getVertexNormal(0), offX, offY, offZ),
                             vibrancy$convertVertex(vertices[1], quad.getVertexNormal(1), offX, offY, offZ),

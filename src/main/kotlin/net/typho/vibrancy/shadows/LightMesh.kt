@@ -16,6 +16,7 @@ import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
 import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.TextureAtlas
 import net.typho.vibrancy.VibrancyConfig
+import net.typho.vibrancy.util.Offset3DArray
 import org.lwjgl.system.NativeResource
 
 open class LightMesh(
@@ -90,7 +91,7 @@ open class LightMesh(
         )
 
         @JvmStatic
-        fun initBlitMesh(mesh: Mesh, info: MeshData) {
+        fun initBlitMesh(mesh: Mesh, info: FlatMeshData) {
             val vertexBuffer = NeoBuffer.GCNative(info.faces.size.toLong() * 4 * BLIT_VERTEX_FORMAT.vertexSizeBytes)
 
             vertexBuffer.write().run {
@@ -115,6 +116,40 @@ open class LightMesh(
             val indices = mesh.generateIndices(info.faces.size * 4)
 
             mesh.rawUpload(info.faces.size * 6, indices.second, vertexBuffer, indices.first)
+            vertexBuffer.free()
+            indices.first.free()
+        }
+
+        @JvmStatic
+        fun initBlitMesh(mesh: Mesh, info: ComplexMeshData) {
+            val vertexBuffer = NeoBuffer.GCNative(info.numFaces * 4L * BLIT_VERTEX_FORMAT.vertexSizeBytes)
+
+            vertexBuffer.write().run {
+                fun vertex(vertex: PrimitiveVertex, texX: Float, texY: Float) {
+                    writeFloat(vertex.x)
+                    writeFloat(vertex.y)
+                    writeFloat(vertex.z)
+                    writeFloat(texX / info.sections.size.x.toFloat())
+                    writeFloat(texY / info.sections.size.y.toFloat())
+                }
+
+                var textureIndex = 0
+
+                info.faces.forEach { faces ->
+                    faces.second?.forEach { face ->
+                        val texture = info.sections.textures[textureIndex++]
+
+                        vertex(face.v0, texture.min.x.toFloat(), texture.min.y.toFloat())
+                        vertex(face.v1, texture.max.x.toFloat(), texture.min.y.toFloat())
+                        vertex(face.v2, texture.max.x.toFloat(), texture.max.y.toFloat())
+                        vertex(face.v3, texture.min.x.toFloat(), texture.max.y.toFloat())
+                    }
+                }
+            }
+
+            val indices = mesh.generateIndices(info.numFaces * 4)
+
+            mesh.rawUpload(info.numFaces * 6, indices.second, vertexBuffer, indices.first)
             vertexBuffer.free()
             indices.first.free()
         }
@@ -143,7 +178,7 @@ open class LightMesh(
             val face = lightFaces[it]
             NeoVec2i(face.width, face.height)
         }
-        val result = TextureAtlas.pack(*textures)
+        val result = TextureAtlas.pack(textures.asList())
         val vertexBuffer = NeoBuffer.GCNative(lightFaces.size.toLong() * 4 * VERTEX_FORMAT.vertexSizeBytes)
 
         vertexBuffer.write().run {
@@ -176,6 +211,54 @@ open class LightMesh(
             empty = lightFaces.isEmpty()
 
             mesh.rawUpload(lightFaces.size * 6, indices.second, vertexBuffer, indices.first)
+
+            result
+        }
+    }
+
+    fun lazyUpload(
+        lightFaces: Offset3DArray<out List<LightFace>?>,
+        numFaces: Int
+    ): Pair<AutoCloseable, () -> TextureAtlas.Result> {
+        val textures = lightFaces.flatMap { entry ->
+            entry.second?.map { NeoVec2i(it.width, it.height) } ?: listOf()
+        }
+        val result = TextureAtlas.pack(textures)
+        val vertexBuffer = NeoBuffer.GCNative(numFaces.toLong() * 4 * VERTEX_FORMAT.vertexSizeBytes)
+        var textureIndex = 0
+
+        vertexBuffer.write().run {
+            lightFaces.forEach { entry ->
+                entry.second?.forEach { face ->
+                    val texture = result.textures[textureIndex++]
+
+                    face.apply { vertex, index ->
+                        writeFloat(vertex.x)
+                        writeFloat(vertex.y)
+                        writeFloat(vertex.z)
+
+                        writeFloat(vertex.u)
+                        writeFloat(vertex.v)
+
+                        writeShort(if (index == 0 || index == 3) texture.min.x else texture.max.x)
+                        writeShort(if (index == 0 || index == 1) texture.min.y else texture.max.y)
+
+                        writeInt(vertex.color)
+                        writeInt(vertex.normal)
+                    }
+                }
+            }
+        }
+
+        val indices = mesh.generateIndices(numFaces * 4)
+
+        return AutoCloseable {
+            vertexBuffer.free()
+            indices.first.free()
+        } to {
+            empty = numFaces == 0
+
+            mesh.rawUpload(numFaces * 6, indices.second, vertexBuffer, indices.first)
 
             result
         }
@@ -255,9 +338,18 @@ open class LightMesh(
         mesh.free()
     }
 
-    data class MeshData(
+    data class FlatMeshData(
         @JvmField
         val faces: List<LightFace>,
+        @JvmField
+        val sections: TextureAtlas.Result
+    )
+
+    data class ComplexMeshData(
+        @JvmField
+        val faces: Offset3DArray<out List<LightFace>?>,
+        @JvmField
+        val numFaces: Int,
         @JvmField
         val sections: TextureAtlas.Result
     )

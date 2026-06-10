@@ -1,6 +1,8 @@
 package net.typho.vibrancy.shadows
 
-class PrimitiveVertex(
+import net.minecraft.client.renderer.LightTexture
+
+data class PrimitiveVertex(
     @JvmField
     var x: Float,
     @JvmField
@@ -30,4 +32,8 @@ class PrimitiveVertex(
         other.light,
         other.normal
     )
+
+    override fun toString(): String {
+        return "Vertex(pos=($x, $y, $z), color=0x${color.toHexString()}, uv=($u, $v), light=(block=${LightTexture.block(light)}, sky=${LightTexture.sky(light)}), normal=$normal)"
+    }
 }

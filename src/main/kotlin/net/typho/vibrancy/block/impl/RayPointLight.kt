@@ -5,7 +5,6 @@ import dev.ryanhcode.sable.companion.SableCompanion
 //? }
 
 import com.mojang.blaze3d.vertex.PoseStack
-import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
 import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.Level
@@ -38,23 +37,18 @@ import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyConfig
-import net.typho.vibrancy.block.BlockLightRegistry
-import net.typho.vibrancy.collectors.BlockMeshCollector
 import net.typho.vibrancy.collectors.FloodFillBlockMeshCollector
 import net.typho.vibrancy.shadows.DynamicLightFace
-import net.typho.vibrancy.shadows.LightFace
 import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.shadows.LightTexture
 import net.typho.vibrancy.shadows.ShadowBuffer
-import net.typho.vibrancy.shadows.StaticBlockLightMeshManager
+import net.typho.vibrancy.shadows.StaticOneStepBlockLightMeshManager
 import net.typho.vibrancy.util.EmptyVertexConsumer
 import net.typho.vibrancy.util.EntityRenderingUtil
 import net.typho.vibrancy.util.PointLight
 import org.joml.Matrix4f
 import org.joml.Quaternionf
 import org.lwjgl.glfw.GLFW.glfwGetTime
-import org.lwjgl.opengl.GL30.glBindBufferBase
-import org.lwjgl.opengl.GL43.GL_SHADER_STORAGE_BUFFER
 import org.lwjgl.system.NativeResource
 import java.util.stream.Stream
 import kotlin.math.ceil
@@ -110,63 +104,6 @@ open class RayPointLight(
         return NeoRect3i(pos - shadowRadius, pos + shadowRadius)
     }
 
-    val shadowPredicate: BlockMeshCollector.Predicate = object : BlockMeshCollector.Predicate {
-        override fun isBlockTransparent(level: Level, pos: BlockPos, state: BlockState): Boolean {
-            return super.isBlockTransparent(level, pos, state) || BlockLightRegistry.get(state.block, RayPointLightType) != null
-        }
-
-        override fun shouldCastBlock(
-            level: Level,
-            pos: BlockPos,
-            state: BlockState
-        ): Boolean {
-            return shadowBox.contains(NeoVec3i(pos)) && BlockLightRegistry.get(state.block, RayPointLightType) == null
-        }
-
-        override fun shouldCastFace(
-            level: Level,
-            pos: BlockPos,
-            state: BlockState,
-            face: LightFace
-        ): Boolean {
-            return face.any { it.light and 0xFFFF != 0 }
-        }
-
-        override fun requiresScan(level: Level, pos: BlockPos, old: BlockState, new: BlockState): Boolean {
-            if (!shadowBox.contains(NeoVec3i(pos))) {
-                return false
-            }
-
-            if (old.block == new.block) {
-                return false
-            }
-
-            return isBlockTransparent(level, pos, old) != isBlockTransparent(level, pos, new)
-        }
-    }
-    val lightPredicate: BlockMeshCollector.Predicate = object : BlockMeshCollector.Predicate {
-        override fun shouldCastBlock(
-            level: Level,
-            pos: BlockPos,
-            state: BlockState
-        ): Boolean {
-            return boundingBox.contains(NeoVec3i(pos))
-        }
-
-        override fun shouldCastFace(
-            level: Level,
-            pos: BlockPos,
-            state: BlockState,
-            face: LightFace
-        ): Boolean {
-            return face.any { it.light and 0xFFFF != 0 }
-        }
-
-        override fun requiresScan(level: Level, pos: BlockPos, old: BlockState, new: BlockState): Boolean {
-            return boundingBox.contains(NeoVec3i(pos)) && isBlockTransparent(level, pos, old) != isBlockTransparent(level, pos, new)
-        }
-    }
-
     @JvmField
     val blitMesh = Mesh(
         LightMesh.BLIT_VERTEX_FORMAT,
@@ -196,7 +133,7 @@ open class RayPointLight(
     @JvmField
     val meshCollector = FloodFillBlockMeshCollector(pos.blockPos)
 
-    var meshData: LightMesh.MeshData? = null
+    var meshData: LightMesh.ComplexMeshData? = null
         protected set
 
     @JvmField
@@ -213,15 +150,12 @@ open class RayPointLight(
     @JvmField
     val staticTexture = LightTexture()
     @JvmField
-    val mesh = StaticBlockLightMeshManager(
-        lightPredicate,
-        shadowPredicate,
-        meshCollector,
+    val mesh = StaticOneStepBlockLightMeshManager(
         pos,
         {
             val shadowRadius = ceil(radius.coerceAtMost(VibrancyConfig.rayLightShadowRadius.toFloat())).toInt()
             val v = NeoVec3i(shadowRadius, shadowRadius, shadowRadius)
-            return@StaticBlockLightMeshManager NeoRect3i(-v, v)
+            return@StaticOneStepBlockLightMeshManager NeoRect3i(-v, v)
         }
     ) { mesh, info ->
         meshData = info
@@ -234,10 +168,12 @@ open class RayPointLight(
                 staticTexture,
                 mesh.shadowBuffer,
                 {
-                    setTexture(0, GlTextureBinding.FromInstance(
-                        NeoAtlas.blocks,
-                        GlTextureTarget.TEXTURE_2D
-                    ))
+                    setTexture(
+                        0, GlTextureBinding.FromInstance(
+                            NeoAtlas.blocks,
+                            GlTextureTarget.TEXTURE_2D
+                        )
+                    )
                 },
                 Vibrancy.id("block/raytraced/blit")
             )
@@ -257,7 +193,7 @@ open class RayPointLight(
         synchronized(meshCollector) {
             meshCollector.markAllDirty()
         }
-        mesh.queueScan()
+        mesh.queueMesh()
     }
 
     override fun free() {
@@ -282,14 +218,6 @@ open class RayPointLight(
         profiler.push("rebuildBlocks")
         synchronized(meshCollector) {
             val box = boundingBox
-
-            for (block in manager.dirtyBlocks) {
-                // TODO
-                if (box.contains(NeoVec3i(block.key)) && meshCollector.cache.checked.contains(block.key)) {
-                    mesh.queueScan(data.level!!, block.key, block.value)
-                    return@synchronized
-                }
-            }
 
             for (section in manager.dirtySections) {
                 if (section.second.intersects(box)) {

@@ -17,7 +17,7 @@ object TextureAtlas {
     )
 
     @JvmStatic
-    fun pack(vararg textures: IVec2<Int>): Result {
+    fun pack(textures: List<IVec2<Int>>): Result {
         val max: IVec2<Int> = textures.fold(null) { accum, texture -> accum?.max(texture) ?: texture }
             ?: return Result(listOf(), NeoVec2i(0, 0))
 

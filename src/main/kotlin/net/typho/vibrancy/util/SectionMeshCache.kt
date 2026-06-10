@@ -31,7 +31,7 @@ class SectionMeshCache(
     }
 
     @JvmField
-    val models = Array(16 * 16 * 16) { Block(arrayListOf(), arrayListOf()) }
+    val models = arrayOfNulls<Block?>(16 * 16 * 16)
 
     fun index(x: Int, y: Int, z: Int): Int = (x and 0xF shl 8) or (y and 0xF shl 4) or (z and 0xF)
 
@@ -41,16 +41,35 @@ class SectionMeshCache(
 
     operator fun get(pos: BlockPos) = get(pos.x, pos.y, pos.z)
 
+    fun getOrCreate(x: Int, y: Int, z: Int): Block {
+        val index = index(x, y, z)
+        val value = models[index]
+
+        if (value == null) {
+            val block = Block()
+            models[index] = block
+            return block
+        } else {
+            return value
+        }
+    }
+
+    fun getOrCreate(pos: IVec3<Int>) = getOrCreate(pos.x, pos.y, pos.z)
+
+    fun getOrCreate(pos: BlockPos) = getOrCreate(pos.x, pos.y, pos.z)
+
     fun clear() {
         for (block in models) {
-            block.solidFaces.clear()
-            block.translucentFaces.clear()
+            if (block != null) {
+                block.solidFaces.clear()
+                block.translucentFaces.clear()
+            }
         }
     }
 
     fun createVertexConsumer(pos: BlockPos, translucent: Boolean, atlas: NeoAtlas, offsetX: Float = 0f, offsetY: Float = 0f, offsetZ: Float = 0f): LightFace.Consumer {
         return LightFace.Consumer(
-            (if (translucent) get(pos).translucentFaces else get(pos).solidFaces)::add,
+            (if (translucent) getOrCreate(pos).translucentFaces else getOrCreate(pos).solidFaces)::add,
             atlas,
             offsetX,
             offsetY,
@@ -60,9 +79,9 @@ class SectionMeshCache(
 
     data class Block(
         @JvmField
-        val solidFaces: MutableList<LightFace>,
+        val solidFaces: MutableList<LightFace> = arrayListOf(),
         @JvmField
-        val translucentFaces: MutableList<LightFace>,
+        val translucentFaces: MutableList<LightFace> = arrayListOf(),
     ) {
         operator fun get(translucent: Boolean) = if (translucent) translucentFaces else solidFaces
     }

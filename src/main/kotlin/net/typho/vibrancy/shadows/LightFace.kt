@@ -45,6 +45,10 @@ data class LightFace(
         )
     }
 
+    fun copyWithOffset(x: Int, y: Int, z: Int): LightFace {
+        return copyWithOffset(x.toFloat(), y.toFloat(), z.toFloat())
+    }
+
     open class Consumer(
         @JvmField
         val out: (face: LightFace) -> Unit,
