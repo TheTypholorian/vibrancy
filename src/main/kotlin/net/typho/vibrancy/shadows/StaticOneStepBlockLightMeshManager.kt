@@ -2,17 +2,17 @@ package net.typho.vibrancy.shadows
 
 import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
-import net.minecraft.world.level.block.entity.BlockEntity
+import net.minecraft.util.profiling.ProfilerFiller
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.math.rect.AbstractRect3
+import net.typho.big_shot_lib.api.math.rect.AbstractRect3.Companion.iterator
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyConfig
 import net.typho.vibrancy.util.GlTask
-import net.typho.vibrancy.util.Offset3DArray
 import net.typho.vibrancy.util.SectionMeshCache
 import net.typho.vibrancy.util.VibrancyThreadPool
 import org.lwjgl.system.NativeResource
@@ -23,7 +23,7 @@ open class StaticOneStepBlockLightMeshManager(
     @JvmField
     val bounds: (manager: StaticOneStepBlockLightMeshManager) -> AbstractRect3<Int>,
     @JvmField
-    val blit: (manager: StaticOneStepBlockLightMeshManager, info: LightMesh.ComplexMeshData) -> Unit
+    val blit: (manager: StaticOneStepBlockLightMeshManager, info: LightMesh.ComplexMeshData, profiler: ProfilerFiller) -> Unit
 ) : NativeResource {
     @JvmField
     val lightMesh = LightMesh(GlBufferUsage.STATIC_DRAW)
@@ -51,16 +51,19 @@ open class StaticOneStepBlockLightMeshManager(
     fun tick(
         data: RenderEventData,
         pos: IVec3<Int>,
-        manager: LightManager
+        manager: LightManager,
+        profiler: ProfilerFiller
     ) {
         meshTask?.let { task ->
             if (task.isDoneOrCancelled()) {
                 try {
+                    profiler.push("finish")
                     task.finish()?.let {
                         if (!lightMesh.empty) {
-                            blit(this, it)
+                            blit(this, it, profiler)
                         }
                     }
+                    profiler.pop()
                 } catch (e: Exception) {
                     Vibrancy.LOGGER.warn("Error finishing block light mesh task", e)
                 }
@@ -70,8 +73,10 @@ open class StaticOneStepBlockLightMeshManager(
         }
 
         if (shouldMesh) {
-            mesh(data, pos, manager)
+            profiler.push("start")
+            mesh(data, pos, manager, profiler)
             shouldMesh = false
+            profiler.pop()
         }
     }
 
@@ -83,43 +88,39 @@ open class StaticOneStepBlockLightMeshManager(
         var numFaces = 0
         val bounds = bounds(this)
         val blockEntities = arrayListOf<BlockPos>()
-        val faces = Offset3DArray(bounds, Offset3DArray.FlatInitializer<MutableList<LightFace>?> { x, y, z ->
-            val ax = x + bounds.min.x + pos.x
-            val ay = y + bounds.min.y + pos.y
-            val az = z + bounds.min.z + pos.z
-            val block = BlockPos(ax, ay, az)
+        val faces = arrayListOf<Pair<IVec3<Int>, List<LightFace>>>()
 
-            val rx = x + bounds.min.x
-            val ry = y + bounds.min.y
-            val rz = z + bounds.min.z
+        for (pos in bounds) {
+            val ax = pos.x + this.pos.x
+            val ay = pos.y + this.pos.y
+            val az = pos.z + this.pos.z
+            val blockPos = BlockPos(ax, ay, az)
 
-            val pos = SectionPos.of(
+            val sectionPos = SectionPos.of(
                 SectionPos.blockToSectionCoord(ax),
                 SectionPos.blockToSectionCoord(ay),
                 SectionPos.blockToSectionCoord(az)
             )
-            sectionMeshes.computeIfAbsent(pos, manager.sectionMeshCaches::get)?.let { section ->
+            sectionMeshes.computeIfAbsent(sectionPos, manager.sectionMeshCaches::get)?.let { section ->
                 section.get(ax, ay, az)?.let { block ->
                     val list = arrayListOf<LightFace>()
-                    block.solidFaces.mapTo(list) { it.copyWithOffset(rx, ry, rz) } // TODO split solid and translucent
-                    block.translucentFaces.mapTo(list) { it.copyWithOffset(rx, ry, rz) }
+                    block.solidFaces.mapTo(list) { it.copyWithOffset(pos.x, pos.y, pos.z) } // TODO split solid and translucent
+                    block.translucentFaces.mapTo(list) { it.copyWithOffset(pos.x, pos.y, pos.z) }
                     numFaces += list.size
-                    return@FlatInitializer list
+                    faces.add(pos to list)
                 }
             }
 
-            if (manager.getLevel()!!.getBlockEntity(block) != null) {
-                blockEntities.add(block)
+            if (manager.getLevel()!!.getBlockEntity(blockPos) != null) {
+                blockEntities.add(blockPos)
             }
-
-            return@FlatInitializer null
-        })
+        }
 
         if (isCancelled()) {
             return AutoCloseable { } to { null }
         }
 
-        val shadows = shadowBuffer.lazyUpload(NeoAtlas.blocks.width, NeoAtlas.blocks.height, numFaces, faces)
+        val shadows = shadowBuffer.lazyUpload(NeoAtlas.blocks.width, NeoAtlas.blocks.height, numFaces, bounds, faces)
 
         if (isCancelled()) {
             return shadows.first to { null }
@@ -144,7 +145,8 @@ open class StaticOneStepBlockLightMeshManager(
     fun mesh(
         data: RenderEventData,
         pos: IVec3<Int>,
-        manager: LightManager
+        manager: LightManager,
+        profiler: ProfilerFiller
     ) {
         if (VibrancyConfig.useMultithreading) {
             meshTask?.cancel()
@@ -153,7 +155,7 @@ open class StaticOneStepBlockLightMeshManager(
             val result = meshImpl({ false }, manager)
             result.second()?.let {
                 if (!lightMesh.empty) {
-                    blit(this, it)
+                    blit(this, it, profiler)
                 }
             }
             result.first.close()

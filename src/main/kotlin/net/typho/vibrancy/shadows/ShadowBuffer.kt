@@ -1,14 +1,16 @@
 package net.typho.vibrancy.shadows
 
+import net.minecraft.core.BlockPos
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferTarget
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlBuffer
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
+import net.typho.big_shot_lib.api.math.rect.AbstractRect3
 import net.typho.big_shot_lib.api.math.rect.AbstractRect3.Companion.areaInclusive
 import net.typho.big_shot_lib.api.math.rect.AbstractRect3.Companion.sizeInclusive
+import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
-import net.typho.vibrancy.util.Offset3DArray
 import org.lwjgl.system.MemoryUtil.memPutInt
 import org.lwjgl.system.MemoryUtil.memSet
 
@@ -110,25 +112,22 @@ open class ShadowBuffer(
             throw UnsupportedOperationException("lazyUploadQuads on ShadowBuffer.VoxelGrid")
         }
 
-        open fun lazyUpload(texWidth: Int, texHeight: Int, numFaces: Int, faces: Offset3DArray<out MutableList<out PrimitiveQuad>?>): Pair<AutoCloseable, () -> Unit> {
+        open fun lazyUpload(texWidth: Int, texHeight: Int, numFaces: Int, bounds: AbstractRect3<Int>, faces: List<Pair<IVec3<Int>, List<PrimitiveQuad>>>): Pair<AutoCloseable, () -> Unit> {
             val quadBuffer = NeoBuffer.GCNative(numFaces * 4L * VERTEX_FORMAT.vertexSizeBytes)
 
             quadBuffer.write().run {
                 for ((pos, faces) in faces) {
-                    if (faces != null) {
-                        for (face in faces) {
-                            face.apply { vertex ->
-                                writeFloat(vertex.x)
-                                writeFloat(vertex.y)
-                                writeFloat(vertex.z)
-                                writeInt(((vertex.u * texWidth).toInt() shl 16) or (vertex.v * texHeight).toInt())
-                            }
+                    for (face in faces) {
+                        face.apply { vertex ->
+                            writeFloat(vertex.x)
+                            writeFloat(vertex.y)
+                            writeFloat(vertex.z)
+                            writeInt(((vertex.u * texWidth).toInt() shl 16) or (vertex.v * texHeight).toInt())
                         }
                     }
                 }
             }
 
-            val bounds = faces.bounds
             val gridBufferSize = 28L + bounds.areaInclusive * 2 * Int.SIZE_BYTES
             val gridBuffer = NeoBuffer.GCNative(gridBufferSize)
 
@@ -145,8 +144,8 @@ open class ShadowBuffer(
             var quadIndex = 0
 
             for ((pos, faces) in faces) {
-                if (!faces.isNullOrEmpty()) {
-                    val index = 28L + ((pos.x * bounds.sizeInclusive.y + pos.y) * bounds.sizeInclusive.z + pos.z) * 2 * Int.SIZE_BYTES
+                if (faces.isNotEmpty()) {
+                    val index = 28L + (((pos.x - bounds.min.x) * bounds.sizeInclusive.y + (pos.y - bounds.min.y)) * bounds.sizeInclusive.z + (pos.z - bounds.min.z)) * 2 * Int.SIZE_BYTES
 
                     if (index < 0 || index > gridBufferSize) {
                         throw IndexOutOfBoundsException("$index $gridBufferSize $pos ${bounds.min} ${bounds.sizeInclusive}")

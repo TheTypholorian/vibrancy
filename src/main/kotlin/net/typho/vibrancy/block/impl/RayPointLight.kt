@@ -154,13 +154,24 @@ open class RayPointLight(
             val v = NeoVec3i(shadowRadius, shadowRadius, shadowRadius)
             return@StaticOneStepBlockLightMeshManager NeoRect3i(-v, v)
         }
-    ) { mesh, info ->
+    ) { mesh, info, profiler ->
         meshData = info
+
+        profiler.push("resize")
         staticTexture.resize(info.sections.size.x, info.sections.size.y)
         dynamicTexture.resize(info.sections.size.x, info.sections.size.y)
-        LightMesh.initBlitMesh(blitMesh, info)
+        profiler.pop()
+
+        profiler.push("init")
+        LightMesh.initBlitMesh(blitMesh, info, profiler)
+        profiler.pop()
+
         staticTexture.framebuffer.bind(NeoRect2i(0, 0, staticTexture.width!!, staticTexture.height!!)).use { fbo ->
+            profiler.push("clearStatic")
             staticTexture.clear()
+            profiler.pop()
+
+            profiler.push("blit")
             blit(
                 staticTexture,
                 mesh.shadowBuffer,
@@ -174,8 +185,12 @@ open class RayPointLight(
                 },
                 Vibrancy.id("block/raytraced/blit")
             )
+            profiler.pop()
         }
+
+        profiler.push("clearDynamic")
         dynamicTexture.clear()
+        profiler.pop()
     }
 
     constructor(info: RayPointLightInfo, state: BlockState, pos: IVec3<Int>) : this(
@@ -225,7 +240,8 @@ open class RayPointLight(
         mesh.tick(
             data,
             pos,
-            manager
+            manager,
+            profiler
         )
         profiler.pop()
 

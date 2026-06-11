@@ -1,5 +1,6 @@
 package net.typho.vibrancy.shadows
 
+import net.minecraft.util.profiling.ProfilerFiller
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
@@ -9,6 +10,7 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.util.PolygonOffset
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
 import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
+import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.NeoVec2i
 import net.typho.big_shot_lib.api.math.vec.NeoVec3f
 import net.typho.big_shot_lib.api.util.NeoColor
@@ -17,6 +19,8 @@ import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.TextureAtlas
 import net.typho.vibrancy.VibrancyConfig
 import net.typho.vibrancy.util.Offset3DArray
+import org.lwjgl.system.MemoryUtil.memPutFloat
+import org.lwjgl.system.MemoryUtil.nmemAllocChecked
 import org.lwjgl.system.NativeResource
 
 open class LightMesh(
@@ -121,37 +125,55 @@ open class LightMesh(
         }
 
         @JvmStatic
-        fun initBlitMesh(mesh: Mesh, info: ComplexMeshData) {
-            val vertexBuffer = NeoBuffer.GCNative(info.numFaces * 4L * BLIT_VERTEX_FORMAT.vertexSizeBytes)
+        fun initBlitMesh(mesh: Mesh, info: ComplexMeshData, profiler: ProfilerFiller) {
+            profiler.push("alloc")
+            val vertexBuffer = NeoBuffer.Native(info.numFaces * 4L * BLIT_VERTEX_FORMAT.vertexSizeBytes)
+            profiler.pop()
 
-            vertexBuffer.write().run {
-                fun vertex(vertex: PrimitiveVertex, texX: Float, texY: Float) {
-                    writeFloat(vertex.x)
-                    writeFloat(vertex.y)
-                    writeFloat(vertex.z)
-                    writeFloat(texX / info.sections.size.x.toFloat())
-                    writeFloat(texY / info.sections.size.y.toFloat())
-                }
+            profiler.push("write")
+            var ptr = vertexBuffer.address
 
-                var textureIndex = 0
+            vertexBuffer.write().run {}
+            fun vertex(vertex: PrimitiveVertex, texX: Float, texY: Float) {
+                memPutFloat(ptr, vertex.x)
+                ptr += Float.SIZE_BYTES
+                memPutFloat(ptr, vertex.y)
+                ptr += Float.SIZE_BYTES
+                memPutFloat(ptr, vertex.z)
+                ptr += Float.SIZE_BYTES
 
-                info.faces.forEach { faces ->
-                    faces.second?.forEach { face ->
-                        val texture = info.sections.textures[textureIndex++]
-
-                        vertex(face.v0, texture.min.x.toFloat(), texture.min.y.toFloat())
-                        vertex(face.v1, texture.max.x.toFloat(), texture.min.y.toFloat())
-                        vertex(face.v2, texture.max.x.toFloat(), texture.max.y.toFloat())
-                        vertex(face.v3, texture.min.x.toFloat(), texture.max.y.toFloat())
-                    }
-                }
+                memPutFloat(ptr, texX / info.sections.size.x.toFloat())
+                ptr += Float.SIZE_BYTES
+                memPutFloat(ptr, texY / info.sections.size.y.toFloat())
+                ptr += Float.SIZE_BYTES
             }
 
-            val indices = mesh.generateIndices(info.numFaces * 4)
+            var textureIndex = 0
 
+            info.faces.forEach { faces ->
+                faces.second.forEach { face ->
+                    val texture = info.sections.textures[textureIndex++]
+
+                    vertex(face.v0, texture.min.x.toFloat(), texture.min.y.toFloat())
+                    vertex(face.v1, texture.max.x.toFloat(), texture.min.y.toFloat())
+                    vertex(face.v2, texture.max.x.toFloat(), texture.max.y.toFloat())
+                    vertex(face.v3, texture.min.x.toFloat(), texture.max.y.toFloat())
+                }
+            }
+            profiler.pop()
+
+            profiler.push("genIndices")
+            val indices = mesh.generateIndices(info.numFaces * 4)
+            profiler.pop()
+
+            profiler.push("upload")
             mesh.rawUpload(info.numFaces * 6, indices.second, vertexBuffer, indices.first)
+            profiler.pop()
+
+            profiler.push("free")
             vertexBuffer.free()
             indices.first.free()
+            profiler.pop()
         }
     }
 
@@ -217,11 +239,11 @@ open class LightMesh(
     }
 
     fun lazyUpload(
-        lightFaces: Offset3DArray<out List<LightFace>?>,
+        lightFaces: List<Pair<IVec3<Int>, List<LightFace>>>,
         numFaces: Int
     ): Pair<AutoCloseable, () -> TextureAtlas.Result> {
         val textures = lightFaces.flatMap { entry ->
-            entry.second?.map { NeoVec2i(it.width, it.height) } ?: listOf()
+            entry.second.map { NeoVec2i(it.width, it.height) }
         }
         val result = TextureAtlas.pack(textures)
         val vertexBuffer = NeoBuffer.GCNative(numFaces.toLong() * 4 * VERTEX_FORMAT.vertexSizeBytes)
@@ -229,7 +251,7 @@ open class LightMesh(
 
         vertexBuffer.write().run {
             lightFaces.forEach { entry ->
-                entry.second?.forEach { face ->
+                entry.second.forEach { face ->
                     val texture = result.textures[textureIndex++]
 
                     face.apply { vertex, index ->
@@ -347,7 +369,7 @@ open class LightMesh(
 
     data class ComplexMeshData(
         @JvmField
-        val faces: Offset3DArray<out List<LightFace>?>,
+        val faces: List<Pair<IVec3<Int>, List<LightFace>>>,
         @JvmField
         val numFaces: Int,
         @JvmField
