@@ -22,9 +22,19 @@ struct Quad {
     vec3 v3; uint uv3;
     vec3 v4; uint uv4;
 };
+struct ComplexQuad {
+    vec3 v1; uint uv1; uint overlay1; uint color1; uint normal1;
+    vec3 v2; uint uv2; uint overlay2; uint color2; uint normal2;
+    vec3 v3; uint uv3; uint overlay3; uint color3; uint normal3;
+    vec3 v4; uint uv4; uint overlay4; uint color4; uint normal4;
+};
 
 ivec2 unpackUV(uint uv) {
     return ivec2(uv >> 16, uv & 0xFFFFu);
+}
+
+Quad complexToBasicQuad(ComplexQuad complex) {
+    return Quad(complex.v1, complex.uv1, complex.v2, complex.uv2, complex.v3, complex.uv3, complex.v4, complex.uv4);
 }
 
 bool raycastQuad(bool checkDir, vec3 origin, vec3 dir, float len, float margin, Quad q, out vec2 uv, out float tt) {

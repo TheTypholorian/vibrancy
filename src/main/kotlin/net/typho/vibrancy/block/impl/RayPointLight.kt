@@ -7,15 +7,14 @@ import dev.ryanhcode.sable.companion.SableCompanion
 import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.core.SectionPos
 import net.minecraft.util.profiling.ProfilerFiller
-import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.AABB
 import net.minecraft.world.phys.Vec3
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlBuffer
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlBuffer
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlBlendShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
@@ -32,18 +31,17 @@ import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
 import net.typho.big_shot_lib.api.math.vec.NeoVec3d
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
-import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
 import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyConfig
-import net.typho.vibrancy.collectors.FloodFillBlockMeshCollector
 import net.typho.vibrancy.shadows.DynamicLightFace
 import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.shadows.LightTexture
 import net.typho.vibrancy.shadows.ShadowBuffer
 import net.typho.vibrancy.shadows.StaticOneStepBlockLightMeshManager
+import net.typho.vibrancy.shadows.VoxelGridBuffer
 import net.typho.vibrancy.util.EmptyVertexConsumer
 import net.typho.vibrancy.util.EntityRenderingUtil
 import net.typho.vibrancy.util.PointLight
@@ -51,7 +49,6 @@ import org.joml.Matrix4f
 import org.joml.Quaternionf
 import org.lwjgl.glfw.GLFW.glfwGetTime
 import org.lwjgl.system.NativeResource
-import java.util.stream.Stream
 import kotlin.math.ceil
 
 open class RayPointLight(
@@ -115,7 +112,7 @@ open class RayPointLight(
         return NeoRect3i(pos - shadowRadius, pos + shadowRadius)
     }
 
-    fun blit(mesh: StaticOneStepBlockLightMeshManager, target: LightTexture, shadowBuffer: ShadowBuffer, uniforms: GlBoundProgram.() -> Unit, shader: NeoIdentifier) {
+    fun blit(mesh: StaticOneStepBlockLightMeshManager, target: LightTexture, shadowBuffer: GlBuffer, gridBuffer: VoxelGridBuffer?, uniforms: GlBoundProgram.() -> Unit, shader: NeoIdentifier) {
         target.framebuffer.bind(NeoRect2i(0, 0, target.width!!, target.height!!)).use { fbo ->
             drawState(shader) {
                 uniforms(this)
@@ -128,8 +125,8 @@ open class RayPointLight(
 
                 setShaderStorageBuffer("ShadowQuadBuffer", shadowBuffer)
 
-                if (shadowBuffer is ShadowBuffer.VoxelGrid) {
-                    setShaderStorageBuffer("GridBuffer", shadowBuffer.gridBuffer)
+                if (gridBuffer != null) {
+                    setShaderStorageBuffer("GridBuffer", gridBuffer)
                 }
             }.bind().use { mesh.lightMesh.draw() }
         }
@@ -177,14 +174,18 @@ open class RayPointLight(
             blit(
                 mesh,
                 staticTexture,
-                mesh.shadowBuffer,
+                mesh.lightMesh.mesh.vbo,
+                mesh.gridBuffer,
                 {
+                    val atlas = NeoAtlas.blocks
                     setTexture(
-                        0, GlTextureBinding.FromInstance(
-                            NeoAtlas.blocks,
+                        0,
+                        GlTextureBinding.FromInstance(
+                            atlas,
                             GlTextureTarget.TEXTURE_2D
                         )
                     )
+                    setUniform("Sampler0Size") { set(atlas.width, atlas.height) }
                 },
                 Vibrancy.id("block/raytraced/blit")
             )
@@ -436,6 +437,7 @@ open class RayPointLight(
                                 mesh,
                                 dynamicTexture,
                                 dynamicBuffer,
+                                null,
                                 {
                                     setTextureArray(0, "Samplers", *textures.map { GlTextureBinding.FromInstance(it, GlTextureTarget.TEXTURE_2D) }.toTypedArray())
                                     setShaderStorageBuffer("BVHBuffer", dynamicBVHBuffer)
@@ -520,6 +522,5 @@ open class RayPointLight(
         profiler.pop()
 
         debugOut("numLightFaces", mesh.lightMesh.mesh.size / 6)
-        debugOut("numShadowFaces", mesh.shadowBuffer.size / 4)
     }
 }

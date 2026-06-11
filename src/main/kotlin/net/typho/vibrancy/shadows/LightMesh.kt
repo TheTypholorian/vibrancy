@@ -1,6 +1,5 @@
 package net.typho.vibrancy.shadows
 
-import net.minecraft.util.profiling.ProfilerFiller
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
@@ -18,9 +17,6 @@ import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
 import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.TextureAtlas
 import net.typho.vibrancy.VibrancyConfig
-import net.typho.vibrancy.util.Offset3DArray
-import org.lwjgl.system.MemoryUtil.memPutFloat
-import org.lwjgl.system.MemoryUtil.nmemAllocChecked
 import org.lwjgl.system.NativeResource
 
 open class LightMesh(
@@ -41,13 +37,6 @@ open class LightMesh(
             .add("Color", NeoVertexFormat.Element.COLOR)
             .add("Normal", NeoVertexFormat.Element.NORMAL)
             .padding(1)
-            .build()
-        @JvmField
-        val INVENTORY_VERTEX_FORMAT = NeoVertexFormat.builder()
-            .add("Position", NeoVertexFormat.Element.POSITION)
-            .add("UV0", NeoVertexFormat.Element.TEXTURE_UV)
-            //.add("Color", NeoVertexFormat.Element.COLOR)
-            //.add("Normal", NeoVertexFormat.Element.NORMAL)
             .build()
         @JvmField
         val SKY_VERTEX_FORMAT = NeoVertexFormat.builder()

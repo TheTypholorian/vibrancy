@@ -285,11 +285,9 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
         SkyLightRegistry.registerBuiltins(factory)
 
         factory.begin(NeoVertexFormat.REGISTRY_KEY)?.run {
-            register(id("shadow_mesh")) { ShadowBuffer.VERTEX_FORMAT }
             register(id("light_mesh")) { LightMesh.VERTEX_FORMAT }
             register(id("sky_mesh")) { LightMesh.SKY_VERTEX_FORMAT }
             register(id("subtle_mesh")) { SubtleLightStorage.VERTEX_FORMAT }
-            register(id("light_mesh_inventory")) { LightMesh.INVENTORY_VERTEX_FORMAT }
         }
     }
 

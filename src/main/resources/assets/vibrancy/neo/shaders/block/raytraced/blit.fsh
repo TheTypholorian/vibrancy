@@ -8,10 +8,10 @@ struct GridCell {
     uint range;
 };
 
-layout(std430) buffer ShadowQuadBuffer {
-    Quad shadowQuads[];
+layout(std430) readonly buffer ShadowQuadBuffer {
+    ComplexQuad shadowQuads[];
 };
-layout(std430) buffer GridBuffer {
+layout(std430) readonly buffer GridBuffer {
     ivec3 gridMin;
     ivec3 gridSize;
     GridCell gridCells[];
@@ -76,9 +76,9 @@ vec3 test(Ray ray) {
                     for (uint j = from; j < to; j++) {
                         float dist;
                         vec4 outColor;
-                        Quad quad = shadowQuads[j];
+                        ComplexQuad quad = shadowQuads[j];
 
-                        if (sampleQuad(false, Sampler0, Sampler0Size, ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor)) {
+                        if (sampleQuad(false, Sampler0, Sampler0Size, ray.pos, ray.dir, ray.len, 1e-3, complexToBasicQuad(quad), dist, outColor)) {
                             if (outColor.a == 1) {
                                 return vec3(0);
                             } else if (outColor.a != 0) {

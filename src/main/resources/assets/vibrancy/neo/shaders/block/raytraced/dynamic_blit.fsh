@@ -10,13 +10,13 @@ struct BVH {
     uint end;
 };
 
-layout(std430) buffer ShadowQuadBuffer {
+layout(std430) readonly buffer ShadowQuadBuffer {
     Quad shadowQuads[];
 };
-layout(std430) buffer BVHBuffer {
+layout(std430) readonly buffer BVHBuffer {
     BVH boundingVolumes[];
 };
-layout(std430) buffer TextureInfoBuffer {
+layout(std430) readonly buffer TextureInfoBuffer {
     uint textureIndices[];
 };
 

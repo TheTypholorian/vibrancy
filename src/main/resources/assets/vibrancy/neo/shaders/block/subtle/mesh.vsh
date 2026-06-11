@@ -7,7 +7,7 @@ struct Light {
     float flicker;
 };
 
-layout(std430) buffer LightBuffer {
+layout(std430) readonly buffer LightBuffer {
     Light lights[];
 };
 

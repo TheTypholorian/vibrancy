@@ -30,7 +30,7 @@ open class StaticOneStepBlockLightMeshManager(
     @JvmField
     val lightMesh = LightMesh(GlBufferUsage.STATIC_DRAW)
     @JvmField
-    val shadowBuffer = ShadowBuffer.VoxelGrid(GlBufferUsage.STATIC_DRAW)
+    val gridBuffer = VoxelGridBuffer(GlBufferUsage.STATIC_DRAW)
     @JvmField
     var blockEntities: List<BlockPos>? = null
     @JvmField
@@ -61,7 +61,7 @@ open class StaticOneStepBlockLightMeshManager(
 
     override fun free() {
         lightMesh.free()
-        shadowBuffer.free()
+        gridBuffer.free()
         meshTask?.cancel()
     }
 
@@ -93,7 +93,7 @@ open class StaticOneStepBlockLightMeshManager(
         if (shouldMesh) {
             profiler.push("start")
             mesh(data, manager, profiler)
-            shouldMesh = false
+            //shouldMesh = false
             profiler.pop()
         }
     }
@@ -131,7 +131,7 @@ open class StaticOneStepBlockLightMeshManager(
             return AutoCloseable { } to { null }
         }
 
-        val shadows = shadowBuffer.lazyUpload(NeoAtlas.blocks.width, NeoAtlas.blocks.height, numFaces, bounds, faces)
+        val shadows = gridBuffer.lazyUpload(NeoAtlas.blocks.width, NeoAtlas.blocks.height, numFaces, bounds, faces)
 
         if (isCancelled()) {
             return shadows.first to { null }
