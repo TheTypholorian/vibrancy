@@ -7,6 +7,7 @@ import dev.ryanhcode.sable.companion.SableCompanion
 import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.core.SectionPos
 import net.minecraft.util.profiling.ProfilerFiller
+import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.phys.AABB
@@ -104,15 +105,7 @@ open class RayPointLight(
         return NeoRect3i(pos - shadowRadius, pos + shadowRadius)
     }
 
-    @JvmField
-    val blitMesh = Mesh(
-        LightMesh.BLIT_VERTEX_FORMAT,
-        GlBeginMode.QUADS,
-        GlBufferWriter.Mode.REGULAR,
-        GlBufferUsage.STREAM_DRAW
-    )
-
-    fun blit(target: LightTexture, shadowBuffer: ShadowBuffer, uniforms: GlBoundProgram.() -> Unit, shader: NeoIdentifier) {
+    fun blit(mesh: StaticOneStepBlockLightMeshManager, target: LightTexture, shadowBuffer: ShadowBuffer, uniforms: GlBoundProgram.() -> Unit, shader: NeoIdentifier) {
         target.framebuffer.bind(NeoRect2i(0, 0, target.width!!, target.height!!)).use { fbo ->
             drawState(shader) {
                 uniforms(this)
@@ -121,12 +114,14 @@ open class RayPointLight(
                 setUniform("LightColor") { setFloatVec(color * VibrancyConfig.rayLightBrightness) }
                 setUniform("LightRadius") { set(radius) }
 
+                setUniform("TextureSize") { set(target.width!!.toFloat(), target.height!!.toFloat()) }
+
                 setShaderStorageBuffer("ShadowQuadBuffer", shadowBuffer)
 
                 if (shadowBuffer is ShadowBuffer.VoxelGrid) {
                     setShaderStorageBuffer("GridBuffer", shadowBuffer.gridBuffer)
                 }
-            }.bind().use { blitMesh.draw() }
+            }.bind().use { mesh.lightMesh.draw() }
         }
     }
 
@@ -162,10 +157,6 @@ open class RayPointLight(
         dynamicTexture.resize(info.sections.size.x, info.sections.size.y)
         profiler.pop()
 
-        profiler.push("init")
-        LightMesh.initBlitMesh(blitMesh, info, profiler)
-        profiler.pop()
-
         staticTexture.framebuffer.bind(NeoRect2i(0, 0, staticTexture.width!!, staticTexture.height!!)).use { fbo ->
             profiler.push("clearStatic")
             staticTexture.clear()
@@ -173,6 +164,7 @@ open class RayPointLight(
 
             profiler.push("blit")
             blit(
+                mesh,
                 staticTexture,
                 mesh.shadowBuffer,
                 {
@@ -228,7 +220,7 @@ open class RayPointLight(
         val box = boundingBox
 
         for (section in manager.dirtySections) {
-            if (section.second.intersects(box)) {
+            if (section.second.min.allLessThan(box.max) && section.second.max.allGreaterThan(box.min)) { // TODO
                 mesh.queueMesh()
                 break
             }
@@ -439,6 +431,7 @@ open class RayPointLight(
 
                             dynamicBuffer.lazyUploadQuads(textures, quads)()
                             blit(
+                                mesh,
                                 dynamicTexture,
                                 dynamicBuffer,
                                 {

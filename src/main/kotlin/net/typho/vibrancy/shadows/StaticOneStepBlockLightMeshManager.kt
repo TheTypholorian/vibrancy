@@ -35,6 +35,8 @@ open class StaticOneStepBlockLightMeshManager(
     protected var meshTask: GlTask<LightMesh.ComplexMeshData?>? = null
     var shouldMesh = true
         protected set
+    @JvmField
+    var numMeshes = 0
 
     fun queueMesh() {
         shouldMesh = true
@@ -148,6 +150,8 @@ open class StaticOneStepBlockLightMeshManager(
         manager: LightManager,
         profiler: ProfilerFiller
     ) {
+        numMeshes++
+        println("Num meshes $numMeshes")
         if (VibrancyConfig.useMultithreading) {
             meshTask?.cancel()
             meshTask = VibrancyThreadPool.submit(data, pos, manager) { meshImpl(it, manager) }

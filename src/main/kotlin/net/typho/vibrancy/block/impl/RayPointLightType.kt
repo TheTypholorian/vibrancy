@@ -66,12 +66,9 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
 
                 profiler.push("update")
                 val entityShadowDistance = manager.getRenderDistance(VibrancyConfig.entityShadowDistance)
-                var forceLoadDistance = (Minecraft.getInstance().options.effectiveRenderDistance - 4).coerceAtLeast(2)
-                forceLoadDistance *= forceLoadDistance * 256
                 lights.forEachIndexed { index, light ->
                     if (
-                        light.second < forceLoadDistance
-                        || light.first.streamSections(data.level!!).allMatch { pos ->
+                        light.first.streamSections(data.level!!).allMatch { pos ->
                             manager.sectionMeshCaches.containsKey(pos) || data.level!!.getChunk(pos.x(), pos.z())
                                 .let { it.getSection(it.getSectionIndexFromSectionY(pos.y())) }.hasOnlyAir()
                         }

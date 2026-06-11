@@ -18,16 +18,6 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
         info: RayPointLightInfo
     ) = if (info.enabled(state)) RayPointLight(info, state, pos) else null
 
-    override fun loadChunk(manager: LightManager, chunk: ChunkAccess) {
-        for (light in map.values) {
-            if (light.pos.x >= chunk.pos.minBlockX && light.pos.x <= chunk.pos.maxBlockX && light.pos.z >= chunk.pos.minBlockZ && light.pos.z <= chunk.pos.maxBlockZ) {
-                light.reload()
-            }
-        }
-
-        super.loadChunk(manager, chunk)
-    }
-
     override fun reload(manager: LightManager, chunk: ChunkPos?) {
         synchronized(map) {
             if (chunk == null) {
