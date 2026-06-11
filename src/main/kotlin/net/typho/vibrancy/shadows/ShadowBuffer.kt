@@ -131,18 +131,18 @@ open class ShadowBuffer(
                 }
             }
 
-            val gridBuffer = NeoBuffer.GCNative(28L + numBlocks * 16)
+            val gridBuffer = NeoBuffer.GCNative(32L + numBlocks * 16)
 
             gridBuffer.write().run {
                 writeInt(bounds.min.x)
                 writeInt(bounds.min.y)
                 writeInt(bounds.min.z)
-
-                writeInt(0) // padding
+                writeInt(0)
 
                 writeInt(bounds.sizeInclusive.x)
                 writeInt(bounds.sizeInclusive.y)
                 writeInt(bounds.sizeInclusive.z)
+                writeInt(0)
 
                 var quadIndex = 0
 

@@ -3,10 +3,7 @@
 uniform vec2 TextureSize;
 
 in vec3 Position;
-in vec2 UV0;
 in ivec2 UV1;
-in vec4 Color;
-in vec3 Normal;
 
 out vec3 vertexPos;
 

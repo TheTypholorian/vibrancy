@@ -3,5 +3,5 @@
     "vertex": "vibrancy:light_blit",
     "fragment": "vibrancy:block/raytraced/blit"
   },
-  "format": "vibrancy:light_mesh_blit"
+  "format": "vibrancy:light_mesh"
 }

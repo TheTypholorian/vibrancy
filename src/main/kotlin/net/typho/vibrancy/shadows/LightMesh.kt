@@ -50,11 +50,6 @@ open class LightMesh(
             //.add("Normal", NeoVertexFormat.Element.NORMAL)
             .build()
         @JvmField
-        val BLIT_VERTEX_FORMAT = NeoVertexFormat.builder()
-            .add("Position", NeoVertexFormat.Element.POSITION)
-            .add("UV0", NeoVertexFormat.Element.TEXTURE_UV)
-            .build()
-        @JvmField
         val SKY_VERTEX_FORMAT = NeoVertexFormat.builder()
             .add("Position", NeoVertexFormat.Element.POSITION)
             .add("UV0", NeoVertexFormat.Element.TEXTURE_UV)
@@ -93,88 +88,6 @@ open class LightMesh(
                 )
             )
         )
-
-        @JvmStatic
-        fun initBlitMesh(mesh: Mesh, info: FlatMeshData) {
-            val vertexBuffer = NeoBuffer.GCNative(info.faces.size.toLong() * 4 * BLIT_VERTEX_FORMAT.vertexSizeBytes)
-
-            vertexBuffer.write().run {
-                fun vertex(vertex: PrimitiveVertex, texX: Float, texY: Float) {
-                    writeFloat(vertex.x)
-                    writeFloat(vertex.y)
-                    writeFloat(vertex.z)
-                    writeFloat(texX / info.sections.size.x.toFloat())
-                    writeFloat(texY / info.sections.size.y.toFloat())
-                }
-
-                info.faces.forEachIndexed { index, face ->
-                    val texture = info.sections.textures[index]
-
-                    vertex(face.v0, texture.min.x.toFloat(), texture.min.y.toFloat())
-                    vertex(face.v1, texture.max.x.toFloat(), texture.min.y.toFloat())
-                    vertex(face.v2, texture.max.x.toFloat(), texture.max.y.toFloat())
-                    vertex(face.v3, texture.min.x.toFloat(), texture.max.y.toFloat())
-                }
-            }
-
-            val indices = mesh.generateIndices(info.faces.size * 4)
-
-            mesh.rawUpload(info.faces.size * 6, indices.second, vertexBuffer, indices.first)
-            vertexBuffer.free()
-            indices.first.free()
-        }
-
-        @JvmStatic
-        fun initBlitMesh(mesh: Mesh, info: ComplexMeshData, profiler: ProfilerFiller) {
-            profiler.push("alloc")
-            val vertexBuffer = NeoBuffer.Native(info.numFaces * 4L * BLIT_VERTEX_FORMAT.vertexSizeBytes)
-            profiler.pop()
-
-            profiler.push("write")
-            var ptr = vertexBuffer.address
-
-            vertexBuffer.write().run {}
-            fun vertex(vertex: PrimitiveVertex, texX: Float, texY: Float) {
-                memPutFloat(ptr, vertex.x)
-                ptr += Float.SIZE_BYTES
-                memPutFloat(ptr, vertex.y)
-                ptr += Float.SIZE_BYTES
-                memPutFloat(ptr, vertex.z)
-                ptr += Float.SIZE_BYTES
-
-                memPutFloat(ptr, texX / info.sections.size.x.toFloat())
-                ptr += Float.SIZE_BYTES
-                memPutFloat(ptr, texY / info.sections.size.y.toFloat())
-                ptr += Float.SIZE_BYTES
-            }
-
-            var textureIndex = 0
-
-            info.faces.forEach { faces ->
-                faces.second.forEach { face ->
-                    val texture = info.sections.textures[textureIndex++]
-
-                    vertex(face.v0, texture.min.x.toFloat(), texture.min.y.toFloat())
-                    vertex(face.v1, texture.max.x.toFloat(), texture.min.y.toFloat())
-                    vertex(face.v2, texture.max.x.toFloat(), texture.max.y.toFloat())
-                    vertex(face.v3, texture.min.x.toFloat(), texture.max.y.toFloat())
-                }
-            }
-            profiler.pop()
-
-            profiler.push("genIndices")
-            val indices = mesh.generateIndices(info.numFaces * 4)
-            profiler.pop()
-
-            profiler.push("upload")
-            mesh.rawUpload(info.numFaces * 6, indices.second, vertexBuffer, indices.first)
-            profiler.pop()
-
-            profiler.push("free")
-            vertexBuffer.free()
-            indices.first.free()
-            profiler.pop()
-        }
     }
 
     @JvmField

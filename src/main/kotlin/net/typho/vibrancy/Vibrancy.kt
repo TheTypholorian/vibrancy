@@ -290,7 +290,6 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
             register(id("sky_mesh")) { LightMesh.SKY_VERTEX_FORMAT }
             register(id("subtle_mesh")) { SubtleLightStorage.VERTEX_FORMAT }
             register(id("light_mesh_inventory")) { LightMesh.INVENTORY_VERTEX_FORMAT }
-            register(id("light_mesh_blit")) { LightMesh.BLIT_VERTEX_FORMAT }
         }
     }
 

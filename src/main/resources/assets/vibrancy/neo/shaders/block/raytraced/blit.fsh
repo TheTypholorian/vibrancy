@@ -44,6 +44,10 @@ Ray ray(vec3 pos) {
     return Ray(pos, dir, 1 / dir, len);
 }
 
+bool isInGrid(ivec3 voxel, ivec3 gridMin, ivec3 gridMax) {
+    return any(greaterThanEqual(voxel, gridMin)) && any(lessThan(voxel, gridMax)) && voxel != ivec3(0);
+}
+
 vec3 test(Ray ray) {
     ivec3 gridMax = gridMin + gridSize;
     ivec3 voxel = ivec3(floor(ray.pos));
@@ -60,19 +64,19 @@ vec3 test(Ray ray) {
     vec3 tint = vec3(0);
     float denom = 0;
 
-    while (!(any(lessThan(voxel, gridMin)) || any(greaterThanEqual(voxel, gridMax)) || voxel == ivec3(0))) {
+    while (isInGrid(voxel, gridMin, gridMax)) {
         for (uint i = 0; i < gridCells.length(); i++) {
             GridCell cell = gridCells[i];
 
             if (cell.pos == voxel) {
-                uint from = cell.range >> 16;
-                uint to = cell.range & 0xFFFFu;
+                uint from = cell.range & 0xFFFFu;
+                uint to = cell.range >> 16;
 
                 if (from != to) {
                     for (uint j = from; j < to; j++) {
                         float dist;
                         vec4 outColor;
-                        Quad quad = shadowQuads[i];
+                        Quad quad = shadowQuads[j];
 
                         if (sampleQuad(false, Sampler0, Sampler0Size, ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor)) {
                             if (outColor.a == 1) {
@@ -109,7 +113,7 @@ vec3 test(Ray ray) {
             }
         }
 
-        if (all(equal(oldVoxel, voxel))) {
+        if (oldVoxel == voxel) {
             return vec3(1);
         }
     }
