@@ -322,34 +322,7 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
         factory.levelRenderEnd.add(Vibrancy::render)
         factory.levelChanged.add { old, new ->
             if (VibrancyConfig.modEnabled) {
-                lightManager.clear()
-
-                if (new == null) {
-                    (lightManager.skyLight?.second as? NativeResource)?.free()
-                    lightManager.skyLight = null
-                } else {
-                    val resourceManager = WrapperUtil.INSTANCE.wrap(Minecraft.getInstance().resourceManager)
-                    BlockLightInfoLoader.onResourceManagerReload(resourceManager)
-                    SkyLightInfoLoader.onResourceManagerReload(resourceManager)
-
-                    SkyLightRegistry.get(new)?.let { info ->
-                        if (lightManager.skyLight?.first != info.type) {
-                            (lightManager.skyLight?.second as? NativeResource)?.free()
-                            lightManager.skyLight = null
-                        }
-
-                        if (lightManager.skyLight == null) {
-                            lightManager.skyLight = info.type to info.type.createStorage(lightManager)
-                        }
-
-                        @Suppress("UNCHECKED_CAST")
-                        fun <I : SkyLightInfo> load(storage: SkyLightStorage<I>) {
-                            storage.load(lightManager, info as I)
-                        }
-
-                        load(lightManager.skyLight!!.second)
-                    }
-                }
+                lightManager.levelChanged(old, new)
             }
         }
         /*

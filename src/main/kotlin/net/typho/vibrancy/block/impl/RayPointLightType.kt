@@ -64,25 +64,27 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                     .toList()
                 profiler.pop()
 
-                profiler.push("update")
-                val entityShadowDistance = manager.getRenderDistance(VibrancyConfig.entityShadowDistance)
-                lights.forEachIndexed { index, light ->
-                    if (
-                        light.first.streamSections(data.level!!).allMatch { pos ->
-                            manager.sectionMeshCaches.containsKey(pos) || data.level!!.getChunk(pos.x(), pos.z())
-                                .let { it.getSection(it.getSectionIndexFromSectionY(pos.y())) }.hasOnlyAir()
+                synchronized(manager.sectionLock) {
+                    profiler.push("update")
+                    val entityShadowDistance = manager.getRenderDistance(VibrancyConfig.entityShadowDistance)
+                    lights.forEachIndexed { index, light ->
+                        if (
+                            light.first.streamSections(data.level!!).allMatch { pos ->
+                                manager.sectionMeshCaches.containsKey(pos) || data.level!!.getChunk(pos.x(), pos.z())
+                                    .let { it.getSection(it.getSectionIndexFromSectionY(pos.y())) }.hasOnlyAir()
+                            }
+                        ) {
+                            light.first.update(
+                                data,
+                                manager,
+                                debugOut,
+                                (VibrancyConfig.entityShadowsEnabled || VibrancyConfig.blockEntityShadows) && index < VibrancyConfig.entityShadowMaxBlockLights && light.second < entityShadowDistance,
+                                profiler
+                            )
                         }
-                    ) {
-                        light.first.update(
-                            data,
-                            manager,
-                            debugOut,
-                            (VibrancyConfig.entityShadowsEnabled || VibrancyConfig.blockEntityShadows) && index < VibrancyConfig.entityShadowMaxBlockLights && light.second < entityShadowDistance,
-                            profiler
-                        )
                     }
+                    profiler.pop()
                 }
-                profiler.pop()
 
                 profiler.push("draw")
                 LightMesh.drawState(NeoAtlas.blocks, Vibrancy.id("block/raytraced/mesh")).bind().use { settings ->

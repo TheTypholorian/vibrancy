@@ -131,7 +131,11 @@ interface BlockMeshCollector {
             consumer: Consumer
         ) {
             val section = SectionPos.of(pos)
-            val cache = caches.computeIfAbsent(section) { manager.sectionMeshCaches[it] }
+            val cache = caches.computeIfAbsent(section) {
+                synchronized(manager.sectionLock) {
+                    manager.sectionMeshCaches[it]
+                }
+            }
 
             if (cache != null) {
                 cache[pos]?.let { model ->
@@ -150,7 +154,7 @@ interface BlockMeshCollector {
             consumer: Consumer
         ) {
             val section = SectionPos.of(pos)
-            val cache = manager.sectionMeshCaches[section]
+            val cache = synchronized(manager.sectionLock) { manager.sectionMeshCaches[section] }
 
             if (cache != null) {
                 cache[pos]?.let { model ->
@@ -170,7 +174,7 @@ interface BlockMeshCollector {
             consumer: Consumer
         ) {
             val section = SectionPos.of(pos)
-            val cache = manager.sectionMeshCaches[section]
+            val cache = synchronized(manager.sectionLock) {manager.sectionMeshCaches[section] }
 
             if (cache != null) {
                 cache[pos]?.let { model ->

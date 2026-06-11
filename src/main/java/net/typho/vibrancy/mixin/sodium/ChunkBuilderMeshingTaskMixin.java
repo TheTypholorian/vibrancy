@@ -54,13 +54,13 @@ public class ChunkBuilderMeshingTaskMixin {
         var cache = holder.getVibrancy$sectionMeshCache();
 
         if (cache != null) {
-            SectionMeshCache old = Vibrancy.lightManager.sectionMeshCaches.put(cache.pos, cache);
+            synchronized (Vibrancy.lightManager.sectionLock) {
+                SectionMeshCache old = Vibrancy.lightManager.sectionMeshCaches.put(cache.pos, cache);
 
-            if (old != null) {
-                SectionMeshCache.getPool().add(old);
-            }
+                if (old != null) {
+                    SectionMeshCache.getPool().add(old);
+                }
 
-            synchronized (Vibrancy.lightManager.dirtySectionLock) {
                 Vibrancy.lightManager.nextDirtySections.add(new Pair<>(cache.pos, new NeoRect3i(cache.pos.minBlockX(), cache.pos.minBlockY(), cache.pos.minBlockZ(), cache.pos.maxBlockX(), cache.pos.maxBlockY(), cache.pos.maxBlockZ())));
             }
         }

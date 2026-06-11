@@ -33,17 +33,22 @@ import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
 import net.typho.big_shot_lib.api.math.vec.NeoVec3d
 import net.typho.big_shot_lib.api.math.vec.blockPos
+import net.typho.big_shot_lib.api.util.WrapperUtil
 import net.typho.big_shot_lib.api.util.resource.NeoResourceKey
 import net.typho.vibrancy.Vibrancy.id
 import net.typho.vibrancy.block.BlockLightInfo
+import net.typho.vibrancy.block.BlockLightInfoLoader
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.block.BlockLightStorage
 import net.typho.vibrancy.block.BlockLightType
 import net.typho.vibrancy.mixin.SodiumWorldRendererAccessor
+import net.typho.vibrancy.sky.SkyLightInfo
+import net.typho.vibrancy.sky.SkyLightInfoLoader
 import net.typho.vibrancy.sky.SkyLightRegistry
 import net.typho.vibrancy.sky.SkyLightStorage
 import net.typho.vibrancy.sky.SkyLightType
 import net.typho.vibrancy.util.SectionMeshCache
+import org.lwjgl.system.NativeResource
 import java.util.*
 import java.util.function.Consumer
 import kotlin.use
@@ -54,7 +59,7 @@ import kotlin.use
 
 open class LightManager {
     @JvmField
-    val dirtySectionLock = Any()
+    val sectionLock = Any()
     @JvmField
     var nextDirtySections: MutableList<Pair<SectionPos, AbstractRect3<Int>>> = LinkedList()
     @JvmField
@@ -75,7 +80,10 @@ open class LightManager {
     fun clear() {
         blockLights.values.forEach { storage -> storage.clear(this) }
         skyLight?.second?.clear(this)
-        sectionMeshCaches.clear()
+
+        synchronized(sectionLock) {
+            sectionMeshCaches.clear()
+        }
     }
 
     fun reload() {
@@ -120,6 +128,40 @@ open class LightManager {
         }
 
         dirtyBlocks[pos.blockPos] = old to new
+    }
+
+    fun levelChanged(
+        old: ClientLevel?,
+        new: ClientLevel?
+    ) {
+        clear()
+
+        if (new == null) {
+            (skyLight?.second as? NativeResource)?.free()
+            skyLight = null
+        } else {
+            val resourceManager = WrapperUtil.INSTANCE.wrap(Minecraft.getInstance().resourceManager)
+            BlockLightInfoLoader.onResourceManagerReload(resourceManager)
+            SkyLightInfoLoader.onResourceManagerReload(resourceManager)
+
+            SkyLightRegistry.get(new)?.let { info ->
+                if (skyLight?.first != info.type) {
+                    (skyLight?.second as? NativeResource)?.free()
+                    skyLight = null
+                }
+
+                if (skyLight == null) {
+                    skyLight = info.type to info.type.createStorage(this)
+                }
+
+                @Suppress("UNCHECKED_CAST")
+                fun <I : SkyLightInfo> load(storage: SkyLightStorage<I>) {
+                    storage.load(this, info as I)
+                }
+
+                load(skyLight!!.second)
+            }
+        }
     }
 
     fun loadChunk(chunk: ChunkAccess) {
@@ -181,7 +223,7 @@ open class LightManager {
         profiler.push("vibrancy")
         debugInfo.clear()
 
-        synchronized(dirtySectionLock) {
+        synchronized(sectionLock) {
             dirtySections = nextDirtySections
             nextDirtySections = LinkedList()
         }

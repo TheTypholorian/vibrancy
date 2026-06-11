@@ -103,7 +103,7 @@ open class StaticOneStepBlockLightMeshManager(
                 SectionPos.blockToSectionCoord(ay),
                 SectionPos.blockToSectionCoord(az)
             )
-            sectionMeshes.computeIfAbsent(sectionPos, manager.sectionMeshCaches::get)?.let { section ->
+            sectionMeshes.computeIfAbsent(sectionPos) { key -> synchronized(manager.sectionLock) { manager.sectionMeshCaches[key] } }?.let { section ->
                 section.get(ax, ay, az)?.let { block ->
                     val list = arrayListOf<LightFace>()
                     block.solidFaces.mapTo(list) { it.copyWithOffset(pos.x, pos.y, pos.z) } // TODO split solid and translucent
@@ -150,8 +150,6 @@ open class StaticOneStepBlockLightMeshManager(
         manager: LightManager,
         profiler: ProfilerFiller
     ) {
-        numMeshes++
-        println("Num meshes $numMeshes")
         if (VibrancyConfig.useMultithreading) {
             meshTask?.cancel()
             meshTask = VibrancyThreadPool.submit(data, pos, manager) { meshImpl(it, manager) }
