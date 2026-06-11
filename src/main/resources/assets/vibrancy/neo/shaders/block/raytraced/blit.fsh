@@ -4,8 +4,8 @@
 #include "vibrancy:rays"
 
 struct GridCell {
-    uint from;
-    uint to;
+    ivec3 pos;
+    uint range;
 };
 
 layout(std430) buffer ShadowQuadBuffer {
@@ -44,10 +44,6 @@ Ray ray(vec3 pos) {
     return Ray(pos, dir, 1 / dir, len);
 }
 
-uint getCellIndex(ivec3 pos) {
-    return ((pos.x - gridMin.x) * gridSize.y + (pos.y - gridMin.y)) * gridSize.z + (pos.z - gridMin.z);
-}
-
 vec3 test(Ray ray) {
     ivec3 gridMax = gridMin + gridSize;
     ivec3 voxel = ivec3(floor(ray.pos));
@@ -65,28 +61,31 @@ vec3 test(Ray ray) {
     float denom = 0;
 
     while (!(any(lessThan(voxel, gridMin)) || any(greaterThanEqual(voxel, gridMax)) || voxel == ivec3(0))) {
-        uint cellIndex = getCellIndex(voxel);
+        for (uint i = 0; i < gridCells.length(); i++) {
+            GridCell cell = gridCells[i];
 
-        if (cellIndex < 0 || cellIndex > gridCells.length()) {
-            break;
-        }
+            if (cell.pos == voxel) {
+                uint from = cell.range >> 16;
+                uint to = cell.range & 0xFFFFu;
 
-        GridCell cell = gridCells[cellIndex];
+                if (from != to) {
+                    for (uint j = from; j < to; j++) {
+                        float dist;
+                        vec4 outColor;
+                        Quad quad = shadowQuads[i];
 
-        if (cell.from != cell.to) {
-            for (uint i = cell.from; i < cell.to; i++) {
-                float dist;
-                vec4 outColor;
-                Quad quad = shadowQuads[i];
-
-                if (sampleQuad(false, Sampler0, Sampler0Size, ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor)) {
-                    if (outColor.a == 1) {
-                        return vec3(0);
-                    } else if (outColor.a != 0) {
-                        tint += outColor.rgb * outColor.a;
-                        denom += outColor.a;
+                        if (sampleQuad(false, Sampler0, Sampler0Size, ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor)) {
+                            if (outColor.a == 1) {
+                                return vec3(0);
+                            } else if (outColor.a != 0) {
+                                tint += outColor.rgb * outColor.a;
+                                denom += outColor.a;
+                            }
+                        }
                     }
                 }
+
+                break;
             }
         }
 

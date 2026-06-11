@@ -1,6 +1,5 @@
 package net.typho.vibrancy.shadows
 
-import net.minecraft.core.BlockPos
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferTarget
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlBuffer
@@ -12,7 +11,6 @@ import net.typho.big_shot_lib.api.math.rect.AbstractRect3.Companion.sizeInclusiv
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
 import org.lwjgl.system.MemoryUtil.memPutInt
-import org.lwjgl.system.MemoryUtil.memSet
 
 open class ShadowBuffer(
     @JvmField
@@ -114,9 +112,14 @@ open class ShadowBuffer(
 
         open fun lazyUpload(texWidth: Int, texHeight: Int, numFaces: Int, bounds: AbstractRect3<Int>, faces: List<Pair<IVec3<Int>, List<PrimitiveQuad>>>): Pair<AutoCloseable, () -> Unit> {
             val quadBuffer = NeoBuffer.GCNative(numFaces * 4L * VERTEX_FORMAT.vertexSizeBytes)
+            var numBlocks = 0
 
             quadBuffer.write().run {
                 for ((pos, faces) in faces) {
+                    if (faces.isNotEmpty()) {
+                        numBlocks++
+                    }
+
                     for (face in faces) {
                         face.apply { vertex ->
                             writeFloat(vertex.x)
@@ -128,34 +131,31 @@ open class ShadowBuffer(
                 }
             }
 
-            val gridBufferSize = 28L + bounds.areaInclusive * 2 * Int.SIZE_BYTES
-            val gridBuffer = NeoBuffer.GCNative(gridBufferSize)
+            val gridBuffer = NeoBuffer.GCNative(28L + numBlocks * 16)
 
-            memSet(gridBuffer.address, 0, gridBufferSize)
+            gridBuffer.write().run {
+                writeInt(bounds.min.x)
+                writeInt(bounds.min.y)
+                writeInt(bounds.min.z)
 
-            memPutInt(gridBuffer.address, bounds.min.x)
-            memPutInt(gridBuffer.address + 4L, bounds.min.y)
-            memPutInt(gridBuffer.address + 8L, bounds.min.z)
+                writeInt(0) // padding
 
-            memPutInt(gridBuffer.address + 16L, bounds.sizeInclusive.x)
-            memPutInt(gridBuffer.address + 20L, bounds.sizeInclusive.y)
-            memPutInt(gridBuffer.address + 24L, bounds.sizeInclusive.z)
+                writeInt(bounds.sizeInclusive.x)
+                writeInt(bounds.sizeInclusive.y)
+                writeInt(bounds.sizeInclusive.z)
 
-            var quadIndex = 0
+                var quadIndex = 0
 
-            for ((pos, faces) in faces) {
-                if (faces.isNotEmpty()) {
-                    val index = 28L + (((pos.x - bounds.min.x) * bounds.sizeInclusive.y + (pos.y - bounds.min.y)) * bounds.sizeInclusive.z + (pos.z - bounds.min.z)) * 2 * Int.SIZE_BYTES
+                for ((pos, faces) in faces) {
+                    if (faces.isNotEmpty()) {
+                        writeInt(pos.x)
+                        writeInt(pos.y)
+                        writeInt(pos.z)
 
-                    if (index < 0 || index > gridBufferSize) {
-                        throw IndexOutOfBoundsException("$index $gridBufferSize $pos ${bounds.min} ${bounds.sizeInclusive}")
+                        writeShort(quadIndex)
+                        quadIndex += faces.size
+                        writeShort(quadIndex)
                     }
-
-                    val bytePointer = gridBuffer.address + index
-
-                    memPutInt(bytePointer, quadIndex)
-                    quadIndex += faces.size
-                    memPutInt(bytePointer + 4L, quadIndex)
                 }
             }
 
