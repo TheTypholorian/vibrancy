@@ -1,11 +1,14 @@
 package net.typho.vibrancy.util
 
+import net.caffeinemc.mods.sodium.client.render.chunk.terrain.material.Material
 import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.math.vec.IVec3
+import net.typho.vibrancy.collectors.BlockMeshCollector
 import net.typho.vibrancy.shadows.LightFace
 import java.util.concurrent.ConcurrentLinkedDeque
+import java.util.function.Consumer
 
 class SectionMeshCache(
     @JvmField
@@ -17,7 +20,7 @@ class SectionMeshCache(
         val POOL = ConcurrentLinkedDeque<SectionMeshCache>()
 
         @JvmStatic
-        operator fun get(pos: SectionPos): SectionMeshCache {
+        fun poll(pos: SectionPos): SectionMeshCache {
             val cache = POOL.poll()
 
             if (cache == null) {
@@ -61,15 +64,15 @@ class SectionMeshCache(
     fun clear() {
         for (block in models) {
             if (block != null) {
-                block.solidFaces.clear()
-                block.translucentFaces.clear()
+                block.solidFaces?.clear()
+                block.translucentFaces?.clear()
             }
         }
     }
 
-    fun createVertexConsumer(pos: BlockPos, translucent: Boolean, atlas: NeoAtlas, offsetX: Float = 0f, offsetY: Float = 0f, offsetZ: Float = 0f): LightFace.Consumer {
+    fun createVertexConsumer(pos: BlockPos, material: Material, atlas: NeoAtlas, offsetX: Float = 0f, offsetY: Float = 0f, offsetZ: Float = 0f): LightFace.Consumer {
         return LightFace.Consumer(
-            (if (translucent) getOrCreate(pos).translucentFaces else getOrCreate(pos).solidFaces)::add,
+            getOrCreate(pos)[material]::add,
             atlas,
             offsetX,
             offsetY,
@@ -79,11 +82,47 @@ class SectionMeshCache(
 
     data class Block(
         @JvmField
-        val solidFaces: MutableList<LightFace> = arrayListOf(),
+        var solidFaces: MutableList<LightFace>? = null,
         @JvmField
-        val translucentFaces: MutableList<LightFace> = arrayListOf(),
+        var translucentFaces: MutableList<LightFace>? = null
     ) {
-        operator fun get(translucent: Boolean) = if (translucent) translucentFaces else solidFaces
+        operator fun get(material: Material): MutableList<LightFace> {
+            if (material.isTranslucent) {
+                translucentFaces?.let { return it }
+
+                val list = arrayListOf<LightFace>()
+                translucentFaces = list
+                return list
+            } else {
+                solidFaces?.let { return it }
+
+                val list = arrayListOf<LightFace>()
+                solidFaces = list
+                return list
+            }
+        }
+
+        fun collect(out: Consumer<LightFace>) {
+            fun collectFrom(from: MutableList<LightFace>) {
+                for (face in from) {
+                    out.accept(face)
+                }
+            }
+
+            solidFaces?.let { collectFrom(it) } // TODO split solid and translucent
+            translucentFaces?.let { collectFrom(it) }
+        }
+
+        fun collect(consumer: BlockMeshCollector.Consumer, section: SectionPos, block: BlockPos, transmute: (face: LightFace) -> LightFace = { it }) {
+            solidFaces?.let { consumer.collect(it.map(transmute), section, block, false) }
+            translucentFaces?.let { consumer.collect(it.map(transmute), section, block, true) }
+        }
+
+        fun collectToList(transmute: (face: LightFace) -> LightFace = { it }): List<LightFace> {
+            val list = arrayListOf<LightFace>()
+            collect { list.add(transmute(it)) }
+            return list
+        }
     }
 
     interface Holder {

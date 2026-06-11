@@ -55,6 +55,7 @@ import java.util.stream.Stream
 import kotlin.math.ceil
 
 open class RayPointLight(
+    level: Level,
     @JvmField
     val color: IVec3<Float>,
     @JvmField
@@ -99,6 +100,15 @@ open class RayPointLight(
     *///? }
     override val boundingBox: AbstractRect3<Int> = NeoRect3i(pos - radius.toInt(), pos + radius.toInt())
     override var shadowBox: AbstractRect3<Int> = createShadowBox()
+    @JvmField
+    val sections: List<SectionPos> = SectionPos.betweenClosedStream(
+        SectionPos.blockToSectionCoord(boundingBox.min.x),
+        SectionPos.blockToSectionCoord(boundingBox.min.y).coerceAtLeast(level.minSection).coerceAtMost(level.maxSection),
+        SectionPos.blockToSectionCoord(boundingBox.min.z),
+        SectionPos.blockToSectionCoord(boundingBox.max.x),
+        SectionPos.blockToSectionCoord(boundingBox.max.y).coerceAtLeast(level.minSection).coerceAtMost(level.maxSection),
+        SectionPos.blockToSectionCoord(boundingBox.max.z)
+    ).toList()
 
     fun createShadowBox(): AbstractRect3<Int> {
         val shadowRadius = ceil(radius.coerceAtMost(VibrancyConfig.rayLightShadowRadius.toFloat())).toInt()
@@ -186,7 +196,8 @@ open class RayPointLight(
         profiler.pop()
     }
 
-    constructor(info: RayPointLightInfo, state: BlockState, pos: IVec3<Int>) : this(
+    constructor(level: Level, info: RayPointLightInfo, state: BlockState, pos: IVec3<Int>) : this(
+        level,
         info.color(state) * info.brightness(state),
         info.flicker(state),
         info.radius(state),
@@ -207,15 +218,6 @@ open class RayPointLight(
         mesh.free()
     }
 
-    fun streamSections(level: Level): Stream<SectionPos> = SectionPos.betweenClosedStream(
-        SectionPos.blockToSectionCoord(boundingBox.min.x),
-        SectionPos.blockToSectionCoord(boundingBox.min.y).coerceAtLeast(level.minSection).coerceAtMost(level.maxSection),
-        SectionPos.blockToSectionCoord(boundingBox.min.z),
-        SectionPos.blockToSectionCoord(boundingBox.max.x),
-        SectionPos.blockToSectionCoord(boundingBox.max.y).coerceAtLeast(level.minSection).coerceAtMost(level.maxSection),
-        SectionPos.blockToSectionCoord(boundingBox.max.z)
-    )
-
     fun update(data: RenderEventData, manager: LightManager, debugOut: (String, Int) -> Unit, dynamicShadows: Boolean, profiler: ProfilerFiller) {
         profiler.push("rebuildBlocks")
         val box = boundingBox
@@ -232,7 +234,6 @@ open class RayPointLight(
         profiler.push("tickAsync")
         mesh.tick(
             data,
-            pos,
             manager,
             profiler
         )
@@ -338,7 +339,7 @@ open class RayPointLight(
                 if (VibrancyConfig.blockEntityShadows) {
                     profiler.push("blockEntityShadows")
 
-                    for (pos in mesh.blockEntities) {
+                    for (pos in mesh.getBlockEntities(level)) {
                         level.getBlockEntity(pos)?.let { blockEntity ->
                             val node = Node()
                             debugOut("blockEntityShadows", 1)

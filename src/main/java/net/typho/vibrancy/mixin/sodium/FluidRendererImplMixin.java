@@ -59,7 +59,7 @@ public class FluidRendererImplMixin {
         if (cache == null) {
             ((SectionMeshCache.ConsumerExtension) meshBuilder).setVibrancy$sectionMeshConsumer(null);
         } else {
-            ((SectionMeshCache.ConsumerExtension) meshBuilder).setVibrancy$sectionMeshConsumer(cache.createVertexConsumer(blockPos, material.isTranslucent(), NeoAtlas.Companion.getBlocks(), -SectionPos.sectionRelative(blockPos.getX()), -SectionPos.sectionRelative(blockPos.getY()), -SectionPos.sectionRelative(blockPos.getZ())));
+            ((SectionMeshCache.ConsumerExtension) meshBuilder).setVibrancy$sectionMeshConsumer(cache.createVertexConsumer(blockPos, material, NeoAtlas.Companion.getBlocks(), -SectionPos.sectionRelative(blockPos.getX()), -SectionPos.sectionRelative(blockPos.getY()), -SectionPos.sectionRelative(blockPos.getZ())));
         }
     }
 
@@ -138,7 +138,7 @@ public class FluidRendererImplMixin {
         if (cache == null) {
             ((SectionMeshCache.ConsumerExtension) meshBuilder).setVibrancy$sectionMeshConsumer(null);
         } else {
-            ((SectionMeshCache.ConsumerExtension) meshBuilder).setVibrancy$sectionMeshConsumer(cache.createVertexConsumer(blockPos, material.isTranslucent(), NeoAtlas.Companion.getBlocks(), -SectionPos.sectionRelative(blockPos.getX()), -SectionPos.sectionRelative(blockPos.getY()), -SectionPos.sectionRelative(blockPos.getZ())));
+            ((SectionMeshCache.ConsumerExtension) meshBuilder).setVibrancy$sectionMeshConsumer(cache.createVertexConsumer(blockPos, material, NeoAtlas.Companion.getBlocks(), -SectionPos.sectionRelative(blockPos.getX()), -SectionPos.sectionRelative(blockPos.getY()), -SectionPos.sectionRelative(blockPos.getZ())));
         }
     }
 

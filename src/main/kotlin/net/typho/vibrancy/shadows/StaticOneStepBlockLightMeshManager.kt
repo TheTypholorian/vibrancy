@@ -3,12 +3,14 @@ package net.typho.vibrancy.shadows
 import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
 import net.minecraft.util.profiling.ProfilerFiller
+import net.minecraft.world.level.Level
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.math.rect.AbstractRect3
 import net.typho.big_shot_lib.api.math.rect.AbstractRect3.Companion.iterator
 import net.typho.big_shot_lib.api.math.vec.IVec3
+import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyConfig
@@ -30,13 +32,28 @@ open class StaticOneStepBlockLightMeshManager(
     @JvmField
     val shadowBuffer = ShadowBuffer.VoxelGrid(GlBufferUsage.STATIC_DRAW)
     @JvmField
-    var blockEntities = arrayListOf<BlockPos>()
+    var blockEntities: List<BlockPos>? = null
     @JvmField
     protected var meshTask: GlTask<LightMesh.ComplexMeshData?>? = null
     var shouldMesh = true
         protected set
-    @JvmField
-    var numMeshes = 0
+
+    fun getBlockEntities(level: Level): List<BlockPos> {
+        blockEntities?.let { return it }
+
+        val list = arrayListOf<BlockPos>()
+
+        bounds(this).iterator().forEach { pos ->
+            val block = (pos + this.pos).blockPos
+
+            if (level.getBlockEntity(block) != null) {
+                list.add(block)
+            }
+        }
+
+        blockEntities = list
+        return list
+    }
 
     fun queueMesh() {
         shouldMesh = true
@@ -52,7 +69,6 @@ open class StaticOneStepBlockLightMeshManager(
 
     fun tick(
         data: RenderEventData,
-        pos: IVec3<Int>,
         manager: LightManager,
         profiler: ProfilerFiller
     ) {
@@ -76,7 +92,7 @@ open class StaticOneStepBlockLightMeshManager(
 
         if (shouldMesh) {
             profiler.push("start")
-            mesh(data, pos, manager, profiler)
+            mesh(data, manager, profiler)
             shouldMesh = false
             profiler.pop()
         }
@@ -89,14 +105,12 @@ open class StaticOneStepBlockLightMeshManager(
         val sectionMeshes = hashMapOf<SectionPos, SectionMeshCache?>()
         var numFaces = 0
         val bounds = bounds(this)
-        val blockEntities = arrayListOf<BlockPos>()
         val faces = arrayListOf<Pair<IVec3<Int>, List<LightFace>>>()
 
-        for (pos in bounds) {
+        bounds.iterator().forEach { pos ->
             val ax = pos.x + this.pos.x
             val ay = pos.y + this.pos.y
             val az = pos.z + this.pos.z
-            val blockPos = BlockPos(ax, ay, az)
 
             val sectionPos = SectionPos.of(
                 SectionPos.blockToSectionCoord(ax),
@@ -106,15 +120,10 @@ open class StaticOneStepBlockLightMeshManager(
             sectionMeshes.computeIfAbsent(sectionPos) { key -> synchronized(manager.sectionLock) { manager.sectionMeshCaches[key] } }?.let { section ->
                 section.get(ax, ay, az)?.let { block ->
                     val list = arrayListOf<LightFace>()
-                    block.solidFaces.mapTo(list) { it.copyWithOffset(pos.x, pos.y, pos.z) } // TODO split solid and translucent
-                    block.translucentFaces.mapTo(list) { it.copyWithOffset(pos.x, pos.y, pos.z) }
+                    block.collect { list.add(it.copyWithOffset(pos.x, pos.y, pos.z)) }
                     numFaces += list.size
                     faces.add(pos to list)
                 }
-            }
-
-            if (manager.getLevel()!!.getBlockEntity(blockPos) != null) {
-                blockEntities.add(blockPos)
             }
         }
 
@@ -134,7 +143,7 @@ open class StaticOneStepBlockLightMeshManager(
             shadows.first.close()
             light.first.close()
         } to {
-            this.blockEntities = blockEntities
+            blockEntities = null
             shadows.second()
             LightMesh.ComplexMeshData(
                 faces,
@@ -146,7 +155,6 @@ open class StaticOneStepBlockLightMeshManager(
 
     fun mesh(
         data: RenderEventData,
-        pos: IVec3<Int>,
         manager: LightManager,
         profiler: ProfilerFiller
     ) {

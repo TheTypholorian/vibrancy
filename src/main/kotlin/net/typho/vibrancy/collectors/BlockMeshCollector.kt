@@ -138,10 +138,7 @@ interface BlockMeshCollector {
             }
 
             if (cache != null) {
-                cache[pos]?.let { model ->
-                    consumer.collect(model.solidFaces, section, pos, false)
-                    consumer.collect(model.translucentFaces, section, pos, true)
-                }
+                cache[pos]?.collect(consumer, section, pos)
             }
         }
 
@@ -157,10 +154,7 @@ interface BlockMeshCollector {
             val cache = synchronized(manager.sectionLock) { manager.sectionMeshCaches[section] }
 
             if (cache != null) {
-                cache[pos]?.let { model ->
-                    consumer.collect(model.solidFaces, section, pos, false)
-                    consumer.collect(model.translucentFaces, section, pos, true)
-                }
+                cache[pos]?.collect(consumer, section, pos)
             }
         }
 
@@ -177,10 +171,7 @@ interface BlockMeshCollector {
             val cache = synchronized(manager.sectionLock) {manager.sectionMeshCaches[section] }
 
             if (cache != null) {
-                cache[pos]?.let { model ->
-                    consumer.collect(model.solidFaces.map(transmute), section, pos, false)
-                    consumer.collect(model.translucentFaces.map(transmute), section, pos, true)
-                }
+                cache[pos]?.collect(consumer, section, pos, transmute)
             }
         }
     }

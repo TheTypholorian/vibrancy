@@ -36,7 +36,7 @@ bool raycastQuad(bool checkDir, vec3 origin, vec3 dir, float len, float margin, 
     float d = dot(normal, q.v1);
 
     tt = (d - dot(origin, normal)) / denom;
-    if (tt < margin || tt > len - margin) return false;
+    if (tt < margin * sign(denom) || tt > len - margin) return false;
 
     vec3 p = origin + tt * dir;
     vec3 vp = p - q.v1;

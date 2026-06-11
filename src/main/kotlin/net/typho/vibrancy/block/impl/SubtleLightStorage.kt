@@ -273,6 +273,10 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
         @JvmField
         var box: AbstractRect3<Int>? = null
 
+        override fun shouldCollectMeshGeometry(pos: SectionPos): Boolean {
+            return pos == this.pos
+        }
+
         fun lazyUpload(isCancelled: () -> Boolean, quads: Collection<Pair<Pair<LightFace, Short>, Int>>): Pair<AutoCloseable, () -> Unit> {
             isCompiledEmpty = quads.isEmpty()
 

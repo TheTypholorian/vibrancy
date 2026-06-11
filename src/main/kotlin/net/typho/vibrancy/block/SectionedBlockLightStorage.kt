@@ -16,6 +16,10 @@ abstract class SectionedBlockLightStorage<I : BlockLightInfo, C : BlockLightStor
     override val size: Int
         get() = chunks.values.sumOf { it.size }
 
+    override fun shouldCollectMeshGeometry(pos: SectionPos): Boolean {
+        return chunks.containsKey(pos)
+    }
+
     abstract fun createChunk(manager: LightManager, pos: SectionPos): C
 
     fun getOrCreateChunk(manager: LightManager, pos: SectionPos): C = chunks.computeIfAbsent(pos) { createChunk(manager, it) }

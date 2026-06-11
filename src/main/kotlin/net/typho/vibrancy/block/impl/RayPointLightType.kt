@@ -1,6 +1,5 @@
 package net.typho.vibrancy.block.impl
 
-import net.minecraft.client.Minecraft
 import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.block.state.StateDefinition
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBlendEquation
@@ -48,14 +47,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                 val lights = lights.map.values
                     /*
                     .filter { light ->
-                        manager.testFrustum(light.pos, data, light.boundingBox) && SectionPos.betweenClosedStream(
-                            SectionPos.blockToSectionCoord(light.boundingBox.min.x),
-                            SectionPos.blockToSectionCoord(light.boundingBox.min.y),
-                            SectionPos.blockToSectionCoord(light.boundingBox.min.z),
-                            SectionPos.blockToSectionCoord(light.boundingBox.max.x),
-                            SectionPos.blockToSectionCoord(light.boundingBox.max.y),
-                            SectionPos.blockToSectionCoord(light.boundingBox.max.z)
-                        ).anyMatch { manager.isSectionVisible(it) }
+                        manager.testFrustum(light.pos, data, light.boundingBox) && light.sections.any { manager.isSectionVisible(it) }
                     }
                      */
                     .map { light -> light to manager.getSortingOrder(data, light.pos) }
@@ -69,9 +61,10 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                     val entityShadowDistance = manager.getRenderDistance(VibrancyConfig.entityShadowDistance)
                     lights.forEachIndexed { index, light ->
                         if (
-                            light.first.streamSections(data.level!!).allMatch { pos ->
-                                manager.sectionMeshCaches.containsKey(pos) || data.level!!.getChunk(pos.x(), pos.z())
-                                    .let { it.getSection(it.getSectionIndexFromSectionY(pos.y())) }.hasOnlyAir()
+                            light.first.sections.all { pos -> // TODO
+                                manager.sectionMeshCaches.containsKey(pos)
+                                        || data.level!!.getChunk(pos.x(), pos.z()).let { it.getSection(it.getSectionIndexFromSectionY(pos.y())) }.hasOnlyAir()
+                                        || !manager.isSectionVisible(pos)
                             }
                         ) {
                             light.first.update(
@@ -99,7 +92,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                     profiler.pop()
 
                     val highQualityDistance = 2f * 2f * 16f * 16f
-                    val lights = lights.filter { it.first.streamSections(data.level!!).anyMatch { pos -> manager.isSectionVisible(pos) } }
+                    val lights = lights.filter { it.first.sections.any { pos -> manager.isSectionVisible(pos) } }
                     val atlas = NeoAtlas.blocks
 
                     temp.bind().use { fbo ->

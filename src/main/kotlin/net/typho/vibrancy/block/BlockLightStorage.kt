@@ -1,5 +1,6 @@
 package net.typho.vibrancy.block
 
+import net.minecraft.core.SectionPos
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
@@ -9,6 +10,8 @@ import net.typho.vibrancy.LightManager
 
 interface BlockLightStorage<I> {
     val size: Int
+
+    fun shouldCollectMeshGeometry(pos: SectionPos): Boolean
 
     fun addLight(
         manager: LightManager,
