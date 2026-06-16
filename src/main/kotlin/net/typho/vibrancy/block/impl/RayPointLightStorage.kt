@@ -12,7 +12,9 @@ import net.typho.vibrancy.block.HashMapBlockLightStorage
 
 class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPointLight>(RayPointLightType) {
     override fun shouldCollectMeshGeometry(pos: SectionPos): Boolean {
-        return map.values.any { it.sections.contains(pos) }
+        synchronized(map) {
+            return map.values.any { it.sections.contains(pos) }
+        }
     }
 
     override fun createLight(
