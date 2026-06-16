@@ -17,16 +17,16 @@ bool raycastAABB(vec3 origin, vec3 invDir, float len, AABB aabb) {
 }
 
 struct Quad {
-    vec3 v1; uint uv1;
-    vec3 v2; uint uv2;
-    vec3 v3; uint uv3;
-    vec3 v4; uint uv4;
+    vec3 vert1; uint uv1;
+    vec3 vert2; uint uv2;
+    vec3 vert3; uint uv3;
+    vec3 vert4; uint uv4;
 };
 struct ComplexQuad {
-    vec3 v1; vec2 uv1; uint overlay1; uint color1; uint normal1;
-    vec3 v2; vec2 uv2; uint overlay2; uint color2; uint normal2;
-    vec3 v3; vec2 uv3; uint overlay3; uint color3; uint normal3;
-    vec3 v4; vec2 uv4; uint overlay4; uint color4; uint normal4;
+    vec3 vert1; float u1; float v1; uint overlay1; uint color1; uint normal1;
+    vec3 vert2; float u2; float v2; uint overlay2; uint color2; uint normal2;
+    vec3 vert3; float u3; float v3; uint overlay3; uint color3; uint normal3;
+    vec3 vert4; float u4; float v4; uint overlay4; uint color4; uint normal4;
 };
 
 ivec2 unpackUV(uint uv) {
@@ -75,7 +75,7 @@ bool raycastQuad(bool checkDir, vec3 origin, vec3 dir, float len, float margin, 
 bool sampleQuad(bool checkDir, sampler2D Sampler0, ivec2 Sampler0Size, vec3 origin, vec3 dir, float len, float margin, Quad q, out float dist, out vec4 outColor) {
     vec2 uv;
 
-    if (raycastQuad(checkDir, origin, dir, len, margin, q.v1, q.v2, q.v3, q.v4, uv, dist)) {
+    if (raycastQuad(checkDir, origin, dir, len, margin, q.vert1, q.vert2, q.vert3, q.vert4, uv, dist)) {
         ivec2 texUv = ivec2(mix(mix(unpackUV(q.uv1), unpackUV(q.uv2), uv.x), mix(unpackUV(q.uv4), unpackUV(q.uv3), uv.x), uv.y));
         vec4 pixel = texelFetch(Sampler0, texUv, 0);
         outColor = pixel;
@@ -90,8 +90,8 @@ bool sampleQuad(bool checkDir, sampler2D Sampler0, ivec2 Sampler0Size, vec3 orig
 bool sampleComplexQuad(bool checkDir, sampler2D Sampler0, ivec2 Sampler0Size, vec3 origin, vec3 dir, float len, float margin, ComplexQuad q, out float dist, out vec4 outColor) {
     vec2 uv;
 
-    if (raycastQuad(checkDir, origin, dir, len, margin, q.v1, q.v2, q.v3, q.v4, uv, dist)) {
-        vec2 texUv = mix(mix(q.uv1, q.uv2, uv.x), mix(q.uv4, q.uv3, uv.x), uv.y);
+    if (raycastQuad(checkDir, origin, dir, len, margin, q.vert1, q.vert2, q.vert3, q.vert4, uv, dist)) {
+        vec2 texUv = mix(mix(vec2(q.u1, q.v1), vec2(q.u2, q.v2), uv.x), mix(vec2(q.u4, q.v4), vec2(q.u3, q.v3), uv.x), uv.y);
         vec4 pixel = texture(Sampler0, texUv);
         outColor = pixel;
 
