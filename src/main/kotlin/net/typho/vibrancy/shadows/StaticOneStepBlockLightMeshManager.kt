@@ -93,7 +93,7 @@ open class StaticOneStepBlockLightMeshManager(
         if (shouldMesh) {
             profiler.push("start")
             mesh(data, manager, profiler)
-            //shouldMesh = false
+            shouldMesh = false
             profiler.pop()
         }
     }

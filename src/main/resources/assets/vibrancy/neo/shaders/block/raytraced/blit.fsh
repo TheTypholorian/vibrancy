@@ -78,7 +78,7 @@ vec3 test(Ray ray) {
                         vec4 outColor;
                         ComplexQuad quad = shadowQuads[j];
 
-                        if (sampleQuad(false, Sampler0, Sampler0Size, ray.pos, ray.dir, ray.len, 1e-3, complexToBasicQuad(quad), dist, outColor)) {
+                        if (sampleComplexQuad(false, Sampler0, Sampler0Size, ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor)) {
                             if (outColor.a == 1) {
                                 return vec3(0);
                             } else if (outColor.a != 0) {

@@ -157,7 +157,6 @@ open class RayPointLight(
             return@StaticOneStepBlockLightMeshManager NeoRect3i(-v, v)
         }
     ) { mesh, info, profiler ->
-        Vibrancy.LOGGER.info("done")
         meshData = info
 
         profiler.push("resize")
