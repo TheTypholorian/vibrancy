@@ -175,6 +175,18 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
                         lightList.add(light)
 
                         chunkCache[light.shadowBox].forEach { (pos, state) ->
+                            if (!light.pos.equals(pos.x, pos.y, pos.z)) {
+                                val otherLightInfo = BlockLightRegistry.get(state.block, SubtleLightType)
+
+                                if (otherLightInfo != null) {
+                                    val otherLight = SubtleLight(otherLightInfo, state, NeoVec3i(pos))
+
+                                    if (otherLight == light) {
+                                        return@forEach
+                                    }
+                                }
+                            }
+
                             BlockMeshCollector.collectLightFaces(
                                 manager,
                                 caches,

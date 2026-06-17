@@ -18,7 +18,7 @@ open class SubtleLight(
     override val pos: IVec3<Int>
 ) : PointLight {
     companion object {
-        const val SQUARE_SHAPE = 0
+        const val SQUARE_SHAPE = 0 // TODO make this a registry
         const val CIRCLE_SHAPE = 1
     }
 
@@ -42,4 +42,20 @@ open class SubtleLight(
             pos - 1,
             pos + 1,
         )
+
+    override fun equals(other: Any?): Boolean {
+        if (this === other) return true
+        if (other !is SubtleLight) return false
+
+        if (flicker != other.flicker) return false
+        if (shape != other.shape) return false
+        if (color != other.color) return false
+        if (offset != other.offset) return false
+
+        return true
+    }
+
+    override fun hashCode(): Int {
+        return color.hashCode()
+    }
 }
