@@ -17,7 +17,6 @@ import net.minecraft.core.SectionPos
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBeginMode
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferTarget
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlDataType
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureTarget
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
@@ -33,7 +32,6 @@ import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.big_shot_lib.api.math.vec.blockPos
-import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.VibrancyConfig
@@ -76,7 +74,11 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
     }
 
     override fun loadSection(manager: LightManager, chunk: ChunkAccess, pos: SectionPos) {
-        sectionLoadQueue.add(pos)
+        val section = chunk.getSection(chunk.getSectionIndexFromSectionY(pos.y))
+
+        if (section.maybeHas { BlockLightRegistry.get(it.block, SubtleLightType) != null }) {
+            sectionLoadQueue.add(pos)
+        }
     }
 
     fun checkDirty(
@@ -84,17 +86,11 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
         data: RenderEventData,
         profiler: ProfilerFiller
     ) {
-        // TODO major important fix this it's eating 60 fps
-        val distance = manager.getRenderDistance(VibrancyConfig.subtleLightsRenderDistance).toFloat()
+        val distance = manager.getGridRenderDistance(VibrancyConfig.subtleLightsRenderDistance).toFloat()
 
         sectionLoadQueue.removeIf { pos ->
-            if (manager.inRenderDistance(data, pos, distance)) {
-                val chunk = data.level!!.getChunk(pos.x, pos.z)
-                val section = chunk.getSection(chunk.getSectionIndexFromSectionY(pos.y))
-
-                if (section.maybeHas { BlockLightRegistry.get(it.block, SubtleLightType) != null }) {
-                    getOrCreateChunk(manager, pos).loadChunk(manager, chunk)
-                }
+            if (manager.inGridRenderDistance(data, pos, distance)) {
+                getOrCreateChunk(manager, pos).loadChunk(manager, data.level!!.getChunk(pos.x, pos.z))
 
                 return@removeIf true
             } else {
