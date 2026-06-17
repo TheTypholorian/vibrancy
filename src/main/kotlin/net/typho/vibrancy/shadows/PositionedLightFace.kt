@@ -1,20 +1,20 @@
 package net.typho.vibrancy.shadows
 
 import net.caffeinemc.mods.sodium.api.util.ColorARGB
-import net.minecraft.core.Vec3i
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexConsumer
 import net.typho.big_shot_lib.api.math.vec.IVec3
-import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import kotlin.math.abs
 import kotlin.math.ceil
 
 @JvmRecord
-data class LightFace(
+data class PositionedLightFace(
     override val v0: PrimitiveVertex,
     override val v1: PrimitiveVertex,
     override val v2: PrimitiveVertex,
     override val v3: PrimitiveVertex,
+    @JvmField
+    val block: IVec3<Int>,
     @JvmField
     val width: Int,
     @JvmField
@@ -25,21 +25,19 @@ data class LightFace(
         v1: PrimitiveVertex,
         v2: PrimitiveVertex,
         v3: PrimitiveVertex,
+        block: IVec3<Int>,
         atlas: NeoAtlas
     ) : this(
         v0,
         v1,
         v2,
         v3,
+        block,
         ceil(abs(v0.u - v2.u) * atlas.width).toInt(),
         ceil(abs(v0.v - v2.v) * atlas.height).toInt()
     )
 
-    fun positioned(pos: IVec3<Int>) = PositionedLightFace(v0, v1, v2, v3, pos, width, height)
-
-    fun positioned(pos: Vec3i) = positioned(NeoVec3i(pos))
-
-    fun copyWithOffset(x: Float, y: Float, z: Float): LightFace {
+    fun copyWithOffset(x: Float, y: Float, z: Float): PositionedLightFace {
         return copy(
             v0 = PrimitiveVertex(v0, x, y, z),
             v1 = PrimitiveVertex(v1, x, y, z),
@@ -48,21 +46,23 @@ data class LightFace(
         )
     }
 
-    fun copyWithOffset(x: Int, y: Int, z: Int): LightFace {
+    fun copyWithOffset(x: Int, y: Int, z: Int): PositionedLightFace {
         return copyWithOffset(x.toFloat(), y.toFloat(), z.toFloat())
     }
 
     open class Consumer(
         @JvmField
-        val out: (face: LightFace) -> Unit,
+        val out: (face: PositionedLightFace) -> Unit,
         @JvmField
         val atlas: NeoAtlas,
+        @JvmField
+        val block: IVec3<Int>,
         @JvmField
         val offsetX: Float = 0f,
         @JvmField
         val offsetY: Float = 0f,
         @JvmField
-        val offsetZ: Float = 0f,
+        val offsetZ: Float = 0f
     ) : NeoVertexConsumer() {
         private var v0 = PrimitiveVertex()
         private var v1 = PrimitiveVertex()
@@ -74,7 +74,7 @@ data class LightFace(
         fun flush() {
             if (index == 4) {
                 index = 0
-                out(LightFace(v0, v1, v2, v3, atlas))
+                out(PositionedLightFace(v0, v1, v2, v3, block, atlas))
                 v0 = PrimitiveVertex()
                 v1 = PrimitiveVertex()
                 v2 = PrimitiveVertex()

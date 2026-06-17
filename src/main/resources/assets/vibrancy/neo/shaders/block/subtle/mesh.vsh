@@ -1,39 +1,31 @@
 #version 430
 
-struct Light {
-    vec3 pos;
-    uint shape;
-    vec3 color;
-    float flicker;
-};
+#include "vibrancy:subtle"
 
 layout(std430) readonly buffer LightBuffer {
-    Light lights[];
+    SubtleLight lights[];
 };
 
 uniform mat4 ModelViewMat;
 uniform mat4 ProjMat;
 
 in vec3 Position;
-in vec2 UV0;
+in uvec3 UV0;
 in uint LightIndex;
-in vec4 Color;
-in vec3 Normal;
 
 out vec2 texCoord0;
-flat out Light light;
-out vec4 vertexColor;
+flat out SubtleLight light;
+//out vec4 vertexColor;
 out vec3 vertexPosition;
 out vec3 fogPosition;
-out vec3 vertexNormal;
+//out vec3 vertexNormal;
 
 void main() {
-    vec4 pos = ModelViewMat * vec4(Position, 1);
-    gl_Position = ProjMat * pos;
-    texCoord0 = UV0;
+    texCoord0 = vec2((UV0.x << 4) | (UV0.y >> 4), (UV0.y & 0xFFu) | UV0.z) / 4095;
     light = lights[LightIndex];
-    vertexColor = Color;
+    vec3 xyz = Position * 4 - 2 + light.pos;
+    vec4 pos = ModelViewMat * vec4(xyz, 1);
+    gl_Position = ProjMat * pos;
     fogPosition = pos.xyz;
-    vertexPosition = Position;
-    vertexNormal = Normal;
+    vertexPosition = xyz;
 }
