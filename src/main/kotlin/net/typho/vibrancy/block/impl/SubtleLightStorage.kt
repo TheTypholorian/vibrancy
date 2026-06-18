@@ -65,9 +65,15 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
     @JvmField
     val tasks = hashMapOf<SectionPos, GlTask<Unit>>()
     @JvmField
+    val scannedQueue = hashSetOf<SectionPos>()
+    @JvmField
+    val scannedRemoveQueue = hashSetOf<ChunkPos>()
+    @JvmField
     val scanned = hashSetOf<SectionPos>()
     @JvmField
     val sectionLoadQueue = hashSetOf<SectionPos>()
+    @JvmField
+    val sectionLoadTasks = hashSetOf<GlTask<Unit>>()
 
     override fun createChunk(manager: LightManager, pos: SectionPos): Chunk {
         return Chunk(pos)
@@ -79,13 +85,17 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
         if (section.maybeHas { BlockLightRegistry.get(it.block, SubtleLightType) != null }) {
             sectionLoadQueue.add(pos)
         } else {
-            scanned.add(pos)
+            synchronized(scannedQueue) {
+                scannedQueue.add(pos)
+            }
         }
     }
 
     override fun deloadChunk(manager: LightManager, chunk: ChunkAccess) {
         super.deloadChunk(manager, chunk)
-        scanned.removeIf { it.x == chunk.pos.x && it.z == chunk.pos.z }
+        synchronized(scannedRemoveQueue) {
+            scannedRemoveQueue.add(chunk.pos)
+        }
     }
 
     fun checkDirty(
@@ -93,12 +103,38 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
         data: RenderEventData,
         profiler: ProfilerFiller
     ) {
+        profiler.push("applyScannedSet")
+        synchronized(scannedQueue) {
+            scanned.addAll(scannedQueue)
+            scannedQueue.clear()
+        }
+        synchronized(scannedRemoveQueue) {
+            for (pos in scannedRemoveQueue) {
+                scanned.removeIf { it.x == pos.x && it.z == pos.z }
+            }
+            scannedRemoveQueue.clear()
+        }
+        profiler.pop()
+
         profiler.push("loadBlocks")
         val distance = manager.getGridRenderDistance(VibrancyConfig.subtleLightsRenderDistance).toFloat()
 
         sectionLoadQueue.removeIf { pos ->
             if (manager.inGridRenderDistance(data, pos, distance)) {
-                getOrCreateChunk(manager, pos).loadChunk(manager, data.level!!.getChunk(pos.x, pos.z))
+                val chunk = getOrCreateChunk(manager, pos)
+
+                fun task() {
+                    chunk.loadChunk(manager, data.level!!.getChunk(pos.x, pos.z))
+                }
+
+                if (VibrancyConfig.useMultithreading) {
+                    sectionLoadTasks.add(VibrancyThreadPool.submit(data, pos, manager) {
+                        task()
+                        AutoCloseable { } to { }
+                    })
+                } else {
+                    task()
+                }
 
                 return@removeIf true
             } else {
@@ -108,6 +144,14 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
         profiler.pop()
 
         profiler.push("finish")
+        sectionLoadTasks.removeIf {
+            if (it.isDoneOrCancelled()) {
+                it.finish()
+                true
+            } else {
+                false
+            }
+        }
         tasks.values.removeIf {
             if (it.isDoneOrCancelled()) {
                 it.finish()
@@ -126,7 +170,7 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
 
         profiler.push("submit")
         chunks.forEach { (pos, chunk) ->
-            if (chunk.dirty) {
+            if (chunk.dirty && manager.inGridRenderDistance(data, pos, distance)) {
                 for (x in (pos.x - 1)..(pos.x + 1)) {
                     for (z in (pos.z - 1)..(pos.z + 1)) {
                         if (!data.level!!.hasChunk(x, z)) {
@@ -140,6 +184,8 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
                         }
                     }
                 }
+
+                println(chunk.x++)
 
                 fun impl(isCancelled: () -> Boolean, profiler: ProfilerFiller?): Pair<AutoCloseable, () -> Unit> {
                     synchronized(chunk.map) {
@@ -291,6 +337,7 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
         var box: AbstractRect3<Int>? = null
         @JvmField
         var dirty = true
+        var x = 0
 
         override fun shouldCollectMeshGeometry(pos: SectionPos): Boolean {
             return pos == this.pos
@@ -445,7 +492,10 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
             }
 
             dirty = true
-            scanned.add(pos)
+
+            synchronized(scannedQueue) {
+                scannedQueue.add(pos)
+            }
         }
 
         override fun deloadChunk(manager: LightManager, chunk: ChunkAccess) {
@@ -474,7 +524,9 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
         }
 
         override fun reload(manager: LightManager, chunk: ChunkPos?) {
-            dirty = true
+            if (chunk == null || (chunk.x == pos.x && chunk.z == pos.z)) {
+                dirty = true
+            }
         }
 
         override fun free() {
