@@ -1,0 +1,31 @@
+{
+  "schemaVersion": 1,
+  "id": "${id}",
+  "version": "${version}",
+  "name": "${name}",
+  "description": "${description}",
+  "authors": [
+    "${authors}"
+  ],
+  "license": "${license}",
+  "contact": {
+    "issues": "https://github.com/TheTypholorian/vibrancy/issues/",
+    "sources": "https://github.com/TheTypholorian/vibrancy/"
+  },
+  "icon": "icon.png",
+  "entrypoints": {
+    "modmenu": [
+      {
+        "adapter": "kotlin",
+        "value": "net.typho.vibrancy.ModMenuCompat"
+      }
+    ]
+  },
+  "depends": {
+    "fabric-api": "*",
+    "minecraft": "${minecraft_version_range}",
+    "fabric-language-kotlin": "*",
+    "big_shot_lib": ">=${big_shot_version}",
+    "yet_another_config_lib_v3": ">=${yacl_version}"
+  }
+}

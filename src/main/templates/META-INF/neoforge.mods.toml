@@ -1,0 +1,47 @@
+modLoader = "kotlinforforge"
+loaderVersion = "*"
+issueTrackerURL="https://github.com/TheTypholorian/vibrancy/issues/"
+logoFile="icon.png"
+
+[[mods]]
+modId = "${id}"
+version = "${version}"
+displayName = "${name}"
+logoFile = "icon.png"
+authors = "${authors}"
+description = '''${description}'''
+
+[[dependencies."${id}"]]
+modId = "neoforge"
+type="required"
+versionRange = "*"
+ordering = "BEFORE"
+side = "BOTH"
+
+[[dependencies."${id}"]]
+modId = "minecraft"
+type="required"
+versionRange = "${minecraft_version_range}"
+ordering = "BEFORE"
+side = "BOTH"
+
+[[dependencies."${id}"]]
+modId = "big_shot_lib"
+type="required"
+versionRange = "[${big_shot_version},)"
+ordering = "BEFORE"
+side = "BOTH"
+
+[[dependencies."${id}"]]
+modId = "yet_another_config_lib_v3"
+type="required"
+versionRange = "[${yacl_version},)"
+ordering = "BEFORE"
+side = "BOTH"
+
+[[dependencies."${id}"]]
+modId = "kotlinforforge"
+type="required"
+versionRange = "*"
+ordering = "BEFORE"
+side = "BOTH"

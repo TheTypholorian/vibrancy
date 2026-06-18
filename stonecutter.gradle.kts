@@ -1,31 +1,28 @@
 plugins {
-    kotlin("jvm") version libs.versions.kotlin apply false
+    kotlin("jvm") version "2.4.0" apply false
     id("dev.kikugie.stonecutter")
-    alias(libs.plugins.loom) apply false
-    alias(libs.plugins.moddev) apply false
+    id("net.fabricmc.fabric-loom") version "1.16-SNAPSHOT" apply false
+    id("net.fabricmc.fabric-loom-remap") version "1.16-SNAPSHOT" apply false
+    id("net.neoforged.moddev") version "2.0.141" apply false
     id("dev.kikugie.postprocess.jsonlang") version "2.1-beta.4" apply false
 }
 
-stonecutter active "mc1_21_neoforge"
+stonecutter active "mc1_21_1_fabric"
 stonecutter handlers {
     inherit("vsh", "glsl")
 }
 stonecutter parameters {
     constants.match(node.metadata.project.substringAfterLast('_'), "fabric", "neoforge")
+    constants.put("sable", findProperty("deps.sable_companion") != null)
     filters.include("**/*.fsh", "**/*.vsh")
-    filters.exclude("**/*.accesswidener")
-
-    replacements.string(current.parsed >= "1.21.5") {
-        replace("com.mojang.blaze3d.platform.GlStateManager", "com.mojang.blaze3d.opengl.GlStateManager")
-    }
 }
 
-//stonecutter tasks {
-//    order("publishModrinth")
-//    order("publishCurseforge")
-//}
+stonecutter tasks {
+    order("publishModrinth")
+    //order("publishCurseforge")
+}
 
-//for (version in stonecutter.versions.map { it.version }.distinct()) tasks.register("publish$version") {
-//    group = "publishing"
-//    dependsOn(stonecutter.tasks.named("publishMods") { metadata.version == version })
-//}
+for (version in stonecutter.versions.map { it.version }.distinct()) tasks.register("publish$version") {
+    group = "publishing"
+    dependsOn(stonecutter.tasks.named("publishMods") { metadata.version == version })
+}

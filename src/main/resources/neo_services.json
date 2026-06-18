@@ -1,8 +1,8 @@
 {
-  "net.typho.big_shot_lib.api.util.BigShotCommonEntrypoint": [
+  "net.typho.big_shot_lib.api.NeoCommonInitializer": [
     "net.typho.vibrancy.Vibrancy"
   ],
-  "net.typho.big_shot_lib.api.client.util.BigShotClientEntrypoint": [
+  "net.typho.big_shot_lib.api.client.NeoClientInitializer": [
     "net.typho.vibrancy.Vibrancy",
     "net.typho.vibrancy.util.ReflectionAtlases"
   ]
