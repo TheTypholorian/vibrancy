@@ -311,8 +311,7 @@ open class LightManager {
     }
 
     fun getGridRenderDistance(chunks: Int): Int {
-        val d = chunks.coerceAtMost(Minecraft.getInstance().options.effectiveRenderDistance)
-        return d * 16
+        return chunks.coerceAtMost(Minecraft.getInstance().options.effectiveRenderDistance) * 16
     }
 
     //? if 1.21 {
@@ -330,9 +329,9 @@ open class LightManager {
         val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
 
         return if (subLevel == null) {
-            data.camera.pos.inGridDistance(pos.minBlockX() + 8f, pos.minBlockY() + 8f, pos.minBlockZ() + 8f, distance)
+            data.camera.pos.minus(pos.minBlockX() + 8f, pos.minBlockY() + 8f, pos.minBlockZ() + 8f).maxComponent() <= distance
         } else {
-            data.camera.pos.inGridDistance(NeoVec3d(subLevel.renderPose().position()).toFloat(), distance)
+            data.camera.pos.minus(NeoVec3d(subLevel.renderPose().position()).toFloat()).maxComponent() <= distance
         }
     }
 

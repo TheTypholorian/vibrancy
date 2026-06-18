@@ -5,6 +5,7 @@ import net.minecraft.world.level.ChunkPos
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.vibrancy.LightManager
+import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyConfig
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.PriorityBlockingQueue

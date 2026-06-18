@@ -24,6 +24,8 @@ abstract class SectionedBlockLightStorage<I : BlockLightInfo, C : BlockLightStor
 
     fun getOrCreateChunk(manager: LightManager, pos: SectionPos): C = chunks.computeIfAbsent(pos) { createChunk(manager, it) }
 
+    fun getOrLoadChunk(manager: LightManager, pos: SectionPos): C = chunks.computeIfAbsent(pos) { createChunk(manager, it).also { it.loadChunk(manager, manager.getLevel()!!.getChunk(pos.x, pos.z) ) } }
+
     override fun addLight(
         manager: LightManager,
         level: Level,
@@ -31,11 +33,11 @@ abstract class SectionedBlockLightStorage<I : BlockLightInfo, C : BlockLightStor
         pos: IVec3<Int>,
         info: I
     ) {
-        getOrCreateChunk(manager, SectionPos.of(pos.blockPos)).addLight(manager, level, state, pos, info)
+        getOrLoadChunk(manager, SectionPos.of(pos.blockPos)).addLight(manager, level, state, pos, info)
     }
 
     override fun removeLight(manager: LightManager, level: Level, pos: IVec3<Int>): Boolean {
-        return getOrCreateChunk(manager, SectionPos.of(pos.blockPos)).removeLight(manager, level, pos)
+        return getOrLoadChunk(manager, SectionPos.of(pos.blockPos)).removeLight(manager, level, pos)
     }
 
     override fun reload(manager: LightManager, chunk: ChunkPos?) {
