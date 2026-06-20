@@ -3,7 +3,6 @@ package net.typho.vibrancy.collectors
 import net.minecraft.core.BlockPos
 import net.minecraft.world.level.Level
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
-import net.typho.big_shot_lib.api.math.NeoDirection
 import net.typho.big_shot_lib.api.math.vec.NeoVec3f
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy.isPointingTowardsInclusive
@@ -77,7 +76,7 @@ class FloodFillBlockMeshCollector(
                     }
                 }
 
-                for (direction in NeoDirection.entries) {
+                for (direction in Direction.entries) {
                     if (direction.isPointingTowardsInclusive(this.pos, cursor)) {
                         val check = cursor.relative(direction.mojang)
 

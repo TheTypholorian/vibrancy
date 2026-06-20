@@ -1,21 +1,25 @@
 package net.typho.vibrancy.shadows
 
+import com.mojang.blaze3d.vertex.VertexFormat
+import com.mojang.blaze3d.vertex.VertexFormatElement
+import net.minecraft.resources.Identifier
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.GlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.*
 import net.typho.big_shot_lib.api.client.rendering.opengl.util.PolygonOffset
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
+import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormats
 import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.NeoVec2i
 import net.typho.big_shot_lib.api.math.vec.NeoVec3f
 import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
-import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.TextureAtlas
+import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyConfig
 import org.lwjgl.system.NativeResource
 
@@ -25,31 +29,31 @@ open class LightMesh(
 ) : NativeResource {
     companion object {
         @JvmField
-        val COMPACT_TEXTURE_UV = NeoVertexFormat.Element.create(0, GlDataType.UNSIGNED_SHORT, true, 2)
+        val COMPACT_TEXTURE_UV = NeoVertexFormats.element(0, GlDataType.USHORT, GlVertexElementReadType.INT_TO_FLOAT, 2)
         @JvmField
-        val LIGHT_INDEX = NeoVertexFormat.Element.create(0, GlDataType.UNSIGNED_SHORT, null, 1)
+        val LIGHT_INDEX = NeoVertexFormats.element(0, GlDataType.USHORT, GlVertexElementReadType.INT_TO_INT, 1)
 
         @JvmField
-        val VERTEX_FORMAT = NeoVertexFormat.builder()
-            .add("Position", NeoVertexFormat.Element.POSITION)
-            .add("UV0", NeoVertexFormat.Element.TEXTURE_UV)
-            .add("UV1", NeoVertexFormat.Element.OVERLAY_UV)
-            .add("Color", NeoVertexFormat.Element.COLOR)
-            .add("Normal", NeoVertexFormat.Element.NORMAL)
+        val VERTEX_FORMAT = VertexFormat.builder()
+            .add("Position", VertexFormatElement.POSITION)
+            .add("UV0", VertexFormatElement.TEXTURE_UV)
+            .add("UV1", VertexFormatElement.OVERLAY_UV)
+            .add("Color", VertexFormatElement.COLOR)
+            .add("Normal", VertexFormatElement.NORMAL)
             .padding(1)
-            .build()
+            .build(Vibrancy.id("light_mesh"))
         @JvmField
         val SKY_VERTEX_FORMAT = NeoVertexFormat.builder()
-            .add("Position", NeoVertexFormat.Element.POSITION)
-            .add("UV0", NeoVertexFormat.Element.TEXTURE_UV)
-            .add("UV2", NeoVertexFormat.Element.LIGHT_UV)
-            .add("Color", NeoVertexFormat.Element.COLOR)
-            .add("Normal", NeoVertexFormat.Element.NORMAL)
+            .add("Position", VertexFormatElement.POSITION)
+            .add("UV0", VertexFormatElement.TEXTURE_UV)
+            .add("UV2", VertexFormatElement.LIGHT_UV)
+            .add("Color", VertexFormatElement.COLOR)
+            .add("Normal", VertexFormatElement.NORMAL)
             .padding(1)
-            .build()
+            .build(Vibrancy.id("sky_mesh"))
 
         @JvmStatic
-        fun drawState(sampler0: GlTexture2D, shader: NeoIdentifier, uniforms: GlBoundProgram.() -> Unit = {
+        fun drawState(sampler0: GlTexture2D, shader: Identifier, uniforms: GlBoundProgram.() -> Unit = {
             setUniform("SpecularReflectionsEnabled") { set(if (VibrancyConfig.reflectionsEnabled) 1 else 0) }
             setUniform("SpecularReflectionStrength") { set(VibrancyConfig.reflectionStrength) }
             setUniform("SpecularReflectionExponent") { set(VibrancyConfig.reflectionExponent) }
@@ -96,7 +100,7 @@ open class LightMesh(
     }
 
     fun lazyUpload(
-        lightFaces: List<LightFace>
+        lightFaces: List<BlockFace>
     ): Pair<AutoCloseable, () -> TextureAtlas.Result> {
         val textures = Array(lightFaces.size) {
             val face = lightFaces[it]
@@ -141,7 +145,7 @@ open class LightMesh(
     }
 
     fun lazyUpload(
-        lightFaces: List<Pair<IVec3<Int>, List<LightFace>>>,
+        lightFaces: List<Pair<IVec3<Int>, List<BlockFace>>>,
         numFaces: Int
     ): Pair<AutoCloseable, () -> TextureAtlas.Result> {
         val textures = lightFaces.flatMap { entry ->
@@ -189,7 +193,7 @@ open class LightMesh(
     }
 
     fun lazyUploadNoAtlas(
-        faces: List<LightFace>
+        faces: List<BlockFace>
     ): () -> Unit {
         val vertexBuffer = NeoBuffer.GCNative(faces.size.toLong() * 4 * VERTEX_FORMAT.vertexSizeBytes)
 
@@ -264,14 +268,14 @@ open class LightMesh(
 
     data class FlatMeshData(
         @JvmField
-        val faces: List<LightFace>,
+        val faces: List<BlockFace>,
         @JvmField
         val sections: TextureAtlas.Result
     )
 
     data class ComplexMeshData(
         @JvmField
-        val faces: List<Pair<IVec3<Int>, List<LightFace>>>,
+        val faces: List<Pair<IVec3<Int>, List<BlockFace>>>,
         @JvmField
         val numFaces: Int,
         @JvmField

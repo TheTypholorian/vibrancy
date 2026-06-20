@@ -7,7 +7,7 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunkSection
-import net.typho.big_shot_lib.api.math.rect.AbstractRect3
+import net.typho.big_shot_lib.api.math.rect.IRect3
 import net.typho.big_shot_lib.api.math.rect.NeoRect3i
 import net.typho.big_shot_lib.api.math.vec.blockPos
 
@@ -67,5 +67,5 @@ class ChunkSectionCache(
 
     operator fun get(box: BlockBox) = get(box.min, box.max)
 
-    operator fun get(box: AbstractRect3<Int>) = get(box.min.blockPos, box.max.blockPos)
+    operator fun get(box: IRect3<Int>) = get(box.min.blockPos, box.max.blockPos)
 }

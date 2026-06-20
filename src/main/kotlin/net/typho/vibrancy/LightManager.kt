@@ -19,8 +19,8 @@ import net.minecraft.world.level.chunk.ChunkAccess
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBlendEquation
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBlendingFactor
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureTarget
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlFramebuffer
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.GlFramebuffer
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.GlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlBlendShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
@@ -28,7 +28,7 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
 import net.typho.big_shot_lib.api.client.rendering.opengl.util.BlendFunction
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
-import net.typho.big_shot_lib.api.math.rect.AbstractRect3
+import net.typho.big_shot_lib.api.math.rect.IRect3
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
 import net.typho.big_shot_lib.api.math.vec.NeoVec3d
@@ -61,9 +61,9 @@ open class LightManager {
     @JvmField
     val sectionLock = Any()
     @JvmField
-    var nextDirtySections: MutableList<Pair<SectionPos, AbstractRect3<Int>>> = LinkedList()
+    var nextDirtySections: MutableList<Pair<SectionPos, IRect3<Int>>> = LinkedList()
     @JvmField
-    var dirtySections: MutableList<Pair<SectionPos, AbstractRect3<Int>>> = LinkedList()
+    var dirtySections: MutableList<Pair<SectionPos, IRect3<Int>>> = LinkedList()
     @JvmField
     var dirtyBlocks: MutableMap<BlockPos, Pair<BlockState, BlockState>> = hashMapOf()
     @JvmField
@@ -240,19 +240,19 @@ open class LightManager {
     }
 
     //? if 1.21 {
-    fun testFrustum(origin: IVec3<Int>, data: RenderEventData, box: AbstractRect3<Int>): Boolean {
+    fun testFrustum(origin: IVec3<Int>, data: RenderEventData, box: IRect3<Int>): Boolean {
         return testFrustum(SableCompanion.INSTANCE.getContainingClient(origin.toDouble().toJOML()), data, box)
     }
 
-    fun testFrustum(origin: ChunkPos, data: RenderEventData, box: AbstractRect3<Int>): Boolean {
+    fun testFrustum(origin: ChunkPos, data: RenderEventData, box: IRect3<Int>): Boolean {
         return testFrustum(SableCompanion.INSTANCE.getContainingClient(origin), data, box)
     }
 
-    fun testFrustum(origin: SectionPos, data: RenderEventData, box: AbstractRect3<Int>): Boolean {
+    fun testFrustum(origin: SectionPos, data: RenderEventData, box: IRect3<Int>): Boolean {
         return testFrustum(SableCompanion.INSTANCE.getContainingClient(origin), data, box)
     }
 
-    fun testFrustum(subLevel: ClientSubLevelAccess?, data: RenderEventData, box: AbstractRect3<Int>): Boolean {
+    fun testFrustum(subLevel: ClientSubLevelAccess?, data: RenderEventData, box: IRect3<Int>): Boolean {
         if (subLevel == null) {
             return data.frustum.testAab(
                 (box.min.toFloat() - data.camera.pos).toJOML(),
@@ -267,19 +267,19 @@ open class LightManager {
         }
     }
     //? } else {
-    /*fun testFrustum(origin: IVec3<Int>, data: RenderEventData, box: AbstractRect3<Int>): Boolean {
+    /*fun testFrustum(origin: IVec3<Int>, data: RenderEventData, box: IRect3<Int>): Boolean {
         return testFrustum(data, box)
     }
 
-    fun testFrustum(origin: ChunkPos, data: RenderEventData, box: AbstractRect3<Int>): Boolean {
+    fun testFrustum(origin: ChunkPos, data: RenderEventData, box: IRect3<Int>): Boolean {
         return testFrustum(data, box)
     }
 
-    fun testFrustum(origin: SectionPos, data: RenderEventData, box: AbstractRect3<Int>): Boolean {
+    fun testFrustum(origin: SectionPos, data: RenderEventData, box: IRect3<Int>): Boolean {
         return testFrustum(data, box)
     }
 
-    fun testFrustum(data: RenderEventData, box: AbstractRect3<Int>): Boolean {
+    fun testFrustum(data: RenderEventData, box: IRect3<Int>): Boolean {
         return data.frustum.testAab(
             (box.min.toFloat() - data.camera.pos).toJOML(),
             (box.max.toFloat() - data.camera.pos).toJOML(),

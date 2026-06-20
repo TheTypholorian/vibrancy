@@ -3,7 +3,7 @@ package net.typho.vibrancy.shadows
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferTarget
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlBuffer
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.GlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
 

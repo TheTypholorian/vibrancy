@@ -1,6 +1,6 @@
 package net.typho.vibrancy
 
-import net.typho.big_shot_lib.api.math.rect.AbstractRect2
+import net.typho.big_shot_lib.api.math.rect.IRect2
 import net.typho.big_shot_lib.api.math.rect.NeoRect2i
 import net.typho.big_shot_lib.api.math.vec.IVec2
 import net.typho.big_shot_lib.api.math.vec.NeoVec2i
@@ -11,7 +11,7 @@ object TextureAtlas {
     @JvmRecord
     data class Result(
         @JvmField
-        val textures: List<AbstractRect2<Int>>,
+        val textures: List<IRect2<Int>>,
         @JvmField
         val size: IVec2<Int>
     )

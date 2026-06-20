@@ -1,7 +1,7 @@
 package net.typho.vibrancy.util
 
 import net.minecraft.core.Vec3i
-import net.typho.big_shot_lib.api.math.rect.AbstractRect3
+import net.typho.big_shot_lib.api.math.rect.IRect3
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import org.joml.Vector3i
@@ -10,7 +10,7 @@ import java.util.Arrays
 @Suppress("UNCHECKED_CAST")
 open class Offset3DArray<T>(
     @JvmField
-    val bounds: AbstractRect3<Int>,
+    val bounds: IRect3<Int>,
     @JvmField
     val initializer: RecursiveInitializer<T>
 ) : Iterable<Pair<IVec3<Int>, T>> {
@@ -22,7 +22,7 @@ open class Offset3DArray<T>(
     }
 
     constructor(
-        bounds: AbstractRect3<Int>,
+        bounds: IRect3<Int>,
         value: T
     ) : this(bounds, { x -> { y -> { z -> value } } })
 

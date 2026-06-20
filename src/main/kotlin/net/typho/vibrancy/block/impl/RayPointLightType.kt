@@ -6,7 +6,7 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBlendEquati
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBlendingFactor
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlClearBit
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureTarget
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlFramebuffer
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.GlFramebuffer
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlBlendShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
 import net.typho.big_shot_lib.api.client.rendering.opengl.util.BlendFunction
@@ -14,7 +14,6 @@ import net.typho.big_shot_lib.api.client.rendering.util.FogUtil
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.util.NeoColor
-import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyConfig
@@ -83,7 +82,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
                 LightMesh.drawState(NeoAtlas.blocks, Vibrancy.id("block/raytraced/mesh")).bind().use { settings ->
                     profiler.push("uniforms")
                     settings.shader.setTexture(3, GlTextureBinding.FromInstance(
-                        ReflectionAtlases[NeoIdentifier("blocks")], //NeoAtlas.blocks.location
+                        ReflectionAtlases[Identifier("blocks")], //NeoAtlas.blocks.location
                         GlTextureTarget.TEXTURE_2D
                     ))
                     settings.shader.setUniform("ProjMat") { set(data.projMat) }

@@ -1,7 +1,7 @@
 package net.typho.vibrancy.sky.impl
 
 import net.minecraft.util.profiling.ProfilerFiller
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlFramebuffer
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.GlFramebuffer
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.sky.SkyLightInfo

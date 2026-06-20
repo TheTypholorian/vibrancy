@@ -11,9 +11,7 @@ import net.minecraft.core.Direction
 import net.minecraft.core.SectionPos
 import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.ChunkPos
-import net.minecraft.world.level.Level
 import net.minecraft.world.level.LightLayer
-import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkAccess
 import net.minecraft.world.level.levelgen.Heightmap
 import net.minecraft.world.phys.AABB
@@ -24,8 +22,8 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlClearBit
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureTarget
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBufferWriter
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlFramebuffer
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.GlFramebuffer
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.GlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlBlendShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDepthShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
@@ -36,29 +34,24 @@ import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.rendering.util.NeoMultiBufferSource
 import net.typho.big_shot_lib.api.client.rendering.util.NeoRenderSettings
-import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
-import net.typho.big_shot_lib.api.math.rect.AbstractRect3
+import net.typho.big_shot_lib.api.math.rect.IRect3
 import net.typho.big_shot_lib.api.math.rect.NeoRect2i
-import net.typho.big_shot_lib.api.math.rect.NeoRect3i
 import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
 import net.typho.big_shot_lib.api.math.vec.NeoVec3d
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.big_shot_lib.api.math.vec.NeoVec4f
 import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
-import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyConfig
-import net.typho.vibrancy.collectors.BlockMeshCollector
 import net.typho.vibrancy.collectors.SkyLightBlockMeshCollector
-import net.typho.vibrancy.shadows.LightFace
+import net.typho.vibrancy.shadows.BlockFace
 import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.shadows.LightTexture
 import net.typho.vibrancy.sky.ChunkedSkyLightStorage
 import net.typho.vibrancy.sky.SkyLightStorage
-import net.typho.vibrancy.util.EmptyVertexConsumer
 import net.typho.vibrancy.util.EntityRenderingUtil
 import net.typho.vibrancy.util.GlTask
 import net.typho.vibrancy.util.QuadListVertexConsumer
@@ -296,7 +289,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
             }
 
             profiler.push("dynamicShadows")
-            val buffers = hashMapOf<Pair<Boolean, NeoIdentifier>, QuadListVertexConsumer>()
+            val buffers = hashMapOf<Pair<Boolean, Identifier>, QuadListVertexConsumer>()
             val bufferSource = NeoMultiBufferSource { settings: NeoRenderSettings ->
                 val texture = settings.drawState.shader.textures.getOrNull(0)?.location ?: return@NeoMultiBufferSource EmptyVertexConsumer
 
@@ -448,7 +441,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                     )
                 )
                 settings.shader.setTexture(4, GlTextureBinding.FromInstance(
-                    ReflectionAtlases[NeoIdentifier("blocks")], //NeoAtlas.blocks.location
+                    ReflectionAtlases[Identifier("blocks")], //NeoAtlas.blocks.location
                     GlTextureTarget.TEXTURE_2D
                 ))
 
@@ -572,11 +565,11 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
         val sections = Array(height) { Section(minSection, it) }
         @JvmField
         var dirty = true // TODO
-        var box: AbstractRect3<Int>? = null
+        var box: IRect3<Int>? = null
             private set
         var blockEntities: MutableSet<BlockPos> = hashSetOf()
             private set
-        private var asyncTask: GlTask<AbstractRect3<Int>?>? = null
+        private var asyncTask: GlTask<IRect3<Int>?>? = null
 
         override fun free() {
             asyncTask?.cancel()
@@ -607,9 +600,9 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
         private fun rebuildBlocksAsyncImpl(
             isCancelled: () -> Boolean,
             manager: LightManager
-        ): Pair<AutoCloseable, () -> AbstractRect3<Int>?> {
+        ): Pair<AutoCloseable, () -> IRect3<Int>?> {
             val level = manager.getLevel() ?: throw NullPointerException("No level?")
-            var box: AbstractRect3<Int>? = null
+            var box: IRect3<Int>? = null
 
             val lightX = pos.minBlockX - 1
             val lightZ = pos.minBlockZ - 1
@@ -633,8 +626,8 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                 return lightArray[x - lightX][z - lightZ] <= y
             }
 
-            val lightFaces = Array(sections.size) { arrayListOf<LightFace>() }
-            val translucentFaces = Array(sections.size) { arrayListOf<LightFace>() }
+            val lightFaces = Array(sections.size) { arrayListOf<BlockFace>() }
+            val translucentFaces = Array(sections.size) { arrayListOf<BlockFace>() }
             val mesher = SkyLightBlockMeshCollector(pos) // TODO
             /*
             if (!mesher.submit(
@@ -692,7 +685,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
              */
             blockEntities = mesher.blockEntities
 
-            fun upload(faces: List<LightFace>, mesh: Mesh): Pair<AutoCloseable, () -> Unit> {
+            fun upload(faces: List<BlockFace>, mesh: Mesh): Pair<AutoCloseable, () -> Unit> {
                 val vertexBuffer = NeoBuffer.GCNative(faces.size.toLong() * 4 * LightMesh.SKY_VERTEX_FORMAT.vertexSizeBytes)
 
                 vertexBuffer.write().run {

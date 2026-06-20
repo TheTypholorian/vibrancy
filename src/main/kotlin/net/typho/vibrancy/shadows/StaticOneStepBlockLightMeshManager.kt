@@ -7,8 +7,7 @@ import net.minecraft.world.level.Level
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
-import net.typho.big_shot_lib.api.math.rect.AbstractRect3
-import net.typho.big_shot_lib.api.math.rect.AbstractRect3.Companion.iterator
+import net.typho.big_shot_lib.api.math.rect.IRect3
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.blockPos
 import net.typho.vibrancy.LightManager
@@ -23,7 +22,7 @@ open class StaticOneStepBlockLightMeshManager(
     @JvmField
     val pos: IVec3<Int>,
     @JvmField
-    val bounds: (manager: StaticOneStepBlockLightMeshManager) -> AbstractRect3<Int>,
+    val bounds: (manager: StaticOneStepBlockLightMeshManager) -> IRect3<Int>,
     @JvmField
     val blit: (manager: StaticOneStepBlockLightMeshManager, info: LightMesh.ComplexMeshData, profiler: ProfilerFiller) -> Unit
 ) : NativeResource {
@@ -105,7 +104,7 @@ open class StaticOneStepBlockLightMeshManager(
         val sectionMeshes = hashMapOf<SectionPos, SectionMeshCache?>()
         var numFaces = 0
         val bounds = bounds(this)
-        val faces = arrayListOf<Pair<IVec3<Int>, List<LightFace>>>()
+        val faces = arrayListOf<Pair<IVec3<Int>, List<BlockFace>>>()
 
         bounds.iterator().forEach { pos ->
             val ax = pos.x + this.pos.x
@@ -119,7 +118,7 @@ open class StaticOneStepBlockLightMeshManager(
             )
             sectionMeshes.computeIfAbsent(sectionPos) { key -> synchronized(manager.sectionLock) { manager.sectionMeshCaches[key] } }?.let { section ->
                 section.get(ax, ay, az)?.let { block ->
-                    val list = arrayListOf<LightFace>()
+                    val list = arrayListOf<BlockFace>()
                     block.collect { list.add(it.copyWithOffset(pos.x, pos.y, pos.z)) }
                     numFaces += list.size
                     faces.add(pos to list)

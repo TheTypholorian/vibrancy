@@ -14,8 +14,8 @@ import net.minecraft.world.phys.Vec3
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.bound.GlBoundProgram
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlBuffer
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlBuffer
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.GlBuffer
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.GlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlBlendShard
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlDrawState
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlShaderShard
@@ -23,7 +23,7 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
 import net.typho.big_shot_lib.api.client.rendering.opengl.util.BlendFunction
 import net.typho.big_shot_lib.api.client.rendering.util.*
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
-import net.typho.big_shot_lib.api.math.rect.AbstractRect3
+import net.typho.big_shot_lib.api.math.rect.IRect3
 import net.typho.big_shot_lib.api.math.rect.NeoRect2i
 import net.typho.big_shot_lib.api.math.rect.NeoRect3f
 import net.typho.big_shot_lib.api.math.rect.NeoRect3i
@@ -32,17 +32,14 @@ import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
 import net.typho.big_shot_lib.api.math.vec.NeoVec3d
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
-import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyConfig
-import net.typho.vibrancy.shadows.DynamicLightFace
 import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.shadows.LightTexture
 import net.typho.vibrancy.shadows.ShadowBuffer
 import net.typho.vibrancy.shadows.StaticOneStepBlockLightMeshManager
 import net.typho.vibrancy.shadows.VoxelGridBuffer
-import net.typho.vibrancy.util.EmptyVertexConsumer
 import net.typho.vibrancy.util.EntityRenderingUtil
 import net.typho.vibrancy.util.PointLight
 import org.joml.Matrix4f
@@ -65,7 +62,7 @@ open class RayPointLight(
 ) : PointLight, NativeResource {
     companion object {
         @JvmStatic
-        fun drawState(shader: NeoIdentifier, uniforms: GlBoundProgram.() -> Unit) = GlDrawState.Basic(
+        fun drawState(shader: Identifier, uniforms: GlBoundProgram.() -> Unit) = GlDrawState.Basic(
             blend = GlBlendShard.Enabled(
                 BlendFunction.Basic(
                     GlBlendingFactor.DST_COLOR,
@@ -95,8 +92,8 @@ open class RayPointLight(
     val absoluteBlockPos: IVec3<Float>
         get() = pos.toFloat()
     *///? }
-    override val boundingBox: AbstractRect3<Int> = NeoRect3i(pos - radius.toInt(), pos + radius.toInt())
-    override var shadowBox: AbstractRect3<Int> = createShadowBox()
+    override val boundingBox: IRect3<Int> = NeoRect3i(pos - radius.toInt(), pos + radius.toInt())
+    override var shadowBox: IRect3<Int> = createShadowBox()
     @JvmField
     val sections: List<SectionPos> = SectionPos.betweenClosedStream(
         SectionPos.blockToSectionCoord(boundingBox.min.x),
@@ -107,12 +104,12 @@ open class RayPointLight(
         SectionPos.blockToSectionCoord(boundingBox.max.z)
     ).toList()
 
-    fun createShadowBox(): AbstractRect3<Int> {
+    fun createShadowBox(): IRect3<Int> {
         val shadowRadius = ceil(radius.coerceAtMost(VibrancyConfig.rayLightShadowRadius.toFloat())).toInt()
         return NeoRect3i(pos - shadowRadius, pos + shadowRadius)
     }
 
-    fun blit(mesh: StaticOneStepBlockLightMeshManager, target: LightTexture, shadowBuffer: GlBuffer, gridBuffer: VoxelGridBuffer?, uniforms: GlBoundProgram.() -> Unit, shader: NeoIdentifier) {
+    fun blit(mesh: StaticOneStepBlockLightMeshManager, target: LightTexture, shadowBuffer: GlBuffer, gridBuffer: VoxelGridBuffer?, uniforms: GlBoundProgram.() -> Unit, shader: Identifier) {
         target.framebuffer.bind(NeoRect2i(0, 0, target.width!!, target.height!!)).use { fbo ->
             drawState(shader) {
                 uniforms(this)
@@ -223,7 +220,7 @@ open class RayPointLight(
         val box = boundingBox
 
         for (section in manager.dirtySections) {
-            if (section.second.min.allLessThan(box.max) && section.second.max.allGreaterThan(box.min)) { // TODO
+            if (section.second.intersects(box)) {
                 mesh.queueMesh()
                 break
             }
@@ -249,10 +246,10 @@ open class RayPointLight(
                 val absolutePos = absolutePos
                 val absoluteBlockPos = absoluteBlockPos
 
-                val allTextures = hashSetOf<NeoIdentifier>()
+                val allTextures = hashSetOf<Identifier>()
 
                 data class Node(
-                    val buffers: MutableMap<NeoIdentifier, Pair<DynamicLightFace.Consumer, MutableList<DynamicLightFace>>> = hashMapOf(),
+                    val buffers: MutableMap<Identifier, Pair<DynamicLightFace.Consumer, MutableList<DynamicLightFace>>> = hashMapOf(),
                     val bufferSource: NeoMultiBufferSource = NeoMultiBufferSource { settings: NeoRenderSettings ->
                         val texture = settings.drawState.shader.textures.getOrNull(0)?.location ?: return@NeoMultiBufferSource EmptyVertexConsumer
 
@@ -272,9 +269,9 @@ open class RayPointLight(
                         }.first
                     }
                 ) {
-                    fun getQuads(textures: List<NeoIdentifier>) = textures.mapIndexedNotNull { index, texture -> buffers[texture]?.second?.map { it to index } }.flatten()
+                    fun getQuads(textures: List<Identifier>) = textures.mapIndexedNotNull { index, texture -> buffers[texture]?.second?.map { it to index } }.flatten()
 
-                    fun computeBox(textures: List<NeoIdentifier>): AbstractRect3<Float>? {
+                    fun computeBox(textures: List<Identifier>): IRect3<Float>? {
                         var minX: Float? = null
                         var minY: Float? = null
                         var minZ: Float? = null

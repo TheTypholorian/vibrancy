@@ -144,14 +144,14 @@ open class StaticTwoStepBlockLightMeshManager<C : BlockMeshCollector>(
         val level = manager.getLevel() ?: throw NullPointerException("No level?")
 
         val shadowFaces = arrayListOf<PrimitiveQuad>()
-        val lightFaces = arrayListOf<LightFace>()
+        val lightFaces = arrayListOf<BlockFace>()
         collector.mesh(
             isCancelled,
             manager,
             level,
             object : BlockMeshCollector.Consumer {
                 override fun collect(
-                    faces: Iterable<LightFace>,
+                    faces: Iterable<BlockFace>,
                     section: SectionPos,
                     block: BlockPos,
                     translucent: Boolean

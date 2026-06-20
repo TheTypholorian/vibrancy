@@ -11,21 +11,20 @@ import net.typho.big_shot_lib.api.client.util.resource.NeoResourceManager
 import net.typho.big_shot_lib.api.client.util.resource.NeoResourceManagerReloadListener
 import net.typho.big_shot_lib.api.util.WrapperUtil
 import net.typho.big_shot_lib.api.util.resource.NeoFileToIdConverter
-import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.big_shot_lib.api.util.resource.NeoTagKey
 import net.typho.vibrancy.Vibrancy
 
 object BlockLightInfoLoader : NeoResourceManagerReloadListener {
-    override val location: NeoIdentifier = Vibrancy.id("block_lights")
+    override val location: Identifier = Vibrancy.id("block_lights")
     @JvmField
     val singleIdConverter = NeoFileToIdConverter.json("rtx/block_lights/by_block")
     @JvmField
     val tagIdConverter = NeoFileToIdConverter.json("rtx/block_lights/by_block_tag")
-    private val warned = HashSet<NeoIdentifier>()
+    private val warned = HashSet<Identifier>()
 
     @JvmStatic
-    fun load(block: Block, key: NeoIdentifier, json: JsonObject) {
-        val typeResult = NeoIdentifier.CODEC.decode(JsonOps.INSTANCE, json.get("type"))
+    fun load(block: Block, key: Identifier, json: JsonObject) {
+        val typeResult = Identifier.CODEC.decode(JsonOps.INSTANCE, json.get("type"))
         typeResult.error().ifPresent { throw JsonParseException("Block light type for $key is not a valid Identifier: $it") }
         val typeKey = typeResult.result().get().first
 

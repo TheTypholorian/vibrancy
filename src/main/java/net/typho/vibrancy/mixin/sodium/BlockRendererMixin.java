@@ -14,10 +14,9 @@ import net.minecraft.core.SectionPos;
 import net.minecraft.world.level.block.state.BlockState;
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas;
 import net.typho.big_shot_lib.api.math.vec.NeoVec3f;
-import net.typho.vibrancy.shadows.LightFace;
+import net.typho.vibrancy.shadows.BlockFace;
 import net.typho.vibrancy.shadows.PrimitiveVertex;
 import net.typho.vibrancy.util.SectionMeshCache;
-import org.joml.Vector3f;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
 import org.spongepowered.asm.mixin.Unique;
@@ -84,7 +83,7 @@ public class BlockRendererMixin {
             int normal = quad.getFaceNormal();
 
             cache.getOrCreate(vibrancy$block).get(material).add(
-                    new LightFace(
+                    new BlockFace(
                             vibrancy$convertVertex(vertices[0], normal, offX, offY, offZ),
                             vibrancy$convertVertex(vertices[1], normal, offX, offY, offZ),
                             vibrancy$convertVertex(vertices[2], normal, offX, offY, offZ),

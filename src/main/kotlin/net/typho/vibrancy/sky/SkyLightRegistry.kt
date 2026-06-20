@@ -5,7 +5,6 @@ import net.minecraft.world.level.Level
 import net.typho.big_shot_lib.api.util.NeoRegistry
 import net.typho.big_shot_lib.api.util.RegistrationFactory
 import net.typho.big_shot_lib.api.util.WrapperUtil
-import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.big_shot_lib.api.util.resource.NeoResourceKey
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.sky.impl.OverworldSkyLightType
@@ -18,7 +17,7 @@ object SkyLightRegistry {
     var registry: NeoRegistry<SkyLightType<*, *>>? = null
 
     @JvmField
-    val dimensionMap = HashMap<NeoIdentifier, SkyLightInfo>()
+    val dimensionMap = HashMap<Identifier, SkyLightInfo>()
 
     @JvmStatic
     fun get(level: Level): SkyLightInfo? = dimensionMap[WrapperUtil.INSTANCE.wrap(level.dimension()).location]
@@ -28,7 +27,7 @@ object SkyLightRegistry {
 
     @JvmStatic
     fun registerBuiltins(factory: RegistrationFactory) {
-        factory.begin(registryKey, Vibrancy.MOD_ID)?.run {
+        factory.begin(registryKey, Vibrancy.modId)?.run {
             register("overworld") { OverworldSkyLightType }
         }
     }

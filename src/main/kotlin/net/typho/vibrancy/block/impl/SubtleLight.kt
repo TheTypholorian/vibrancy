@@ -1,7 +1,7 @@
 package net.typho.vibrancy.block.impl
 
 import net.minecraft.world.level.block.state.BlockState
-import net.typho.big_shot_lib.api.math.rect.AbstractRect3
+import net.typho.big_shot_lib.api.math.rect.IRect3
 import net.typho.big_shot_lib.api.math.rect.NeoRect3i
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.vibrancy.util.PointLight
@@ -32,12 +32,12 @@ open class SubtleLight(
 
     override val absolutePos: IVec3<Float>
         get() = pos.toFloat() + offset
-    override val boundingBox: AbstractRect3<Int>
+    override val boundingBox: IRect3<Int>
         get() = NeoRect3i(
             pos - 1,
             pos + 1,
         )
-    override val shadowBox: AbstractRect3<Int>
+    override val shadowBox: IRect3<Int>
         get() = NeoRect3i(
             pos - 1,
             pos + 1,

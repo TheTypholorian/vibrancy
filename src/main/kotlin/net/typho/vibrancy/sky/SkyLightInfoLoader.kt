@@ -7,17 +7,16 @@ import com.mojang.serialization.JsonOps
 import net.typho.big_shot_lib.api.client.util.resource.NeoResourceManager
 import net.typho.big_shot_lib.api.client.util.resource.NeoResourceManagerReloadListener
 import net.typho.big_shot_lib.api.util.resource.NeoFileToIdConverter
-import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.Vibrancy
 
 object SkyLightInfoLoader : NeoResourceManagerReloadListener {
-    override val location: NeoIdentifier = Vibrancy.id("sky_lights")
+    override val location: Identifier = Vibrancy.id("sky_lights")
     @JvmField
     val idConverter = NeoFileToIdConverter.json("rtx/sky_lights")
 
     @JvmStatic
-    fun load(key: NeoIdentifier, json: JsonElement, file: NeoIdentifier) {
-        val typeResult = NeoIdentifier.CODEC.decode(JsonOps.INSTANCE, json.asJsonObject.get("type"))
+    fun load(key: Identifier, json: JsonElement, file: Identifier) {
+        val typeResult = Identifier.CODEC.decode(JsonOps.INSTANCE, json.asJsonObject.get("type"))
         typeResult.error().ifPresent { throw JsonParseException("Sky light type for $key is not a valid Identifier: $it") }
         val typeKey = typeResult.result().get().first
 

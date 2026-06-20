@@ -6,7 +6,7 @@ import net.minecraft.core.SectionPos
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.vibrancy.collectors.BlockMeshCollector
-import net.typho.vibrancy.shadows.LightFace
+import net.typho.vibrancy.shadows.BlockFace
 import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.function.Consumer
 
@@ -70,8 +70,8 @@ class SectionMeshCache(
         }
     }
 
-    fun createVertexConsumer(pos: BlockPos, material: Material, atlas: NeoAtlas, offsetX: Float = 0f, offsetY: Float = 0f, offsetZ: Float = 0f): LightFace.Consumer {
-        return LightFace.Consumer(
+    fun createVertexConsumer(pos: BlockPos, material: Material, atlas: NeoAtlas, offsetX: Float = 0f, offsetY: Float = 0f, offsetZ: Float = 0f): BlockFace.Consumer {
+        return BlockFace.Consumer(
             getOrCreate(pos)[material]::add,
             atlas,
             offsetX,
@@ -82,28 +82,28 @@ class SectionMeshCache(
 
     data class Block(
         @JvmField
-        var solidFaces: MutableList<LightFace>? = null,
+        var solidFaces: MutableList<BlockFace>? = null,
         @JvmField
-        var translucentFaces: MutableList<LightFace>? = null
+        var translucentFaces: MutableList<BlockFace>? = null
     ) {
-        operator fun get(material: Material): MutableList<LightFace> {
+        operator fun get(material: Material): MutableList<BlockFace> {
             if (material.isTranslucent) {
                 translucentFaces?.let { return it }
 
-                val list = arrayListOf<LightFace>()
+                val list = arrayListOf<BlockFace>()
                 translucentFaces = list
                 return list
             } else {
                 solidFaces?.let { return it }
 
-                val list = arrayListOf<LightFace>()
+                val list = arrayListOf<BlockFace>()
                 solidFaces = list
                 return list
             }
         }
 
-        fun collect(out: Consumer<LightFace>) {
-            fun collectFrom(from: MutableList<LightFace>) {
+        fun collect(out: Consumer<BlockFace>) {
+            fun collectFrom(from: MutableList<BlockFace>) {
                 for (face in from) {
                     out.accept(face)
                 }
@@ -113,13 +113,13 @@ class SectionMeshCache(
             translucentFaces?.let { collectFrom(it) }
         }
 
-        fun collect(consumer: BlockMeshCollector.Consumer, section: SectionPos, block: BlockPos, transmute: (face: LightFace) -> LightFace = { it }) {
+        fun collect(consumer: BlockMeshCollector.Consumer, section: SectionPos, block: BlockPos, transmute: (face: BlockFace) -> BlockFace = { it }) {
             solidFaces?.let { consumer.collect(it.map(transmute), section, block, false) }
             translucentFaces?.let { consumer.collect(it.map(transmute), section, block, true) }
         }
 
-        fun collectToList(transmute: (face: LightFace) -> LightFace = { it }): List<LightFace> {
-            val list = arrayListOf<LightFace>()
+        fun collectToList(transmute: (face: BlockFace) -> BlockFace = { it }): List<BlockFace> {
+            val list = arrayListOf<BlockFace>()
             collect { list.add(transmute(it)) }
             return list
         }
@@ -130,6 +130,6 @@ class SectionMeshCache(
     }
 
     interface ConsumerExtension {
-        var `vibrancy$sectionMeshConsumer`: LightFace.Consumer?
+        var `vibrancy$sectionMeshConsumer`: BlockFace.Consumer?
     }
 }

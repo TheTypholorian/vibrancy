@@ -15,8 +15,9 @@ import net.neoforged.bus.api.IEventBus
 import net.neoforged.fml.ModContainer
 import net.neoforged.fml.common.Mod
 import net.neoforged.neoforge.client.gui.IConfigScreenFactory
+import kotlin.jvm.java
 
-@Mod(value = Vibrancy.MOD_ID, dist = [Dist.CLIENT])
+@Mod(value = "vibrancy", dist = [Dist.CLIENT])
 class VibrancyModMenuCompat(eventBus: IEventBus, modContainer: ModContainer) {
     init {
         modContainer.registerExtensionPoint(IConfigScreenFactory::class.java, IConfigScreenFactory { container, modListScreen -> VibrancyConfig.createScreen(modListScreen) })

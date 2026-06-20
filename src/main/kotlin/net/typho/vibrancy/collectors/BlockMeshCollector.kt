@@ -8,7 +8,7 @@ import net.minecraft.world.level.material.FluidState
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.vibrancy.LightManager
-import net.typho.vibrancy.shadows.LightFace
+import net.typho.vibrancy.shadows.BlockFace
 import net.typho.vibrancy.util.SectionMeshCache
 
 interface BlockMeshCollector {
@@ -43,7 +43,7 @@ interface BlockMeshCollector {
             level: Level,
             pos: BlockPos,
             state: BlockState,
-            face: LightFace
+            face: BlockFace
         ): Boolean
 
         fun requiresScan(
@@ -70,7 +70,7 @@ interface BlockMeshCollector {
                     level: Level,
                     pos: BlockPos,
                     state: BlockState,
-                    face: LightFace
+                    face: BlockFace
                 ): Boolean {
                     return parent.shouldCastFace(level, pos, state, face) && other.shouldCastFace(level, pos, state, face)
                 }
@@ -92,7 +92,7 @@ interface BlockMeshCollector {
                     level: Level,
                     pos: BlockPos,
                     state: BlockState,
-                    face: LightFace
+                    face: BlockFace
                 ): Boolean {
                     return parent.shouldCastFace(level, pos, state, face) || other.shouldCastFace(level, pos, state, face)
                 }
@@ -101,7 +101,7 @@ interface BlockMeshCollector {
     }
 
     interface Consumer {
-        fun collect(faces: Iterable<LightFace>, section: SectionPos, block: BlockPos, translucent: Boolean)
+        fun collect(faces: Iterable<BlockFace>, section: SectionPos, block: BlockPos, translucent: Boolean)
     }
 
     interface FaceOrigin {
@@ -164,7 +164,7 @@ interface BlockMeshCollector {
             state: BlockState,
             level: Level,
             pos: BlockPos,
-            transmute: (face: LightFace) -> LightFace,
+            transmute: (face: BlockFace) -> BlockFace,
             consumer: Consumer
         ) {
             val section = SectionPos.of(pos)

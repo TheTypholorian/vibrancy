@@ -1,12 +1,7 @@
 package net.typho.vibrancy.block.impl
 
-//? if 1.21 {
-import dev.ryanhcode.sable.companion.SableCompanion
-import net.typho.big_shot_lib.api.math.vec.NeoVec3d
-import net.typho.vibrancy.Vibrancy
-import org.joml.Quaternionf
-//? }
-
+import com.mojang.blaze3d.vertex.VertexFormat
+import com.mojang.blaze3d.vertex.VertexFormatElement
 import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
@@ -26,8 +21,7 @@ import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
-import net.typho.big_shot_lib.api.math.NeoDirection
-import net.typho.big_shot_lib.api.math.rect.AbstractRect3
+import net.typho.big_shot_lib.api.math.rect.IRect3
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
 import net.typho.big_shot_lib.api.math.vec.NeoVec3i
@@ -39,7 +33,7 @@ import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.block.HashMapBlockLightStorage
 import net.typho.vibrancy.block.SectionedBlockLightStorage
 import net.typho.vibrancy.collectors.BlockMeshCollector
-import net.typho.vibrancy.shadows.LightFace
+import net.typho.vibrancy.shadows.BlockFace
 import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.util.ChunkSectionCache
 import net.typho.vibrancy.util.GlTask
@@ -50,16 +44,23 @@ import org.lwjgl.glfw.GLFW.glfwGetTime
 import org.lwjgl.system.NativeResource
 import kotlin.use
 
+//? if 1.21 {
+import dev.ryanhcode.sable.companion.SableCompanion
+import net.typho.big_shot_lib.api.math.vec.NeoVec3d
+import net.typho.vibrancy.Vibrancy
+import org.joml.Quaternionf
+//? }
+
 class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLightStorage.Chunk>(SubtleLightType) {
     companion object {
         @JvmField
-        val VERTEX_FORMAT = NeoVertexFormat.builder()
-            .add("Position", NeoVertexFormat.Element.POSITION) // 12 bytes
+        val VERTEX_FORMAT = VertexFormat.builder()
+            .add("Position", VertexFormatElement.POSITION) // 12 bytes
             .add("UV0", LightMesh.COMPACT_TEXTURE_UV) // 4 bytes
             .add("LightIndex", LightMesh.LIGHT_INDEX) // 2 bytes
-            .add("Color", NeoVertexFormat.Element.COLOR) // 4 bytes
-            .add("Normal", NeoVertexFormat.Element.NORMAL) // 3 bytes
-            .build()
+            .add("Color", VertexFormatElement.COLOR) // 4 bytes
+            .add("Normal", VertexFormatElement.NORMAL) // 3 bytes
+            .build(Vibrancy.id("subtle_mesh"))
     }
 
     @JvmField
@@ -206,13 +207,13 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
                         profiler?.push("collect")
 
                         val lightList = arrayListOf<SubtleLight>()
-                        val quads = arrayListOf<Pair<Pair<LightFace, Short>, Int>>()
+                        val quads = arrayListOf<Pair<Pair<BlockFace, Short>, Int>>()
                         val caches = hashMapOf<SectionPos, SectionMeshCache?>()
                         val chunkCache = ChunkSectionCache(data.level!!)
                         var lightIndex = 0
                         val consumer = object : BlockMeshCollector.Consumer {
                             override fun collect(
-                                faces: Iterable<LightFace>,
+                                faces: Iterable<BlockFace>,
                                 section: SectionPos,
                                 block: BlockPos,
                                 translucent: Boolean
@@ -334,7 +335,7 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
         @JvmField
         val ssbo = NeoGlBuffer()
         @JvmField
-        var box: AbstractRect3<Int>? = null
+        var box: IRect3<Int>? = null
         @JvmField
         var dirty = true
         var x = 0
@@ -343,7 +344,7 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
             return pos == this.pos
         }
 
-        fun lazyUpload(isCancelled: () -> Boolean, quads: Collection<Pair<Pair<LightFace, Short>, Int>>): Pair<AutoCloseable, () -> Unit> {
+        fun lazyUpload(isCancelled: () -> Boolean, quads: Collection<Pair<Pair<BlockFace, Short>, Int>>): Pair<AutoCloseable, () -> Unit> {
             val vertexBuffer = NeoBuffer.GCNative(quads.size.toLong() * 4 * VERTEX_FORMAT.vertexSizeBytes)
 
             vertexBuffer.write().run {
@@ -448,7 +449,7 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
                 val cullingMode = VibrancyConfig.subtleLightCullingMode
 
                 if (
-                    NeoDirection.entries.all { dir ->
+                    Direction.entries.all { dir ->
                         val pos = (pos + dir).blockPos
                         cullingMode.test(level, pos, state, level.getBlockState(pos))
                     }

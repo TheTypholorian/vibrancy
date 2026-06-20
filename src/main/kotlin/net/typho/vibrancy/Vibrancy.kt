@@ -1,51 +1,42 @@
 package net.typho.vibrancy
 
 import com.mojang.serialization.Lifecycle
+import net.fabricmc.fabric.api.renderer.v1.mesh.Mesh
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
 import net.minecraft.network.chat.Component
+import net.minecraft.resources.Identifier
+import net.typho.big_shot_lib.api.NeoCommonInitializer
+import net.typho.big_shot_lib.api.client.NeoClientInitializer
 import net.typho.big_shot_lib.api.client.rendering.opengl.GlQueue
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlFramebuffer
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlTexture2D
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.GlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.opengl.state.*
 import net.typho.big_shot_lib.api.client.rendering.opengl.util.ColorMask
-import net.typho.big_shot_lib.api.client.rendering.util.Mesh
+import net.typho.big_shot_lib.api.client.rendering.util.NeoRenderType
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
-import net.typho.big_shot_lib.api.client.util.BigShotClientEntrypoint
-import net.typho.big_shot_lib.api.client.util.DebugScreenFactory
-import net.typho.big_shot_lib.api.client.util.InitialScreenFactory
-import net.typho.big_shot_lib.api.client.util.ResourceListenerFactory
-import net.typho.big_shot_lib.api.client.util.event.ClientEventFactory
-import net.typho.big_shot_lib.api.client.util.event.RenderEventData
-import net.typho.big_shot_lib.api.math.NeoDirection
+import net.typho.big_shot_lib.api.event.NeoClientEventBus
+import net.typho.big_shot_lib.api.event.NeoEventBus
 import net.typho.big_shot_lib.api.math.rect.NeoRect2i
 import net.typho.big_shot_lib.api.math.vec.IVec3
 import net.typho.big_shot_lib.api.util.*
-import net.typho.big_shot_lib.api.util.event.CommonEventFactory
-import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.block.BlockLightInfoLoader
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.block.impl.SubtleLightStorage
 import net.typho.vibrancy.shadows.LightMesh
-import net.typho.vibrancy.shadows.ShadowBuffer
-import net.typho.vibrancy.sky.SkyLightInfo
 import net.typho.vibrancy.sky.SkyLightInfoLoader
 import net.typho.vibrancy.sky.SkyLightRegistry
-import net.typho.vibrancy.sky.SkyLightStorage
 import org.lwjgl.opengl.GL
-import org.lwjgl.system.NativeResource
 import org.lwjgl.system.Platform
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
+import java.util.function.Consumer
 
-object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
-    const val MOD_ID = "vibrancy"
-    const val MOD_NAME = "Vibrancy"
+object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
+    override val modId: String = "vibrancy"
     @JvmField
-    val LOGGER: Logger = LoggerFactory.getLogger(MOD_NAME)
+    val LOGGER: Logger = LoggerFactory.getLogger("Vibrancy")
 
     @JvmField
     val lightManager = LightManager()
@@ -56,10 +47,10 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
 
     @JvmField
     val entityShadowTextureBlacklist = hashSetOf(
-        NeoIdentifier("minecraft", "textures/entity/beacon_beam.png"),
-        NeoIdentifier("minecraft", "textures/misc/enchanted_glint_entity.png"),
-        NeoIdentifier("minecraft", "textures/misc/enchanted_glint_item.png"),
-        NeoIdentifier("minecraft", "textures/misc/enchanted_item_glint.png"),
+        Identifier.minecraft("textures/entity/beacon_beam.png"),
+        Identifier.minecraft("textures/misc/enchanted_glint_entity.png"),
+        Identifier.minecraft("textures/misc/enchanted_glint_item.png"),
+        Identifier.minecraft("textures/misc/enchanted_item_glint.png"),
     )
 
     /*
@@ -117,8 +108,19 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
         }
     }
 
+    override fun addClientListener(listener: Consumer<NeoClientEventBus>) {
+        super<NeoClientInitializer>.addClientListener(listener)
+    }
+
+    override fun onInitialize(bus: NeoEventBus) {
+    }
+
+    override fun onInitializeClient(bus: NeoClientEventBus) {
+    }
+
     @JvmStatic
-    fun depthBlitState(from: GlTexture2D) = GlDrawState.Basic(
+    fun depthBlitState(from: GlTexture2D) = NeoRenderType(
+    )/* = GlDrawState.Basic(
         colorMask = GlColorMaskShard(ColorMask(false, false, false, false)),
         depth = GlDepthShard.Enabled(
             GlAlphaFunction.ALWAYS,
@@ -129,7 +131,7 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
             { },
             GlTextureBinding.FromInstance(from, GlTextureTarget.TEXTURE_2D)
         )
-    )
+    )*/
 
     @JvmStatic
     fun render(data: RenderEventData) {
@@ -187,66 +189,66 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
     }
 
     @JvmStatic
-    fun id(path: String): NeoIdentifier = NeoIdentifier(MOD_ID, path)
+    fun id(path: String): Identifier = Identifier(modId, path)
 
     @JvmStatic
-    fun NeoDirection.isPointingTowards(from: IVec3<Int>, to: IVec3<Int>): Boolean = when (this) {
-        NeoDirection.DOWN -> to.y < from.y
-        NeoDirection.UP -> to.y > from.y
-        NeoDirection.NORTH -> to.z < from.z
-        NeoDirection.SOUTH -> to.z > from.z
-        NeoDirection.WEST -> to.x < from.x
-        NeoDirection.EAST -> to.x > from.x
+    fun Direction.isPointingTowards(from: IVec3<Int>, to: IVec3<Int>): Boolean = when (this) {
+        Direction.DOWN -> to.y < from.y
+        Direction.UP -> to.y > from.y
+        Direction.NORTH -> to.z < from.z
+        Direction.SOUTH -> to.z > from.z
+        Direction.WEST -> to.x < from.x
+        Direction.EAST -> to.x > from.x
     }
 
     @JvmStatic
-    fun NeoDirection.isPointingTowardsInclusive(from: IVec3<Int>, to: IVec3<Int>): Boolean = when (this) {
-        NeoDirection.DOWN -> to.y <= from.y
-        NeoDirection.UP -> to.y >= from.y
-        NeoDirection.NORTH -> to.z <= from.z
-        NeoDirection.SOUTH -> to.z >= from.z
-        NeoDirection.WEST -> to.x <= from.x
-        NeoDirection.EAST -> to.x >= from.x
+    fun Direction.isPointingTowardsInclusive(from: IVec3<Int>, to: IVec3<Int>): Boolean = when (this) {
+        Direction.DOWN -> to.y <= from.y
+        Direction.UP -> to.y >= from.y
+        Direction.NORTH -> to.z <= from.z
+        Direction.SOUTH -> to.z >= from.z
+        Direction.WEST -> to.x <= from.x
+        Direction.EAST -> to.x >= from.x
     }
 
     @JvmStatic
-    fun NeoDirection.isPointingTowards(from: BlockPos, to: IVec3<Int>): Boolean = when (this) {
-        NeoDirection.DOWN -> to.y < from.y
-        NeoDirection.UP -> to.y > from.y
-        NeoDirection.NORTH -> to.z < from.z
-        NeoDirection.SOUTH -> to.z > from.z
-        NeoDirection.WEST -> to.x < from.x
-        NeoDirection.EAST -> to.x > from.x
+    fun Direction.isPointingTowards(from: BlockPos, to: IVec3<Int>): Boolean = when (this) {
+        Direction.DOWN -> to.y < from.y
+        Direction.UP -> to.y > from.y
+        Direction.NORTH -> to.z < from.z
+        Direction.SOUTH -> to.z > from.z
+        Direction.WEST -> to.x < from.x
+        Direction.EAST -> to.x > from.x
     }
 
     @JvmStatic
-    fun NeoDirection.isPointingTowardsInclusive(from: BlockPos, to: IVec3<Int>): Boolean = when (this) {
-        NeoDirection.DOWN -> to.y <= from.y
-        NeoDirection.UP -> to.y >= from.y
-        NeoDirection.NORTH -> to.z <= from.z
-        NeoDirection.SOUTH -> to.z >= from.z
-        NeoDirection.WEST -> to.x <= from.x
-        NeoDirection.EAST -> to.x >= from.x
+    fun Direction.isPointingTowardsInclusive(from: BlockPos, to: IVec3<Int>): Boolean = when (this) {
+        Direction.DOWN -> to.y <= from.y
+        Direction.UP -> to.y >= from.y
+        Direction.NORTH -> to.z <= from.z
+        Direction.SOUTH -> to.z >= from.z
+        Direction.WEST -> to.x <= from.x
+        Direction.EAST -> to.x >= from.x
     }
 
     @JvmStatic
-    fun NeoDirection.isPointingTowards(from: BlockPos, to: BlockPos): Boolean = when (this) {
-        NeoDirection.DOWN -> to.y < from.y
-        NeoDirection.UP -> to.y > from.y
-        NeoDirection.NORTH -> to.z < from.z
-        NeoDirection.SOUTH -> to.z > from.z
-        NeoDirection.WEST -> to.x < from.x
-        NeoDirection.EAST -> to.x > from.x
+    fun Direction.isPointingTowards(from: BlockPos, to: BlockPos): Boolean = when (this) {
+        Direction.DOWN -> to.y < from.y
+        Direction.UP -> to.y > from.y
+        Direction.NORTH -> to.z < from.z
+        Direction.SOUTH -> to.z > from.z
+        Direction.WEST -> to.x < from.x
+        Direction.EAST -> to.x > from.x
     }
 
     @JvmStatic
-    fun NeoDirection.isPointingTowardsInclusive(from: BlockPos, to: BlockPos): Boolean = when (this) {
-        NeoDirection.DOWN -> to.y <= from.y
-        NeoDirection.UP -> to.y >= from.y
-        NeoDirection.NORTH -> to.z <= from.z
-        NeoDirection.SOUTH -> to.z >= from.z
-        NeoDirection.WEST -> to.x <= from.x
-        NeoDirection.EAST -> to.x >= from.x
+    fun Direction.isPointingTowardsInclusive(from: BlockPos, to: BlockPos): Boolean = when (this) {
+        Direction.DOWN -> to.y <= from.y
+        Direction.UP -> to.y >= from.y
+        Direction.NORTH -> to.z <= from.z
+        Direction.SOUTH -> to.z >= from.z
+        Direction.WEST -> to.x <= from.x
+        Direction.EAST -> to.x >= from.x
     }
 
     override fun displayInitialScreens(factory: InitialScreenFactory) {
@@ -283,12 +285,6 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
     override fun registerContent(factory: RegistrationFactory) {
         BlockLightRegistry.registerBuiltins(factory)
         SkyLightRegistry.registerBuiltins(factory)
-
-        factory.begin(NeoVertexFormat.REGISTRY_KEY)?.run {
-            register(id("light_mesh")) { LightMesh.VERTEX_FORMAT }
-            register(id("sky_mesh")) { LightMesh.SKY_VERTEX_FORMAT }
-            register(id("subtle_mesh")) { SubtleLightStorage.VERTEX_FORMAT }
-        }
     }
 
     override fun registerEvents(factory: CommonEventFactory) {
@@ -387,7 +383,7 @@ object Vibrancy : BigShotCommonEntrypoint, BigShotClientEntrypoint {
 
     override fun registerDebugScreenInfo(factory: DebugScreenFactory) {
         factory.register(id("debug_info"), false) { out ->
-            out(ChatFormatting.UNDERLINE.toString() + MOD_NAME)
+            out(ChatFormatting.UNDERLINE.toString() + "Vibrancy")
             lightManager.getDebugOutput(out)
         }
     }

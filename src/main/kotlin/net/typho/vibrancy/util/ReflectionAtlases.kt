@@ -8,7 +8,7 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.GlQueue
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlFramebuffer
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlTexture2D
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.type.GlTexture2D
+import net.typho.big_shot_lib.api.client.rendering.opengl.resource.GlTexture2D
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.util.BigShotClientEntrypoint
 import net.typho.big_shot_lib.api.client.util.event.ClientEventFactory
@@ -19,7 +19,6 @@ import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.big_shot_lib.api.util.WrapperUtil
 import net.typho.big_shot_lib.api.util.resource.NamedResource
 import net.typho.big_shot_lib.api.util.resource.NeoFileToIdConverter
-import net.typho.big_shot_lib.api.util.resource.NeoIdentifier
 import net.typho.vibrancy.Vibrancy
 import java.io.FileNotFoundException
 
@@ -67,8 +66,8 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
 
     @JvmField
     val idConverter = NeoFileToIdConverter("rtx/reflections", "png")
-    override val location: NeoIdentifier = Vibrancy.id("reflection_atlases")
-    private val atlases = hashMapOf<NeoIdentifier, Atlas>()
+    override val location: Identifier = Vibrancy.id("reflection_atlases")
+    private val atlases = hashMapOf<Identifier, Atlas>()
 
     override fun onResourceManagerReload(manager: NeoResourceManager) {
         atlases.forEach { (key, atlas) -> GlQueue.INSTANCE.runOrQueue {
@@ -114,7 +113,7 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
         }
     }
 
-    operator fun get(key: NeoIdentifier, resources: NeoResourceManager = WrapperUtil.INSTANCE.wrap(Minecraft.getInstance().resourceManager)): GlTexture2D {
+    operator fun get(key: Identifier, resources: NeoResourceManager = WrapperUtil.INSTANCE.wrap(Minecraft.getInstance().resourceManager)): GlTexture2D {
         return atlases.computeIfAbsent(key) { key ->
             NeoGlTexture2D().bind(GlTextureTarget.TEXTURE_2D).use { texture ->
                 val parent = try {
