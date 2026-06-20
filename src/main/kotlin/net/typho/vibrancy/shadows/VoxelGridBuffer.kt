@@ -4,9 +4,9 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferTarge
 import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlBuffer
 import net.typho.big_shot_lib.api.client.rendering.opengl.resource.GlTexture2D
-import net.typho.big_shot_lib.api.math.rect.IRect3
-import net.typho.big_shot_lib.api.math.rect.IRect3.Companion.sizeInclusive
-import net.typho.big_shot_lib.api.math.vec.IVec3
+import net.typho.big_shot_lib.api.math.IRect3
+import net.typho.big_shot_lib.api.math.IRect3.Companion.sizeInclusive
+import net.typho.big_shot_lib.api.math.IVec3
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
 
 open class VoxelGridBuffer(

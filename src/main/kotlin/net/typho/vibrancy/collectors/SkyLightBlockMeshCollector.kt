@@ -5,11 +5,6 @@ import net.minecraft.core.Direction
 import net.minecraft.core.SectionPos
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
-import net.minecraft.world.level.block.state.BlockState
-import net.minecraft.world.level.levelgen.Heightmap
-import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
-import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoVertexData
-import net.typho.big_shot_lib.api.math.vec.NeoVec3i
 import net.typho.vibrancy.LightManager
 
 // TODO
@@ -27,11 +22,11 @@ class SkyLightBlockMeshCollector(
         predicate: BlockMeshCollector.Predicate
     ): Boolean {
         /*
-        val origin = NeoVec3i(pos.minBlockX, 0, pos.minBlockZ)
+        val origin = IVec3(pos.minBlockX, 0, pos.minBlockZ)
         val blockEntities = hashSetOf<BlockPos>()
 
         fun collect(pos: BlockPos.MutableBlockPos, state: BlockState) {
-            val offset = (NeoVec3i(pos) - origin).plus(0, pos.y and 15.inv(), 0).toFloat()
+            val offset = (IVec3(pos) - origin).plus(0, pos.y and 15.inv(), 0).toFloat()
 
             BlockMeshCollector.collectLightFaces(
                 manager,

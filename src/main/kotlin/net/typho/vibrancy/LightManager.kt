@@ -28,11 +28,8 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
 import net.typho.big_shot_lib.api.client.rendering.opengl.util.BlendFunction
 import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
-import net.typho.big_shot_lib.api.math.rect.IRect3
-import net.typho.big_shot_lib.api.math.vec.IVec3
-import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
-import net.typho.big_shot_lib.api.math.vec.NeoVec3d
-import net.typho.big_shot_lib.api.math.vec.blockPos
+import net.typho.big_shot_lib.api.math.IRect3
+import net.typho.big_shot_lib.api.math.IVec3
 import net.typho.big_shot_lib.api.util.WrapperUtil
 import net.typho.big_shot_lib.api.util.resource.NeoResourceKey
 import net.typho.vibrancy.Vibrancy.id
@@ -261,8 +258,8 @@ open class LightManager {
         } else {
             val box = subLevel.boundingBox()
             return data.frustum.testAab(
-                (NeoVec3d(box.minX(), box.minY(), box.minZ()).toFloat() - data.camera.pos).toJOML(),
-                (NeoVec3d(box.maxX(), box.maxY(), box.maxZ()).toFloat() - data.camera.pos).toJOML(),
+                (IVec3(box.minX(), box.minY(), box.minZ()).toFloat() - data.camera.pos).toJOML(),
+                (IVec3(box.maxX(), box.maxY(), box.maxZ()).toFloat() - data.camera.pos).toJOML(),
             )
         }
     }
@@ -321,7 +318,7 @@ open class LightManager {
         return if (subLevel == null) {
             data.camera.pos.xz.inDistanceSquared(pos.middleBlockX.toFloat(), pos.middleBlockZ.toFloat(), distance)
         } else {
-            data.camera.pos.inDistanceSquared(NeoVec3d(subLevel.renderPose().position()).toFloat(), distance)
+            data.camera.pos.inDistanceSquared(IVec3(subLevel.renderPose().position()).toFloat(), distance)
         }
     }
 
@@ -331,7 +328,7 @@ open class LightManager {
         return if (subLevel == null) {
             data.camera.pos.minus(pos.minBlockX() + 8f, pos.minBlockY() + 8f, pos.minBlockZ() + 8f).maxComponent() <= distance
         } else {
-            data.camera.pos.minus(NeoVec3d(subLevel.renderPose().position()).toFloat()).maxComponent() <= distance
+            data.camera.pos.minus(IVec3(subLevel.renderPose().position()).toFloat()).maxComponent() <= distance
         }
     }
 
@@ -341,7 +338,7 @@ open class LightManager {
         return if (subLevel == null) {
             data.camera.pos.inDistanceSquared(pos.minBlockX() + 8f, pos.minBlockY() + 8f, pos.minBlockZ() + 8f, distance)
         } else {
-            data.camera.pos.inDistanceSquared(NeoVec3d(subLevel.renderPose().position()).toFloat(), distance)
+            data.camera.pos.inDistanceSquared(IVec3(subLevel.renderPose().position()).toFloat(), distance)
         }
     }
 
@@ -357,7 +354,7 @@ open class LightManager {
         return if (subLevel == null) {
             data.camera.pos.distanceSquared(pos.minBlockX() + 8f, pos.minBlockY() + 8f, pos.minBlockZ() + 8f)
         } else {
-            data.camera.pos.distanceSquared(NeoVec3d(subLevel.renderPose().position()).toFloat())
+            data.camera.pos.distanceSquared(IVec3(subLevel.renderPose().position()).toFloat())
         }
     }
 
@@ -367,7 +364,7 @@ open class LightManager {
         return if (subLevel == null) {
             data.camera.pos.xz.distanceSquared(pos.middleBlockX.toFloat(), pos.middleBlockZ.toFloat())
         } else {
-            data.camera.pos.distanceSquared(NeoVec3d(subLevel.renderPose().position()).toFloat())
+            data.camera.pos.distanceSquared(IVec3(subLevel.renderPose().position()).toFloat())
         }
     }
     //? } else {

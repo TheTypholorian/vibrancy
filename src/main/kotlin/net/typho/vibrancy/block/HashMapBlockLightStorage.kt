@@ -4,9 +4,7 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkAccess
-import net.typho.big_shot_lib.api.math.vec.IVec3
-import net.typho.big_shot_lib.api.math.vec.NeoVec3i
-import net.typho.big_shot_lib.api.math.vec.blockPos
+import net.typho.big_shot_lib.api.math.IVec3
 import net.typho.vibrancy.LightManager
 import org.lwjgl.system.NativeResource
 
@@ -42,7 +40,7 @@ abstract class HashMapBlockLightStorage<I : BlockLightInfo, L>(val type: BlockLi
         deloadChunk(manager, chunk)
 
         chunk.findBlocks(BlockLightRegistry::has) { pos, state ->
-            val pos = NeoVec3i(pos)
+            val pos = IVec3(pos)
 
             BlockLightRegistry.get(state.block, type)?.let { info ->
                 type.castInfo(info)?.let {

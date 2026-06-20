@@ -1,9 +1,7 @@
 package net.typho.vibrancy
 
-import net.typho.big_shot_lib.api.math.rect.IRect2
-import net.typho.big_shot_lib.api.math.rect.NeoRect2i
-import net.typho.big_shot_lib.api.math.vec.IVec2
-import net.typho.big_shot_lib.api.math.vec.NeoVec2i
+import net.typho.big_shot_lib.api.math.IRect2
+import net.typho.big_shot_lib.api.math.IVec2
 import kotlin.math.ceil
 import kotlin.math.sqrt
 
@@ -19,7 +17,7 @@ object TextureAtlas {
     @JvmStatic
     fun pack(textures: List<IVec2<Int>>): Result {
         val max: IVec2<Int> = textures.fold(null) { accum, texture -> accum?.max(texture) ?: texture }
-            ?: return Result(listOf(), NeoVec2i(0, 0))
+            ?: return Result(listOf(), IVec2(0, 0))
 
         val numSectionsX = ceil(sqrt(textures.size.toFloat())).toInt()
         val numSectionsY = ceil(textures.size.toFloat() / numSectionsX).toInt()
@@ -32,7 +30,7 @@ object TextureAtlas {
 
         return Result(
             textures.map { dimension ->
-                val rect = NeoRect2i(x, y, x + dimension.x, y + dimension.y)
+                val rect = IRect2.size(x, y, dimension.x, dimension.y)
 
                 x += max.x
 
@@ -43,7 +41,7 @@ object TextureAtlas {
 
                 return@map rect
             },
-            NeoVec2i(width, height)
+            IVec2(width, height)
         )
     }
 }

@@ -4,8 +4,7 @@ import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.world.level.block.state.StateDefinition
-import net.typho.big_shot_lib.api.math.vec.IVec3
-import net.typho.big_shot_lib.api.math.vec.NeoVec3f
+import net.typho.big_shot_lib.api.math.IVec3
 import net.typho.vibrancy.block.BlockLightInfo
 import net.typho.vibrancy.util.StateFunction
 
@@ -41,7 +40,7 @@ data class SubtleLightInfo(
                     .optionalFieldOf("shape", StateFunction(SubtleLight.SQUARE_SHAPE))
                     .forGetter { info -> info.shape },
                 StateFunction.codec(IVec3.FLOAT_CODEC, stateDefinition)
-                    .optionalFieldOf("offset", StateFunction(NeoVec3f(0.5f, 0.5f, 0.5f)))
+                    .optionalFieldOf("offset", StateFunction(IVec3(0.5f, 0.5f, 0.5f)))
                     .forGetter { info -> info.offset },
                 StateFunction.codec(Codec.BOOL, stateDefinition)
                     .optionalFieldOf("enabled", StateFunction(true))

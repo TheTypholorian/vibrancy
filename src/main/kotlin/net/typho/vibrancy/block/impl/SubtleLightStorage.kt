@@ -21,11 +21,9 @@ import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
-import net.typho.big_shot_lib.api.math.rect.IRect3
-import net.typho.big_shot_lib.api.math.vec.IVec3
-import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
-import net.typho.big_shot_lib.api.math.vec.NeoVec3i
-import net.typho.big_shot_lib.api.math.vec.blockPos
+import net.typho.big_shot_lib.api.math.IRect3
+import net.typho.big_shot_lib.api.math.IVec3
+import net.typho.big_shot_lib.api.math.IVec3.Companion.toJOML
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.VibrancyConfig
@@ -46,7 +44,6 @@ import kotlin.use
 
 //? if 1.21 {
 import dev.ryanhcode.sable.companion.SableCompanion
-import net.typho.big_shot_lib.api.math.vec.NeoVec3d
 import net.typho.vibrancy.Vibrancy
 import org.joml.Quaternionf
 //? }
@@ -200,7 +197,7 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
                             return AutoCloseable { } to { }
                         }
 
-                        val origin = NeoVec3i(pos.minBlockX(), pos.minBlockY(), pos.minBlockZ())
+                        val origin = IVec3(pos.minBlockX(), pos.minBlockY(), pos.minBlockZ())
 
                         val lights = chunk.map.values.toList()
 
@@ -236,7 +233,7 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
                                     val otherLightInfo = BlockLightRegistry.get(state.block, SubtleLightType)
 
                                     if (otherLightInfo != null) {
-                                        val otherLight = SubtleLight(otherLightInfo, state, NeoVec3i(pos))
+                                        val otherLight = SubtleLight(otherLightInfo, state, IVec3(pos))
 
                                         if (otherLight == light) {
                                             return@forEach
@@ -391,7 +388,7 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
                 debugOut("sectionsRendered", 1)
 
                 profiler.push("transforms")
-                val blockPos = NeoVec3i(pos.minBlockX(), pos.minBlockY(), pos.minBlockZ())
+                val blockPos = IVec3(pos.minBlockX(), pos.minBlockY(), pos.minBlockZ())
 
                 //? if 1.21 {
                 val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
@@ -402,7 +399,7 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
                 } else {
                     val pose = subLevel.renderPose(Vibrancy.tickDelta)
                     val orientation = Quaternionf(pose.orientation())
-                    val pos = NeoVec3d(pose.transformPosition(blockPos.toDouble().toJOML()))
+                    val pos = IVec3(pose.transformPosition(blockPos.toDouble().toJOML()))
                     shader.setUniform("ModelViewMat") {
                         set(
                             data.modelViewMat
@@ -482,7 +479,7 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
                                         manager,
                                         manager.getLevel()!!,
                                         state,
-                                        NeoVec3i(x + origin.x, y + origin.y, z + origin.z),
+                                        IVec3(x + origin.x, y + origin.y, z + origin.z),
                                         it
                                     )
                                 }

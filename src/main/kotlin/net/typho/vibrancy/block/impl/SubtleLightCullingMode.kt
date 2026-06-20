@@ -3,7 +3,7 @@ package net.typho.vibrancy.block.impl
 import net.minecraft.core.BlockPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
-import net.typho.big_shot_lib.api.math.vec.IVec3
+import net.typho.big_shot_lib.api.math.IVec3
 import net.typho.big_shot_lib.api.util.BlockUtil
 
 enum class SubtleLightCullingMode(

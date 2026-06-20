@@ -35,12 +35,9 @@ import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.rendering.util.NeoMultiBufferSource
 import net.typho.big_shot_lib.api.client.rendering.util.NeoRenderSettings
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
-import net.typho.big_shot_lib.api.math.rect.IRect3
-import net.typho.big_shot_lib.api.math.rect.NeoRect2i
-import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
-import net.typho.big_shot_lib.api.math.vec.NeoVec3d
-import net.typho.big_shot_lib.api.math.vec.NeoVec3i
-import net.typho.big_shot_lib.api.math.vec.NeoVec4f
+import net.typho.big_shot_lib.api.math.IRect3
+import net.typho.big_shot_lib.api.math.IVec3.Companion.toJOML
+import net.typho.big_shot_lib.api.math.IVec4
 import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
 import net.typho.vibrancy.LightManager
@@ -218,7 +215,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
             fun drawChunks(name: String, to: LightTexture, mesh: (chunk: Chunk.Section) -> Mesh) {
                 profiler.push(name)
-                to.framebuffer.bind(NeoRect2i(0, 0, to.width!!, to.height!!)).use { fbo ->
+                to.framebuffer.bind(IRect2(0, 0, to.width!!, to.height!!)).use { fbo ->
                     profiler.push("clear")
                     to.clear()
                     profiler.pop()
@@ -226,7 +223,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                     profiler.push("chunks")
                     for ((pos, chunk) in chunks) {
                         profiler.push("transforms")
-                        val blockPos = NeoVec3i(pos.minBlockX, 0, pos.minBlockZ)
+                        val blockPos = IVec3(pos.minBlockX, 0, pos.minBlockZ)
 
                         //? if 1.21 {
                         val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
@@ -246,7 +243,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                         } else {
                             val pose = subLevel.renderPose(Vibrancy.tickDelta)
                             val orientation = Quaternionf(pose.orientation())
-                            val pos = NeoVec3d(pose.transformPosition(blockPos.toDouble().toJOML())).toFloat()
+                            val pos = IVec3(pose.transformPosition(blockPos.toDouble().toJOML())).toFloat()
                             settings.shader.setUniform("SableMat") {
                                 set(
                                     Matrix4f()
@@ -327,11 +324,11 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                         //? if 1.21 {
                         val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
                         val subLevelPose = subLevel?.renderPose()
-                        val transformedPos = subLevelPose?.transformPosition(NeoVec3i(blockPos).toDouble().toJOML())?.let { NeoVec3d(it).toFloat() } ?: NeoVec3i(blockPos).toFloat()
+                        val transformedPos = subLevelPose?.transformPosition(IVec3(blockPos).toDouble().toJOML())?.let { IVec3(it).toFloat() } ?: IVec3(blockPos).toFloat()
 
                         if (transformedPos.inDistance(data.camera.pos, radius.toFloat())) {
                         //? } else {
-                        /*val transformedPos = NeoVec3i(blockPos).toFloat()
+                        /*val transformedPos = IVec3(blockPos).toFloat()
 
                         if (transformedPos.inDistance(data.camera.pos, radius.toFloat())) {
                         *///? }
@@ -381,7 +378,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                                     )
                                 )
 
-                                to.framebuffer.bind(NeoRect2i(0, 0, to.width!!, to.height!!)).use { fbo ->
+                                to.framebuffer.bind(IRect2(0, 0, to.width!!, to.height!!)).use { fbo ->
                                     tempMesh.draw()
                                 }
                             }
@@ -414,7 +411,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                 FogUtil.INSTANCE.upload(settings.shader)
                 settings.shader.setUniform("CameraPos") { setFloatVec(data.camera.pos) }
                 settings.shader.setUniform("LightColor") { setFloatVec(lightColor) }
-                settings.shader.setUniform("LightDirection") { setFloatVec(NeoVec4f(shadowRot.invert(Quaternionf()).transform(Vector4f(0f, 0f, 1f, 0f))).xyz) }
+                settings.shader.setUniform("LightDirection") { setFloatVec(IVec4(shadowRot.invert(Quaternionf()).transform(Vector4f(0f, 0f, 1f, 0f))).xyz) }
 
                 settings.shader.setUniform("ShadowMapPower") { set(VibrancyConfig.skyLightShadowMapPower) }
                 settings.shader.setUniform("ShadowBias") { set(2e-4f * (1 shl (4 - VibrancyConfig.skyLightResolution))) }
@@ -448,7 +445,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                 for ((pos, chunk) in chunks) {
                     //if (chunk.box == null || data.frustum.testAab((chunk.box!!.min.toFloat() - data.camera.pos).toJOML(), (chunk.box!!.min.toFloat() + 1f - data.camera.pos).toJOML())) {
                     profiler.push("transforms")
-                    val blockPos = NeoVec3i(pos.minBlockX, 0, pos.minBlockZ)
+                    val blockPos = IVec3(pos.minBlockX, 0, pos.minBlockZ)
 
                     //? if 1.21 {
                     val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
@@ -470,7 +467,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                     } else {
                         val pose = subLevel.renderPose(Vibrancy.tickDelta)
                         val orientation = Quaternionf(pose.orientation())
-                        val pos = NeoVec3d(pose.transformPosition(blockPos.toDouble().toJOML()))
+                        val pos = IVec3(pose.transformPosition(blockPos.toDouble().toJOML()))
                         settings.shader.setUniform("ModelViewMat") {
                             set(
                                 data.modelViewMat
@@ -650,8 +647,8 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                                     couldHaveLight(pos.x, pos.y, pos.z + 1) ||
                                     couldHaveLight(pos.x, pos.y, pos.z)
                                 ) {
-                                    val pos1 = NeoVec3i(pos)
-                                    box = box?.include(pos1) ?: NeoRect3i(pos1, pos1)
+                                    val pos1 = IVec3(pos)
+                                    box = box?.include(pos1) ?: IRect3(pos1, pos1)
                                     return true
                                 }
 

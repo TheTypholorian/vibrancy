@@ -2,8 +2,6 @@ package net.typho.vibrancy.collectors
 
 import net.minecraft.core.BlockPos
 import net.minecraft.world.level.Level
-import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
-import net.typho.big_shot_lib.api.math.vec.NeoVec3f
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy.isPointingTowardsInclusive
 
@@ -125,7 +123,7 @@ class FloodFillBlockMeshCollector(
 
             mutable.set(pos.x, pos.y, pos.z)
             val state = level.getBlockState(mutable)
-            val offset = NeoVec3f((pos.x - this.pos.x).toFloat(), (pos.y - this.pos.y).toFloat(), (pos.z - this.pos.z).toFloat())
+            val offset = IVec3((pos.x - this.pos.x).toFloat(), (pos.y - this.pos.y).toFloat(), (pos.z - this.pos.z).toFloat())
 
             BlockMeshCollector.collectLightFaces(
                 manager,

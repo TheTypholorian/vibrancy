@@ -7,9 +7,8 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunkSection
-import net.typho.big_shot_lib.api.math.rect.IRect3
-import net.typho.big_shot_lib.api.math.rect.NeoRect3i
-import net.typho.big_shot_lib.api.math.vec.blockPos
+import net.typho.big_shot_lib.api.math.IRect3
+import net.typho.big_shot_lib.api.math.blockPos
 
 class ChunkSectionCache(
     @JvmField
@@ -36,7 +35,7 @@ class ChunkSectionCache(
         val minSection = SectionPos.of(min)
         val maxSection = SectionPos.of(max)
         val sections = Offset3DArray(
-            NeoRect3i(minSection.x, minSection.y, minSection.z, maxSection.x, maxSection.y, maxSection.z),
+            IRect3(minSection.x, minSection.y, minSection.z, maxSection.x, maxSection.y, maxSection.z),
             Offset3DArray.FlatInitializer { x, y, z -> this[SectionPos.of(x, y, z)] }
         )
 

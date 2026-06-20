@@ -4,7 +4,7 @@ import net.caffeinemc.mods.sodium.client.render.chunk.terrain.material.Material
 import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
 import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
-import net.typho.big_shot_lib.api.math.vec.IVec3
+import net.typho.big_shot_lib.api.math.IVec3
 import net.typho.vibrancy.collectors.BlockMeshCollector
 import net.typho.vibrancy.shadows.BlockFace
 import java.util.concurrent.ConcurrentLinkedDeque

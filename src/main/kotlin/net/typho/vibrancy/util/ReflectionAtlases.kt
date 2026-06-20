@@ -14,7 +14,6 @@ import net.typho.big_shot_lib.api.client.util.BigShotClientEntrypoint
 import net.typho.big_shot_lib.api.client.util.event.ClientEventFactory
 import net.typho.big_shot_lib.api.client.util.resource.NeoResourceManager
 import net.typho.big_shot_lib.api.client.util.resource.NeoResourceManagerReloadListener
-import net.typho.big_shot_lib.api.math.rect.NeoRect2i
 import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.big_shot_lib.api.util.WrapperUtil
 import net.typho.big_shot_lib.api.util.resource.NamedResource
@@ -127,7 +126,7 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
                 texture.magFilter = GlTextureMagFilter.NEAREST
 
                 NeoGlFramebuffer().use { fbo ->
-                    fbo.bind(NeoRect2i(0, 0, parent.width, parent.height)).use { fbo ->
+                    fbo.bind(IRect2(0, 0, parent.width, parent.height)).use { fbo ->
                         fbo.colorAttachments[0] = texture.resource
                         fbo.checkStatus().throwIfError()
                         fbo.clear(GlClearBit.Color(NeoColor.FULL_OFF))

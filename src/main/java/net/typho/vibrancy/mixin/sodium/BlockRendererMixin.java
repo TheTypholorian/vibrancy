@@ -12,8 +12,6 @@ import net.minecraft.client.resources.model.BakedModel;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
 import net.minecraft.world.level.block.state.BlockState;
-import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas;
-import net.typho.big_shot_lib.api.math.vec.NeoVec3f;
 import net.typho.vibrancy.shadows.BlockFace;
 import net.typho.vibrancy.shadows.PrimitiveVertex;
 import net.typho.vibrancy.util.SectionMeshCache;

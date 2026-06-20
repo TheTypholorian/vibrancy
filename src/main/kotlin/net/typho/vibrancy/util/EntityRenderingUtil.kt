@@ -19,7 +19,7 @@ import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.core.Vec3i
 import net.minecraft.util.Mth
 import net.minecraft.world.phys.Vec3
-import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
+import net.typho.big_shot_lib.api.math.IVec3.Companion.toJOML
 //? } else {
 /*//? if <1.21.11 {
 import net.minecraft.client.renderer.RenderType
@@ -33,7 +33,7 @@ import net.minecraft.client.renderer.entity.state.EntityRenderState
 import net.minecraft.client.renderer.feature.FeatureRenderDispatcher
 import net.minecraft.world.level.levelgen.SurfaceRules.state
 import net.minecraft.world.phys.Vec3
-import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
+import net.typho.big_shot_lib.api.math.IVec3.Companion.toJOML
 *///? }
 
 object EntityRenderingUtil {

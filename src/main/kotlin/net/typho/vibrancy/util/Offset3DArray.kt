@@ -1,9 +1,8 @@
 package net.typho.vibrancy.util
 
 import net.minecraft.core.Vec3i
-import net.typho.big_shot_lib.api.math.rect.IRect3
-import net.typho.big_shot_lib.api.math.vec.IVec3
-import net.typho.big_shot_lib.api.math.vec.NeoVec3i
+import net.typho.big_shot_lib.api.math.IRect3
+import net.typho.big_shot_lib.api.math.IVec3
 import org.joml.Vector3i
 import java.util.Arrays
 
@@ -101,7 +100,7 @@ open class Offset3DArray<T>(
 
             override fun next(): Pair<IVec3<Int>, T> {
                 val item = yArray[z] as T
-                val pos = NeoVec3i(x, y, z)
+                val pos = IVec3(x, y, z)
 
                 z++
 

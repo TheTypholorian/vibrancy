@@ -3,7 +3,7 @@ package net.typho.vibrancy.util
 import net.minecraft.core.SectionPos
 import net.minecraft.world.level.ChunkPos
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
-import net.typho.big_shot_lib.api.math.vec.IVec3
+import net.typho.big_shot_lib.api.math.IVec3
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyConfig

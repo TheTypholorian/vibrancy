@@ -18,8 +18,7 @@ import net.typho.big_shot_lib.api.client.rendering.util.NeoRenderType
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
 import net.typho.big_shot_lib.api.event.NeoClientEventBus
 import net.typho.big_shot_lib.api.event.NeoEventBus
-import net.typho.big_shot_lib.api.math.rect.NeoRect2i
-import net.typho.big_shot_lib.api.math.vec.IVec3
+import net.typho.big_shot_lib.api.math.IVec3
 import net.typho.big_shot_lib.api.util.*
 import net.typho.vibrancy.block.BlockLightInfoLoader
 import net.typho.vibrancy.block.BlockLightRegistry
@@ -165,7 +164,7 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
                     }
                 }
 
-                TEMP_FRAMEBUFFER.bind(NeoRect2i(0, 0, width, height)).use { fbo ->
+                TEMP_FRAMEBUFFER.bind(IRect2(0, 0, width, height)).use { fbo ->
                     fbo.clear(GlClearBit.Color(NeoColor.FULL_OFF), GlClearBit.Depth(1f))
 
                     depthBlitState(data.target.depthAttachment as GlTexture2D).bind().use {

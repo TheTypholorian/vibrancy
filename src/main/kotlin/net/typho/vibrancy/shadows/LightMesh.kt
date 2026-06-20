@@ -13,9 +13,7 @@ import net.typho.big_shot_lib.api.client.rendering.util.Mesh
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
 import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormats
 import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad
-import net.typho.big_shot_lib.api.math.vec.IVec3
-import net.typho.big_shot_lib.api.math.vec.NeoVec2i
-import net.typho.big_shot_lib.api.math.vec.NeoVec3f
+import net.typho.big_shot_lib.api.math.IVec3
 import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
 import net.typho.vibrancy.TextureAtlas
@@ -104,7 +102,7 @@ open class LightMesh(
     ): Pair<AutoCloseable, () -> TextureAtlas.Result> {
         val textures = Array(lightFaces.size) {
             val face = lightFaces[it]
-            NeoVec2i(face.width, face.height)
+            IVec2(face.width, face.height)
         }
         val result = TextureAtlas.pack(textures.asList())
         val vertexBuffer = NeoBuffer.GCNative(lightFaces.size.toLong() * 4 * VERTEX_FORMAT.vertexSizeBytes)
@@ -149,7 +147,7 @@ open class LightMesh(
         numFaces: Int
     ): Pair<AutoCloseable, () -> TextureAtlas.Result> {
         val textures = lightFaces.flatMap { entry ->
-            entry.second.map { NeoVec2i(it.width, it.height) }
+            entry.second.map { IVec2(it.width, it.height) }
         }
         val result = TextureAtlas.pack(textures)
         val vertexBuffer = NeoBuffer.GCNative(numFaces.toLong() * 4 * VERTEX_FORMAT.vertexSizeBytes)
@@ -242,7 +240,7 @@ open class LightMesh(
                     writeShort(vertex.overlayUV?.x ?: 0)
                     writeShort(vertex.overlayUV?.y ?: 0)
                     writeInt((vertex.color ?: NeoColor.FULL_ON).toRGBA())
-                    val normal = vertex.normal ?: face.direction?.toFloat() ?: NeoVec3f(0f, 1f, 0f)
+                    val normal = vertex.normal ?: face.direction?.toFloat() ?: IVec3(0f, 1f, 0f)
                     writeByte((normal.x * 127).toInt())
                     writeByte((normal.y * 127).toInt())
                     writeByte((normal.z * 127).toInt())

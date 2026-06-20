@@ -7,7 +7,6 @@ import dev.isxander.yacl3.api.controller.*
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
 import net.typho.big_shot_lib.api.client.rendering.opengl.GlQueue
-import net.typho.big_shot_lib.api.math.rect.NeoRect3i
 import net.typho.big_shot_lib.api.util.platform.PlatformUtil
 import net.typho.vibrancy.block.impl.RayPointLightStorage
 import net.typho.vibrancy.block.impl.RayPointLightType

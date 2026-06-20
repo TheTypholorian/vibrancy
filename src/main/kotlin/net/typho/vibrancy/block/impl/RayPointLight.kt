@@ -23,14 +23,9 @@ import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
 import net.typho.big_shot_lib.api.client.rendering.opengl.util.BlendFunction
 import net.typho.big_shot_lib.api.client.rendering.util.*
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
-import net.typho.big_shot_lib.api.math.rect.IRect3
-import net.typho.big_shot_lib.api.math.rect.NeoRect2i
-import net.typho.big_shot_lib.api.math.rect.NeoRect3f
-import net.typho.big_shot_lib.api.math.rect.NeoRect3i
-import net.typho.big_shot_lib.api.math.vec.IVec3
-import net.typho.big_shot_lib.api.math.vec.IVec3.Companion.toJOML
-import net.typho.big_shot_lib.api.math.vec.NeoVec3d
-import net.typho.big_shot_lib.api.math.vec.NeoVec3i
+import net.typho.big_shot_lib.api.math.IRect3
+import net.typho.big_shot_lib.api.math.IVec3
+import net.typho.big_shot_lib.api.math.IVec3.Companion.toJOML
 import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
@@ -79,9 +74,9 @@ open class RayPointLight(
 
     //? if 1.21 {
     override val absolutePos: IVec3<Float>
-        get() = SableCompanion.INSTANCE.getContainingClient((pos.toDouble() + offset.toDouble()).toJOML())?.let { NeoVec3d(it.renderPose(Vibrancy.tickDelta).transformPosition((pos.toDouble() + offset.toDouble()).toJOML())).toFloat() } ?: (pos.toFloat() + offset)
+        get() = SableCompanion.INSTANCE.getContainingClient((pos.toDouble() + offset.toDouble()).toJOML())?.let { IVec3(it.renderPose(Vibrancy.tickDelta).transformPosition((pos.toDouble() + offset.toDouble()).toJOML())).toFloat() } ?: (pos.toFloat() + offset)
     val absoluteBlockPos: IVec3<Float>
-        get() = SableCompanion.INSTANCE.getContainingClient(pos.toDouble().toJOML())?.let { NeoVec3d(
+        get() = SableCompanion.INSTANCE.getContainingClient(pos.toDouble().toJOML())?.let { IVec3(
             it.renderPose(
                 Vibrancy.tickDelta
             ).transformPosition(pos.toDouble().toJOML())
@@ -92,7 +87,7 @@ open class RayPointLight(
     val absoluteBlockPos: IVec3<Float>
         get() = pos.toFloat()
     *///? }
-    override val boundingBox: IRect3<Int> = NeoRect3i(pos - radius.toInt(), pos + radius.toInt())
+    override val boundingBox: IRect3<Int> = IRect3(pos - radius.toInt(), pos + radius.toInt())
     override var shadowBox: IRect3<Int> = createShadowBox()
     @JvmField
     val sections: List<SectionPos> = SectionPos.betweenClosedStream(
@@ -106,11 +101,11 @@ open class RayPointLight(
 
     fun createShadowBox(): IRect3<Int> {
         val shadowRadius = ceil(radius.coerceAtMost(VibrancyConfig.rayLightShadowRadius.toFloat())).toInt()
-        return NeoRect3i(pos - shadowRadius, pos + shadowRadius)
+        return IRect3(pos - shadowRadius, pos + shadowRadius)
     }
 
     fun blit(mesh: StaticOneStepBlockLightMeshManager, target: LightTexture, shadowBuffer: GlBuffer, gridBuffer: VoxelGridBuffer?, uniforms: GlBoundProgram.() -> Unit, shader: Identifier) {
-        target.framebuffer.bind(NeoRect2i(0, 0, target.width!!, target.height!!)).use { fbo ->
+        target.framebuffer.bind(IRect2(0, 0, target.width!!, target.height!!)).use { fbo ->
             drawState(shader) {
                 uniforms(this)
 
@@ -150,8 +145,8 @@ open class RayPointLight(
         pos,
         {
             val shadowRadius = ceil(radius.coerceAtMost(VibrancyConfig.rayLightShadowRadius.toFloat())).toInt()
-            val v = NeoVec3i(shadowRadius, shadowRadius, shadowRadius)
-            return@StaticOneStepBlockLightMeshManager NeoRect3i(-v, v)
+            val v = IVec3(shadowRadius, shadowRadius, shadowRadius)
+            return@StaticOneStepBlockLightMeshManager IRect3(-v, v)
         }
     ) { mesh, info, profiler ->
         meshData = info
@@ -161,7 +156,7 @@ open class RayPointLight(
         dynamicTexture.resize(info.sections.size.x, info.sections.size.y)
         profiler.pop()
 
-        staticTexture.framebuffer.bind(NeoRect2i(0, 0, staticTexture.width!!, staticTexture.height!!)).use { fbo ->
+        staticTexture.framebuffer.bind(IRect2(0, 0, staticTexture.width!!, staticTexture.height!!)).use { fbo ->
             profiler.push("clearStatic")
             staticTexture.clear()
             profiler.pop()
@@ -296,7 +291,7 @@ open class RayPointLight(
                         }
 
                         if (minX != null && minY != null && minZ != null && maxX != null && maxY != null && maxZ != null) {
-                            return NeoRect3f(minX, minY, minZ, maxX, maxY, maxZ)
+                            return IRect3(minX, minY, minZ, maxX, maxY, maxZ)
                         }
 
                         return null
@@ -323,7 +318,7 @@ open class RayPointLight(
                 if (VibrancyConfig.entityShadowsEnabled) {
                     profiler.push("entityShadows")
                     for (entity in level.getEntities(null, AABB.ofSize(Vec3(absolutePos.toJOML()), radius.toDouble() * 2, radius.toDouble() * 2, radius.toDouble() * 2))) {
-                        if (boundingBox.contains(NeoVec3i(entity.blockPosition()))) {
+                        if (boundingBox.contains(IVec3(entity.blockPosition()))) {
                             val node = Node()
                             debugOut("entityShadows", 1)
                             EntityRenderingUtil.render(entity, poseStack, node.bufferSource)
@@ -347,7 +342,7 @@ open class RayPointLight(
                             if (subLevelPose == null) {
                                 poseStack.translate(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
                             } else {
-                                val pos = subLevelPose.transformPosition(NeoVec3i(pos).toDouble().toJOML())
+                                val pos = subLevelPose.transformPosition(IVec3(pos).toDouble().toJOML())
                                 poseStack.translate(pos.x, pos.y, pos.z)
                                 poseStack.mulPose(Quaternionf(subLevelPose.orientation()))
                             }
@@ -370,7 +365,7 @@ open class RayPointLight(
                 profiler.pop()
 
                 profiler.push("calculate")
-                dynamicTexture.framebuffer.bind(NeoRect2i(0, 0, dynamicTexture.width!!, dynamicTexture.height!!)).use { fbo ->
+                dynamicTexture.framebuffer.bind(IRect2(0, 0, dynamicTexture.width!!, dynamicTexture.height!!)).use { fbo ->
                     var cleared = false
 
                     nodes.forEach { it.buffers.forEach { (texture, consumer) -> consumer.first.flush() } }
@@ -472,7 +467,7 @@ open class RayPointLight(
         } else {
             val pose = subLevel.renderPose(Vibrancy.tickDelta)
             val orientation = Quaternionf(pose.orientation())
-            val pos = NeoVec3d(pose.transformPosition(pos.toDouble().toJOML()))
+            val pos = IVec3(pose.transformPosition(pos.toDouble().toJOML()))
             shader.setUniform("ModelViewMat") {
                 set(
                     data.modelViewMat.rotate(orientation, Matrix4f())
