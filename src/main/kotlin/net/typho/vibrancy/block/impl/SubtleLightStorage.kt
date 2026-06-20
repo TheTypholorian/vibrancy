@@ -447,7 +447,7 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
 
                 if (
                     Direction.entries.all { dir ->
-                        val pos = (pos + dir).blockPos
+                        val pos = (pos + dir).toBlockPos()
                         cullingMode.test(level, pos, state, level.getBlockState(pos))
                     }
                 ) {

@@ -59,7 +59,7 @@ abstract class HashMapBlockLightStorage<I : BlockLightInfo, L>(val type: BlockLi
     override fun deloadChunk(manager: LightManager, chunk: ChunkAccess) {
         synchronized(map) {
             map.entries.removeIf { entry ->
-                val removed = ChunkPos(entry.key.blockPos) == chunk.pos
+                val removed = ChunkPos(entry.key.toBlockPos()) == chunk.pos
 
                 if (removed) {
                     (entry.value as? NativeResource)?.free()

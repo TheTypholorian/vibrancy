@@ -176,7 +176,7 @@ object EntityRenderingUtil {
             val report = CrashReport("Error casting Vibrancy block entity shadow", t)
             report.addCategory("Block Entity").run {
                 setDetail("Block Entity", blockEntity)
-                setDetail("Position", blockEntity.blockPos)
+                setDetail("Position", blockEntity.toBlockPos())
             }
             Minecraft.getInstance().emergencySaveAndCrash(report)
         }

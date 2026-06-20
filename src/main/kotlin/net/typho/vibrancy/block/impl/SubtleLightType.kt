@@ -67,7 +67,7 @@ object SubtleLightType : BlockLightType<SubtleLightInfo, SubtleLightStorage> {
                         GlTextureTarget.TEXTURE_2D
                     ))
                     settings.shader.setUniform("ProjMat") { set(data.projMat) }
-                    settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((-data.camera.pos).toJOML(), Matrix4f())) }
+                    settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((-data.camera.pos).toJ(), Matrix4f())) }
                     settings.shader.setUniform("LightBrightness") { set(VibrancyConfig.subtleLightBrightness) }
                     FogUtil.INSTANCE.upload(settings.shader)
                     profiler.pop()

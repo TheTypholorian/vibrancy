@@ -5,7 +5,6 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkAccess
 import net.typho.big_shot_lib.api.math.IVec3
-import net.typho.big_shot_lib.api.math.blockPos
 import net.typho.vibrancy.LightManager
 
 abstract class ChunkedBlockLightStorage<I : BlockLightInfo, C : BlockLightStorage<I>>(val type: BlockLightType<I, *>) : BlockLightStorage<I> {
@@ -25,11 +24,11 @@ abstract class ChunkedBlockLightStorage<I : BlockLightInfo, C : BlockLightStorag
         pos: IVec3<Int>,
         info: I
     ) {
-        getOrCreateChunk(manager, ChunkPos(pos.blockPos)).addLight(manager, level, state, pos, info)
+        getOrCreateChunk(manager, ChunkPos(pos.toBlockPos())).addLight(manager, level, state, pos, info)
     }
 
     override fun removeLight(manager: LightManager, level: Level, pos: IVec3<Int>): Boolean {
-        return getOrCreateChunk(manager, ChunkPos(pos.blockPos)).removeLight(manager, level, pos)
+        return getOrCreateChunk(manager, ChunkPos(pos.toBlockPos())).removeLight(manager, level, pos)
     }
 
     override fun reload(manager: LightManager, chunk: ChunkPos?) {

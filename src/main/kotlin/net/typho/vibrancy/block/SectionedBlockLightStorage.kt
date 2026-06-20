@@ -6,7 +6,6 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkAccess
 import net.typho.big_shot_lib.api.math.IVec3
-import net.typho.big_shot_lib.api.math.blockPos
 import net.typho.vibrancy.LightManager
 import org.lwjgl.system.NativeResource
 
@@ -33,11 +32,11 @@ abstract class SectionedBlockLightStorage<I : BlockLightInfo, C : BlockLightStor
         pos: IVec3<Int>,
         info: I
     ) {
-        getOrLoadChunk(manager, SectionPos.of(pos.blockPos)).addLight(manager, level, state, pos, info)
+        getOrLoadChunk(manager, SectionPos.of(pos.toBlockPos())).addLight(manager, level, state, pos, info)
     }
 
     override fun removeLight(manager: LightManager, level: Level, pos: IVec3<Int>): Boolean {
-        return getOrLoadChunk(manager, SectionPos.of(pos.blockPos)).removeLight(manager, level, pos)
+        return getOrLoadChunk(manager, SectionPos.of(pos.toBlockPos())).removeLight(manager, level, pos)
     }
 
     override fun reload(manager: LightManager, chunk: ChunkPos?) {

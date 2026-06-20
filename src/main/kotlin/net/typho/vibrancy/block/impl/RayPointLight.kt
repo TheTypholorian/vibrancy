@@ -318,7 +318,7 @@ open class RayPointLight(
                 if (VibrancyConfig.entityShadowsEnabled) {
                     profiler.push("entityShadows")
                     for (entity in level.getEntities(null, AABB.ofSize(Vec3(absolutePos.toJOML()), radius.toDouble() * 2, radius.toDouble() * 2, radius.toDouble() * 2))) {
-                        if (boundingBox.contains(IVec3(entity.blockPosition()))) {
+                        if (boundingBox.contains(IVec3(entity.toBlockPos()ition()))) {
                             val node = Node()
                             debugOut("entityShadows", 1)
                             EntityRenderingUtil.render(entity, poseStack, node.bufferSource)

@@ -9,7 +9,6 @@ import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.math.IRect3
 import net.typho.big_shot_lib.api.math.IVec3
-import net.typho.big_shot_lib.api.math.blockPos
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyConfig
@@ -43,7 +42,7 @@ open class StaticOneStepBlockLightMeshManager(
         val list = arrayListOf<BlockPos>()
 
         bounds(this).iterator().forEach { pos ->
-            val block = (pos + this.pos).blockPos
+            val block = (pos + this.pos).toBlockPos()
 
             if (level.getBlockEntity(block) != null) {
                 list.add(block)

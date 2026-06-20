@@ -124,7 +124,7 @@ open class LightManager {
             BlockLightRegistry.get(new.block, entry.key)?.let { addBlockLight(pos, level, new, entry.key, it) }
         }
 
-        dirtyBlocks[pos.blockPos] = old to new
+        dirtyBlocks[pos.toBlockPos()] = old to new
     }
 
     fun levelChanged(
@@ -238,7 +238,7 @@ open class LightManager {
 
     //? if 1.21 {
     fun testFrustum(origin: IVec3<Int>, data: RenderEventData, box: IRect3<Int>): Boolean {
-        return testFrustum(SableCompanion.INSTANCE.getContainingClient(origin.toDouble().toJOML()), data, box)
+        return testFrustum(SableCompanion.INSTANCE.getContainingClient(origin.toDouble().toJVec3d()), data, box)
     }
 
     fun testFrustum(origin: ChunkPos, data: RenderEventData, box: IRect3<Int>): Boolean {

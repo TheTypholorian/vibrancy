@@ -8,7 +8,6 @@ import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.LevelChunkSection
 import net.typho.big_shot_lib.api.math.IRect3
-import net.typho.big_shot_lib.api.math.blockPos
 
 class ChunkSectionCache(
     @JvmField
@@ -66,5 +65,5 @@ class ChunkSectionCache(
 
     operator fun get(box: BlockBox) = get(box.min, box.max)
 
-    operator fun get(box: IRect3<Int>) = get(box.min.blockPos, box.max.blockPos)
+    operator fun get(box: IRect3<Int>) = get(box.min.toBlockPos(), box.max.toBlockPos())
 }
