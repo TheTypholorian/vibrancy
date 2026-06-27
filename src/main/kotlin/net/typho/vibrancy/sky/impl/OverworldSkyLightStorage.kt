@@ -1,8 +1,8 @@
 package net.typho.vibrancy.sky.impl
 
 //? if 1.21 {
-import dev.ryanhcode.sable.companion.SableCompanion
-//? }
+/*import dev.ryanhcode.sable.companion.SableCompanion
+*///? }
 
 import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.Minecraft.getInstance
@@ -161,31 +161,31 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
 
         profiler.push("prep")
         //? if <1.21.11 {
-        var lightAngle = (data.level!!.getSunAngle(Vibrancy.tickDelta) + PI.toFloat() / 2) % (PI.toFloat() * 2)
-        //? } else {
-        /*val skyRenderState = (Minecraft.getInstance().levelRenderer as LevelRendererAccessor).`vibrancy$getLevelRenderState`().skyRenderState
+        /*var lightAngle = (data.level!!.getSunAngle(Vibrancy.tickDelta) + PI.toFloat() / 2) % (PI.toFloat() * 2)
+        *///? } else {
+        val skyRenderState = (Minecraft.getInstance().levelRenderer as LevelRendererAccessor).`vibrancy$getLevelRenderState`().skyRenderState
         var lightAngle = (skyRenderState.sunAngle + PI.toFloat() / 2) % (PI.toFloat() * 2)
-        *///? }
+        //? }
         var lightColor = info!!.sunColor
 
         if (lightAngle > PI.toFloat()) {
             lightAngle -= PI.toFloat()
             //? if <1.21.11 {
-            lightColor = info!!.moonColor * data.level!!.moonBrightness
-            //? } else {
-            /*lightColor = info!!.moonColor * DimensionType.MOON_BRIGHTNESS_PER_PHASE[skyRenderState.moonPhase.ordinal]
-            *///? }
+            /*lightColor = info!!.moonColor * data.level!!.moonBrightness
+            *///? } else {
+            lightColor = info!!.moonColor * DimensionType.MOON_BRIGHTNESS_PER_PHASE[skyRenderState.moonPhase.ordinal]
+            //? }
         } else {
             //? if <1.21.5 {
-            val sunriseColor = data.level!!.effects().getSunriseColor(data.level!!.getTimeOfDay(Vibrancy.tickDelta), Vibrancy.tickDelta)
+            /*val sunriseColor = data.level!!.effects().getSunriseColor(data.level!!.getTimeOfDay(Vibrancy.tickDelta), Vibrancy.tickDelta)
 
             if (sunriseColor != null) {
                 lightColor = lightColor.lerp(sunriseColor[0], sunriseColor[1], sunriseColor[2], sunriseColor[3])
             }
-            //? } else {
-            /*val sunriseColor = NeoColor.argbF(skyRenderState.sunriseAndSunsetColor)
+            *///? } else {
+            val sunriseColor = NeoColor.argbF(skyRenderState.sunriseAndSunsetColor)
             lightColor = lightColor.lerp(sunriseColor.redF, sunriseColor.greenF, sunriseColor.blueF, sunriseColor.alphaF)
-            *///? }
+            //? }
         }
 
         lightColor *= sqrt(sin(lightAngle).coerceAtLeast(0f))
@@ -226,7 +226,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                         val blockPos = IVec3(pos.minBlockX, 0, pos.minBlockZ)
 
                         //? if 1.21 {
-                        val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
+                        /*val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
                         var shouldDraw = true
 
                         if (subLevel == null) {
@@ -252,8 +252,8 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                                 )
                             }
                         }
-                        //? } else {
-                        /*if (chunk.shouldDraw(shadowFrustum, data)) {
+                        *///? } else {
+                        if (chunk.shouldDraw(shadowFrustum, data)) {
                             settings.shader.setUniform("SableMat") {
                                 set(
                                     Matrix4f()
@@ -263,7 +263,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                         } else {
                             shouldDraw = false
                         }
-                        *///? }
+                        //? }
                         profiler.pop()
 
                         profiler.push("draw")
@@ -322,25 +322,25 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                 for ((pos, chunk) in chunks) {
                     for (blockPos in chunk.blockEntities) {
                         //? if 1.21 {
-                        val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
+                        /*val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
                         val subLevelPose = subLevel?.renderPose()
                         val transformedPos = subLevelPose?.transformPosition(IVec3(blockPos).toDouble().toJOML())?.let { IVec3(it).toFloat() } ?: IVec3(blockPos).toFloat()
 
                         if (transformedPos.inDistance(data.camera.pos, radius.toFloat())) {
-                        //? } else {
-                        /*val transformedPos = IVec3(blockPos).toFloat()
+                        *///? } else {
+                        val transformedPos = IVec3(blockPos).toFloat()
 
                         if (transformedPos.inDistance(data.camera.pos, radius.toFloat())) {
-                        *///? }
+                        //? }
                             data.level!!.getBlockEntity(blockPos)?.let { blockEntity ->
                                 poseStack.pushPose()
                                 poseStack.translate(transformedPos.x, transformedPos.y, transformedPos.z)
 
                                 //? if 1.21 {
-                                if (subLevelPose != null) {
+                                /*if (subLevelPose != null) {
                                     poseStack.mulPose(Quaternionf(subLevelPose.orientation()))
                                 }
-                                //? }
+                                *///? }
 
                                 EntityRenderingUtil.renderBlockEntity(blockEntity, poseStack, bufferSource, data)
 
@@ -448,7 +448,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                     val blockPos = IVec3(pos.minBlockX, 0, pos.minBlockZ)
 
                     //? if 1.21 {
-                    val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
+                    /*val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
 
                     if (subLevel == null) {
                         settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((blockPos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
@@ -490,8 +490,8 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                             )
                         }
                     }
-                    //? } else {
-                    /*settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((blockPos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
+                    *///? } else {
+                    settings.shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((blockPos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
                     settings.shader.setUniform("SableMat") {
                         set(
                             Matrix4f()
@@ -504,7 +504,7 @@ class OverworldSkyLightStorage : ChunkedSkyLightStorage<OverworldSkyLightInfo, O
                                 .translate(blockPos.toFloat().toJOML())
                         )
                     }
-                    *///? }
+                    //? }
                     profiler.pop()
 
                     chunk.sections.forEach { section ->

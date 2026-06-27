@@ -1,10 +1,10 @@
 package net.typho.vibrancy
 
 //? if 1.21 {
-import dev.ryanhcode.sable.companion.ClientSubLevelAccess
+/*import dev.ryanhcode.sable.companion.ClientSubLevelAccess
 import dev.ryanhcode.sable.companion.SableCompanion
 import net.caffeinemc.mods.sodium.client.world.LevelRendererExtension
-//? }
+*///? }
 
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
@@ -51,8 +51,8 @@ import java.util.function.Consumer
 import kotlin.use
 
 //? if >=1.21.5 {
-/*import net.minecraft.util.profiling.Profiler
-*///? }
+import net.minecraft.util.profiling.Profiler
+//? }
 
 open class LightManager {
     @JvmField
@@ -213,10 +213,10 @@ open class LightManager {
     }
 
     //? if <1.21.5 {
-    fun render(data: RenderEventData, result: GlFramebuffer, temp: GlFramebuffer, profiler: ProfilerFiller = Minecraft.getInstance().profiler) {
-    //? } else {
-    /*fun render(data: RenderEventData, result: GlFramebuffer, temp: GlFramebuffer, profiler: ProfilerFiller = Profiler.get()) {
-    *///? }
+    /*fun render(data: RenderEventData, result: GlFramebuffer, temp: GlFramebuffer, profiler: ProfilerFiller = Minecraft.getInstance().profiler) {
+    *///? } else {
+    fun render(data: RenderEventData, result: GlFramebuffer, temp: GlFramebuffer, profiler: ProfilerFiller = Profiler.get()) {
+    //? }
         profiler.push("vibrancy")
         debugInfo.clear()
 
@@ -237,7 +237,7 @@ open class LightManager {
     }
 
     //? if 1.21 {
-    fun testFrustum(origin: IVec3<Int>, data: RenderEventData, box: IRect3<Int>): Boolean {
+    /*fun testFrustum(origin: IVec3<Int>, data: RenderEventData, box: IRect3<Int>): Boolean {
         return testFrustum(SableCompanion.INSTANCE.getContainingClient(origin.toDouble().toJVec3d()), data, box)
     }
 
@@ -263,8 +263,8 @@ open class LightManager {
             )
         }
     }
-    //? } else {
-    /*fun testFrustum(origin: IVec3<Int>, data: RenderEventData, box: IRect3<Int>): Boolean {
+    *///? } else {
+    fun testFrustum(origin: IVec3<Int>, data: RenderEventData, box: IRect3<Int>): Boolean {
         return testFrustum(data, box)
     }
 
@@ -282,7 +282,7 @@ open class LightManager {
             (box.max.toFloat() - data.camera.pos).toJOML(),
         )
     }
-    *///? }
+    //? }
 
     fun getDebugOutput(out: Consumer<String>) {
         debugInfo[null]?.forEach { (key, value) -> out.accept("$key: $value") }
@@ -312,7 +312,7 @@ open class LightManager {
     }
 
     //? if 1.21 {
-    fun inRenderDistance(data: RenderEventData, pos: ChunkPos, distance: Float): Boolean {
+    /*fun inRenderDistance(data: RenderEventData, pos: ChunkPos, distance: Float): Boolean {
         val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
 
         return if (subLevel == null) {
@@ -367,8 +367,8 @@ open class LightManager {
             data.camera.pos.distanceSquared(IVec3(subLevel.renderPose().position()).toFloat())
         }
     }
-    //? } else {
-    /*fun inRenderDistance(data: RenderEventData, pos: ChunkPos, distance: Int): Boolean {
+    *///? } else {
+    fun inRenderDistance(data: RenderEventData, pos: ChunkPos, distance: Int): Boolean {
         return data.camera.pos.xz.inDistanceSquared(pos.middleBlockX.toFloat(), pos.middleBlockZ.toFloat(), distance)
     }
 
@@ -387,7 +387,7 @@ open class LightManager {
     fun getSortingOrder(data: RenderEventData, pos: ChunkPos): Float {
         return data.camera.pos.xz.distanceSquared(pos.middleBlockX.toFloat(), pos.middleBlockZ.toFloat())
     }
-    *///? }
+    //? }
 
     fun blitFromTemp(result: GlFramebuffer, temp: GlFramebuffer, lightLimited: Boolean = VibrancyConfig.limitLightBrightness) {
         val drawState = GlDrawState.Basic(

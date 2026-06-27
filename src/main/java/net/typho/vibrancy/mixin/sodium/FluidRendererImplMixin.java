@@ -1,13 +1,13 @@
 package net.typho.vibrancy.mixin.sodium;
 
 //? fabric {
-/*import net.caffeinemc.mods.sodium.fabric.render.FluidRendererImpl;
+import net.caffeinemc.mods.sodium.fabric.render.FluidRendererImpl;
 import net.fabricmc.fabric.api.client.render.fluid.v1.FluidRenderHandler;
 import net.fabricmc.fabric.api.client.render.fluid.v1.FluidRendering;
-*///? } neoforge {
-import net.caffeinemc.mods.sodium.neoforge.render.FluidRendererImpl;
+//? } neoforge {
+/*import net.caffeinemc.mods.sodium.neoforge.render.FluidRendererImpl;
 import net.neoforged.neoforge.client.extensions.common.IClientFluidTypeExtensions;
-//? }
+*///? }
 
 import com.llamalad7.mixinextras.sugar.Local;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
@@ -35,7 +35,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(FluidRendererImpl.class)
 public class FluidRendererImplMixin {
     //? fabric {
-    /*@Inject(
+    @Inject(
             method = "render",
             at = @At(
                     value = "INVOKE",
@@ -113,8 +113,8 @@ public class FluidRendererImplMixin {
 
         ((SectionMeshCache.ConsumerExtension) meshBuilder).setVibrancy$sectionMeshConsumer(null);
     }
-    *///? } neoforge {
-    @Inject(
+    //? } neoforge {
+    /*@Inject(
             method = "render",
             at = @At(
                     value = "INVOKE",
@@ -192,5 +192,5 @@ public class FluidRendererImplMixin {
 
         ((SectionMeshCache.ConsumerExtension) meshBuilder).setVibrancy$sectionMeshConsumer(null);
     }
-    //? }
+    *///? }
 }

@@ -15,17 +15,17 @@ import net.typho.big_shot_lib.api.util.WrapperUtil
 import net.typho.vibrancy.Vibrancy
 
 //? if <1.21.9 {
-import net.minecraft.client.renderer.texture.OverlayTexture
+/*import net.minecraft.client.renderer.texture.OverlayTexture
 import net.minecraft.core.Vec3i
 import net.minecraft.util.Mth
 import net.minecraft.world.phys.Vec3
 import net.typho.big_shot_lib.api.math.IVec3.Companion.toJOML
-//? } else {
-/*//? if <1.21.11 {
-import net.minecraft.client.renderer.RenderType
-//? } else {
-/*import net.minecraft.client.renderer.rendertype.RenderType
-*///? }
+*///? } else {
+//? if <1.21.11 {
+/*import net.minecraft.client.renderer.RenderType
+*///? } else {
+import net.minecraft.client.renderer.rendertype.RenderType
+//? }
 import net.minecraft.client.renderer.SubmitNodeStorage
 import net.minecraft.client.renderer.blockentity.BlockEntityRenderer
 import net.minecraft.client.renderer.blockentity.state.BlockEntityRenderState
@@ -34,13 +34,13 @@ import net.minecraft.client.renderer.feature.FeatureRenderDispatcher
 import net.minecraft.world.level.levelgen.SurfaceRules.state
 import net.minecraft.world.phys.Vec3
 import net.typho.big_shot_lib.api.math.IVec3.Companion.toJOML
-*///? }
+//? }
 
 object EntityRenderingUtil {
     fun <E : Entity> render(entity: E, pose: PoseStack, buffers: NeoMultiBufferSource, tickDelta: Float = Vibrancy.tickDelta, light: Int = LightTexture.FULL_BRIGHT) {
         try {
             //? if <1.21.5 {
-            Minecraft.getInstance().entityRenderDispatcher.render(
+            /*Minecraft.getInstance().entityRenderDispatcher.render(
                 entity,
                 Mth.lerp(tickDelta.toDouble(), entity.xOld, entity.x),
                 Mth.lerp(tickDelta.toDouble(), entity.yOld, entity.y),
@@ -51,7 +51,7 @@ object EntityRenderingUtil {
                 WrapperUtil.INSTANCE.unwrap(buffers),
                 light
             )
-            //? } else if <1.21.9 {
+            *///? } else if <1.21.9 {
             /*Minecraft.getInstance().entityRenderDispatcher.render(
                 entity,
                 Mth.lerp(tickDelta.toDouble(), entity.xOld, entity.x),
@@ -63,7 +63,7 @@ object EntityRenderingUtil {
                 light
             )
             *///? } else {
-            /*@Suppress("UNCHECKED_CAST")
+            @Suppress("UNCHECKED_CAST")
             fun <S : EntityRenderState> render(renderer: EntityRenderer<*, S>, state: EntityRenderState) {
                 val state = state as S
                 val offset = renderer.getRenderOffset(state)
@@ -103,7 +103,7 @@ object EntityRenderingUtil {
 
             val renderer = Minecraft.getInstance().entityRenderDispatcher.getRenderer(entity)
             render(renderer, renderer.createRenderState(entity, tickDelta))
-            *///? }
+            //? }
         } catch (t: Throwable) {
             val report = CrashReport("Error casting Vibrancy entity shadow", t)
             report.addCategory("Entity").run {
@@ -116,7 +116,7 @@ object EntityRenderingUtil {
     fun <E : BlockEntity> renderBlockEntity(blockEntity: E, pose: PoseStack, buffers: NeoMultiBufferSource, data: RenderEventData, tickDelta: Float = Vibrancy.tickDelta, light: Int = LightTexture.FULL_BRIGHT) {
         try {
             //? if <1.21.5 {
-            Minecraft.getInstance().blockEntityRenderDispatcher.getRenderer(blockEntity)?.render(
+            /*Minecraft.getInstance().blockEntityRenderDispatcher.getRenderer(blockEntity)?.render(
                 blockEntity,
                 tickDelta,
                 pose,
@@ -124,7 +124,7 @@ object EntityRenderingUtil {
                 light,
                 OverlayTexture.NO_OVERLAY
             )
-            //? } else if <1.21.9 {
+            *///? } else if <1.21.9 {
             /*Minecraft.getInstance().blockEntityRenderDispatcher.getRenderer(blockEntity)?.render(
                 blockEntity,
                 tickDelta,
@@ -135,7 +135,7 @@ object EntityRenderingUtil {
                 Vec3(data.camera.pos.toJOML())
             )
             *///? } else {
-            /*fun <S : BlockEntityRenderState> render(state: S) {
+            fun <S : BlockEntityRenderState> render(state: S) {
                 val renderer = Minecraft.getInstance().blockEntityRenderDispatcher.getRenderer<E, S>(blockEntity)!!
 
                 val storage = SubmitNodeStorage()
@@ -171,7 +171,7 @@ object EntityRenderingUtil {
             //? } neoforge {
             /*render(Minecraft.getInstance().blockEntityRenderDispatcher.tryExtractRenderState(blockEntity, tickDelta, null, null)!!)
             *///? }
-            *///? }
+            //? }
         } catch (t: Throwable) {
             val report = CrashReport("Error casting Vibrancy block entity shadow", t)
             report.addCategory("Block Entity").run {

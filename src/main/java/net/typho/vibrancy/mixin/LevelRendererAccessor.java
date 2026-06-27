@@ -8,16 +8,16 @@ import org.spongepowered.asm.mixin.gen.Accessor;
 import dev.kikugie.fletching_table.annotation.MixinEnvironment;
 
 //? if >=1.21.11 {
-/*import net.minecraft.client.renderer.state.LevelRenderState;
-*///? }
+import net.minecraft.client.renderer.state.LevelRenderState;
+//? }
 
 @MixinEnvironment(type = MixinEnvironment.Env.CLIENT)
 @Mixin(LevelRenderer.class)
 public interface LevelRendererAccessor {
     //? if >=1.21.11 {
-    /*@Accessor("levelRenderState")
+    @Accessor("levelRenderState")
     LevelRenderState vibrancy$getLevelRenderState();
-    *///? }
+    //? }
 
     @Accessor("visibleSections")
     ObjectArrayList<SectionRenderDispatcher.RenderSection> vibrancy$getVisibleSections();

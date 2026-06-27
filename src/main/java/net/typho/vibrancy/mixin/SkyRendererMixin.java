@@ -9,7 +9,7 @@ import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
 //? if <1.21.5 {
-import net.minecraft.client.renderer.LevelRenderer;
+/*import net.minecraft.client.renderer.LevelRenderer;
 
 @MixinEnvironment(type = MixinEnvironment.Env.CLIENT)
 @Mixin(LevelRenderer.class)
@@ -26,8 +26,8 @@ public class SkyRendererMixin {
         return original.call(instance, f - 15);
     }
 }
-//? } else {
-/*import net.minecraft.client.renderer.SkyRenderer;
+*///? } else {
+import net.minecraft.client.renderer.SkyRenderer;
 
 @MixinEnvironment(type = MixinEnvironment.Env.CLIENT)
 @Mixin(SkyRenderer.class)
@@ -44,4 +44,4 @@ public class SkyRendererMixin {
         return original.call(instance, f - 15);
     }
 }
-*///? }
+//? }

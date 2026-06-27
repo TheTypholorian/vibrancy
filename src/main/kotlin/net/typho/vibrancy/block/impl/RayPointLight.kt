@@ -1,8 +1,8 @@
 package net.typho.vibrancy.block.impl
 
 //? if 1.21 {
-import dev.ryanhcode.sable.companion.SableCompanion
-//? }
+/*import dev.ryanhcode.sable.companion.SableCompanion
+*///? }
 
 import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.core.SectionPos
@@ -73,7 +73,7 @@ open class RayPointLight(
     }
 
     //? if 1.21 {
-    override val absolutePos: IVec3<Float>
+    /*override val absolutePos: IVec3<Float>
         get() = SableCompanion.INSTANCE.getContainingClient((pos.toDouble() + offset.toDouble()).toJOML())?.let { IVec3(it.renderPose(Vibrancy.tickDelta).transformPosition((pos.toDouble() + offset.toDouble()).toJOML())).toFloat() } ?: (pos.toFloat() + offset)
     val absoluteBlockPos: IVec3<Float>
         get() = SableCompanion.INSTANCE.getContainingClient(pos.toDouble().toJOML())?.let { IVec3(
@@ -81,12 +81,12 @@ open class RayPointLight(
                 Vibrancy.tickDelta
             ).transformPosition(pos.toDouble().toJOML())
         ).toFloat() } ?: pos.toFloat()
-    //? } else {
-    /*override val absolutePos: IVec3<Float>
+    *///? } else {
+    override val absolutePos: IVec3<Float>
         get() = pos.toFloat() + offset
     val absoluteBlockPos: IVec3<Float>
         get() = pos.toFloat()
-    *///? }
+    //? }
     override val boundingBox: IRect3<Int> = IRect3(pos - radius.toInt(), pos + radius.toInt())
     override var shadowBox: IRect3<Int> = createShadowBox()
     @JvmField
@@ -304,13 +304,13 @@ open class RayPointLight(
                 poseStack.pushPose()
 
                 //? if 1.21 {
-                val subLevel = SableCompanion.INSTANCE.getContainingClient(pos.toDouble().toJOML())
+                /*val subLevel = SableCompanion.INSTANCE.getContainingClient(pos.toDouble().toJOML())
                 val subLevelPose = subLevel?.renderPose()
 
                 if (subLevelPose != null) {
                     poseStack.mulPose(Quaternionf(subLevelPose.orientation()).invert())
                 }
-                //? }
+                *///? }
 
                 poseStack.translate(-absoluteBlockPos.x, -absoluteBlockPos.y, -absoluteBlockPos.z)
 
@@ -339,16 +339,16 @@ open class RayPointLight(
                             poseStack.pushPose()
 
                             //? if 1.21 {
-                            if (subLevelPose == null) {
+                            /*if (subLevelPose == null) {
                                 poseStack.translate(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
                             } else {
                                 val pos = subLevelPose.transformPosition(IVec3(pos).toDouble().toJOML())
                                 poseStack.translate(pos.x, pos.y, pos.z)
                                 poseStack.mulPose(Quaternionf(subLevelPose.orientation()))
                             }
-                            //? } else {
-                            /*poseStack.translate(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
-                            *///? }
+                            *///? } else {
+                            poseStack.translate(pos.x.toFloat(), pos.y.toFloat(), pos.z.toFloat())
+                            //? }
 
                             EntityRenderingUtil.renderBlockEntity(blockEntity, poseStack, node.bufferSource, data)
 
@@ -458,7 +458,7 @@ open class RayPointLight(
 
         profiler.push("transforms")
         //? if 1.21 {
-        val subLevel = SableCompanion.INSTANCE.getContainingClient(pos.toDouble().toJOML())
+        /*val subLevel = SableCompanion.INSTANCE.getContainingClient(pos.toDouble().toJOML())
 
         if (subLevel == null) {
             shader.setUniform("ModelViewMat") { set(data.modelViewMat) }
@@ -480,11 +480,11 @@ open class RayPointLight(
             }
             shader.setUniform("CameraPos") { setFloatVec(data.camera.pos - pos.toFloat()) }
         }
-        //? } else {
-        /*shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((pos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
+        *///? } else {
+        shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((pos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
         shader.setUniform("SpecularMat") { set(Matrix4f()) }
         shader.setUniform("CameraPos") { setFloatVec(data.camera.pos - pos.toFloat()) }
-        *///? }
+        //? }
         profiler.pop()
 
         profiler.push("uniforms")

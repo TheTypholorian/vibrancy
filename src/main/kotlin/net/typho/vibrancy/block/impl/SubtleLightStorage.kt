@@ -43,10 +43,10 @@ import org.lwjgl.system.NativeResource
 import kotlin.use
 
 //? if 1.21 {
-import dev.ryanhcode.sable.companion.SableCompanion
+/*import dev.ryanhcode.sable.companion.SableCompanion
 import net.typho.vibrancy.Vibrancy
 import org.joml.Quaternionf
-//? }
+*///? }
 
 class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLightStorage.Chunk>(SubtleLightType) {
     companion object {
@@ -391,7 +391,7 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
                 val blockPos = IVec3(pos.minBlockX(), pos.minBlockY(), pos.minBlockZ())
 
                 //? if 1.21 {
-                val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
+                /*val subLevel = SableCompanion.INSTANCE.getContainingClient(pos)
 
                 if (subLevel == null) {
                     shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((blockPos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
@@ -409,10 +409,10 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
                     }
                     shader.setUniform("CameraPos") { setFloatVec(data.camera.pos - pos.toFloat()) }
                 }
-                //? } else {
-                /*shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((blockPos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
+                *///? } else {
+                shader.setUniform("ModelViewMat") { set(data.modelViewMat.translate((blockPos.toFloat() - data.camera.pos).toJOML(), Matrix4f())) }
                 shader.setUniform("CameraPos") { setFloatVec(data.camera.pos - blockPos.toFloat()) }
-                *///? }
+                //? }
                 profiler.pop()
 
                 profiler.push("uniforms")
