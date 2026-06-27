@@ -5,7 +5,7 @@ import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
 import net.minecraft.client.renderer.GameRenderer;
 import net.minecraft.client.renderer.LightTexture;
 import net.minecraft.client.renderer.RenderStateShard;
-import net.typho.vibrancy.BlockLightTexture;
+import net.typho.vibrancy.TerrainLightTexture;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
@@ -29,8 +29,8 @@ public class LightmapStateShardMixin {
             )
     )
     private static LightTexture turnOnLightLayer(GameRenderer instance, Operation<LightTexture> original) {
-        if (BlockLightTexture.isInUse()) {
-            return BlockLightTexture.INSTANCE;
+        if (TerrainLightTexture.isInUse()) {
+            return TerrainLightTexture.INSTANCE;
         } else {
             return original.call(instance);
         }
