@@ -1,5 +1,7 @@
 package net.typho.vibrancy.util
 
+import net.minecraft.util.profiling.ProfilerFiller
+
 interface GlTask<V> {
     val isDone: Boolean
     val isCancelled: Boolean
@@ -8,5 +10,5 @@ interface GlTask<V> {
 
     fun cancel()
 
-    fun finish(): V?
+    fun finish(profiler: ProfilerFiller? = null): V?
 }

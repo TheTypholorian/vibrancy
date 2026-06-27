@@ -146,7 +146,7 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
         profiler.push("finish")
         sectionLoadTasks.removeIf {
             if (it.isDoneOrCancelled()) {
-                it.finish()
+                it.finish(profiler)
                 true
             } else {
                 false
@@ -154,7 +154,7 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
         }
         tasks.values.removeIf {
             if (it.isDoneOrCancelled()) {
-                it.finish()
+                it.finish(profiler)
                 true
             } else {
                 false
@@ -230,7 +230,7 @@ class SubtleLightStorage : SectionedBlockLightStorage<SubtleLightInfo, SubtleLig
                             lightIndex = lightList.size
                             lightList.add(light)
 
-                            chunkCache[light.shadowBox].forEach { (pos, state) ->
+                            chunkCache[light.boundingBox].forEach { (pos, state) ->
                                 if (!light.pos.equals(pos.x, pos.y, pos.z)) {
                                     val otherLightInfo = BlockLightRegistry.get(state.block, SubtleLightType)
 

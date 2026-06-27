@@ -23,7 +23,9 @@ open class StaticOneStepBlockLightMeshManager(
     @JvmField
     val pos: IVec3<Int>,
     @JvmField
-    val bounds: (manager: StaticOneStepBlockLightMeshManager) -> AbstractRect3<Int>,
+    val lightBounds: (manager: StaticOneStepBlockLightMeshManager) -> AbstractRect3<Int>,
+    @JvmField
+    val shadowBounds: (manager: StaticOneStepBlockLightMeshManager) -> AbstractRect3<Int>,
     @JvmField
     val blit: (manager: StaticOneStepBlockLightMeshManager, info: LightMesh.ComplexMeshData, profiler: ProfilerFiller) -> Unit
 ) : NativeResource {
@@ -43,7 +45,7 @@ open class StaticOneStepBlockLightMeshManager(
 
         val list = arrayListOf<BlockPos>()
 
-        bounds(this).iterator().forEach { pos ->
+        shadowBounds(this).iterator().forEach { pos ->
             val block = (pos + this.pos).blockPos
 
             if (level.getBlockEntity(block) != null) {
@@ -76,11 +78,19 @@ open class StaticOneStepBlockLightMeshManager(
             if (task.isDoneOrCancelled()) {
                 try {
                     profiler.push("finish")
-                    task.finish()?.let {
+
+                    profiler.push("task")
+                    val result = task.finish(profiler)
+                    profiler.pop()
+
+                    result?.let {
+                        profiler.push("blit")
                         if (!lightMesh.empty) {
                             blit(this, it, profiler)
                         }
+                        profiler.pop()
                     }
+
                     profiler.pop()
                 } catch (e: Exception) {
                     Vibrancy.LOGGER.warn("Error finishing block light mesh task", e)
@@ -104,10 +114,11 @@ open class StaticOneStepBlockLightMeshManager(
     ): Pair<AutoCloseable, () -> LightMesh.ComplexMeshData?> {
         val sectionMeshes = hashMapOf<SectionPos, SectionMeshCache?>()
         var numFaces = 0
-        val bounds = bounds(this)
+        val lightBounds = lightBounds(this)
+        val shadowBounds = shadowBounds(this)
         val faces = arrayListOf<Pair<IVec3<Int>, List<LightFace>>>()
 
-        bounds.iterator().forEach { pos ->
+        lightBounds.iterator().forEach { pos ->
             val ax = pos.x + this.pos.x
             val ay = pos.y + this.pos.y
             val az = pos.z + this.pos.z
@@ -131,7 +142,7 @@ open class StaticOneStepBlockLightMeshManager(
             return AutoCloseable { } to { null }
         }
 
-        val shadows = gridBuffer.lazyUpload(NeoAtlas.blocks.width, NeoAtlas.blocks.height, numFaces, bounds, faces)
+        val shadows = gridBuffer.lazyUpload(NeoAtlas.blocks.width, NeoAtlas.blocks.height, numFaces, shadowBounds, faces)
 
         if (isCancelled()) {
             return shadows.first to { null }

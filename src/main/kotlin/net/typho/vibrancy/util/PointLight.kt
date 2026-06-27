@@ -7,5 +7,4 @@ interface PointLight {
     val pos: IVec3<Int>?
     val absolutePos: IVec3<Float>
     val boundingBox: AbstractRect3<Int>
-    val shadowBox: AbstractRect3<Int>
 }

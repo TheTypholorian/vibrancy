@@ -14,7 +14,7 @@ open class VoxelGridBuffer(
     val usage: GlBufferUsage
 ) : NeoGlBuffer() {
     open fun lazyUpload(texWidth: Int, texHeight: Int, numFaces: Int, bounds: AbstractRect3<Int>, faces: List<Pair<IVec3<Int>, List<PrimitiveQuad>>>): Pair<AutoCloseable, () -> Unit> {
-        val gridBuffer = NeoBuffer.GCNative(32L + faces.size * 16)
+        val gridBuffer = NeoBuffer.GCNative(32L + faces.sumOf { if (bounds.contains(it.first)) 1 else 0 } * 16)
 
         gridBuffer.write().run {
             writeInt(bounds.min.x)
@@ -30,7 +30,7 @@ open class VoxelGridBuffer(
             var quadIndex = 0
 
             for ((pos, faces) in faces) {
-                if (faces.isNotEmpty()) {
+                if (faces.isNotEmpty() && bounds.contains(pos)) {
                     writeInt(pos.x)
                     writeInt(pos.y)
                     writeInt(pos.z)
@@ -38,6 +38,8 @@ open class VoxelGridBuffer(
                     writeShort(quadIndex)
                     quadIndex += faces.size
                     writeShort(quadIndex)
+                } else {
+                    quadIndex += faces.size
                 }
             }
         }

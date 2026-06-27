@@ -1,6 +1,7 @@
 package net.typho.vibrancy.util
 
 import net.minecraft.core.SectionPos
+import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.ChunkPos
 import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.big_shot_lib.api.math.vec.IVec3
@@ -51,14 +52,21 @@ object VibrancyThreadPool : ThreadPoolExecutor(
                 cancelled = true
             }
 
-            override fun finish(): T? {
+            override fun finish(profiler: ProfilerFiller?): T? {
                 result?.let { return it }
 
                 if (!isCancelled && isDone) {
-                    val r = future.get()
+                    profiler?.push("result")
+                    val r = future.resultNow()
+
+                    profiler?.popPush("upload")
                     val v = r.second()
                     result = v
+
+                    profiler?.popPush("free")
                     r.first.close()
+
+                    profiler?.pop()
                     return v
                 } else {
                     return null

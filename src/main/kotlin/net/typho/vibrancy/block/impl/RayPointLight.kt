@@ -96,7 +96,6 @@ open class RayPointLight(
         get() = pos.toFloat()
     *///? }
     override val boundingBox: AbstractRect3<Int> = NeoRect3i(pos - radius.toInt(), pos + radius.toInt())
-    override var shadowBox: AbstractRect3<Int> = createShadowBox()
     @JvmField
     val sections: List<SectionPos> = SectionPos.betweenClosedStream(
         SectionPos.blockToSectionCoord(boundingBox.min.x),
@@ -107,19 +106,15 @@ open class RayPointLight(
         SectionPos.blockToSectionCoord(boundingBox.max.z)
     ).toList()
 
-    fun createShadowBox(): AbstractRect3<Int> {
-        val shadowRadius = ceil(radius.coerceAtMost(VibrancyConfig.rayLightShadowRadius.toFloat())).toInt()
-        return NeoRect3i(pos - shadowRadius, pos + shadowRadius)
-    }
-
     fun blit(mesh: StaticOneStepBlockLightMeshManager, target: LightTexture, shadowBuffer: GlBuffer, gridBuffer: VoxelGridBuffer?, uniforms: GlBoundProgram.() -> Unit, shader: NeoIdentifier) {
         target.framebuffer.bind(NeoRect2i(0, 0, target.width!!, target.height!!)).use { fbo ->
             drawState(shader) {
                 uniforms(this)
 
                 setUniform("LightPos") { setFloatVec(offset) }
-                setUniform("LightColor") { setFloatVec(color * VibrancyConfig.rayLightBrightness) }
+                setUniform("LightColor") { setFloatVec(color) }
                 setUniform("LightRadius") { set(radius) }
+                setUniform("ShadowRadius") { set(radius.coerceAtMost(VibrancyConfig.rayLightShadowRadius.toFloat()).toInt()) }
 
                 setUniform("TextureSize") { set(target.width!!.toFloat(), target.height!!.toFloat()) }
 
@@ -152,9 +147,14 @@ open class RayPointLight(
     val mesh = StaticOneStepBlockLightMeshManager(
         pos,
         {
-            val shadowRadius = ceil(radius.coerceAtMost(VibrancyConfig.rayLightShadowRadius.toFloat())).toInt()
-            val v = NeoVec3i(shadowRadius, shadowRadius, shadowRadius)
-            return@StaticOneStepBlockLightMeshManager NeoRect3i(-v, v)
+            NeoRect3i(
+                NeoVec3i(-radius.toInt(), -radius.toInt(), -radius.toInt()),
+                NeoVec3i(radius.toInt(), radius.toInt(), radius.toInt())
+            )
+        },
+        {
+            val r = ceil(radius.coerceAtMost(VibrancyConfig.rayLightShadowRadius.toFloat())).toInt()
+            NeoRect3i(NeoVec3i(-r, -r, -r), NeoVec3i(r, r, r))
         }
     ) { mesh, info, profiler ->
         meshData = info
@@ -164,32 +164,38 @@ open class RayPointLight(
         dynamicTexture.resize(info.sections.size.x, info.sections.size.y)
         profiler.pop()
 
-        staticTexture.framebuffer.bind(NeoRect2i(0, 0, staticTexture.width!!, staticTexture.height!!)).use { fbo ->
-            profiler.push("clearStatic")
-            staticTexture.clear()
-            profiler.pop()
+        profiler.push("bindFramebuffer")
+        val bound = staticTexture.framebuffer.bind(NeoRect2i(0, 0, staticTexture.width!!, staticTexture.height!!))
+        profiler.pop()
 
-            profiler.push("blit")
-            blit(
-                mesh,
-                staticTexture,
-                mesh.lightMesh.mesh.vbo,
-                mesh.gridBuffer,
-                {
-                    val atlas = NeoAtlas.blocks
-                    setTexture(
-                        0,
-                        GlTextureBinding.FromInstance(
-                            atlas,
-                            GlTextureTarget.TEXTURE_2D
-                        )
+        profiler.push("clearStatic")
+        staticTexture.clear()
+        profiler.pop()
+
+        profiler.push("blit")
+        blit(
+            mesh,
+            staticTexture,
+            mesh.lightMesh.mesh.vbo,
+            mesh.gridBuffer,
+            {
+                val atlas = NeoAtlas.blocks
+                setTexture(
+                    0,
+                    GlTextureBinding.FromInstance(
+                        atlas,
+                        GlTextureTarget.TEXTURE_2D
                     )
-                    setUniform("Sampler0Size") { set(atlas.width, atlas.height) }
-                },
-                Vibrancy.id("block/raytraced/blit")
-            )
-            profiler.pop()
-        }
+                )
+                setUniform("Sampler0Size") { set(atlas.width, atlas.height) }
+            },
+            Vibrancy.id("block/raytraced/blit")
+        )
+        profiler.pop()
+
+        profiler.push("unbindFramebuffer")
+        bound.free()
+        profiler.pop()
 
         profiler.push("clearDynamic")
         dynamicTexture.clear()

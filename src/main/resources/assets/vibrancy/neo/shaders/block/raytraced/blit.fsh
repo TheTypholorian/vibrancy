@@ -21,10 +21,7 @@ uniform sampler2D Sampler0;
 uniform ivec2 Sampler0Size;
 
 uniform vec3 LightPos;
-uniform ivec3 LightVoxel;
-uniform vec3 LightColor;
-uniform float LightRadius;
-uniform float LightBrightness;
+uniform int ShadowRadius;
 
 in vec3 vertexPos;
 
@@ -65,31 +62,33 @@ vec3 test(Ray ray) {
     float denom = 0;
 
     while (isInGrid(voxel, gridMin, gridMax)) {
-        for (uint i = 0; i < gridCells.length(); i++) {
-            GridCell cell = gridCells[i];
+        if (max(abs(voxel.x), max(abs(voxel.y), abs(voxel.z))) <= ShadowRadius) {
+            for (uint i = 0; i < gridCells.length(); i++) {
+                GridCell cell = gridCells[i];
 
-            if (cell.pos == voxel) {
-                uint from = cell.range & 0xFFFFu;
-                uint to = cell.range >> 16;
+                if (cell.pos == voxel) {
+                    uint from = cell.range & 0xFFFFu;
+                    uint to = cell.range >> 16;
 
-                if (from != to) {
-                    for (uint j = from; j < to; j++) {
-                        float dist;
-                        vec4 outColor;
-                        ComplexQuad quad = shadowQuads[j];
+                    if (from != to) {
+                        for (uint j = from; j < to; j++) {
+                            float dist;
+                            vec4 outColor;
+                            ComplexQuad quad = shadowQuads[j];
 
-                        if (sampleComplexQuad(false, Sampler0, Sampler0Size, ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor)) {
-                            if (outColor.a == 1) {
-                                return vec3(0);
-                            } else if (outColor.a != 0) {
-                                tint += outColor.rgb * outColor.a;
-                                denom += outColor.a;
+                            if (sampleComplexQuad(false, Sampler0, Sampler0Size, ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor)) {
+                                if (outColor.a == 1) {
+                                    return vec3(0);
+                                } else if (outColor.a != 0) {
+                                    tint += outColor.rgb * outColor.a;
+                                    denom += outColor.a;
+                                }
                             }
                         }
                     }
-                }
 
-                break;
+                    break;
+                }
             }
         }
 
@@ -114,7 +113,7 @@ vec3 test(Ray ray) {
         }
 
         if (oldVoxel == voxel) {
-            return vec3(1);
+            return vec3(1); // yes this actually happens sometimes
         }
     }
 

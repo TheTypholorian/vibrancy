@@ -48,7 +48,7 @@ open class LightTexture : NeoGlTexture2D() {
         val width = width.coerceAtLeast(1)
         val height = height.coerceAtLeast(1)
 
-        if (width != this.width || height != this.height) {
+        if (width > (this.width ?: 0) || height > (this.height ?: 0)) {
             bind(GlTextureTarget.TEXTURE_2D).use {
                 it.textureDataMutable(width, height, FORMAT)
             }

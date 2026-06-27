@@ -37,11 +37,6 @@ open class SubtleLight(
             pos - 1,
             pos + 1,
         )
-    override val shadowBox: AbstractRect3<Int>
-        get() = NeoRect3i(
-            pos - 1,
-            pos + 1,
-        )
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
