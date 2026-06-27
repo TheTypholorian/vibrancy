@@ -4,7 +4,7 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.LightTexture
 import net.minecraft.world.level.dimension.DimensionType
 
-object BlockLightTexture : LightTexture(Minecraft.getInstance().gameRenderer, Minecraft.getInstance()) {
+object TerrainLightTexture : LightTexture(Minecraft.getInstance().gameRenderer, Minecraft.getInstance()) {
     @JvmField
     val inUse = ThreadLocal<Boolean>()
 
