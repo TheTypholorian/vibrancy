@@ -1,16 +1,32 @@
-#version 330 core
+#version 430 core
 
 #include "sodium:globals"
 #include "sodium:fog"
 #include "sodium:chunk_vertex"
 
 out vec3 v_Pos;
+out vec3 v_SectionPos;
 out vec4 v_Color;
 out vec2 v_TexCoord;
 out vec2 v_FragDistance;
 out float fadeFactor;
 
 uniform isamplerBuffer u_SectionTimeInfo;
+
+struct LightSection {
+    uint data;
+};
+struct Light {
+    vec3 pos;
+    float radius;
+    vec3 color;
+};
+
+layout(std430) readonly buffer LightBuffer {
+    ivec3 worldOffset;
+    LightSection sections[256];
+    Light array[];
+} lights;
 
 #ifdef VULKAN
 layout(push_constant) uniform PC {
@@ -20,7 +36,6 @@ layout(push_constant) uniform PC {
 };
 #else
 uniform vec3 u_RegionOffset;
-uniform vec3 u_WorldOffset;
 uniform int u_CurrentTime;
 uniform uint u_RegionID;
 #endif
@@ -55,7 +70,8 @@ void main() {
     // Transform the vertex position into model-view-projection space
     gl_Position = u_ProjectionMatrix * u_ModelViewMatrix * vec4(position, 1.0);
 
-    v_Pos = _vert_position + u_WorldOffset + _get_draw_translation(_draw_id);
+    v_Pos = _vert_position + lights.worldOffset + _get_draw_translation(_draw_id);
+    v_SectionPos = _vert_position / 16 + _get_relative_chunk_coord(_draw_id);
 
     // Pass the texture coordinates to the fragment shader
     v_Color = _vert_color;

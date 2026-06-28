@@ -3,6 +3,7 @@ package net.typho.vibrancy.mixin.sodium;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.blaze3d.IndexType;
 import com.mojang.blaze3d.buffers.GpuBufferImpl;
+import com.mojang.blaze3d.opengl.GlStateManager;
 import com.mojang.blaze3d.systems.CommandEncoder;
 import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
@@ -29,12 +30,14 @@ import net.minecraft.util.RandomSource;
 import net.typho.big_shot_lib.api.client.rendering.common.GpuBuffer;
 import net.typho.big_shot_lib.api.client.rendering.common.GpuObjects;
 import net.typho.big_shot_lib.api.client.rendering.common.constant.GpuBufferUsage;
+import net.typho.big_shot_lib.api.math.IVec3;
 import net.typho.big_shot_lib.api.util.buffer.MemoryPointer;
 import net.typho.vibrancy.RenderRegionExtension;
 import net.typho.vibrancy.Vibrancy;
 import net.typho.vibrancy.block.impl.RayPointLight;
 import net.typho.vibrancy.block.impl.RayPointLightStorage;
 import net.typho.vibrancy.block.impl.RayPointLightType;
+import net.typho.vibrancy.util.LightBufferPacker;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -42,6 +45,8 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Optional;
 import java.util.OptionalDouble;
 
@@ -90,70 +95,68 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
 
         activeProgram = Vibrancy.blockLightRenderType.pipeline();
 
-        try (RenderPass pass = encoder.createRenderPass(() -> "Vibrancy Block Lights", renderPass.getTarget().getColorTextureView(), Optional.empty(), renderPass.getTarget().getDepthTextureView(), OptionalDouble.empty())) {
-            pass.setPipeline(this.activeProgram);
-            this.drawContext.setContext(pass, this.activeProgram);
+        if (Vibrancy.lightManager.blockLights.get(RayPointLightType.INSTANCE) instanceof RayPointLightStorage lightStorage) {
+            try (RenderPass pass = encoder.createRenderPass(() -> "Vibrancy Block Lights", renderPass.getTarget().getColorTextureView(), Optional.empty(), renderPass.getTarget().getDepthTextureView(), OptionalDouble.empty())) {
+                pass.setPipeline(this.activeProgram);
+                this.drawContext.setContext(pass, this.activeProgram);
 
-            if (!useIndexedTessellation && this.sharedIndexBuffer.getBufferObject() != null) {
-                pass.setIndexBuffer(this.sharedIndexBuffer.getBufferObject(), IndexType.INT);
-            }
+                if (!useIndexedTessellation && this.sharedIndexBuffer.getBufferObject() != null) {
+                    pass.setIndexBuffer(this.sharedIndexBuffer.getBufferObject(), IndexType.INT);
+                }
 
-            pass.setUniform("u_Globals", uniformData);
-            pass.setUniform("u_SectionTimeInfo", sectionTimeInfo);
-            pass.bindTexture("u_LightTex", Minecraft.getInstance().gameRenderer.lightmap(), RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR));
-            pass.bindTexture("u_BlockTex", renderPass.getAtlas(), terrainSampler);
+                pass.setUniform("u_Globals", uniformData);
+                pass.setUniform("u_SectionTimeInfo", sectionTimeInfo);
+                pass.bindTexture("u_LightTex", Minecraft.getInstance().gameRenderer.lightmap(), RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR));
+                pass.bindTexture("u_BlockTex", renderPass.getAtlas(), terrainSampler);
 
-            GlRenderPassAccessor passBackend = (GlRenderPassAccessor)((RenderPassAccessor)pass).getBackend();
-            int programId = passBackend.getPipeline().program().getProgramId();
-            int worldOffsetUniform = glGetUniformLocation(programId, "u_WorldOffset");
+                renderLists.iterator(renderPass.isTranslucent()).forEachRemaining(renderList -> {
+                    RenderRegion region = renderList.getRegion();
+                    SectionRenderDataStorage storage = region.getStorage(renderPass);
 
-            renderLists.iterator(renderPass.isTranslucent()).forEachRemaining(renderList -> {
-                RenderRegion region = renderList.getRegion();
-                SectionRenderDataStorage storage = region.getStorage(renderPass);
+                    if (storage != null) {
+                        RenderRegionExtension ext = (RenderRegionExtension) region;
+                        GpuBuffer buffer = ext.getVibrancy$lightBuffer();
 
-                if (storage != null) {
-                    RenderRegionExtension ext = (RenderRegionExtension) region;
-                    GpuBuffer buffer = ext.getVibrancy$lightBuffer();
-
-                    if (buffer == null) {
-                        buffer = GpuObjects.INSTANCE.buffer(() -> "Vibrancy Light Buffer (" + region.getX() + ", " + region.getY() + ", " + region.getZ() + ")", 32000, GpuBufferUsage.uniform() | GpuBufferUsage.copyDst() | GpuBufferUsage.mapWrite());
-
-                        buffer.upload(output -> {
+                        if (buffer == null) {
+                            /*
+                            List<RayPointLight> lights = new ArrayList<>();
                             RandomSource random = RandomSource.create(0);
 
                             for (int i = 0; i < 1000; i++) {
-                                output.writeFloat(random.nextIntBetweenInclusive(-100, 100));
-                                output.writeFloat(0);
-                                output.writeFloat(random.nextIntBetweenInclusive(-100, 100));
-
-                                output.writeFloat(random.nextIntBetweenInclusive(5, 10));
-
-                                output.writeFloat(random.nextFloat());
-                                output.writeFloat(random.nextFloat());
-                                output.writeFloat(random.nextFloat());
-
-                                output.skip(4);
+                                lights.add(new RayPointLight(
+                                        Minecraft.getInstance().level,
+                                        IVec3.of(random.nextFloat(), random.nextFloat(), random.nextFloat()),
+                                        0,
+                                        random.nextIntBetweenInclusive(5, 10),
+                                        IVec3.of(0f),
+                                        IVec3.of(
+                                                random.nextIntBetweenInclusive(-100, 100),
+                                                0,
+                                                random.nextIntBetweenInclusive(-100, 100)
+                                        )
+                                ));
                             }
-                        });
+                             */
 
-                        ext.setVibrancy$lightBuffer(buffer);
-                    }
-
-                    MultiDrawBatch batch = region.getCachedBatch(renderPass);
-
-                    if (!batch.isEmpty()) {
-                        if (useIndexedTessellation) {
-                            pass.setIndexBuffer(region.getResources().getIndexBuffer(), IndexType.INT);
+                            buffer = LightBufferPacker.pack(region, lightStorage.getMap().values());
+                            ext.setVibrancy$lightBuffer(buffer);
                         }
 
-                        pass.setVertexBuffer(0, region.getResources().getGeometryBuffer().slice());
-                        pass.setStorageBuffer(0, buffer);
-                        glUniform3f(worldOffsetUniform, region.getOriginX(), region.getOriginY(), region.getOriginZ());
-                        this.drawContext.updateData(region, camera);
-                        batch.draw(this.drawContext);
+                        MultiDrawBatch batch = region.getCachedBatch(renderPass);
+
+                        if (!batch.isEmpty()) {
+                            if (useIndexedTessellation) {
+                                pass.setIndexBuffer(region.getResources().getIndexBuffer(), IndexType.INT);
+                            }
+
+                            pass.setVertexBuffer(0, region.getResources().getGeometryBuffer().slice());
+                            pass.setStorageBuffer(0, buffer);
+                            this.drawContext.updateData(region, camera);
+                            batch.draw(this.drawContext);
+                        }
                     }
-                }
-            });
+                });
+            }
         }
 
         this.drawContext.endDraw();

@@ -38,11 +38,11 @@ public class DefaultFluidRendererMixin {
             int index = 0;
 
             for (ChunkVertexEncoder.Vertex vertex : vertices) {
-                consumer.vertex(vertex.x, vertex.y, vertex.z)
-                        .color(vertex.color)
-                        .textureUV(vertex.u, vertex.v)
-                        .lightUV(vertex.light)
-                        .normal(quad.getVertexNormal(index++));
+                consumer.addVertex(vertex.x, vertex.y, vertex.z)
+                        .setColor(vertex.color)
+                        .setUv(vertex.u, vertex.v)
+                        .setLight(vertex.light)
+                        .setNormal(quad.getVertexNormal(index++));
             }
             consumer.flush();
         }

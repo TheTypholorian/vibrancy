@@ -62,7 +62,6 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
             .depth(GpuAlphaFunction.gequal)
             .writeDepth(false)
             .zOffset()
-            .sampler("u_LightTex")
             .sampler("u_BlockTex")
             .uniform("u_Globals")
             .texelBuffer("u_SectionTimeInfo", GpuDataType.sint32, 1),
@@ -91,7 +90,7 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
         SkyLightRegistry.onInitialize(bus)
 
         bus.register(BlockChangedEvent { level, pos, old, new ->
-            if (VibrancyConfig.modEnabled && level.isClientSide()) {
+            if (VibrancyConfig.modEnabled && level.isClientSide) {
                 GpuQueue.runOrQueue {
                     lightManager.blockChanged(level, pos, old, new)
                 }
@@ -120,12 +119,14 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
                 lightManager.levelChanged(old, new)
             }
         })
+        /*
         bus.register(RegisterDebugScreenEntriesEvent { output ->
             output(DebugScreenEntry(id("debug_info"), false) { out ->
                 out.accept(ChatFormatting.UNDERLINE.toString() + "Vibrancy")
                 lightManager.getDebugOutput(out)
             })
         })
+         */
     }
 
     /*

@@ -1,9 +1,4 @@
 {
-  "net.typho.big_shot_lib.api.NeoCommonInitializer": [
-    "net.typho.vibrancy.Vibrancy"
-  ],
-  "net.typho.big_shot_lib.api.client.NeoClientInitializer": [
-    "net.typho.vibrancy.Vibrancy",
-    "net.typho.vibrancy.util.ReflectionAtlases"
-  ]
+  "net.typho.big_shot_lib.api.NeoCommonInitializer": "net.typho.vibrancy.Vibrancy",
+  "net.typho.big_shot_lib.api.client.NeoClientInitializer": "net.typho.vibrancy.Vibrancy"
 }

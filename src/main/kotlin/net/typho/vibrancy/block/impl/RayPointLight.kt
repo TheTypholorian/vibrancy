@@ -71,6 +71,8 @@ open class RayPointLight(
         SectionPos.blockToSectionCoord(boundingBox.max.y).coerceAtLeast(level.minSectionY).coerceAtMost(level.maxSectionY),
         SectionPos.blockToSectionCoord(boundingBox.max.z)
     ).toList()
+    @JvmField
+    val sectionPos = SectionPos.of(absolutePos.toBlockPos())
 
     fun createShadowBox(): IRect3<Int> {
         val shadowRadius = ceil(radius.coerceAtMost(VibrancyConfig.rayLightShadowRadius.toFloat())).toInt()
