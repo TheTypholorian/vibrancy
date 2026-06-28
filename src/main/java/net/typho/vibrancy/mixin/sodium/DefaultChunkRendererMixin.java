@@ -25,6 +25,7 @@ import net.caffeinemc.mods.sodium.client.util.FogParameters;
 import net.caffeinemc.mods.sodium.mixin.core.GlRenderPassAccessor;
 import net.caffeinemc.mods.sodium.mixin.core.RenderPassAccessor;
 import net.minecraft.client.Minecraft;
+import net.minecraft.util.RandomSource;
 import net.typho.big_shot_lib.api.client.rendering.common.GpuBuffer;
 import net.typho.big_shot_lib.api.client.rendering.common.GpuObjects;
 import net.typho.big_shot_lib.api.client.rendering.common.constant.GpuBufferUsage;
@@ -115,20 +116,24 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
                     GpuBuffer buffer = ext.getVibrancy$lightBuffer();
 
                     if (buffer == null) {
-                        buffer = GpuObjects.INSTANCE.buffer(() -> "Vibrancy Light Buffer (" + region.getX() + ", " + region.getY() + ", " + region.getZ() + ")", 32, GpuBufferUsage.uniform() | GpuBufferUsage.copyDst() | GpuBufferUsage.mapWrite());
+                        buffer = GpuObjects.INSTANCE.buffer(() -> "Vibrancy Light Buffer (" + region.getX() + ", " + region.getY() + ", " + region.getZ() + ")", 32000, GpuBufferUsage.uniform() | GpuBufferUsage.copyDst() | GpuBufferUsage.mapWrite());
 
                         buffer.upload(output -> {
-                            output.writeFloat(0);
-                            output.writeFloat(10);
-                            output.writeFloat(0);
+                            RandomSource random = RandomSource.create(0);
 
-                            output.writeFloat(15);
+                            for (int i = 0; i < 1000; i++) {
+                                output.writeFloat(random.nextIntBetweenInclusive(-100, 100));
+                                output.writeFloat(0);
+                                output.writeFloat(random.nextIntBetweenInclusive(-100, 100));
 
-                            output.writeFloat(1);
-                            output.writeFloat(0.5f);
-                            output.writeFloat(0.25f);
+                                output.writeFloat(random.nextIntBetweenInclusive(5, 10));
 
-                            output.skip(4);
+                                output.writeFloat(random.nextFloat());
+                                output.writeFloat(random.nextFloat());
+                                output.writeFloat(random.nextFloat());
+
+                                output.skip(4);
+                            }
                         });
 
                         ext.setVibrancy$lightBuffer(buffer);

@@ -25,8 +25,6 @@ uniform int u_CurrentTime;
 uniform uint u_RegionID;
 #endif
 
-uniform sampler2D u_LightTex; // The light map texture sampler
-
 uvec3 _get_relative_chunk_coord(uint pos) {
     // Packing scheme is defined by LocalSectionIndex
     return uvec3(pos) >> uvec3(5u, 0u, 2u) & uvec3(7u, 3u, 7u);
@@ -59,7 +57,7 @@ void main() {
 
     v_Pos = _vert_position + u_WorldOffset + _get_draw_translation(_draw_id);
 
-    // Add the light color to the vertex color, and pass the texture coordinates to the fragment shader
-    v_Color = _vert_color * texture(u_LightTex, _vert_tex_light_coord);
+    // Pass the texture coordinates to the fragment shader
+    v_Color = _vert_color;
     v_TexCoord = (_vert_tex_diffuse_coord_bias * u_TexCoordShrink) + _vert_tex_diffuse_coord; // FMA for precision
 }

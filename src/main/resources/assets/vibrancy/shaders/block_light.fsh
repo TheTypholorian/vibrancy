@@ -102,7 +102,13 @@ void main() {
 
     for (uint i = 0u; i < lights.length(); i++) {
         Light light = lights[i];
-        lightColor += samplePointLight(light.pos, v_Pos, light.radius, light.color) * 8;
+        vec3 delta = abs(light.pos - v_Pos);
+
+        if (delta.x > light.radius || delta.y > light.radius || delta.z > light.radius) {
+            continue;
+        }
+
+        lightColor += samplePointLight(light.pos, v_Pos, light.radius, light.color) * 4;
     }
 
     fragColor = _linearFog(vec4(color.rgb * lightColor, color.a), v_FragDistance, u_FogColor, u_EnvironmentFog, u_RenderFog, fadeFactor);

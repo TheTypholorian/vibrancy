@@ -1,18 +1,17 @@
 //#include "big_shot_lib:fog"
 
-float attenuateNoCusp(float distance, float radius) {
-    float s = distance / radius;
+vec3 samplePointLight(vec3 lightPos, vec3 fragPos, float radius, vec3 lightColor) {
+    vec3 delta = lightPos - fragPos;
+    float distSq = dot(delta, delta);
+    float radiusSq = radius * radius;
 
-    if (s >= 1.0) {
-        return 0.0;
+    if (distSq >= radiusSq) {
+        return vec3(0);
     }
 
-    float oneMinusS = 1.0 - s;
-    return oneMinusS * oneMinusS * oneMinusS;
-}
-
-vec3 samplePointLight(vec3 lightPos, vec3 fragPos, float radius, vec3 lightColor) {
-    return attenuateNoCusp(distance(lightPos, fragPos), radius) * lightColor;
+    float s = sqrt(distSq) / radius;
+    float a = 1 - s;
+    return a * a * a * lightColor;
 }
 
 vec3 sampleCubeLight(vec3 lightPos, vec3 fragPos, float startRadius, float endRadius, vec3 lightColor) {
