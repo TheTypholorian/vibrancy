@@ -27,6 +27,10 @@ public class RenderRegionMixin implements RenderRegionExtension {
 
     @Override
     public void setVibrancy$lightBuffer(@Nullable GpuBuffer gpuBuffer) {
+        if (vibrancy$lightBuffer != null) {
+            vibrancy$lightBuffer.recycle();
+        }
+
         vibrancy$lightBuffer = gpuBuffer;
     }
 
@@ -38,6 +42,10 @@ public class RenderRegionMixin implements RenderRegionExtension {
 
     @Override
     public void setVibrancy$shadowBuffer(@Nullable GpuBuffer gpuBuffer) {
+        if (vibrancy$shadowBuffer != null) {
+            vibrancy$shadowBuffer.recycle();
+        }
+
         vibrancy$shadowBuffer = gpuBuffer;
     }
 

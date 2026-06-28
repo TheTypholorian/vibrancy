@@ -185,6 +185,8 @@ open class LightManager {
     fun postRender() {
         dirtySections.clear()
         dirtyBlocks.clear()
+
+        blockLights.values.forEach { it.endFrame(this) }
     }
 
     /*

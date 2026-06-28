@@ -40,4 +40,7 @@ interface BlockLightStorage<I> {
     )
 
     fun clear(manager: LightManager)
+
+    fun endFrame(manager: LightManager) {
+    }
 }

@@ -117,42 +117,24 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
                         RenderRegionExtension ext = (RenderRegionExtension) region;
                         GpuBuffer buffer = ext.getVibrancy$lightBuffer();
 
-                        if (buffer == null) {
-                            /*
-                            List<RayPointLight> lights = new ArrayList<>();
-                            RandomSource random = RandomSource.create(0);
-
-                            for (int i = 0; i < 1000; i++) {
-                                lights.add(new RayPointLight(
-                                        Minecraft.getInstance().level,
-                                        IVec3.of(random.nextFloat(), random.nextFloat(), random.nextFloat()),
-                                        0,
-                                        random.nextIntBetweenInclusive(5, 10),
-                                        IVec3.of(0f),
-                                        IVec3.of(
-                                                random.nextIntBetweenInclusive(-100, 100),
-                                                0,
-                                                random.nextIntBetweenInclusive(-100, 100)
-                                        )
-                                ));
-                            }
-                             */
-
+                        if (lightStorage.getDirty()) {
                             buffer = LightBufferPacker.pack(region, lightStorage.getMap().values());
                             ext.setVibrancy$lightBuffer(buffer);
                         }
 
-                        MultiDrawBatch batch = region.getCachedBatch(renderPass);
+                        if (buffer != null) {
+                            MultiDrawBatch batch = region.getCachedBatch(renderPass);
 
-                        if (!batch.isEmpty()) {
-                            if (useIndexedTessellation) {
-                                pass.setIndexBuffer(region.getResources().getIndexBuffer(), IndexType.INT);
+                            if (!batch.isEmpty()) {
+                                if (useIndexedTessellation) {
+                                    pass.setIndexBuffer(region.getResources().getIndexBuffer(), IndexType.INT);
+                                }
+
+                                pass.setVertexBuffer(0, region.getResources().getGeometryBuffer().slice());
+                                pass.setStorageBuffer(0, buffer);
+                                this.drawContext.updateData(region, camera);
+                                batch.draw(this.drawContext);
                             }
-
-                            pass.setVertexBuffer(0, region.getResources().getGeometryBuffer().slice());
-                            pass.setStorageBuffer(0, buffer);
-                            this.drawContext.updateData(region, camera);
-                            batch.draw(this.drawContext);
                         }
                     }
                 });

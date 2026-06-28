@@ -8,7 +8,9 @@ import net.minecraft.resources.Identifier
 import net.typho.big_shot_lib.api.NeoCommonInitializer
 import net.typho.big_shot_lib.api.client.NeoClientInitializer
 import net.typho.big_shot_lib.api.client.event.AddAssetReloadListenersEvent
+import net.typho.big_shot_lib.api.client.event.ClientEndFrameEvent
 import net.typho.big_shot_lib.api.client.event.ClientLevelChangedEvent
+import net.typho.big_shot_lib.api.client.event.ClientStartFrameEvent
 import net.typho.big_shot_lib.api.client.event.DebugScreenEntry
 import net.typho.big_shot_lib.api.client.event.RegisterDebugScreenEntriesEvent
 import net.typho.big_shot_lib.api.client.rendering.common.GpuDrawSettings
@@ -118,6 +120,12 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
             if (VibrancyConfig.modEnabled) {
                 lightManager.levelChanged(old, new)
             }
+        })
+        bus.register(ClientStartFrameEvent {
+            lightManager.preRender()
+        })
+        bus.register(ClientEndFrameEvent {
+            lightManager.postRender()
         })
         /*
         bus.register(RegisterDebugScreenEntriesEvent { output ->

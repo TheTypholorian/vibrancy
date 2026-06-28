@@ -10,7 +10,7 @@ import net.typho.vibrancy.block.impl.RayPointLight
 
 object LightBufferPacker {
     @JvmStatic
-    fun pack(region: RenderRegion, lights: Iterable<RayPointLight>): GpuBuffer {
+    fun pack(region: RenderRegion, lights: Iterable<RayPointLight>): GpuBuffer? {
         val grid = Array(256) { mutableListOf<RayPointLight>() }
         var numLights = 0
 
@@ -38,6 +38,10 @@ object LightBufferPacker {
                 Mth.clamp(relZ, 0, RenderRegion.REGION_LENGTH - 1)
             )].add(light)
             numLights++
+        }
+
+        if (numLights == 0) {
+            return null
         }
 
         val buffer = GpuObjects.buffer(
