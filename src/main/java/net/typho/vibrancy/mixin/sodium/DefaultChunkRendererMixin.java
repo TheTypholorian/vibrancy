@@ -100,5 +100,7 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
                 }
             });
         }
+
+        this.drawContext.endDraw();
     }
 }

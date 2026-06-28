@@ -1,6 +1,7 @@
 package net.typho.vibrancy
 
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
+import net.caffeinemc.mods.sodium.client.render.chunk.vertex.format.impl.CompactChunkVertex
 import net.minecraft.ChatFormatting
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.core.Direction
@@ -16,6 +17,7 @@ import net.typho.big_shot_lib.api.client.rendering.common.GpuObjects
 import net.typho.big_shot_lib.api.client.rendering.common.GpuQueue
 import net.typho.big_shot_lib.api.client.rendering.common.constant.GpuAlphaFunction
 import net.typho.big_shot_lib.api.client.rendering.common.constant.GpuBlendFunction
+import net.typho.big_shot_lib.api.client.rendering.common.constant.GpuDataType
 import net.typho.big_shot_lib.api.event.BlockChangedEvent
 import net.typho.big_shot_lib.api.event.ChunkLoadedEvent
 import net.typho.big_shot_lib.api.event.ChunkUnloadedEvent
@@ -53,17 +55,18 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
     @JvmField
     val blockLightRenderPipeline = GpuObjects.renderType(
         id("block_light"),
-        DefaultVertexFormat.BLOCK,
+        CompactChunkVertex.VERTEX_FORMAT,
         GpuDrawSettings.Builder()
             .blend(GpuBlendFunction.ADDITIVE)
             .shader(id("block_light"))
             .cull()
-            .depth(GpuAlphaFunction.lequal)
+            .depth(GpuAlphaFunction.gequal)
             .writeDepth(false)
-            .zOffset(),
-            //.sampler("Sampler0")
-            //.sampler("ReflectionSampler")
-            //.sampler("TransmissionSampler"),
+            .zOffset()
+            .sampler("u_LightTex")
+            .sampler("u_BlockTex")
+            .uniform("u_Globals")
+            .texelBuffer("u_SectionTimeInfo", GpuDataType.sint32, 1),
         RenderType.SMALL_BUFFER_SIZE,
         false,
         true,
