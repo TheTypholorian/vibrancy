@@ -6,17 +6,15 @@ import dev.isxander.yacl3.api.*
 import dev.isxander.yacl3.api.controller.*
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
-import net.typho.big_shot_lib.api.client.rendering.opengl.GlQueue
+import net.typho.big_shot_lib.api.client.rendering.common.GpuQueue
 import net.typho.big_shot_lib.api.util.platform.PlatformUtil
 import net.typho.vibrancy.block.impl.RayPointLightStorage
 import net.typho.vibrancy.block.impl.RayPointLightType
 import net.typho.vibrancy.block.impl.SubtleLightCullingMode
-import net.typho.vibrancy.sky.impl.OverworldSkyLightStorage
 import net.typho.vibrancy.util.VibrancyThreadPool
 import org.lwjgl.opengl.GL11.GL_RENDERER
 import org.lwjgl.opengl.GL11.glGetString
 import java.nio.file.Files
-import kotlin.math.ceil
 import kotlin.reflect.KMutableProperty0
 
 internal fun <T : Any> Option.Builder<T>.binding(def: T, property: KMutableProperty0<T>): Option.Builder<T> {
@@ -48,7 +46,7 @@ object VibrancyConfig {
     var modEnabled = true
         set(value) {
             field = value
-            GlQueue.INSTANCE.runOrQueue {
+            GpuQueue.runOrQueue {
                 Vibrancy.lightManager.reload()
             }
         }
@@ -90,7 +88,7 @@ object VibrancyConfig {
     var rayLightsEnabled = true
         set(value) {
             field = value
-            GlQueue.INSTANCE.runOrQueue {
+            GpuQueue.runOrQueue {
                 Vibrancy.lightManager.reload()
             }
         }
@@ -114,7 +112,7 @@ object VibrancyConfig {
     var subtleLightsEnabled = true
         set(value) {
             field = value
-            GlQueue.INSTANCE.runOrQueue {
+            GpuQueue.runOrQueue {
                 Vibrancy.lightManager.reload()
             }
         }
@@ -125,7 +123,7 @@ object VibrancyConfig {
     var subtleLightCullingMode = if (isPotato) SubtleLightCullingMode.NON_AIR_NEIGHBOR else SubtleLightCullingMode.SOLID_NEIGHBOR
         set(value) {
             field = value
-            GlQueue.INSTANCE.runOrQueue {
+            GpuQueue.runOrQueue {
                 Vibrancy.lightManager.reload()
             }
         }
@@ -133,7 +131,7 @@ object VibrancyConfig {
     var skyLightsEnabled = true
         set(value) {
             field = value
-            GlQueue.INSTANCE.runOrQueue {
+            GpuQueue.runOrQueue {
                 Vibrancy.lightManager.reload()
             }
         }
@@ -144,11 +142,13 @@ object VibrancyConfig {
     var skyLightResolution: Int = if (isPotato) 1 else 2
         set(value) {
             field = value
+            /*
             (Vibrancy.lightManager.skyLight?.second as? OverworldSkyLightStorage)?.let {
                 val size = 1 shl (value + 10)
                 it.texture.resize(size, size)
                 it.translucent.resize(size, size)
             }
+             */
         }
     @JvmField
     var skyLightShadowMapPower: Float = 8f
@@ -157,7 +157,7 @@ object VibrancyConfig {
 
     @JvmStatic
     fun save() {
-        JsonWriter(Files.newBufferedWriter(PlatformUtil.INSTANCE.configPath.resolve("vibrancy.json"))).use { writer ->
+        JsonWriter(Files.newBufferedWriter(PlatformUtil.configPath.resolve("vibrancy.json"))).use { writer ->
             writer.setIndent("    ")
             writer.beginObject()
 
@@ -224,7 +224,7 @@ object VibrancyConfig {
 
     @JvmStatic
     fun load() {
-        val path = PlatformUtil.INSTANCE.configPath.resolve("vibrancy.json")
+        val path = PlatformUtil.configPath.resolve("vibrancy.json")
 
         if (Files.exists(path)) {
             try {
@@ -304,7 +304,7 @@ object VibrancyConfig {
                     .build())
 
                 .also {
-                    if (PlatformUtil.INSTANCE.isDevEnv()) {
+                    if (PlatformUtil.isDevEnv()) {
                         it.option(Option.createBuilder<Boolean>()
                                 .name(Component.translatable("config.vibrancy.general.useMultithreading"))
                                 .binding(true, VibrancyConfig::useMultithreading)

@@ -1,10 +1,9 @@
 package net.typho.vibrancy
 
-import net.minecraft.client.Minecraft
-import net.minecraft.client.renderer.LightTexture
+import net.minecraft.client.renderer.Lightmap
 import net.minecraft.world.level.dimension.DimensionType
 
-object TerrainLightTexture : LightTexture(Minecraft.getInstance().gameRenderer, Minecraft.getInstance()) {
+object TerrainLightTexture : Lightmap() {
     @JvmField
     val inUse = ThreadLocal<Boolean>()
 

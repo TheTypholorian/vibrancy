@@ -1,8 +1,8 @@
-package net.typho.vibrancy.shadows
+package net.typho.vibrancy.util
 
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.GlTexture2D
-import net.typho.big_shot_lib.api.client.rendering.util.quad.PrimitiveQuad
-import net.typho.big_shot_lib.api.client.rendering.util.quad.PrimitiveVertex
+import net.typho.big_shot_lib.api.client.rendering.common.GpuTexture
+import net.typho.big_shot_lib.api.client.rendering.util.mesh.PrimitiveQuad
+import net.typho.big_shot_lib.api.client.rendering.util.mesh.PrimitiveVertex
 import kotlin.math.abs
 import kotlin.math.ceil
 
@@ -21,7 +21,7 @@ open class BlockFace(
         v1: PrimitiveVertex,
         v2: PrimitiveVertex,
         v3: PrimitiveVertex,
-        atlas: GlTexture2D
+        atlas: GpuTexture
     ) : this(
         v0,
         v1,
@@ -49,7 +49,7 @@ open class BlockFace(
     open class Consumer(
         out: (face: BlockFace) -> Unit,
         @JvmField
-        val atlas: GlTexture2D,
+        val atlas: GpuTexture,
         offsetX: Float = 0f,
         offsetY: Float = 0f,
         offsetZ: Float = 0f,

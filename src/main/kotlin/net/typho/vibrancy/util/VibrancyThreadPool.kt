@@ -1,11 +1,5 @@
 package net.typho.vibrancy.util
 
-import net.minecraft.core.SectionPos
-import net.minecraft.world.level.ChunkPos
-import net.typho.big_shot_lib.api.client.util.event.RenderEventData
-import net.typho.big_shot_lib.api.math.IVec3
-import net.typho.vibrancy.LightManager
-import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyConfig
 import java.util.concurrent.CompletableFuture
 import java.util.concurrent.PriorityBlockingQueue
@@ -20,7 +14,7 @@ object VibrancyThreadPool : ThreadPoolExecutor(
     PriorityBlockingQueue(11, Comparator.comparingDouble { a -> if (a is SortedAsyncTask) a.sortingOrder else 0.0 })
 ) {
     @JvmStatic
-    fun <T> submit(sort: Double, task: (isCancelled: () -> Boolean) -> Pair<AutoCloseable, () -> T>): GlTask<T> {
+    fun <T> submit(sort: Double, task: (isCancelled: () -> Boolean) -> Pair<AutoCloseable, () -> T>): GpuTask<T> {
         val future = CompletableFuture<Pair<AutoCloseable, () -> T>>()
         var cancelled = false
         var result: T? = null
@@ -41,7 +35,7 @@ object VibrancyThreadPool : ThreadPoolExecutor(
                 }
             }
         })
-        return object : GlTask<T> {
+        return object : GpuTask<T> {
             override val isDone: Boolean
                 get() = future.isDone
             override val isCancelled: Boolean
@@ -67,41 +61,45 @@ object VibrancyThreadPool : ThreadPoolExecutor(
         }
     }
 
+    /*
     @JvmStatic
-    fun <T> submit(data: RenderEventData, chunk: ChunkPos, manager: LightManager, task: (isCancelled: () -> Boolean) -> Pair<AutoCloseable, () -> T>): GlTask<T> {
+    fun <T> submit(data: RenderEventData, chunk: ChunkPos, manager: LightManager, task: (isCancelled: () -> Boolean) -> Pair<AutoCloseable, () -> T>): GpuTask<T> {
         return submit(manager.getSortingOrder(data, chunk).toDouble(), task)
     }
 
     @JvmStatic
-    fun <T> submit(data: RenderEventData, chunk: SectionPos, manager: LightManager, task: (isCancelled: () -> Boolean) -> Pair<AutoCloseable, () -> T>): GlTask<T> {
+    fun <T> submit(data: RenderEventData, chunk: SectionPos, manager: LightManager, task: (isCancelled: () -> Boolean) -> Pair<AutoCloseable, () -> T>): GpuTask<T> {
         return submit(manager.getSortingOrder(data, chunk).toDouble(), task)
     }
 
     @JvmStatic
-    fun <T> submit(data: RenderEventData, pos: IVec3<Int>, manager: LightManager, task: (isCancelled: () -> Boolean) -> Pair<AutoCloseable, () -> T>): GlTask<T> {
+    fun <T> submit(data: RenderEventData, pos: IVec3<Int>, manager: LightManager, task: (isCancelled: () -> Boolean) -> Pair<AutoCloseable, () -> T>): GpuTask<T> {
         return submit(manager.getSortingOrder(data, pos).toDouble(), task)
     }
+     */
 
     @JvmStatic
-    fun <T> submitClean(sort: Double, task: (isCancelled: () -> Boolean) -> T): GlTask<T> {
+    fun <T> submitClean(sort: Double, task: (isCancelled: () -> Boolean) -> T): GpuTask<T> {
         return submit(sort) { isCancelled ->
             val result = task(isCancelled)
             AutoCloseable { } to { result }
         }
     }
 
+    /*
     @JvmStatic
-    fun <T> submitClean(data: RenderEventData, chunk: ChunkPos, manager: LightManager, task: (isCancelled: () -> Boolean) -> T): GlTask<T> {
+    fun <T> submitClean(data: RenderEventData, chunk: ChunkPos, manager: LightManager, task: (isCancelled: () -> Boolean) -> T): GpuTask<T> {
         return submitClean(manager.getSortingOrder(data, chunk).toDouble(), task)
     }
 
     @JvmStatic
-    fun <T> submitClean(data: RenderEventData, chunk: SectionPos, manager: LightManager, task: (isCancelled: () -> Boolean) -> T): GlTask<T> {
+    fun <T> submitClean(data: RenderEventData, chunk: SectionPos, manager: LightManager, task: (isCancelled: () -> Boolean) -> T): GpuTask<T> {
         return submitClean(manager.getSortingOrder(data, chunk).toDouble(), task)
     }
 
     @JvmStatic
-    fun <T> submitClean(data: RenderEventData, pos: IVec3<Int>, manager: LightManager, task: (isCancelled: () -> Boolean) -> T): GlTask<T> {
+    fun <T> submitClean(data: RenderEventData, pos: IVec3<Int>, manager: LightManager, task: (isCancelled: () -> Boolean) -> T): GpuTask<T> {
         return submitClean(manager.getSortingOrder(data, pos).toDouble(), task)
     }
+     */
 }

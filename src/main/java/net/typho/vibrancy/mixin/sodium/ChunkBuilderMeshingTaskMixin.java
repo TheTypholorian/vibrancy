@@ -8,6 +8,7 @@ import net.caffeinemc.mods.sodium.client.render.chunk.compile.ChunkBuildOutput;
 import net.caffeinemc.mods.sodium.client.render.chunk.compile.tasks.ChunkBuilderMeshingTask;
 import net.caffeinemc.mods.sodium.client.util.task.CancellationToken;
 import net.caffeinemc.mods.sodium.client.world.cloned.ChunkRenderContext;
+import net.typho.big_shot_lib.api.math.IRect3;
 import net.typho.vibrancy.Vibrancy;
 import net.typho.vibrancy.util.SectionMeshCache;
 import org.spongepowered.asm.mixin.Final;
@@ -62,7 +63,7 @@ public class ChunkBuilderMeshingTaskMixin {
                     SectionMeshCache.getPool().add(old);
                 }
 
-                Vibrancy.lightManager.nextDirtySections.add(new Pair<>(cache.pos, new IRect3(cache.pos.minBlockX(), cache.pos.minBlockY(), cache.pos.minBlockZ(), cache.pos.maxBlockX(), cache.pos.maxBlockY(), cache.pos.maxBlockZ())));
+                Vibrancy.lightManager.nextDirtySections.add(new Pair<>(cache.pos, IRect3.ofUnchecked(cache.pos.minBlockX(), cache.pos.minBlockY(), cache.pos.minBlockZ(), cache.pos.maxBlockX(), cache.pos.maxBlockY(), cache.pos.maxBlockZ())));
             }
         }
 

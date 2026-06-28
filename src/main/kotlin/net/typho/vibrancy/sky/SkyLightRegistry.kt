@@ -1,34 +1,39 @@
 package net.typho.vibrancy.sky
 
 import net.minecraft.core.Registry
+import net.minecraft.resources.ResourceKey
 import net.minecraft.world.level.Level
-import net.typho.big_shot_lib.api.util.NeoRegistry
-import net.typho.big_shot_lib.api.util.RegistrationFactory
-import net.typho.big_shot_lib.api.util.WrapperUtil
-import net.typho.big_shot_lib.api.util.resource.NeoResourceKey
+import net.typho.big_shot_lib.api.event.NeoEventBus
+import net.typho.big_shot_lib.api.event.NewRegistryEvent
+import net.typho.big_shot_lib.api.event.RegisterEvent
+import net.typho.big_shot_lib.api.event.RegistryBuilder
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.sky.impl.OverworldSkyLightType
 
 object SkyLightRegistry {
     @JvmField
-    val registryKey: NeoResourceKey<Registry<SkyLightType<*, *>>> =
-        NeoResourceKey.registry(Vibrancy.id("sky_light_types"))
-    @JvmField
-    var registry: NeoRegistry<SkyLightType<*, *>>? = null
+    val registryKey: ResourceKey<Registry<SkyLightType<*, *>>> =
+        ResourceKey.createRegistryKey(Vibrancy.id("sky_light_types"))
+    lateinit var registry: Registry<SkyLightType<*, *>>
 
     @JvmField
-    val dimensionMap = HashMap<Identifier, SkyLightInfo>()
+    val dimensionMap = HashMap<ResourceKey<Level>, SkyLightInfo>()
 
     @JvmStatic
-    fun get(level: Level): SkyLightInfo? = dimensionMap[WrapperUtil.INSTANCE.wrap(level.dimension()).location]
+    fun get(level: Level): SkyLightInfo? = dimensionMap[level.dimension()]
 
     @JvmStatic
-    fun has(level: Level): Boolean = dimensionMap.containsKey(WrapperUtil.INSTANCE.wrap(level.dimension()).location)
+    fun has(level: Level): Boolean = dimensionMap.containsKey(level.dimension())
 
     @JvmStatic
-    fun registerBuiltins(factory: RegistrationFactory) {
-        factory.begin(registryKey, Vibrancy.modId)?.run {
-            register("overworld") { OverworldSkyLightType }
-        }
+    fun onInitialize(bus: NeoEventBus) {
+        bus.register(NewRegistryEvent { output ->
+            registry = output.register(RegistryBuilder(registryKey))
+        })
+        bus.register(RegisterEvent { output ->
+            output.begin(registryKey) {
+                it.register(Vibrancy.id("overworld"), OverworldSkyLightType)
+            }
+        })
     }
 }

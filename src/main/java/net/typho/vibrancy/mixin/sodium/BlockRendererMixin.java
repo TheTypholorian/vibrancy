@@ -6,14 +6,18 @@ import net.caffeinemc.mods.sodium.client.render.chunk.compile.pipeline.BlockRend
 import net.caffeinemc.mods.sodium.client.render.chunk.terrain.material.Material;
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.TranslucentGeometryCollector;
 import net.caffeinemc.mods.sodium.client.render.chunk.vertex.format.ChunkVertexEncoder;
-import net.caffeinemc.mods.sodium.client.render.frapi.mesh.MutableQuadViewImpl;
+import net.caffeinemc.mods.sodium.client.render.model.MutableQuadViewImpl;
 import net.caffeinemc.mods.sodium.client.world.LevelSlice;
-import net.minecraft.client.resources.model.BakedModel;
+import net.minecraft.client.Minecraft;
+import net.minecraft.client.renderer.block.dispatch.BlockStateModel;
+import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.core.BlockPos;
 import net.minecraft.core.SectionPos;
+import net.minecraft.data.AtlasIds;
 import net.minecraft.world.level.block.state.BlockState;
-import net.typho.vibrancy.shadows.BlockFace;
-import net.typho.vibrancy.shadows.PrimitiveVertex;
+import net.typho.big_shot_lib.api.client.rendering.common.GpuTexture;
+import net.typho.big_shot_lib.api.client.rendering.util.mesh.PrimitiveVertex;
+import net.typho.vibrancy.util.BlockFace;
 import net.typho.vibrancy.util.SectionMeshCache;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -29,13 +33,13 @@ public class BlockRendererMixin {
     @Unique
     private BlockPos vibrancy$block;
     @Unique
-    private NeoAtlas vibrancy$atlas;
+    private GpuTexture vibrancy$atlas;
 
     @Inject(
             method = "renderModel",
             at = @At("HEAD")
     )
-    private void renderModel(BakedModel model, BlockState state, BlockPos pos, BlockPos origin, CallbackInfo ci) {
+    private void renderModel(BlockStateModel model, BlockState state, BlockPos pos, BlockPos origin, CallbackInfo ci) {
         vibrancy$block = pos;
     }
 
@@ -44,7 +48,7 @@ public class BlockRendererMixin {
             at = @At("TAIL")
     )
     private void prepare(ChunkBuildBuffers buffers, LevelSlice level, TranslucentGeometryCollector collector, CallbackInfo ci) {
-        vibrancy$atlas = NeoAtlas.Companion.getBlocks();
+        vibrancy$atlas = Minecraft.getInstance().getAtlasManager().getAtlasOrThrow(AtlasIds.BLOCKS).getTexture();
     }
 
     @Unique

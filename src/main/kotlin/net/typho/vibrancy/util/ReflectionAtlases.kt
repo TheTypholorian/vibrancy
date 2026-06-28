@@ -1,48 +1,25 @@
 package net.typho.vibrancy.util
 
-import net.caffeinemc.mods.sodium.client.render.texture.SpriteContentsExtension
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.texture.SpriteContents
-import net.minecraft.client.renderer.texture.SpriteLoader
-import net.typho.big_shot_lib.api.client.rendering.opengl.GlQueue
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlFramebuffer
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlTexture2D
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.GlTexture2D
-import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
-import net.typho.big_shot_lib.api.client.util.BigShotClientEntrypoint
-import net.typho.big_shot_lib.api.client.util.event.ClientEventFactory
-import net.typho.big_shot_lib.api.client.util.resource.NeoResourceManager
-import net.typho.big_shot_lib.api.client.util.resource.NeoResourceManagerReloadListener
-import net.typho.big_shot_lib.api.util.NeoColor
-import net.typho.big_shot_lib.api.util.WrapperUtil
-import net.typho.big_shot_lib.api.util.resource.NamedResource
-import net.typho.big_shot_lib.api.util.resource.NeoFileToIdConverter
-import net.typho.vibrancy.Vibrancy
-import java.io.FileNotFoundException
-
-//? if <1.21.11 {
-/*import net.minecraft.client.renderer.texture.SpriteTicker
 import net.minecraft.client.renderer.texture.atlas.SpriteResourceLoader
 import net.minecraft.client.resources.metadata.animation.AnimationMetadataSection
-import net.minecraft.resources.ResourceLocation
-*///? }
+import net.minecraft.resources.FileToIdConverter
+import net.minecraft.resources.Identifier
+import net.minecraft.server.packs.resources.ResourceManager
+import net.typho.big_shot_lib.api.client.event.ClientStartTickEvent
+import net.typho.big_shot_lib.api.client.rendering.common.GpuObjects
+import net.typho.big_shot_lib.api.client.rendering.common.GpuQueue
+import net.typho.big_shot_lib.api.client.rendering.common.GpuTexture
+import net.typho.big_shot_lib.api.client.rendering.common.constant.GpuTextureUsage
+import net.typho.big_shot_lib.api.event.NeoClientEventBus
+import net.typho.big_shot_lib.api.util.resource.NamedResource
+import net.typho.big_shot_lib.api.util.resource.SingleStepNeoReloadListener
+import net.typho.vibrancy.Vibrancy
+import net.typho.vibrancy.mixin.SpriteContentsAccessor
+import java.io.FileNotFoundException
 
-//? if <1.21 {
-/*import net.minecraft.client.renderer.texture.SpriteLoader
-*///? }
-
-//? if >=1.21.5 {
-import net.typho.vibrancy.mixin.GlTextureAccessor
-import com.mojang.blaze3d.textures.TextureFormat
-//? }
-
-//? if >=1.21.6 {
-import com.mojang.blaze3d.textures.GpuTexture
-import net.minecraft.client.resources.metadata.animation.AnimationMetadataSection
-//? }
-
-object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigShotClientEntrypoint {
+object ReflectionAtlases : NamedResource, SingleStepNeoReloadListener {
     private class Animation(
         @JvmField
         val x: Int,
@@ -58,34 +35,32 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
 
     private class Atlas(
         @JvmField
-        val texture: GlTexture2D,
+        val texture: GpuTexture,
         @JvmField
         val animations: List<Animation>
     )
 
     @JvmField
-    val idConverter = NeoFileToIdConverter("rtx/reflections", "png")
+    val idConverter = FileToIdConverter("rtx/reflections", "png")
     override val location: Identifier = Vibrancy.id("reflection_atlases")
     private val atlases = hashMapOf<Identifier, Atlas>()
 
-    override fun onResourceManagerReload(manager: NeoResourceManager) {
-        atlases.forEach { (key, atlas) -> GlQueue.INSTANCE.runOrQueue {
-            atlas.texture.free()
+    override fun onResourceManagerReload(manager: ResourceManager) {
+        atlases.forEach { (key, atlas) -> GpuQueue.runOrQueue {
+            atlas.texture.recycle()
 
             for (animation in atlas.animations) {
                 animation.contents.close()
-
-                //? if <1.21.11 {
-                /*animation.ticker.close()
-                *///? }
             }
         } }
         atlases.clear()
     }
 
-    override fun registerEvents(factory: ClientEventFactory) {
-        factory.clientTickStart.add {
+    // TODO
+    fun onInitializeClient(bus: NeoClientEventBus) {
+        bus.register(ClientStartTickEvent {
             for ((key, atlas) in atlases) {
+                /*
                 atlas.texture.bind(GlTextureTarget.TEXTURE_2D).use { texture ->
                     for (animation in atlas.animations) {
                         //? if <1.21.5 {
@@ -108,130 +83,39 @@ object ReflectionAtlases : NamedResource, NeoResourceManagerReloadListener, BigS
                         *///? }
                     }
                 }
+                 */
             }
-        }
+        })
     }
 
-    operator fun get(key: Identifier, resources: NeoResourceManager = WrapperUtil.INSTANCE.wrap(Minecraft.getInstance().resourceManager)): GlTexture2D {
+    operator fun get(key: Identifier, resources: ResourceManager = Minecraft.getInstance().resourceManager): GpuTexture {
         return atlases.computeIfAbsent(key) { key ->
-            NeoGlTexture2D().bind(GlTextureTarget.TEXTURE_2D).use { texture ->
-                val parent = try {
-                    NeoAtlas[key]!!
-                } catch (_: NullPointerException) {
-                    throw FileNotFoundException("No atlas $key")
-                }
-
-                texture.textureDataImmutable(parent.width, parent.height, GlTextureFormat.R8)
-                texture.minFilter = GlTextureMinFilter.NEAREST
-                texture.magFilter = GlTextureMagFilter.NEAREST
-
-                NeoGlFramebuffer().use { fbo ->
-                    fbo.bind(IRect2(0, 0, parent.width, parent.height)).use { fbo ->
-                        fbo.colorAttachments[0] = texture.resource
-                        fbo.checkStatus().throwIfError()
-                        fbo.clear(GlClearBit.Color(NeoColor.FULL_OFF))
-                    }
-                }
-
-                val animations = mutableListOf<Animation>()
-
-                //? if <1.21 {
-                /*for (resource in idConverter.listMatchingResources(resources)) {
-                    val id = idConverter.fileToId(resource.key)
-
-                    parent.sprites[id]?.let { sprite ->
-                        resource.value.open().use { stream ->
-                            SpriteLoader.loadSprite(ResourceLocation(resource.key.namespace, resource.key.path), resource.value)?.let { contents ->
-                                contents.uploadFirstFrame(sprite.x, sprite.y)
-                                val ticker = contents.createTicker()
-
-                                if (ticker == null) {
-                                    contents.close()
-                                } else {
-                                    animations.add(Animation(
-                                        sprite.x,
-                                        sprite.y,
-                                        contents,
-                                        ticker
-                                    ))
-                                }
-                            }
-                        }
-                    }
-                }
-                *///? } else if <1.21.9 {
-                /*val loader = SpriteResourceLoader.create(SpriteLoader.DEFAULT_METADATA_SECTIONS)
-
-                for (resource in idConverter.listMatchingResources(resources)) {
-                    val id = idConverter.fileToId(resource.key)
-
-                    parent.sprites[id]?.let { sprite ->
-                        resource.value.open().use { stream ->
-                            loader.loadSprite(ResourceLocation.fromNamespaceAndPath(resource.key.namespace, resource.key.path), resource.value)?.let { contents ->
-                                (contents as SpriteContentsExtension).`sodium$setActive`(true)
-                                //? if <1.21.5 {
-                                /*contents.uploadFirstFrame(sprite.x, sprite.y)
-                                *///? } else {
-                                contents.uploadFirstFrame(sprite.x, sprite.y, GlTextureAccessor.`vibrancy$init`(
-                                    //? if >=1.21.6 {
-                                    GpuTexture.USAGE_COPY_DST,
-                                    //? }
-                                    "Vibrancy Reflection Atlas $key",
-                                    TextureFormat.RGBA8,
-                                    parent.width,
-                                    parent.height,
-                                    //? if >=1.21.6 {
-                                    1,
-                                    //? }
-                                    1,
-                                    parent.glId
-                                ))
-                                //? }
-                                val ticker = contents.createTicker()
-
-                                if (ticker == null) {
-                                    contents.close()
-                                } else {
-                                    animations.add(Animation(
-                                        sprite.x,
-                                        sprite.y,
-                                        contents,
-                                        ticker
-                                    ))
-                                }
-                            }
-                        }
-                    }
-                }
-                *///? } else if <1.21.11 {
-                /*val loader = SpriteResourceLoader.create(setOf(AnimationMetadataSection.TYPE))
-
-                for (resource in idConverter.listMatchingResources(resources)) {
-                    val id = idConverter.fileToId(resource.key)
-
-                    parent.sprites[id]?.let { sprite ->
-                        resource.value.open().use { stream ->
-                            loader.loadSprite(ResourceLocation.fromNamespaceAndPath(resource.key.namespace, resource.key.path), resource.value)?.let { contents ->
-                                val ticker = contents.createTicker()
-
-                                if (ticker == null) {
-                                    contents.close()
-                                } else {
-                                    animations.add(Animation(
-                                        sprite.x,
-                                        sprite.y,
-                                        contents,
-                                        ticker
-                                    ))
-                                }
-                            }
-                        }
-                    }
-                }
-                *///? }
-
-                return@computeIfAbsent Atlas(texture.resource, animations)
+            val parent = try {
+                Minecraft.getInstance().atlasManager.getAtlasOrThrow(key)
+            } catch (_: NullPointerException) {
+                throw FileNotFoundException("No atlas $key")
             }
+            val texture = GpuObjects.texture({ "Vibrancy Reflection Atlas $key" }, parent.texture.width, parent.texture.height, GpuTextureUsage.COPY_DST or GpuTextureUsage.COPY_SRC or GpuTextureUsage.TEXTURE_BINDING or GpuTextureUsage.RENDER_ATTACHMENT)
+            val loader = SpriteResourceLoader.create(setOf(AnimationMetadataSection.TYPE))
+
+            for (resource in idConverter.listMatchingResources(resources)) {
+                val id = idConverter.fileToId(resource.key)
+                val sprite = parent.getSprite(id)
+
+                resource.value.open().use { stream ->
+                    loader.loadSprite(resource.key, resource.value)?.let { contents ->
+                        texture.upload(
+                            (contents as SpriteContentsAccessor).`vibrancy$getOriginalImage`(),
+                            0,
+                            0,
+                            sprite.x,
+                            sprite.y
+                        )
+                    }
+                }
+            }
+
+            return@computeIfAbsent Atlas(texture, listOf())
         }.texture
     }
 }

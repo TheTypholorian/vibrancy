@@ -6,9 +6,8 @@ import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.material.FluidState
 import net.typho.big_shot_lib.api.math.IVec3
-import net.typho.big_shot_lib.api.util.BlockUtil
 import net.typho.vibrancy.LightManager
-import net.typho.vibrancy.shadows.BlockFace
+import net.typho.vibrancy.util.BlockFace
 import net.typho.vibrancy.util.SectionMeshCache
 
 interface BlockMeshCollector {
@@ -31,7 +30,7 @@ interface BlockMeshCollector {
             level: Level,
             pos: BlockPos,
             state: BlockState
-        ): Boolean = !BlockUtil.INSTANCE.isSolidRender(state, pos, level)
+        ): Boolean = !state.isSolidRender
 
         fun shouldCastBlock(
             level: Level,

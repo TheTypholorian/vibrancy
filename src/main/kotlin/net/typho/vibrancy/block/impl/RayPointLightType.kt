@@ -1,26 +1,9 @@
 package net.typho.vibrancy.block.impl
 
-import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.block.state.StateDefinition
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBlendEquation
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBlendingFactor
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlClearBit
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlTextureTarget
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.GlFramebuffer
-import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlBlendShard
-import net.typho.big_shot_lib.api.client.rendering.opengl.state.GlTextureBinding
-import net.typho.big_shot_lib.api.client.rendering.opengl.util.BlendFunction
-import net.typho.big_shot_lib.api.client.rendering.util.FogUtil
-import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
-import net.typho.big_shot_lib.api.client.util.event.RenderEventData
-import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.vibrancy.LightManager
-import net.typho.vibrancy.Vibrancy
-import net.typho.vibrancy.VibrancyConfig
 import net.typho.vibrancy.block.BlockLightType
 import net.typho.vibrancy.block.HashMapBlockLightStorage
-import net.typho.vibrancy.shadows.LightMesh
-import net.typho.vibrancy.util.ReflectionAtlases
 
 object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightStorage<RayPointLightInfo, RayPointLight>> {
     override fun infoCodec(stateDefinition: StateDefinition<*, *>) = RayPointLightInfo.codec(stateDefinition)
@@ -31,6 +14,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
 
     override fun createStorage(manager: LightManager) = RayPointLightStorage()
 
+    /*
     override fun render(
         manager: LightManager,
         result: GlFramebuffer,
@@ -134,4 +118,5 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, HashMapBlockLightSt
             }
         }
     }
+     */
 }

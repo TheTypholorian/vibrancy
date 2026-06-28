@@ -4,7 +4,6 @@ import net.minecraft.core.SectionPos
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
-import net.minecraft.world.level.chunk.ChunkAccess
 import net.typho.big_shot_lib.api.math.IVec3
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.block.HashMapBlockLightStorage
@@ -29,7 +28,7 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
             if (chunk == null) {
                 map.values.forEach { it.reload() }
             } else {
-                map.values.filter { ChunkPos(it.pos.toBlockPos()) == chunk }
+                map.values.filter { ChunkPos.containing(it.pos.toBlockPos()) == chunk }
                     .forEach { it.reload() }
             }
         }

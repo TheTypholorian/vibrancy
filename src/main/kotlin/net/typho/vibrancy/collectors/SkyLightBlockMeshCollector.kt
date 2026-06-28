@@ -1,8 +1,6 @@
 package net.typho.vibrancy.collectors
 
 import net.minecraft.core.BlockPos
-import net.minecraft.core.Direction
-import net.minecraft.core.SectionPos
 import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.typho.vibrancy.LightManager

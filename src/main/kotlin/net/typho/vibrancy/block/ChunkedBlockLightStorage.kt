@@ -24,11 +24,11 @@ abstract class ChunkedBlockLightStorage<I : BlockLightInfo, C : BlockLightStorag
         pos: IVec3<Int>,
         info: I
     ) {
-        getOrCreateChunk(manager, ChunkPos(pos.toBlockPos())).addLight(manager, level, state, pos, info)
+        getOrCreateChunk(manager, ChunkPos.containing(pos.toBlockPos())).addLight(manager, level, state, pos, info)
     }
 
     override fun removeLight(manager: LightManager, level: Level, pos: IVec3<Int>): Boolean {
-        return getOrCreateChunk(manager, ChunkPos(pos.toBlockPos())).removeLight(manager, level, pos)
+        return getOrCreateChunk(manager, ChunkPos.containing(pos.toBlockPos())).removeLight(manager, level, pos)
     }
 
     override fun reload(manager: LightManager, chunk: ChunkPos?) {

@@ -47,7 +47,7 @@ abstract class SectionedBlockLightStorage<I : BlockLightInfo, C : BlockLightStor
         manager: LightManager,
         chunk: ChunkAccess
     ) {
-        for (i in chunk.minSection until chunk.maxSection) {
+        for (i in chunk.minSectionY until chunk.maxSectionY) {
             loadSection(manager, chunk, SectionPos.of(chunk.pos, i))
         }
     }
@@ -58,7 +58,7 @@ abstract class SectionedBlockLightStorage<I : BlockLightInfo, C : BlockLightStor
         manager: LightManager,
         chunk: ChunkAccess
     ) {
-        for (i in chunk.minSection until chunk.maxSection) {
+        for (i in chunk.minSectionY until chunk.maxSectionY) {
             val pos = SectionPos.of(chunk.pos, i)
             chunks[pos]?.let {
                 it.deloadChunk(manager, chunk)

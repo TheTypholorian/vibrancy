@@ -1,8 +1,5 @@
 package net.typho.vibrancy.sky.impl
 
-import net.minecraft.util.profiling.ProfilerFiller
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.GlFramebuffer
-import net.typho.big_shot_lib.api.client.util.event.RenderEventData
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.sky.SkyLightInfo
 import net.typho.vibrancy.sky.SkyLightType
@@ -16,6 +13,7 @@ object OverworldSkyLightType : SkyLightType<OverworldSkyLightInfo, OverworldSkyL
         return info as? OverworldSkyLightInfo
     }
 
+    /*
     override fun render(
         manager: LightManager,
         result: GlFramebuffer,
@@ -27,4 +25,5 @@ object OverworldSkyLightType : SkyLightType<OverworldSkyLightInfo, OverworldSkyL
     ) {
         lights.render(data, manager, result, temp, debugOut, profiler)
     }
+     */
 }

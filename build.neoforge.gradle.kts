@@ -177,8 +177,8 @@ dependencies {
     modstitchModImplementation("thedarkcolour:kotlinforforge-neoforge:5.9.0")
 
     modstitchModCompileOnly("net.typho:big_shot_lib:${property("deps.big_shot")}")
-    modstitchModCompileOnly("maven.modrinth:sodium:${property("deps.sodium")}")
-    modstitchModCompileOnly("maven.modrinth:yacl:${property("deps.yacl")}")
+    modstitchModImplementation("maven.modrinth:sodium:${property("deps.sodium")}")
+    modstitchModImplementation("maven.modrinth:yacl:${property("deps.yacl")}")
 
     findProperty("deps.sable_companion")?.let {
         modstitchJiJ(modstitchModApi("dev.ryanhcode.sable-companion:sable-companion-common-${property("deps.minecraft")}:[${it},)")!!)

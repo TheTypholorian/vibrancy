@@ -2,14 +2,15 @@ package net.typho.vibrancy.mixin;
 
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
-import net.minecraft.client.renderer.LightTexture;
+import net.minecraft.client.renderer.Lightmap;
 import net.minecraft.world.level.dimension.DimensionType;
 import net.typho.vibrancy.TerrainLightTexture;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
 
-@Mixin(LightTexture.class)
+@Mixin(Lightmap.class)
 public class LightTextureMixin {
+    /*
     @WrapOperation(
             method = "updateLightTexture",
             at = @At(
@@ -41,4 +42,5 @@ public class LightTextureMixin {
 
         return original.call(dimension, x);
     }
+     */
 }

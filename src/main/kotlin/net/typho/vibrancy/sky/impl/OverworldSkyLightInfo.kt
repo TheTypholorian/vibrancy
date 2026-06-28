@@ -4,7 +4,6 @@ import com.mojang.serialization.Codec
 import com.mojang.serialization.MapCodec
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.typho.big_shot_lib.api.math.IVec3
-import net.typho.big_shot_lib.api.util.NeoColor
 import net.typho.vibrancy.sky.SkyLightInfo
 
 data class OverworldSkyLightInfo(

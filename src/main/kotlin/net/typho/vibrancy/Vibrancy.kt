@@ -1,33 +1,31 @@
 package net.typho.vibrancy
 
-import com.mojang.serialization.Lifecycle
-import net.fabricmc.fabric.api.renderer.v1.mesh.Mesh
+import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import net.minecraft.ChatFormatting
-import net.minecraft.client.Minecraft
-import net.minecraft.core.BlockPos
-import net.minecraft.network.chat.Component
+import net.minecraft.client.renderer.RenderType
+import net.minecraft.core.Direction
 import net.minecraft.resources.Identifier
 import net.typho.big_shot_lib.api.NeoCommonInitializer
 import net.typho.big_shot_lib.api.client.NeoClientInitializer
-import net.typho.big_shot_lib.api.client.rendering.opengl.GlQueue
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.*
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.GlTexture2D
-import net.typho.big_shot_lib.api.client.rendering.opengl.state.*
-import net.typho.big_shot_lib.api.client.rendering.opengl.util.ColorMask
-import net.typho.big_shot_lib.api.client.rendering.util.NeoRenderType
-import net.typho.big_shot_lib.api.client.rendering.util.NeoVertexFormat
+import net.typho.big_shot_lib.api.client.event.AddAssetReloadListenersEvent
+import net.typho.big_shot_lib.api.client.event.ClientLevelChangedEvent
+import net.typho.big_shot_lib.api.client.event.DebugScreenEntry
+import net.typho.big_shot_lib.api.client.event.RegisterDebugScreenEntriesEvent
+import net.typho.big_shot_lib.api.client.rendering.common.GpuDrawSettings
+import net.typho.big_shot_lib.api.client.rendering.common.GpuObjects
+import net.typho.big_shot_lib.api.client.rendering.common.GpuQueue
+import net.typho.big_shot_lib.api.client.rendering.common.constant.GpuAlphaFunction
+import net.typho.big_shot_lib.api.client.rendering.common.constant.GpuBlendFunction
+import net.typho.big_shot_lib.api.event.BlockChangedEvent
+import net.typho.big_shot_lib.api.event.ChunkLoadedEvent
+import net.typho.big_shot_lib.api.event.ChunkUnloadedEvent
 import net.typho.big_shot_lib.api.event.NeoClientEventBus
 import net.typho.big_shot_lib.api.event.NeoEventBus
 import net.typho.big_shot_lib.api.math.IVec3
-import net.typho.big_shot_lib.api.util.*
 import net.typho.vibrancy.block.BlockLightInfoLoader
 import net.typho.vibrancy.block.BlockLightRegistry
-import net.typho.vibrancy.block.impl.SubtleLightStorage
-import net.typho.vibrancy.shadows.LightMesh
 import net.typho.vibrancy.sky.SkyLightInfoLoader
 import net.typho.vibrancy.sky.SkyLightRegistry
-import org.lwjgl.opengl.GL
-import org.lwjgl.system.Platform
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.util.function.Consumer
@@ -52,6 +50,26 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
         Identifier.minecraft("textures/misc/enchanted_item_glint.png"),
     )
 
+    @JvmField
+    val blockLightRenderPipeline = GpuObjects.renderType(
+        id("block_light"),
+        DefaultVertexFormat.BLOCK,
+        GpuDrawSettings.Builder()
+            .blend(GpuBlendFunction.ADDITIVE)
+            .shader(id("block_light"))
+            .cull()
+            .depth(GpuAlphaFunction.lequal)
+            .writeDepth(false)
+            .zOffset(),
+            //.sampler("Sampler0")
+            //.sampler("ReflectionSampler")
+            //.sampler("TransmissionSampler"),
+        RenderType.SMALL_BUFFER_SIZE,
+        false,
+        true,
+        false
+    )
+
     /*
     @JvmField
     var reloadShadowsKey: KeyMapping? = null
@@ -61,77 +79,54 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
     var toggleSubtleLightsKey: KeyMapping? = null
      */
 
-    val RESULT by lazy {
-        NeoGlTexture2D().also {
-            it.bind(GlTextureTarget.TEXTURE_2D).use { texture ->
-                texture.textureDataMutable(1, 1, GlTextureFormat.RGB16F)
-                texture.minFilter = GlTextureMinFilter.NEAREST
-                texture.magFilter = GlTextureMagFilter.NEAREST
-            }
-        }
-    }
-    val TEMP by lazy {
-        NeoGlTexture2D().also {
-            it.bind(GlTextureTarget.TEXTURE_2D).use { texture ->
-                texture.textureDataMutable(1, 1, GlTextureFormat.RGB16F)
-                texture.minFilter = GlTextureMinFilter.NEAREST
-                texture.magFilter = GlTextureMagFilter.NEAREST
-            }
-        }
-    }
-    val DEPTH by lazy {
-        NeoGlTexture2D().also {
-            it.bind(GlTextureTarget.TEXTURE_2D).use { texture ->
-                texture.textureDataMutable(1, 1, GlTextureFormat.DEPTH_COMPONENT)
-                texture.minFilter = GlTextureMinFilter.NEAREST
-                texture.magFilter = GlTextureMagFilter.NEAREST
-            }
-        }
-    }
-    val RESULT_FRAMEBUFFER by lazy {
-        NeoGlFramebuffer().also {
-            it.bind(null).use { fbo ->
-                fbo.colorAttachments[0] = RESULT
-                fbo.depthAttachment = DEPTH
-                fbo.checkStatus().throwIfError()
-            }
-        }
-    }
-    val TEMP_FRAMEBUFFER by lazy {
-        NeoGlFramebuffer().also {
-            it.bind(null).use { fbo ->
-                fbo.colorAttachments[0] = TEMP
-                fbo.depthAttachment = DEPTH
-                fbo.checkStatus().throwIfError()
-            }
-        }
-    }
-
     override fun addClientListener(listener: Consumer<NeoClientEventBus>) {
         super<NeoClientInitializer>.addClientListener(listener)
     }
 
+    @Suppress("RedundantSamConstructor", "RedundantSuppression")
     override fun onInitialize(bus: NeoEventBus) {
+        BlockLightRegistry.onInitialize(bus)
+        SkyLightRegistry.onInitialize(bus)
+
+        bus.register(BlockChangedEvent { level, pos, old, new ->
+            if (VibrancyConfig.modEnabled && level.isClientSide()) {
+                GpuQueue.runOrQueue {
+                    lightManager.blockChanged(level, pos, old, new)
+                }
+            }
+        })
+        bus.register(ChunkLoadedEvent { level, chunk ->
+            GpuQueue.runOrQueue {
+                lightManager.loadChunk(chunk)
+            }
+        })
+        bus.register(ChunkUnloadedEvent { level, chunk ->
+            GpuQueue.runOrQueue {
+                lightManager.deloadChunk(chunk)
+            }
+        })
     }
 
+    @Suppress("RedundantSamConstructor", "RedundantSuppression")
     override fun onInitializeClient(bus: NeoClientEventBus) {
+        bus.register(AddAssetReloadListenersEvent { output ->
+            output(BlockLightInfoLoader)
+            output(SkyLightInfoLoader)
+        })
+        bus.register(ClientLevelChangedEvent { old, new ->
+            if (VibrancyConfig.modEnabled) {
+                lightManager.levelChanged(old, new)
+            }
+        })
+        bus.register(RegisterDebugScreenEntriesEvent { output ->
+            output(DebugScreenEntry(id("debug_info"), false) { out ->
+                out.accept(ChatFormatting.UNDERLINE.toString() + "Vibrancy")
+                lightManager.getDebugOutput(out)
+            })
+        })
     }
 
-    @JvmStatic
-    fun depthBlitState(from: GlTexture2D) = NeoRenderType(
-    )/* = GlDrawState.Basic(
-        colorMask = GlColorMaskShard(ColorMask(false, false, false, false)),
-        depth = GlDepthShard.Enabled(
-            GlAlphaFunction.ALWAYS,
-            true
-        ),
-        shader = GlShaderShard.FromLocation(
-            id("depth_blit"),
-            { },
-            GlTextureBinding.FromInstance(from, GlTextureTarget.TEXTURE_2D)
-        )
-    )*/
-
+    /*
     @JvmStatic
     fun render(data: RenderEventData) {
         if (VibrancyConfig.modEnabled) {
@@ -186,9 +181,10 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
             lightManager.blitFromTemp(data.target, RESULT_FRAMEBUFFER, lightLimited = false)
         }
     }
+     */
 
     @JvmStatic
-    fun id(path: String): Identifier = Identifier(modId, path)
+    fun id(path: String): Identifier = Identifier.of(modId, path)
 
     @JvmStatic
     fun Direction.isPointingTowards(from: IVec3<Int>, to: IVec3<Int>): Boolean = when (this) {
@@ -210,46 +206,7 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
         Direction.EAST -> to.x >= from.x
     }
 
-    @JvmStatic
-    fun Direction.isPointingTowards(from: BlockPos, to: IVec3<Int>): Boolean = when (this) {
-        Direction.DOWN -> to.y < from.y
-        Direction.UP -> to.y > from.y
-        Direction.NORTH -> to.z < from.z
-        Direction.SOUTH -> to.z > from.z
-        Direction.WEST -> to.x < from.x
-        Direction.EAST -> to.x > from.x
-    }
-
-    @JvmStatic
-    fun Direction.isPointingTowardsInclusive(from: BlockPos, to: IVec3<Int>): Boolean = when (this) {
-        Direction.DOWN -> to.y <= from.y
-        Direction.UP -> to.y >= from.y
-        Direction.NORTH -> to.z <= from.z
-        Direction.SOUTH -> to.z >= from.z
-        Direction.WEST -> to.x <= from.x
-        Direction.EAST -> to.x >= from.x
-    }
-
-    @JvmStatic
-    fun Direction.isPointingTowards(from: BlockPos, to: BlockPos): Boolean = when (this) {
-        Direction.DOWN -> to.y < from.y
-        Direction.UP -> to.y > from.y
-        Direction.NORTH -> to.z < from.z
-        Direction.SOUTH -> to.z > from.z
-        Direction.WEST -> to.x < from.x
-        Direction.EAST -> to.x > from.x
-    }
-
-    @JvmStatic
-    fun Direction.isPointingTowardsInclusive(from: BlockPos, to: BlockPos): Boolean = when (this) {
-        Direction.DOWN -> to.y <= from.y
-        Direction.UP -> to.y >= from.y
-        Direction.NORTH -> to.z <= from.z
-        Direction.SOUTH -> to.z >= from.z
-        Direction.WEST -> to.x <= from.x
-        Direction.EAST -> to.x >= from.x
-    }
-
+    /*
     override fun displayInitialScreens(factory: InitialScreenFactory) {
         if (VibrancyConfig.modEnabled) {
             if (!GL.getCapabilities().GL_ARB_shader_storage_buffer_object) {
@@ -267,25 +224,9 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
              */
         }
     }
+     */
 
-    override fun registerRegistries(factory: RegistryFactory) {
-        BlockLightRegistry.registry = factory.create(
-            BlockLightRegistry.registryKey.location,
-            Lifecycle.stable(),
-            false
-        )
-        SkyLightRegistry.registry = factory.create(
-            SkyLightRegistry.registryKey.location,
-            Lifecycle.stable(),
-            false
-        )
-    }
-
-    override fun registerContent(factory: RegistrationFactory) {
-        BlockLightRegistry.registerBuiltins(factory)
-        SkyLightRegistry.registerBuiltins(factory)
-    }
-
+    /*
     override fun registerEvents(factory: CommonEventFactory) {
         factory.blockChanged.add { level, pos, old, new ->
             if (VibrancyConfig.modEnabled && level.isClientSide()) {
@@ -295,11 +236,14 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
             }
         }
     }
+     */
 
+    /*
     override fun registerReloadListeners(factory: ResourceListenerFactory) {
         factory.register(BlockLightInfoLoader)
         factory.register(SkyLightInfoLoader)
     }
+     */
 
     /*
     override fun registerKeyMappings(factory: KeyMappingFactory) {
@@ -310,13 +254,6 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
     }
      */
 
-    override fun registerEvents(factory: ClientEventFactory) {
-        factory.levelRenderEnd.add(Vibrancy::render)
-        factory.levelChanged.add { old, new ->
-            if (VibrancyConfig.modEnabled) {
-                lightManager.levelChanged(old, new)
-            }
-        }
         /*
         factory.clientTickStart.add {
             fun debugPrint(text: Component) {
@@ -365,27 +302,6 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
             }
         }
          */
-        factory.chunkChanged.add { level, old, new ->
-            if (VibrancyConfig.modEnabled && level.isClientSide) {
-                GlQueue.INSTANCE.runOrQueue {
-                    if (old != null) {
-                        lightManager.deloadChunk(old)
-                    }
-
-                    if (new != null) {
-                        lightManager.loadChunk(new)
-                    }
-                }
-            }
-        }
-    }
-
-    override fun registerDebugScreenInfo(factory: DebugScreenFactory) {
-        factory.register(id("debug_info"), false) { out ->
-            out(ChatFormatting.UNDERLINE.toString() + "Vibrancy")
-            lightManager.getDebugOutput(out)
-        }
-    }
 
     /*
         override fun registerPanoramas(factory: PanoramaFactory) {

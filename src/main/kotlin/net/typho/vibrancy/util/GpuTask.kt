@@ -1,6 +1,6 @@
 package net.typho.vibrancy.util
 
-interface GlTask<V> {
+interface GpuTask<V> {
     val isDone: Boolean
     val isCancelled: Boolean
 

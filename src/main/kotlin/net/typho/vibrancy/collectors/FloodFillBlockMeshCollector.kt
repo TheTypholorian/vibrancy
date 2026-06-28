@@ -1,7 +1,9 @@
 package net.typho.vibrancy.collectors
 
 import net.minecraft.core.BlockPos
+import net.minecraft.core.Direction
 import net.minecraft.world.level.Level
+import net.typho.big_shot_lib.api.math.IVec3
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy.isPointingTowardsInclusive
 
@@ -76,7 +78,7 @@ class FloodFillBlockMeshCollector(
 
                 for (direction in Direction.entries) {
                     if (direction.isPointingTowardsInclusive(this.pos, cursor)) {
-                        val check = cursor.relative(direction.mojang)
+                        val check = cursor.relative(direction)
 
                         if (cache.checked.add(check)) {
                             val state = level.getBlockState(check)
@@ -123,7 +125,8 @@ class FloodFillBlockMeshCollector(
 
             mutable.set(pos.x, pos.y, pos.z)
             val state = level.getBlockState(mutable)
-            val offset = IVec3((pos.x - this.pos.x).toFloat(), (pos.y - this.pos.y).toFloat(), (pos.z - this.pos.z).toFloat())
+            val offset =
+                IVec3((pos.x - this.pos.x).toFloat(), (pos.y - this.pos.y).toFloat(), (pos.z - this.pos.z).toFloat())
 
             BlockMeshCollector.collectLightFaces(
                 manager,

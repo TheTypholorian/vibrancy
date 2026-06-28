@@ -1,20 +1,27 @@
 package net.typho.vibrancy.shadows
 
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferTarget
-import net.typho.big_shot_lib.api.client.rendering.opengl.constant.GlBufferUsage
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.impl.NeoGlBuffer
-import net.typho.big_shot_lib.api.client.rendering.opengl.resource.GlTexture2D
+import net.typho.big_shot_lib.api.client.rendering.common.GpuBuffer
+import net.typho.big_shot_lib.api.client.rendering.common.GpuObjects
+import net.typho.big_shot_lib.api.client.rendering.common.Recyclable
+import net.typho.big_shot_lib.api.client.rendering.common.constant.GpuBufferUsage
+import net.typho.big_shot_lib.api.client.rendering.util.mesh.PrimitiveQuad
 import net.typho.big_shot_lib.api.math.IRect3
-import net.typho.big_shot_lib.api.math.IRect3.Companion.sizeInclusive
 import net.typho.big_shot_lib.api.math.IVec3
-import net.typho.big_shot_lib.api.util.buffer.NeoBuffer
+import net.typho.big_shot_lib.api.util.buffer.MemoryPointer
 
 open class VoxelGridBuffer(
-    @JvmField
-    val usage: GlBufferUsage
-) : NeoGlBuffer() {
+    val usage: GpuBufferUsage
+) : Recyclable {
+    var buffer: GpuBuffer? = null
+        protected set
+
+    override fun recycle() {
+        buffer?.recycle()
+        buffer = null
+    }
+
     open fun lazyUpload(texWidth: Int, texHeight: Int, numFaces: Int, bounds: IRect3<Int>, faces: List<Pair<IVec3<Int>, List<PrimitiveQuad>>>): Pair<AutoCloseable, () -> Unit> {
-        val gridBuffer = NeoBuffer.GCNative(32L + faces.size * 16)
+        val gridBuffer = MemoryPointer.alloc(32L + faces.size * 16) { "Voxel Grid Buffer" }
 
         gridBuffer.write().run {
             writeInt(bounds.min.x)
@@ -45,7 +52,9 @@ open class VoxelGridBuffer(
         return AutoCloseable {
             gridBuffer.free()
         } to {
-            bind(GlBufferTarget.ARRAY_BUFFER).use { it.bufferData(gridBuffer, usage) }
+            val buffer = GpuObjects.buffer(null, gridBuffer.size, usage)
+            buffer.upload(gridBuffer)
+            this.buffer = buffer
         }
     }
 }

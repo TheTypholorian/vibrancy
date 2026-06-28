@@ -17,7 +17,7 @@
     "modmenu": [
       {
         "adapter": "kotlin",
-        "value": "net.typho.vibrancy.ModMenuCompat"
+        "value": "net.typho.vibrancy.VibrancyModMenuCompat"
       }
     ]
   },

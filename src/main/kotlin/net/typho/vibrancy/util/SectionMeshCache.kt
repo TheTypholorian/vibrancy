@@ -3,10 +3,9 @@ package net.typho.vibrancy.util
 import net.caffeinemc.mods.sodium.client.render.chunk.terrain.material.Material
 import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
-import net.typho.big_shot_lib.api.client.rendering.util.NeoAtlas
+import net.typho.big_shot_lib.api.client.rendering.common.GpuTexture
 import net.typho.big_shot_lib.api.math.IVec3
 import net.typho.vibrancy.collectors.BlockMeshCollector
-import net.typho.vibrancy.shadows.BlockFace
 import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.function.Consumer
 
@@ -70,7 +69,7 @@ class SectionMeshCache(
         }
     }
 
-    fun createVertexConsumer(pos: BlockPos, material: Material, atlas: NeoAtlas, offsetX: Float = 0f, offsetY: Float = 0f, offsetZ: Float = 0f): BlockFace.Consumer {
+    fun createVertexConsumer(pos: BlockPos, material: Material, atlas: GpuTexture, offsetX: Float = 0f, offsetY: Float = 0f, offsetZ: Float = 0f): BlockFace.Consumer {
         return BlockFace.Consumer(
             getOrCreate(pos)[material]::add,
             atlas,

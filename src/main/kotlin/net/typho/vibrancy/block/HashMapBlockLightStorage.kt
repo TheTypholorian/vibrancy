@@ -40,15 +40,13 @@ abstract class HashMapBlockLightStorage<I : BlockLightInfo, L>(val type: BlockLi
         deloadChunk(manager, chunk)
 
         chunk.findBlocks(BlockLightRegistry::has) { pos, state ->
-            val pos = IVec3(pos)
-
             BlockLightRegistry.get(state.block, type)?.let { info ->
                 type.castInfo(info)?.let {
                     addLight(
                         manager,
                         manager.getLevel()!!,
                         state,
-                        pos,
+                        pos.immutable(),
                         it
                     )
                 }
@@ -59,7 +57,7 @@ abstract class HashMapBlockLightStorage<I : BlockLightInfo, L>(val type: BlockLi
     override fun deloadChunk(manager: LightManager, chunk: ChunkAccess) {
         synchronized(map) {
             map.entries.removeIf { entry ->
-                val removed = ChunkPos(entry.key.toBlockPos()) == chunk.pos
+                val removed = ChunkPos.containing(entry.key.toBlockPos()) == chunk.pos
 
                 if (removed) {
                     (entry.value as? NativeResource)?.free()

@@ -1,8 +1,8 @@
 package net.typho.vibrancy.mixin.sodium;
 
 import net.caffeinemc.mods.sodium.client.render.chunk.compile.buffers.BakedChunkModelBuilder;
-import net.typho.big_shot_lib.api.client.rendering.util.quad.NeoBakedQuad;
-import net.typho.vibrancy.shadows.BlockFace;import net.typho.vibrancy.util.SectionMeshCache;
+import net.typho.vibrancy.util.BlockFace;
+import net.typho.vibrancy.util.SectionMeshCache;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 

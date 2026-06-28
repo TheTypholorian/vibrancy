@@ -197,9 +197,9 @@ dependencies {
     modstitchModImplementation("maven.modrinth:fabric-language-kotlin:1.13.12+kotlin.2.4.0")
 
     modstitchModCompileOnly("net.typho:big_shot_lib:${property("deps.big_shot")}")
-    modstitchModCompileOnly("maven.modrinth:sodium:${property("deps.sodium")}")
-    modstitchModCompileOnly("maven.modrinth:yacl:${property("deps.yacl")}")
-    modstitchModCompileOnly("maven.modrinth:modmenu:${property("deps.modmenu")}")
+    modstitchModImplementation("maven.modrinth:sodium:${property("deps.sodium")}")
+    modstitchModImplementation("maven.modrinth:yacl:${property("deps.yacl")}")
+    modstitchModImplementation("maven.modrinth:modmenu:${property("deps.modmenu")}")
 
     findProperty("deps.sable_companion")?.let {
         modstitchJiJ(modstitchModApi("dev.ryanhcode.sable-companion:sable-companion-fabric-${property("deps.minecraft")}:[${it},)")!!)

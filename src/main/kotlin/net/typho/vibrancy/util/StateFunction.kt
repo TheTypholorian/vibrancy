@@ -1,14 +1,11 @@
 package net.typho.vibrancy.util
 
 import com.mojang.datafixers.util.Either
-import com.mojang.datafixers.util.Unit
 import com.mojang.serialization.*
 import com.mojang.serialization.codecs.RecordCodecBuilder
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.block.state.StateDefinition
 import net.minecraft.world.level.block.state.properties.Property
-import java.util.function.Function
-import java.util.stream.Stream
 
 data class StateFunction<T>(
     @JvmField

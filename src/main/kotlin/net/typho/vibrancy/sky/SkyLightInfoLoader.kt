@@ -4,36 +4,42 @@ import com.google.gson.JsonElement
 import com.google.gson.JsonParseException
 import com.google.gson.JsonParser
 import com.mojang.serialization.JsonOps
-import net.typho.big_shot_lib.api.client.util.resource.NeoResourceManager
-import net.typho.big_shot_lib.api.client.util.resource.NeoResourceManagerReloadListener
-import net.typho.big_shot_lib.api.util.resource.NeoFileToIdConverter
+import net.minecraft.core.registries.Registries
+import net.minecraft.resources.FileToIdConverter
+import net.minecraft.resources.Identifier
+import net.minecraft.resources.ResourceKey
+import net.minecraft.server.packs.resources.ResourceManager
+import net.minecraft.world.level.Level
+import net.typho.big_shot_lib.api.util.resource.SingleStepNeoReloadListener
 import net.typho.vibrancy.Vibrancy
+import kotlin.jvm.optionals.getOrNull
 
-object SkyLightInfoLoader : NeoResourceManagerReloadListener {
+object SkyLightInfoLoader : SingleStepNeoReloadListener {
     override val location: Identifier = Vibrancy.id("sky_lights")
     @JvmField
-    val idConverter = NeoFileToIdConverter.json("rtx/sky_lights")
+    val idConverter = FileToIdConverter.json("rtx/sky_lights")
 
     @JvmStatic
-    fun load(key: Identifier, json: JsonElement, file: Identifier) {
+    fun load(key: ResourceKey<Level>, json: JsonElement) {
         val typeResult = Identifier.CODEC.decode(JsonOps.INSTANCE, json.asJsonObject.get("type"))
-        typeResult.error().ifPresent { throw JsonParseException("Sky light type for $key is not a valid Identifier: $it") }
+        typeResult.error().ifPresent { throw JsonParseException("Sky light type for ${key.identifier()} is not a valid Identifier: $it") }
         val typeKey = typeResult.result().get().first
 
-        val codec = (SkyLightRegistry.registry!!.get(typeKey) ?: throw JsonParseException("No sky light type $typeKey"))
-                .infoCodec
+        val codec = (SkyLightRegistry.registry.get(typeKey).getOrNull() ?: throw JsonParseException("No sky light type $typeKey"))
+            .value()
+            .infoCodec
         val result = codec.codec().parse(JsonOps.INSTANCE, json)
 
         result.result().ifPresent { SkyLightRegistry.dimensionMap[key] = it }
-        result.error().ifPresent { Vibrancy.LOGGER.error("Error parsing sky light info for $key: ${it.message()}") }
+        result.error().ifPresent { Vibrancy.LOGGER.error("Error parsing sky light info for ${key.identifier()}: ${it.message()}") }
     }
 
-    override fun onResourceManagerReload(manager: NeoResourceManager) {
+    override fun onResourceManagerReload(manager: ResourceManager) {
         SkyLightRegistry.dimensionMap.clear()
 
         for (entry in idConverter.listMatchingResources(manager)) {
             entry.value.openAsReader().use { jsonReader ->
-                load(idConverter.fileToId(entry.key), JsonParser.parseReader(jsonReader), entry.key)
+                load(ResourceKey.create(Registries.DIMENSION, idConverter.fileToId(entry.key)), JsonParser.parseReader(jsonReader))
             }
         }
 

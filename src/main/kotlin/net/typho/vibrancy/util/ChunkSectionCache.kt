@@ -27,8 +27,8 @@ class ChunkSectionCache(
     }
 
     fun get(min: BlockPos, max: BlockPos): Iterator<Pair<BlockPos, BlockState>> {
-        val min = min.atY(min.y.coerceAtLeast(level.minBuildHeight).coerceAtMost(level.maxBuildHeight))
-        val max = max.atY(max.y.coerceAtLeast(level.minBuildHeight).coerceAtMost(level.maxBuildHeight))
+        val min = min.atY(min.y.coerceAtLeast(level.minY).coerceAtMost(level.maxY))
+        val max = max.atY(max.y.coerceAtLeast(level.minY).coerceAtMost(level.maxY))
 
         val pos = BlockPos.MutableBlockPos().set(min)
         val minSection = SectionPos.of(min)
