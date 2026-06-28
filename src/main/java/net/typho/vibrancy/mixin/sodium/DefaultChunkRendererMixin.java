@@ -8,6 +8,7 @@ import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.FilterMode;
 import com.mojang.blaze3d.textures.GpuSamplerImpl;
+import net.caffeinemc.mods.sodium.client.gpu.arena.GlBufferSegment;
 import net.caffeinemc.mods.sodium.client.gpu.device.batch.MultiDrawBatch;
 import net.caffeinemc.mods.sodium.client.gpu.device.context.DrawContext;
 import net.caffeinemc.mods.sodium.client.render.chunk.ChunkRenderMatrices;
@@ -15,15 +16,24 @@ import net.caffeinemc.mods.sodium.client.render.chunk.DefaultChunkRenderer;
 import net.caffeinemc.mods.sodium.client.render.chunk.ShaderChunkRenderer;
 import net.caffeinemc.mods.sodium.client.render.chunk.SharedQuadIndexBuffer;
 import net.caffeinemc.mods.sodium.client.render.chunk.data.SectionRenderDataStorage;
-import net.caffeinemc.mods.sodium.client.render.chunk.lists.ChunkRenderList;
 import net.caffeinemc.mods.sodium.client.render.chunk.lists.ChunkRenderListIterable;
 import net.caffeinemc.mods.sodium.client.render.chunk.region.RenderRegion;
 import net.caffeinemc.mods.sodium.client.render.chunk.terrain.TerrainRenderPass;
 import net.caffeinemc.mods.sodium.client.render.chunk.vertex.format.ChunkVertexType;
 import net.caffeinemc.mods.sodium.client.render.viewport.CameraTransform;
 import net.caffeinemc.mods.sodium.client.util.FogParameters;
+import net.caffeinemc.mods.sodium.mixin.core.GlRenderPassAccessor;
+import net.caffeinemc.mods.sodium.mixin.core.RenderPassAccessor;
 import net.minecraft.client.Minecraft;
+import net.typho.big_shot_lib.api.client.rendering.common.GpuBuffer;
+import net.typho.big_shot_lib.api.client.rendering.common.GpuObjects;
+import net.typho.big_shot_lib.api.client.rendering.common.constant.GpuBufferUsage;
+import net.typho.big_shot_lib.api.util.buffer.MemoryPointer;
+import net.typho.vibrancy.RenderRegionExtension;
 import net.typho.vibrancy.Vibrancy;
+import net.typho.vibrancy.block.impl.RayPointLight;
+import net.typho.vibrancy.block.impl.RayPointLightStorage;
+import net.typho.vibrancy.block.impl.RayPointLightType;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
@@ -33,6 +43,9 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import java.util.Optional;
 import java.util.OptionalDouble;
+
+import static org.lwjgl.opengl.GL20.glGetUniformLocation;
+import static org.lwjgl.opengl.GL20.glUniform3f;
 
 @Mixin(DefaultChunkRenderer.class)
 public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
@@ -66,7 +79,15 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
             @Local CommandEncoder encoder,
             @Local(ordinal = 2) boolean useIndexedTessellation
     ) {
-        activeProgram = Vibrancy.blockLightRenderPipeline.pipeline();
+        /*
+        if (Vibrancy.lightManager.blockLights.get(RayPointLightType.INSTANCE) instanceof RayPointLightStorage storage) {
+            for (RayPointLight light : storage.getMap().values()) {
+                if (light.sections.contains())
+            }
+        }
+         */
+
+        activeProgram = Vibrancy.blockLightRenderType.pipeline();
 
         try (RenderPass pass = encoder.createRenderPass(() -> "Vibrancy Block Lights", renderPass.getTarget().getColorTextureView(), Optional.empty(), renderPass.getTarget().getDepthTextureView(), OptionalDouble.empty())) {
             pass.setPipeline(this.activeProgram);
@@ -81,11 +102,38 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
             pass.bindTexture("u_LightTex", Minecraft.getInstance().gameRenderer.lightmap(), RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR));
             pass.bindTexture("u_BlockTex", renderPass.getAtlas(), terrainSampler);
 
+            GlRenderPassAccessor passBackend = (GlRenderPassAccessor)((RenderPassAccessor)pass).getBackend();
+            int programId = passBackend.getPipeline().program().getProgramId();
+            int worldOffsetUniform = glGetUniformLocation(programId, "u_WorldOffset");
+
             renderLists.iterator(renderPass.isTranslucent()).forEachRemaining(renderList -> {
                 RenderRegion region = renderList.getRegion();
                 SectionRenderDataStorage storage = region.getStorage(renderPass);
 
                 if (storage != null) {
+                    RenderRegionExtension ext = (RenderRegionExtension) region;
+                    GpuBuffer buffer = ext.getVibrancy$lightBuffer();
+
+                    if (buffer == null) {
+                        buffer = GpuObjects.INSTANCE.buffer(() -> "Vibrancy Light Buffer (" + region.getX() + ", " + region.getY() + ", " + region.getZ() + ")", 32, GpuBufferUsage.uniform() | GpuBufferUsage.copyDst() | GpuBufferUsage.mapWrite());
+
+                        buffer.upload(output -> {
+                            output.writeFloat(0);
+                            output.writeFloat(10);
+                            output.writeFloat(0);
+
+                            output.writeFloat(15);
+
+                            output.writeFloat(1);
+                            output.writeFloat(0.5f);
+                            output.writeFloat(0.25f);
+
+                            output.skip(4);
+                        });
+
+                        ext.setVibrancy$lightBuffer(buffer);
+                    }
+
                     MultiDrawBatch batch = region.getCachedBatch(renderPass);
 
                     if (!batch.isEmpty()) {
@@ -94,6 +142,8 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
                         }
 
                         pass.setVertexBuffer(0, region.getResources().getGeometryBuffer().slice());
+                        pass.setStorageBuffer(0, buffer);
+                        glUniform3f(worldOffsetUniform, region.getOriginX(), region.getOriginY(), region.getOriginZ());
                         this.drawContext.updateData(region, camera);
                         batch.draw(this.drawContext);
                     }
@@ -102,5 +152,6 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
         }
 
         this.drawContext.endDraw();
+        activeProgram = null;
     }
 }

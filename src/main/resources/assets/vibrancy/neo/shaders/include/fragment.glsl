@@ -1,4 +1,4 @@
-#include "big_shot_lib:fog"
+//#include "big_shot_lib:fog"
 
 float attenuateNoCusp(float distance, float radius) {
     float s = distance / radius;
@@ -35,7 +35,7 @@ float hash4(vec4 v) {
 
 vec3 applyLight(vec3 lightColor, vec4 blockColor, vec3 pos) {
     vec3 mixedColor = mix(lightColor, lightColor * blockColor.rgb, blockColor.a) * blockColor.a;
-    return mixedColor * fogFade(pos);
+    return mixedColor;// * fogFade(pos);
 }
 
 vec3 applyLight(vec3 lightColor, vec4 blockColor, vec3 pos, vec3 lightPos, float flicker, float time) {

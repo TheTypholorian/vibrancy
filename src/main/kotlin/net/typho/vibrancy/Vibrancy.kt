@@ -1,6 +1,5 @@
 package net.typho.vibrancy
 
-import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import net.caffeinemc.mods.sodium.client.render.chunk.vertex.format.impl.CompactChunkVertex
 import net.minecraft.ChatFormatting
 import net.minecraft.client.renderer.RenderType
@@ -53,7 +52,7 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
     )
 
     @JvmField
-    val blockLightRenderPipeline = GpuObjects.renderType(
+    val blockLightRenderType = GpuObjects.renderType(
         id("block_light"),
         CompactChunkVertex.VERTEX_FORMAT,
         GpuDrawSettings.Builder()

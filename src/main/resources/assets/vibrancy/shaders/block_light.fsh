@@ -1,9 +1,11 @@
-#version 330 core
+#version 430 core
 
 #include "sodium:globals"
 #include "sodium:fog"
 #include "sodium:chunk_vertex"
+#include "vibrancy:fragment"
 
+in vec3 v_Pos;
 in vec4 v_Color; // The interpolated vertex color
 in vec2 v_TexCoord; // The interpolated block texture coordinates
 in vec2 v_FragDistance; // The fragment's distance from the camera (cylindrical and spherical)
@@ -12,6 +14,16 @@ in float fadeFactor;
 uniform sampler2D u_BlockTex; // The block texture
 
 out vec4 fragColor; // The output fragment for the color framebuffer
+
+struct Light {
+    vec3 pos;
+    float radius;
+    vec3 color;
+};
+
+layout(std430) readonly buffer LightBuffer {
+    Light lights[];
+};
 
 vec4 sampleNearest(sampler2D source, vec2 uv, vec2 pixelSize, vec2 du, vec2 dv, vec2 texelScreenSize) {
     // Convert our UV back up to texel coordinates and find out how far over we are from the center of each pixel
@@ -86,5 +98,12 @@ void main() {
     }
     #endif
 
-    fragColor = _linearFog(vec4(0, 0, 1, 0), v_FragDistance, u_FogColor, u_EnvironmentFog, u_RenderFog, fadeFactor);
+    vec3 lightColor = vec3(0);
+
+    for (uint i = 0u; i < lights.length(); i++) {
+        Light light = lights[i];
+        lightColor += samplePointLight(light.pos, v_Pos, light.radius, light.color) * 8;
+    }
+
+    fragColor = _linearFog(vec4(color.rgb * lightColor, color.a), v_FragDistance, u_FogColor, u_EnvironmentFog, u_RenderFog, fadeFactor);
 }
