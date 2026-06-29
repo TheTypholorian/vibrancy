@@ -12,6 +12,8 @@ in vec2 v_TexCoord; // The interpolated block texture coordinates
 in vec2 v_FragDistance; // The fragment's distance from the camera (cylindrical and spherical)
 
 uniform sampler2D u_BlockTex; // The block texture
+uniform sampler2D u_ReflectionTex; // The reflection texture
+uniform sampler2D u_TransmissionTex; // The transmission texture
 
 out vec4 fragColor; // The output fragment for the color framebuffer
 
@@ -101,8 +103,8 @@ void main() {
 
     vec3 lightColor = vec3(0);
     uint sectionRange = lights.sectionRanges[v_SectionPos];
-    uint sectionStart = sectionRange & 0xFFFFu;
-    uint sectionEnd = sectionRange >> 16u;
+    uint sectionStart = sectionRange >> 16u;
+    uint sectionEnd = sectionRange & 0xFFFFu;
 
     for (uint i = sectionStart; i < sectionEnd; i++) {
         Light light = lights.array[i];
@@ -110,5 +112,5 @@ void main() {
         lightColor += samplePointLight(light.pos, v_Pos, data.w * 16, data.xyz);
     }
 
-    fragColor = vec4(/*color.rgb * */lightColor * (1 - total_fog_value(v_FragDistance.y, v_FragDistance.x, u_EnvironmentFog.x, u_EnvironmentFog.y, u_RenderFog.x, u_RenderFog.y)), 0);
+    fragColor = vec4(color.rgb * lightColor * (1 - total_fog_value(v_FragDistance.y, v_FragDistance.x, u_EnvironmentFog.x, u_EnvironmentFog.y, u_RenderFog.x, u_RenderFog.y)), 0);
 }

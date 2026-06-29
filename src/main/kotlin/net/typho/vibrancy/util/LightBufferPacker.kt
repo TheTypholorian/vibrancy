@@ -54,9 +54,9 @@ object LightBufferPacker {
             var index = 0
 
             for (cell in grid) {
-                output.writeShort(index)
+                val index1 = index
                 index += cell.size
-                output.writeShort(index)
+                output.write2x2(index1, index)
             }
 
             output.skip(4)
@@ -68,10 +68,10 @@ object LightBufferPacker {
                     output.writeFloat(light.absolutePos.z)
 
                     output.write4x1(
-                        (light.radius / 16 * 255).toInt(), // TODO WTF why we have to invert???
+                        (light.radius / 16 * 255).toInt(),
                         (light.color.z * 255).toInt(),
                         (light.color.y * 255).toInt(),
-                        (light.color.x * 255).toInt(),
+                        (light.color.x * 255).toInt()
                     )
                 }
             }
