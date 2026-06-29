@@ -5,26 +5,21 @@
 #include "sodium:chunk_vertex"
 
 out vec3 v_Pos;
-out vec3 v_SectionPos;
+out flat uint v_SectionPos;
 out vec4 v_Color;
 out vec2 v_TexCoord;
 out vec2 v_FragDistance;
-out float fadeFactor;
 
 uniform isamplerBuffer u_SectionTimeInfo;
 
-struct LightSection {
-    uint data;
-};
 struct Light {
     vec3 pos;
-    float radius;
-    vec3 color;
+    uint data;
 };
 
 layout(std430) readonly buffer LightBuffer {
     ivec3 worldOffset;
-    LightSection sections[256];
+    uint sectionRanges[256];
     Light array[];
 } lights;
 
@@ -56,6 +51,8 @@ void main() {
     vec3 translation = u_RegionOffset + _get_draw_translation(_draw_id);
     vec3 position = _vert_position + translation;
 
+    float fadeFactor = 1;
+
     #ifdef USE_FOG
     v_FragDistance = getFragDistance(position);
 
@@ -71,9 +68,9 @@ void main() {
     gl_Position = u_ProjectionMatrix * u_ModelViewMatrix * vec4(position, 1.0);
 
     v_Pos = _vert_position + lights.worldOffset + _get_draw_translation(_draw_id);
-    v_SectionPos = _vert_position / 16 + _get_relative_chunk_coord(_draw_id);
+    v_SectionPos = _draw_id;
 
     // Pass the texture coordinates to the fragment shader
-    v_Color = _vert_color;
+    v_Color = _vert_color * fadeFactor;
     v_TexCoord = (_vert_tex_diffuse_coord_bias * u_TexCoordShrink) + _vert_tex_diffuse_coord; // FMA for precision
 }

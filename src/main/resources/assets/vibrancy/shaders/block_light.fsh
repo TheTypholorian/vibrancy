@@ -6,28 +6,23 @@
 #include "vibrancy:fragment"
 
 in vec3 v_Pos;
-in vec3 v_SectionPos;
+in flat uint v_SectionPos;
 in vec4 v_Color; // The interpolated vertex color
 in vec2 v_TexCoord; // The interpolated block texture coordinates
 in vec2 v_FragDistance; // The fragment's distance from the camera (cylindrical and spherical)
-in float fadeFactor;
 
 uniform sampler2D u_BlockTex; // The block texture
 
 out vec4 fragColor; // The output fragment for the color framebuffer
 
-struct LightSection {
-    uint data;
-};
 struct Light {
     vec3 pos;
-    float radius;
-    vec3 color;
+    uint data;
 };
 
 layout(std430) readonly buffer LightBuffer {
     ivec3 worldOffset;
-    LightSection sections[256];
+    uint sectionRanges[256];
     Light array[];
 } lights;
 
@@ -94,10 +89,6 @@ vec4 sampleRGSS(sampler2D source, vec2 uv, vec2 pixelSize) {
     return mix(nearestColor, rgssColor, blendFactor);
 }
 
-uint getSectionIndex(ivec3 pos) {
-    return (pos.x & 7) << 5 | (pos.y & 3) << 0 | (pos.z & 7) << 2;
-}
-
 void main() {
     vec4 color = u_UseRGSS ? sampleRGSS(u_BlockTex, v_TexCoord, u_TexelSize) : sampleNearest(u_BlockTex, v_TexCoord, u_TexelSize);
     color *= v_Color; // Apply per-vertex color modulator
@@ -109,24 +100,15 @@ void main() {
     #endif
 
     vec3 lightColor = vec3(0);
-    ivec3 sectionPos = ivec3(floor(v_SectionPos));
+    uint sectionRange = lights.sectionRanges[v_SectionPos];
+    uint sectionStart = sectionRange & 0xFFFFu;
+    uint sectionEnd = sectionRange >> 16u;
 
-    for (int x = max(sectionPos.x - 1, 0); x <= min(sectionPos.x + 1, 7); x++) {
-        for (int y = max(sectionPos.y - 1, 0); y <= min(sectionPos.y + 1, 3); y++) {
-            for (int z = max(sectionPos.z - 1, 0); z <= min(sectionPos.z + 1, 7); z++) {
-                LightSection section = lights.sections[getSectionIndex(ivec3(x, y, z))];
-
-                for (uint i = section.data >> 16u; i < (section.data & 0xFFFFu); i++) {
-                    Light light = lights.array[i];
-                    lightColor += samplePointLight(light.pos, v_Pos, light.radius, light.color);
-                }
-            }
-        }
+    for (uint i = sectionStart; i < sectionEnd; i++) {
+        Light light = lights.array[i];
+        vec4 data = unpackUnorm4x8(light.data);
+        lightColor += samplePointLight(light.pos, v_Pos, data.w * 16, data.xyz);
     }
 
-    if (lightColor == vec3(0)) {
-        fragColor = vec4(0);
-    } else {
-        fragColor = vec4(color.rgb * lightColor * (1 - total_fog_value(v_FragDistance.y, v_FragDistance.x, u_EnvironmentFog.x, u_EnvironmentFog.y, u_RenderFog.x, u_RenderFog.y)), 0);
-    }
+    fragColor = vec4(/*color.rgb * */lightColor * (1 - total_fog_value(v_FragDistance.y, v_FragDistance.x, u_EnvironmentFog.x, u_EnvironmentFog.y, u_RenderFog.x, u_RenderFog.y)), 0);
 }

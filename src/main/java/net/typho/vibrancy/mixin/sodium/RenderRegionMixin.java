@@ -15,9 +15,21 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 @Mixin(RenderRegion.class)
 public class RenderRegionMixin implements RenderRegionExtension {
     @Unique
+    private boolean vibrancy$initialized = false;
+    @Unique
     private GpuBuffer vibrancy$lightBuffer;
     @Unique
     private GpuBuffer vibrancy$shadowBuffer;
+
+    @Override
+    public boolean getVibrancy$initialized() {
+        return vibrancy$initialized;
+    }
+
+    @Override
+    public void setVibrancy$initialized(boolean b) {
+        vibrancy$initialized = b;
+    }
 
     @Override
     @Nullable
@@ -63,5 +75,7 @@ public class RenderRegionMixin implements RenderRegionExtension {
             vibrancy$shadowBuffer.recycle();
             vibrancy$shadowBuffer = null;
         }
+
+        vibrancy$initialized = false;
     }
 }

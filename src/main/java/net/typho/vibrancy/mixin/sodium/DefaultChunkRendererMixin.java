@@ -34,6 +34,7 @@ import net.typho.big_shot_lib.api.math.IVec3;
 import net.typho.big_shot_lib.api.util.buffer.MemoryPointer;
 import net.typho.vibrancy.RenderRegionExtension;
 import net.typho.vibrancy.Vibrancy;
+import net.typho.vibrancy.VibrancyConfig;
 import net.typho.vibrancy.block.impl.RayPointLight;
 import net.typho.vibrancy.block.impl.RayPointLightStorage;
 import net.typho.vibrancy.block.impl.RayPointLightType;
@@ -93,55 +94,58 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
         }
          */
 
-        activeProgram = Vibrancy.blockLightRenderType.pipeline();
+        if (VibrancyConfig.INSTANCE.getModEnabled() && VibrancyConfig.INSTANCE.getRayLightsEnabled()) {
+            activeProgram = Vibrancy.blockLightRenderType.pipeline();
 
-        if (Vibrancy.lightManager.blockLights.get(RayPointLightType.INSTANCE) instanceof RayPointLightStorage lightStorage) {
-            try (RenderPass pass = encoder.createRenderPass(() -> "Vibrancy Block Lights", renderPass.getTarget().getColorTextureView(), Optional.empty(), renderPass.getTarget().getDepthTextureView(), OptionalDouble.empty())) {
-                pass.setPipeline(this.activeProgram);
-                this.drawContext.setContext(pass, this.activeProgram);
+            if (Vibrancy.lightManager.blockLights.get(RayPointLightType.INSTANCE) instanceof RayPointLightStorage lightStorage) {
+                try (RenderPass pass = encoder.createRenderPass(() -> "Vibrancy Block Lights", renderPass.getTarget().getColorTextureView(), Optional.empty(), renderPass.getTarget().getDepthTextureView(), OptionalDouble.empty())) {
+                    pass.setPipeline(this.activeProgram);
+                    this.drawContext.setContext(pass, this.activeProgram);
 
-                if (!useIndexedTessellation && this.sharedIndexBuffer.getBufferObject() != null) {
-                    pass.setIndexBuffer(this.sharedIndexBuffer.getBufferObject(), IndexType.INT);
-                }
+                    if (!useIndexedTessellation && this.sharedIndexBuffer.getBufferObject() != null) {
+                        pass.setIndexBuffer(this.sharedIndexBuffer.getBufferObject(), IndexType.INT);
+                    }
 
-                pass.setUniform("u_Globals", uniformData);
-                pass.setUniform("u_SectionTimeInfo", sectionTimeInfo);
-                pass.bindTexture("u_LightTex", Minecraft.getInstance().gameRenderer.lightmap(), RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR));
-                pass.bindTexture("u_BlockTex", renderPass.getAtlas(), terrainSampler);
+                    pass.setUniform("u_Globals", uniformData);
+                    pass.setUniform("u_SectionTimeInfo", sectionTimeInfo);
+                    pass.bindTexture("u_LightTex", Minecraft.getInstance().gameRenderer.lightmap(), RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR));
+                    pass.bindTexture("u_BlockTex", renderPass.getAtlas(), terrainSampler);
 
-                renderLists.iterator(renderPass.isTranslucent()).forEachRemaining(renderList -> {
-                    RenderRegion region = renderList.getRegion();
-                    SectionRenderDataStorage storage = region.getStorage(renderPass);
+                    renderLists.iterator(renderPass.isTranslucent()).forEachRemaining(renderList -> {
+                        RenderRegion region = renderList.getRegion();
+                        SectionRenderDataStorage storage = region.getStorage(renderPass);
 
-                    if (storage != null) {
-                        RenderRegionExtension ext = (RenderRegionExtension) region;
-                        GpuBuffer buffer = ext.getVibrancy$lightBuffer();
+                        if (storage != null) {
+                            RenderRegionExtension ext = (RenderRegionExtension) region;
+                            GpuBuffer buffer = ext.getVibrancy$lightBuffer();
 
-                        if (lightStorage.getDirty()) {
-                            buffer = LightBufferPacker.pack(region, lightStorage.getMap().values());
-                            ext.setVibrancy$lightBuffer(buffer);
-                        }
+                            if (lightStorage.getDirty() || !ext.getVibrancy$initialized()) {
+                                buffer = LightBufferPacker.pack(region, lightStorage.getMap().values());
+                                ext.setVibrancy$lightBuffer(buffer);
+                                ext.setVibrancy$initialized(true);
+                            }
 
-                        if (buffer != null) {
-                            MultiDrawBatch batch = region.getCachedBatch(renderPass);
+                            if (buffer != null) {
+                                MultiDrawBatch batch = region.getCachedBatch(renderPass);
 
-                            if (!batch.isEmpty()) {
-                                if (useIndexedTessellation) {
-                                    pass.setIndexBuffer(region.getResources().getIndexBuffer(), IndexType.INT);
+                                if (!batch.isEmpty()) {
+                                    if (useIndexedTessellation) {
+                                        pass.setIndexBuffer(region.getResources().getIndexBuffer(), IndexType.INT);
+                                    }
+
+                                    pass.setVertexBuffer(0, region.getResources().getGeometryBuffer().slice());
+                                    pass.setStorageBuffer(0, buffer);
+                                    this.drawContext.updateData(region, camera);
+                                    batch.draw(this.drawContext);
                                 }
-
-                                pass.setVertexBuffer(0, region.getResources().getGeometryBuffer().slice());
-                                pass.setStorageBuffer(0, buffer);
-                                this.drawContext.updateData(region, camera);
-                                batch.draw(this.drawContext);
                             }
                         }
-                    }
-                });
+                    });
+                }
             }
-        }
 
-        this.drawContext.endDraw();
-        activeProgram = null;
+            this.drawContext.endDraw();
+            activeProgram = null;
+        }
     }
 }
