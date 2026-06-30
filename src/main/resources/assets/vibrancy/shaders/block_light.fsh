@@ -20,7 +20,11 @@ out vec4 fragColor; // The output fragment for the color framebuffer
 
 struct Light {
     vec3 pos;
-    uint data;
+    uint color;
+    uint radius;
+    uint cellRangeStart;
+};
+struct ShadowCell {
     uint shadowRangeStart;
     uint shadowRangeEnd;
 };
@@ -31,8 +35,11 @@ layout(std430, binding = 0) readonly buffer LightBuffer {
     Light array[];
 } lights;
 layout(std430, binding = 1) readonly buffer ShadowBuffer {
-    ColoredQuad array[];
-} shadows;
+    ColoredQuad shadows[];
+};
+layout(std430, binding = 2) readonly buffer GridBuffer {
+    ShadowCell shadowGrid[];
+};
 
 vec4 sampleNearest(sampler2D source, vec2 uv, vec2 pixelSize, vec2 du, vec2 dv, vec2 texelScreenSize) {
     // Convert our UV back up to texel coordinates and find out how far over we are from the center of each pixel
@@ -111,31 +118,76 @@ Ray ray(Light light, vec3 pos) {
     return Ray(pos, dir, 1 / dir, len);
 }
 
-vec3 testSimple(Ray ray, uint from, uint to) {
+bool isInGrid(ivec3 voxel, ivec3 gridMin, ivec3 gridMax) {
+    return any(greaterThanEqual(voxel, gridMin)) && any(lessThan(voxel, gridMax)) && voxel != ivec3(0);
+}
+
+uint getGridIndex(ivec3 voxel, uint size) {
+    ivec3 voxel1 = voxel + ivec3(size);
+    return uint((voxel1.x * size + voxel1.y) * size + voxel1.z);
+}
+
+vec3 test(Ray ray, ivec3 lightPos, uint radius, uint cellRangeStart) {
+    ivec3 voxel = ivec3(floor(ray.pos) - lightPos);
+    uint gridIndex = cellRangeStart + getGridIndex(voxel, radius);
+    ivec3 step = ivec3(sign(ray.dir));
+    ivec3 indexStep = step * ivec3(radius * radius, radius, 1);
+
+    vec3 nextPos;
+    nextPos.x = ray.dir.x > 0 ? float(voxel.x + 1) : float(voxel.x);
+    nextPos.y = ray.dir.y > 0 ? float(voxel.y + 1) : float(voxel.y);
+    nextPos.z = ray.dir.z > 0 ? float(voxel.z + 1) : float(voxel.z);
+
+    vec3 tMax = (nextPos - (ray.pos - lightPos)) * ray.invDir;
+    vec3 tDelta = abs(ray.invDir);
+
     vec3 tint = vec3(0);
     float denom = 0;
-    int hits = 0;
 
-    for (uint j = from; j < to; j++) {
-        float dist;
-        vec4 outColor;
-        ColoredQuad quad = shadows.array[j];
-    /*
-    ColoredQuad quad = ColoredQuad(
-        vec3(0, -1, 0), 0u, vec2(0),
-        vec3(0, -1, -1), 0u, vec2(0),
-        vec3(1, -1, -1), 0u, vec2(0),
-        vec3(1, -1, 0), 0u, vec2(0)
-    );
-    */
+    while (all(lessThan(abs(voxel), ivec3(radius)))) {
+        ShadowCell cell = shadowGrid[gridIndex];
 
-        if (sampleColoredQuad(true, u_BlockTex, textureSize(u_BlockTex, 0), ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor)) {
-            if (outColor.a == 1) {
-                return vec3(0);
-            } else if (outColor.a != 0) {
-                tint += outColor.rgb * outColor.a;
-                denom += outColor.a;
+        for (uint j = cell.shadowRangeStart; j < cell.shadowRangeEnd; j++) {
+            float dist;
+            vec4 outColor;
+            ColoredQuad quad = shadows[j];
+
+            if (sampleColoredQuad(true, u_BlockTex, textureSize(u_BlockTex, 0), ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor)) {
+                if (outColor.a == 1) {
+                    return vec3(0);
+                } else if (outColor.a != 0) {
+                    tint += outColor.rgb * outColor.a;
+                    denom += outColor.a;
+                }
             }
+        }
+
+        ivec3 oldVoxel = voxel;
+
+        if (tMax.x < tMax.y) {
+            if (tMax.x < tMax.z) {
+                voxel.x += step.x;
+                gridIndex += indexStep.x;
+                tMax.x += tDelta.x;
+            } else {
+                voxel.z += step.z;
+                gridIndex += indexStep.z;
+                tMax.z += tDelta.z;
+            }
+        } else {
+            if (tMax.y < tMax.z) {
+                voxel.y += step.y;
+                gridIndex += indexStep.y;
+                tMax.y += tDelta.y;
+            } else {
+                voxel.z += step.z;
+                gridIndex += indexStep.z;
+                tMax.z += tDelta.z;
+            }
+        }
+
+        if (oldVoxel == voxel) {
+            return vec3(1);
         }
     }
 
@@ -179,9 +231,9 @@ void main() {
 
     for (uint i = sectionStart; i < sectionEnd; i++) {
         Light light = lights.array[i];
-        vec4 data = unpackUnorm4x8(light.data);
+        vec4 color = unpackUnorm4x8(light.color);
         Ray ray = ray(light, texturePos);
-        lightColor += samplePointLight(light.pos, texturePos, data.w * 16, data.xyz) * testSimple(ray, light.shadowRangeStart, light.shadowRangeEnd);
+        lightColor += samplePointLight(light.pos, v_Pos, light.radius, color.xyz) * test(ray, ivec3(floor(light.pos)), light.radius, light.cellRangeStart);
     }
 
     fragColor = vec4(color.rgb * lightColor * (1 - total_fog_value(v_FragDistance.y, v_FragDistance.x, u_EnvironmentFog.x, u_EnvironmentFog.y, u_RenderFog.x, u_RenderFog.y)), 0);

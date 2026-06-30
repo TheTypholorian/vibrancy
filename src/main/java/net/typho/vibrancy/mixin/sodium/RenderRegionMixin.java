@@ -20,6 +20,8 @@ public class RenderRegionMixin implements RenderRegionExtension {
     private GpuBuffer vibrancy$lightBuffer;
     @Unique
     private GpuBuffer vibrancy$shadowBuffer;
+    @Unique
+    private GpuBuffer vibrancy$gridBuffer;
 
     @Override
     public boolean getVibrancy$initialized() {
@@ -61,21 +63,27 @@ public class RenderRegionMixin implements RenderRegionExtension {
         vibrancy$shadowBuffer = gpuBuffer;
     }
 
+    @Override
+    @Nullable
+    public GpuBuffer getVibrancy$gridBuffer() {
+        return vibrancy$gridBuffer;
+    }
+
+    @Override
+    public void setVibrancy$gridBuffer(@Nullable GpuBuffer gpuBuffer) {
+        if (vibrancy$gridBuffer != null) {
+            vibrancy$gridBuffer.recycle();
+        }
+
+        vibrancy$gridBuffer = gpuBuffer;
+    }
+
     @Inject(
             method = "delete",
             at = @At("TAIL")
     )
     private void delete(CallbackInfo ci) {
-        if (vibrancy$lightBuffer != null) {
-            vibrancy$lightBuffer.recycle();
-            vibrancy$lightBuffer = null;
-        }
-
-        if (vibrancy$shadowBuffer != null) {
-            vibrancy$shadowBuffer.recycle();
-            vibrancy$shadowBuffer = null;
-        }
-
+        vibrancy$clear();
         vibrancy$initialized = false;
     }
 }

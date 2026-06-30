@@ -14,12 +14,12 @@ uniform isamplerBuffer u_SectionTimeInfo;
 
 struct Light {
     vec3 pos;
-    uint data;
-    uint shadowRangeStart;
-    uint shadowRangeEnd;
+    uint color;
+    uint radius;
+    uint cellRangeStart;
 };
 
-layout(std430) readonly buffer LightBuffer {
+layout(std430, binding = 0) readonly buffer LightBuffer {
     ivec3 worldOffset;
     uint sectionRanges[256];
     Light array[];

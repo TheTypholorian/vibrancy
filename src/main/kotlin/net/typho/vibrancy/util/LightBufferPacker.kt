@@ -3,7 +3,6 @@ package net.typho.vibrancy.util
 import net.caffeinemc.mods.sodium.client.render.chunk.LocalSectionIndex
 import net.caffeinemc.mods.sodium.client.render.chunk.region.RenderRegion
 import net.minecraft.core.SectionPos
-import net.minecraft.world.entity.EntityType.by
 import net.typho.big_shot_lib.api.client.rendering.common.GpuObjects
 import net.typho.big_shot_lib.api.client.rendering.common.constant.GpuBufferUsage
 import net.typho.big_shot_lib.api.math.IVec3
@@ -15,17 +14,37 @@ import net.typho.vibrancy.block.impl.RayPointLight
 object LightBufferPacker {
     @JvmStatic
     fun pack(region: RenderRegion, lights: Iterable<RayPointLight>, manager: LightManager, output: RenderRegionExtension) {
-        var numShadows = 0
-        val shadows = mutableListOf<Pair<List<BlockFace>, Int>>()
-        val lightGrid = Array(256) { mutableListOf<Pair<RayPointLight, Int>>() }
+        class ShadowCell(
+            @JvmField
+            val start: Int,
+            @JvmField
+            val end: Int
+        )
+        class SectionData(
+            @JvmField
+            val light: RayPointLight,
+            @JvmField
+            val cellRangeStart: Int
+        )
+
+        var cellRangeIndex = 0
+        val shadows = mutableListOf<BlockFace>()
+        val sectionGrid = Array(256) { mutableListOf<SectionData>() }
         val sectionMeshes = hashMapOf<SectionPos, SectionMeshCache?>()
+        val grids = mutableListOf<Array<ShadowCell?>>()
         var numLightInstances = 0
         var numLights = 0
 
+        fun getGridIndex(voxel: IVec3<Int>, radius: Int): Int {
+            val voxel1 = voxel + radius
+            return (voxel1.x * radius + voxel1.y) * radius + voxel1.z
+        }
+
         for (light in lights) {
             var added = false
-            val faces by lazy {
-                val faces = mutableListOf<BlockFace>() // TODO grid
+            val cellRangeStart by lazy {
+                val gridWidth = light.radius * 2 + 1
+                val grid = arrayOfNulls<ShadowCell>(gridWidth * gridWidth * gridWidth)
 
                 light.shadowBox.iterator().forEach { pos ->
                     if (pos != light.pos) {
@@ -36,21 +55,26 @@ object LightBufferPacker {
                         )
                         sectionMeshes.computeIfAbsent(sectionPos) { key -> synchronized(manager.sectionLock) { manager.sectionMeshCaches[key] } }?.let { section ->
                             section.get(pos.x, pos.y, pos.z)?.let { block ->
-                                block.collect { faces.add(it.copyWithOffset(pos.x, pos.y, pos.z)) }
+                                val start = shadows.size
+                                block.collect { shadows.add(it.copyWithOffset(pos.x, pos.y, pos.z)) }
+                                val end = shadows.size
+                                grid[getGridIndex(pos - light.pos, light.radius)] = ShadowCell(start, end)
                             }
                         }
                     }
                 }
 
-                val index = shadows.size
-                shadows.add(faces to numShadows)
-                numShadows += faces.size
-                index
+                val start = cellRangeIndex
+
+                grids.add(grid)
+                cellRangeIndex += grid.size
+
+                start
             }
 
             for (pos in light.sections) {
                 if ((pos.x shr 3) == region.x && (pos.y shr 2) == region.y && (pos.z shr 3) == region.z) {
-                    lightGrid[LocalSectionIndex.pack(pos.x, pos.y, pos.z)].add(light to faces)
+                    sectionGrid[LocalSectionIndex.pack(pos.x, pos.y, pos.z)].add(SectionData(light, cellRangeStart))
                     numLightInstances++
 
                     if (!added) {
@@ -72,7 +96,7 @@ object LightBufferPacker {
             return
         }
 
-        if (numShadows == 0) {
+        if (shadows.isEmpty()) {
             Vibrancy.LOGGER.warn("No shadows, yet $numLights lights? Skipping")
             output.`vibrancy$clear`()
             return
@@ -91,7 +115,7 @@ object LightBufferPacker {
 
             var index = 0
 
-            for (cell in lightGrid) {
+            for (cell in sectionGrid) {
                 val index1 = index
                 index += cell.size
                 output.write2x2(index1, index)
@@ -99,22 +123,21 @@ object LightBufferPacker {
 
             output.skip(4)
 
-            for (cell in lightGrid) {
+            for (cell in sectionGrid) {
                 for (light in cell) {
-                    output.writeFloat(light.first.absolutePos.x)
-                    output.writeFloat(light.first.absolutePos.y)
-                    output.writeFloat(light.first.absolutePos.z)
+                    output.writeFloat(light.light.absolutePos.x)
+                    output.writeFloat(light.light.absolutePos.y)
+                    output.writeFloat(light.light.absolutePos.z)
 
                     output.write4x1(
-                        (light.first.radius / 16 * 255).toInt(),
-                        (light.first.color.z * 255).toInt(),
-                        (light.first.color.y * 255).toInt(),
-                        (light.first.color.x * 255).toInt()
+                        0,
+                        (light.light.color.z * 255).toInt(),
+                        (light.light.color.y * 255).toInt(),
+                        (light.light.color.x * 255).toInt()
                     )
 
-                    val shadows = shadows[light.second]
-                    output.writeInt(shadows.second)
-                    output.writeInt(shadows.first.size + shadows.second)
+                    output.writeInt(light.light.radius)
+                    output.writeInt(light.cellRangeStart)
 
                     output.skip(8)
                 }
@@ -123,23 +146,40 @@ object LightBufferPacker {
 
         val shadowBuffer = GpuObjects.buffer(
             { "Vibrancy Shadow Buffer (${region.x}, ${region.y}, ${region.z})" },
-            numShadows * 32L * 4L,
+            shadows.size * 32L * 4L,
             GpuBufferUsage.UNIFORM or GpuBufferUsage.COPY_DST // TODO optimize usage
         )
 
         shadowBuffer.upload { output ->
-            for (faces in shadows) {
-                for (face in faces.first) {
-                    face.apply { vertex ->
-                        output.writeFloat(vertex.x)
-                        output.writeFloat(vertex.y)
-                        output.writeFloat(vertex.z)
-                        output.writeInt(vertex.color)
+            for (face in shadows) {
+                face.apply { vertex ->
+                    output.writeFloat(vertex.x)
+                    output.writeFloat(vertex.y)
+                    output.writeFloat(vertex.z)
+                    output.writeInt(vertex.color)
 
-                        output.writeFloat(vertex.u)
-                        output.writeFloat(vertex.v)
+                    output.writeFloat(vertex.u)
+                    output.writeFloat(vertex.v)
 
-                        output.skip(8)
+                    output.skip(8)
+                }
+            }
+        }
+
+        val gridBuffer = GpuObjects.buffer(
+            { "Vibrancy Shadow Grid Buffer (${region.x}, ${region.y}, ${region.z})" },
+            cellRangeIndex * 8L,
+            GpuBufferUsage.UNIFORM or GpuBufferUsage.COPY_DST // TODO optimize usage
+        )
+
+        gridBuffer.upload { output ->
+            for (grid in grids) {
+                for (cell in grid) {
+                    if (cell == null) {
+                        output.writeLong(0) // must write 0, cannot skip bytes here
+                    } else {
+                        output.writeInt(cell.start)
+                        output.writeInt(cell.end)
                     }
                 }
             }
@@ -147,5 +187,6 @@ object LightBufferPacker {
 
         output.`vibrancy$lightBuffer` = lightBuffer
         output.`vibrancy$shadowBuffer` = shadowBuffer
+        output.`vibrancy$gridBuffer` = gridBuffer
     }
 }

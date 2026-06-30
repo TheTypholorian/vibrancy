@@ -124,8 +124,9 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
 
                             GpuBuffer lightBuffer = ext.getVibrancy$lightBuffer();
                             GpuBuffer shadowBuffer = ext.getVibrancy$shadowBuffer();
+                            GpuBuffer gridBuffer = ext.getVibrancy$gridBuffer();
 
-                            if (lightBuffer != null && shadowBuffer != null) {
+                            if (lightBuffer != null && shadowBuffer != null && gridBuffer != null) {
                                 MultiDrawBatch batch = region.getCachedBatch(renderPass);
 
                                 if (!batch.isEmpty()) {
@@ -136,6 +137,7 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
                                     pass.setVertexBuffer(0, region.getResources().getGeometryBuffer().slice());
                                     pass.setStorageBuffer(0, lightBuffer);
                                     pass.setStorageBuffer(1, shadowBuffer);
+                                    pass.setStorageBuffer(2, gridBuffer);
                                     this.drawContext.updateData(region, camera);
                                     batch.draw(this.drawContext);
                                 }

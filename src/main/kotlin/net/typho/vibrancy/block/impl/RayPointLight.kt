@@ -21,7 +21,7 @@ open class RayPointLight(
     @JvmField
     val flicker: Float,
     @JvmField
-    val radius: Float,
+    val radius: Int,
     @JvmField
     val offset: IVec3<Float>,
     override val pos: IVec3<Int>
@@ -60,7 +60,7 @@ open class RayPointLight(
     val absoluteBlockPos: IVec3<Float>
         get() = pos.toFloat()
     //? }
-    override val boundingBox: IRect3<Int> = IRect3(pos - radius.toInt(), pos + radius.toInt())
+    override val boundingBox: IRect3<Int> = IRect3(pos - radius, pos + radius)
     override var shadowBox: IRect3<Int> = createShadowBox()
     @JvmField
     val sections: List<SectionPos> = SectionPos.betweenClosedStream(
@@ -75,7 +75,7 @@ open class RayPointLight(
     val sectionPos = SectionPos.of(absolutePos.toBlockPos())
 
     fun createShadowBox(): IRect3<Int> {
-        val shadowRadius = ceil(radius.coerceAtMost(VibrancyConfig.rayLightShadowRadius.toFloat())).toInt()
+        val shadowRadius = radius.coerceAtMost(VibrancyConfig.rayLightShadowRadius)
         return IRect3(pos - shadowRadius, pos + shadowRadius)
     }
 
