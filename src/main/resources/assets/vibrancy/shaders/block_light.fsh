@@ -25,12 +25,12 @@ struct Light {
     uint shadowRangeEnd;
 };
 
-layout(std430) readonly buffer LightBuffer {
+layout(std430, binding = 0) readonly buffer LightBuffer {
     ivec3 worldOffset;
     uint sectionRanges[256];
     Light array[];
 } lights;
-layout(std430) readonly buffer ShadowBuffer {
+layout(std430, binding = 1) readonly buffer ShadowBuffer {
     ColoredQuad array[];
 } shadows;
 
@@ -114,13 +114,22 @@ Ray ray(Light light, vec3 pos) {
 vec3 testSimple(Ray ray, uint from, uint to) {
     vec3 tint = vec3(0);
     float denom = 0;
+    int hits = 0;
 
-    for (uint j = from; j < to; j++) { // TODO
+    for (uint j = from; j < to; j++) {
         float dist;
         vec4 outColor;
         ColoredQuad quad = shadows.array[j];
+    /*
+    ColoredQuad quad = ColoredQuad(
+        vec3(0, -1, 0), 0u, vec2(0),
+        vec3(0, -1, -1), 0u, vec2(0),
+        vec3(1, -1, -1), 0u, vec2(0),
+        vec3(1, -1, 0), 0u, vec2(0)
+    );
+    */
 
-        if (sampleColoredQuad(false, u_BlockTex, textureSize(u_BlockTex, 0), ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor)) {
+        if (sampleColoredQuad(true, u_BlockTex, textureSize(u_BlockTex, 0), ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor)) {
             if (outColor.a == 1) {
                 return vec3(0);
             } else if (outColor.a != 0) {
@@ -156,7 +165,7 @@ void main() {
         Light light = lights.array[i];
         vec4 data = unpackUnorm4x8(light.data);
         Ray ray = ray(light, v_Pos + vec3(0, 0.1, 0));
-        lightColor += /*samplePointLight(light.pos, v_Pos, data.w * 16, data.xyz) * */testSimple(ray, light.shadowRangeStart, light.shadowRangeEnd);
+        lightColor += samplePointLight(light.pos, v_Pos, data.w * 16, data.xyz) * testSimple(ray, light.shadowRangeStart, light.shadowRangeEnd);
     }
 
     fragColor = vec4(color.rgb * lightColor * (1 - total_fog_value(v_FragDistance.y, v_FragDistance.x, u_EnvironmentFog.x, u_EnvironmentFog.y, u_RenderFog.x, u_RenderFog.y)), 0);
