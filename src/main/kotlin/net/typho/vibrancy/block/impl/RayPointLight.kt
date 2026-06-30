@@ -12,7 +12,6 @@ import net.typho.big_shot_lib.api.math.IVec3
 import net.typho.vibrancy.VibrancyConfig
 import net.typho.vibrancy.util.PointLight
 import org.lwjgl.system.NativeResource
-import kotlin.math.ceil
 
 open class RayPointLight(
     level: Level,
@@ -73,9 +72,11 @@ open class RayPointLight(
     ).toList()
     @JvmField
     val sectionPos = SectionPos.of(absolutePos.toBlockPos())
+    val shadowRadius: Int
+        get() = radius.coerceAtMost(VibrancyConfig.rayLightShadowRadius)
 
     fun createShadowBox(): IRect3<Int> {
-        val shadowRadius = radius.coerceAtMost(VibrancyConfig.rayLightShadowRadius)
+        val shadowRadius = shadowRadius
         return IRect3(pos - shadowRadius, pos + shadowRadius)
     }
 

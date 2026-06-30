@@ -16,6 +16,7 @@ struct Light {
     vec3 pos;
     uint color;
     uint radius;
+    uint shadowRadius;
     uint cellRangeStart;
 };
 

@@ -14,6 +14,8 @@ import net.typho.vibrancy.block.impl.RayPointLight
 object LightBufferPacker {
     @JvmStatic
     fun pack(region: RenderRegion, lights: Iterable<RayPointLight>, manager: LightManager, output: RenderRegionExtension) {
+        Vibrancy.LOGGER.info("Packing ${region.x} ${region.y} ${region.z}")
+
         class ShadowCell(
             @JvmField
             val start: Int,
@@ -43,7 +45,7 @@ object LightBufferPacker {
         for (light in lights) {
             var added = false
             val cellRangeStart by lazy {
-                val gridWidth = light.radius * 2 + 1
+                val gridWidth = light.shadowRadius * 2 + 1
                 val grid = arrayOfNulls<ShadowCell>(gridWidth * gridWidth * gridWidth)
 
                 light.shadowBox.iterator().forEach { pos ->
@@ -58,7 +60,7 @@ object LightBufferPacker {
                                 val start = shadows.size
                                 block.collect { shadows.add(it.copyWithOffset(pos.x, pos.y, pos.z)) }
                                 val end = shadows.size
-                                grid[getGridIndex(pos - light.pos, light.radius)] = ShadowCell(start, end)
+                                grid[getGridIndex(pos - light.pos, light.shadowRadius)] = ShadowCell(start, end)
                             }
                         }
                     }
@@ -102,13 +104,13 @@ object LightBufferPacker {
             return
         }
 
+        val bufferUsage = GpuBufferUsage.UNIFORM
+
         val lightBuffer = GpuObjects.buffer(
             { "Vibrancy Light Buffer (${region.x}, ${region.y}, ${region.z})" },
             16L + 1024L + numLightInstances * 32L,
-            GpuBufferUsage.UNIFORM or GpuBufferUsage.COPY_DST // TODO optimize usage
-        )
-
-        lightBuffer.upload { output ->
+            bufferUsage
+        ) { output ->
             output.writeInt(region.originX)
             output.writeInt(region.originY)
             output.writeInt(region.originZ)
@@ -137,9 +139,10 @@ object LightBufferPacker {
                     )
 
                     output.writeInt(light.light.radius)
+                    output.writeInt(light.light.shadowRadius)
                     output.writeInt(light.cellRangeStart)
 
-                    output.skip(8)
+                    output.skip(4)
                 }
             }
         }
@@ -147,10 +150,8 @@ object LightBufferPacker {
         val shadowBuffer = GpuObjects.buffer(
             { "Vibrancy Shadow Buffer (${region.x}, ${region.y}, ${region.z})" },
             shadows.size * 32L * 4L,
-            GpuBufferUsage.UNIFORM or GpuBufferUsage.COPY_DST // TODO optimize usage
-        )
-
-        shadowBuffer.upload { output ->
+            bufferUsage
+        ) { output ->
             for (face in shadows) {
                 face.apply { vertex ->
                     output.writeFloat(vertex.x)
@@ -169,10 +170,8 @@ object LightBufferPacker {
         val gridBuffer = GpuObjects.buffer(
             { "Vibrancy Shadow Grid Buffer (${region.x}, ${region.y}, ${region.z})" },
             cellRangeIndex * 8L,
-            GpuBufferUsage.UNIFORM or GpuBufferUsage.COPY_DST // TODO optimize usage
-        )
-
-        gridBuffer.upload { output ->
+            bufferUsage
+        ) { output ->
             for (grid in grids) {
                 for (cell in grid) {
                     if (cell == null) {

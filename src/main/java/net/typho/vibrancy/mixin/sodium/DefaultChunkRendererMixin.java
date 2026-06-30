@@ -120,6 +120,7 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
 
                             if (lightStorage.getDirty() || !ext.getVibrancy$initialized()) {
                                 LightBufferPacker.pack(region, lightStorage.getMap().values(), Vibrancy.lightManager, ext);
+                                ext.setVibrancy$initialized(true);
                             }
 
                             GpuBuffer lightBuffer = ext.getVibrancy$lightBuffer();

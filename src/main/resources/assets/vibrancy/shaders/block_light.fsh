@@ -22,6 +22,7 @@ struct Light {
     vec3 pos;
     uint color;
     uint radius;
+    uint shadowRadius;
     uint cellRangeStart;
 };
 struct ShadowCell {
@@ -152,7 +153,7 @@ vec3 test(Ray ray, ivec3 lightPos, uint radius, uint cellRangeStart) {
             vec4 outColor;
             ColoredQuad quad = shadows[j];
 
-            if (sampleColoredQuad(true, u_BlockTex, textureSize(u_BlockTex, 0), ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor)) {
+            if (sampleColoredQuad(false, u_BlockTex, textureSize(u_BlockTex, 0), ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor)) {
                 if (outColor.a == 1) {
                     return vec3(0);
                 } else if (outColor.a != 0) {
@@ -231,9 +232,12 @@ void main() {
 
     for (uint i = sectionStart; i < sectionEnd; i++) {
         Light light = lights.array[i];
-        vec4 color = unpackUnorm4x8(light.color);
-        Ray ray = ray(light, texturePos);
-        lightColor += samplePointLight(light.pos, v_Pos, light.radius, color.xyz) * test(ray, ivec3(floor(light.pos)), light.radius, light.cellRangeStart);
+
+        if (all(lessThan(abs(light.pos - v_Pos), vec3(light.radius)))) {
+            vec4 color = unpackUnorm4x8(light.color);
+            Ray ray = ray(light, texturePos);
+            lightColor += samplePointLight(light.pos, v_Pos, light.radius, color.xyz) * test(ray, ivec3(floor(light.pos)), light.shadowRadius, light.cellRangeStart);
+        }
     }
 
     fragColor = vec4(color.rgb * lightColor * (1 - total_fog_value(v_FragDistance.y, v_FragDistance.x, u_EnvironmentFog.x, u_EnvironmentFog.y, u_RenderFog.x, u_RenderFog.y)), 0);
