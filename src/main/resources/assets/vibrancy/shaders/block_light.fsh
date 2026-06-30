@@ -114,9 +114,16 @@ struct Ray {
 
 Ray ray(Light light, vec3 pos) {
     vec3 delta = light.pos - pos;
-    vec3 dir = normalize(delta);
-    float len = length(delta);
-    return Ray(pos, dir, 1 / dir, len);
+    float maxDelta = max(abs(delta.x), max(abs(delta.y), abs(delta.z)));
+
+    if (maxDelta > light.shadowRadius) {
+        vec3 dir = normalize(delta);
+        return Ray(light.pos + dir * light.shadowRadius, dir, 1 / dir, light.shadowRadius);
+    } else {
+        vec3 dir = normalize(delta);
+        float len = length(delta);
+        return Ray(pos, dir, 1 / dir, len);
+    }
 }
 
 bool isInGrid(ivec3 voxel, ivec3 gridMin, ivec3 gridMax) {
@@ -234,9 +241,7 @@ void main() {
         Light light = lights.array[i];
 
         if (all(lessThan(abs(light.pos - v_Pos), vec3(light.radius)))) {
-            vec4 color = unpackUnorm4x8(light.color);
-            Ray ray = ray(light, texturePos);
-            lightColor += samplePointLight(light.pos, v_Pos, light.radius, color.xyz) * test(ray, ivec3(floor(light.pos)), light.shadowRadius, light.cellRangeStart);
+            lightColor += samplePointLight(light.pos, v_Pos, light.radius, unpackUnorm4x8(light.color).xyz) * test(ray(light, texturePos), ivec3(floor(light.pos)), light.shadowRadius, light.cellRangeStart);
         }
     }
 
