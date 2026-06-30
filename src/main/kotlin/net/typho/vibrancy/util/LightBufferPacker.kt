@@ -14,8 +14,6 @@ import net.typho.vibrancy.block.impl.RayPointLight
 object LightBufferPacker {
     @JvmStatic
     fun pack(region: RenderRegion, lights: Iterable<RayPointLight>, manager: LightManager, output: RenderRegionExtension) {
-        Vibrancy.LOGGER.info("Packing ${region.x} ${region.y} ${region.z}")
-
         class ShadowCell(
             @JvmField
             val start: Int,
@@ -99,7 +97,7 @@ object LightBufferPacker {
         }
 
         if (shadows.isEmpty()) {
-            Vibrancy.LOGGER.warn("No shadows, yet $numLights lights? Skipping")
+            Vibrancy.LOGGER.warn("No shadows, yet $numLights lights? Skipping ${region.x} ${region.y} ${region.z}")
             output.`vibrancy$clear`()
             return
         }

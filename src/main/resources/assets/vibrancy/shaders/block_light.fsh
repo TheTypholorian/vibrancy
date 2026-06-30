@@ -114,16 +114,9 @@ struct Ray {
 
 Ray ray(Light light, vec3 pos) {
     vec3 delta = light.pos - pos;
-    float maxDelta = max(abs(delta.x), max(abs(delta.y), abs(delta.z)));
-
-    if (maxDelta > light.shadowRadius) {
-        vec3 dir = normalize(delta);
-        return Ray(light.pos + dir * light.shadowRadius, dir, 1 / dir, light.shadowRadius);
-    } else {
-        vec3 dir = normalize(delta);
-        float len = length(delta);
-        return Ray(pos, dir, 1 / dir, len);
-    }
+    vec3 dir = normalize(delta);
+    float len = length(delta);
+    return Ray(pos, dir, 1 / dir, len);
 }
 
 bool isInGrid(ivec3 voxel, ivec3 gridMin, ivec3 gridMax) {
@@ -137,7 +130,6 @@ uint getGridIndex(ivec3 voxel, uint size) {
 
 vec3 test(Ray ray, ivec3 lightPos, uint radius, uint cellRangeStart) {
     ivec3 voxel = ivec3(floor(ray.pos) - lightPos);
-    uint gridIndex = cellRangeStart + getGridIndex(voxel, radius);
     ivec3 step = ivec3(sign(ray.dir));
     ivec3 indexStep = step * ivec3(radius * radius, radius, 1);
 
@@ -152,6 +144,34 @@ vec3 test(Ray ray, ivec3 lightPos, uint radius, uint cellRangeStart) {
     vec3 tint = vec3(0);
     float denom = 0;
 
+    while (any(greaterThanEqual(abs(voxel), ivec3(radius)))) {
+        ivec3 oldVoxel = voxel;
+
+        if (tMax.x < tMax.y) {
+            if (tMax.x < tMax.z) {
+                voxel.x += step.x;
+                tMax.x += tDelta.x;
+            } else {
+                voxel.z += step.z;
+                tMax.z += tDelta.z;
+            }
+        } else {
+            if (tMax.y < tMax.z) {
+                voxel.y += step.y;
+                tMax.y += tDelta.y;
+            } else {
+                voxel.z += step.z;
+                tMax.z += tDelta.z;
+            }
+        }
+
+        if (oldVoxel == voxel) {
+            return vec3(1);
+        }
+    }
+
+    uint gridIndex = cellRangeStart + getGridIndex(voxel, radius);
+
     while (all(lessThan(abs(voxel), ivec3(radius)))) {
         ShadowCell cell = shadowGrid[gridIndex];
 
@@ -160,7 +180,7 @@ vec3 test(Ray ray, ivec3 lightPos, uint radius, uint cellRangeStart) {
             vec4 outColor;
             ColoredQuad quad = shadows[j];
 
-            if (sampleColoredQuad(false, u_BlockTex, textureSize(u_BlockTex, 0), ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor)) {
+            if (sampleColoredQuad(true, u_BlockTex, textureSize(u_BlockTex, 0), ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor)) {
                 if (outColor.a == 1) {
                     return vec3(0);
                 } else if (outColor.a != 0) {
