@@ -3,6 +3,7 @@
 #include "sodium:globals"
 #include "sodium:fog"
 #include "sodium:chunk_vertex"
+#include "vibrancy:rays"
 #include "vibrancy:fragment"
 
 in vec3 v_Pos;
@@ -20,6 +21,8 @@ out vec4 fragColor; // The output fragment for the color framebuffer
 struct Light {
     vec3 pos;
     uint data;
+    uint shadowRangeStart;
+    uint shadowRangeEnd;
 };
 
 layout(std430) readonly buffer LightBuffer {
@@ -27,6 +30,9 @@ layout(std430) readonly buffer LightBuffer {
     uint sectionRanges[256];
     Light array[];
 } lights;
+layout(std430) readonly buffer ShadowBuffer {
+    ColoredQuad array[];
+} shadows;
 
 vec4 sampleNearest(sampler2D source, vec2 uv, vec2 pixelSize, vec2 du, vec2 dv, vec2 texelScreenSize) {
     // Convert our UV back up to texel coordinates and find out how far over we are from the center of each pixel
@@ -91,6 +97,46 @@ vec4 sampleRGSS(sampler2D source, vec2 uv, vec2 pixelSize) {
     return mix(nearestColor, rgssColor, blendFactor);
 }
 
+struct Ray {
+    vec3 pos;
+    vec3 dir;
+    vec3 invDir;
+    float len;
+};
+
+Ray ray(Light light, vec3 pos) {
+    vec3 delta = light.pos - pos;
+    vec3 dir = normalize(delta);
+    float len = length(delta);
+    return Ray(pos, dir, 1 / dir, len);
+}
+
+vec3 testSimple(Ray ray, uint from, uint to) {
+    vec3 tint = vec3(0);
+    float denom = 0;
+
+    for (uint j = from; j < to; j++) { // TODO
+        float dist;
+        vec4 outColor;
+        ColoredQuad quad = shadows.array[j];
+
+        if (sampleColoredQuad(false, u_BlockTex, textureSize(u_BlockTex, 0), ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor)) {
+            if (outColor.a == 1) {
+                return vec3(0);
+            } else if (outColor.a != 0) {
+                tint += outColor.rgb * outColor.a;
+                denom += outColor.a;
+            }
+        }
+    }
+
+    if (denom > 0) {
+        return tint / denom;
+    } else {
+        return vec3(1);
+    }
+}
+
 void main() {
     vec4 color = u_UseRGSS ? sampleRGSS(u_BlockTex, v_TexCoord, u_TexelSize) : sampleNearest(u_BlockTex, v_TexCoord, u_TexelSize);
     color *= v_Color; // Apply per-vertex color modulator
@@ -109,7 +155,8 @@ void main() {
     for (uint i = sectionStart; i < sectionEnd; i++) {
         Light light = lights.array[i];
         vec4 data = unpackUnorm4x8(light.data);
-        lightColor += samplePointLight(light.pos, v_Pos, data.w * 16, data.xyz);
+        Ray ray = ray(light, v_Pos + vec3(0, 0.1, 0));
+        lightColor += /*samplePointLight(light.pos, v_Pos, data.w * 16, data.xyz) * */testSimple(ray, light.shadowRangeStart, light.shadowRangeEnd);
     }
 
     fragColor = vec4(color.rgb * lightColor * (1 - total_fog_value(v_FragDistance.y, v_FragDistance.x, u_EnvironmentFog.x, u_EnvironmentFog.y, u_RenderFog.x, u_RenderFog.y)), 0);

@@ -117,15 +117,15 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
 
                         if (storage != null) {
                             RenderRegionExtension ext = (RenderRegionExtension) region;
-                            GpuBuffer buffer = ext.getVibrancy$lightBuffer();
 
                             if (lightStorage.getDirty() || !ext.getVibrancy$initialized()) {
-                                buffer = LightBufferPacker.pack(region, lightStorage.getMap().values());
-                                ext.setVibrancy$lightBuffer(buffer);
-                                ext.setVibrancy$initialized(true);
+                                LightBufferPacker.pack(region, lightStorage.getMap().values(), Vibrancy.lightManager, ext);
                             }
 
-                            if (buffer != null) {
+                            GpuBuffer lightBuffer = ext.getVibrancy$lightBuffer();
+                            GpuBuffer shadowBuffer = ext.getVibrancy$shadowBuffer();
+
+                            if (lightBuffer != null && shadowBuffer != null) {
                                 MultiDrawBatch batch = region.getCachedBatch(renderPass);
 
                                 if (!batch.isEmpty()) {
@@ -134,7 +134,8 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
                                     }
 
                                     pass.setVertexBuffer(0, region.getResources().getGeometryBuffer().slice());
-                                    pass.setStorageBuffer(0, buffer);
+                                    pass.setStorageBuffer(0, lightBuffer);
+                                    pass.setStorageBuffer(1, shadowBuffer);
                                     this.drawContext.updateData(region, camera);
                                     batch.draw(this.drawContext);
                                 }

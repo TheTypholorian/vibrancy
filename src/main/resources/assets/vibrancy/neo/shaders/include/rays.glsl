@@ -22,6 +22,12 @@ struct Quad {
     vec3 vert3; uint uv3;
     vec3 vert4; uint uv4;
 };
+struct ColoredQuad {
+    vec3 vert1; uint color1; vec2 uv1;
+    vec3 vert2; uint color2; vec2 uv2;
+    vec3 vert3; uint color3; vec2 uv3;
+    vec3 vert4; uint color4; vec2 uv4;
+};
 struct ComplexQuad {
     vec3 vert1; float u1; float v1; uint overlay1; uint color1; uint normal1;
     vec3 vert2; float u2; float v2; uint overlay2; uint color2; uint normal2;
@@ -94,6 +100,21 @@ bool sampleComplexQuad(bool checkDir, sampler2D Sampler0, ivec2 Sampler0Size, ve
         vec2 texUv = mix(mix(vec2(q.u1, q.v1), vec2(q.u2, q.v2), uv.x), mix(vec2(q.u4, q.v4), vec2(q.u3, q.v3), uv.x), uv.y);
         vec4 pixel = texture(Sampler0, texUv);
         outColor = pixel;
+
+        return true;
+    } else {
+        outColor = vec4(0);
+        return false;
+    }
+}
+
+bool sampleColoredQuad(bool checkDir, sampler2D Sampler0, ivec2 Sampler0Size, vec3 origin, vec3 dir, float len, float margin, ColoredQuad q, out float dist, out vec4 outColor) {
+    vec2 uv;
+
+    if (raycastQuad(checkDir, origin, dir, len, margin, q.vert1, q.vert2, q.vert3, q.vert4, uv, dist)) {
+        //vec2 texUv = mix(mix(q.uv1, q.uv2, uv.x), mix(q.uv4, q.uv3, uv.x), uv.y);
+        //vec4 pixel = texture(Sampler0, texUv);
+        outColor = vec4(1);// pixel;
 
         return true;
     } else {
