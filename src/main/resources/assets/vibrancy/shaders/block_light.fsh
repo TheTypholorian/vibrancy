@@ -146,7 +146,23 @@ vec3 testSimple(Ray ray, uint from, uint to) {
     }
 }
 
+vec3 snapVertexPosition() {
+    ivec2 textureSize = textureSize(u_BlockTex, 0);
+    vec2 texelPos = v_TexCoord * textureSize;
+    vec2 d = (floor(texelPos) + 0.5 - texelPos) / textureSize;
+
+    vec2 stepA = dFdx(v_TexCoord);
+    vec2 stepB = dFdy(v_TexCoord);
+    float det = stepA.x * stepB.y - stepA.y * stepB.x;
+    float a = (d.x * stepB.y - d.y * stepB.x) / det;
+    float b = (-d.x * stepA.y + d.y * stepA.x) / det;
+
+    return v_Pos + dFdx(v_Pos) * a + dFdy(v_Pos) * b;
+}
+
 void main() {
+    vec3 texturePos = snapVertexPosition();
+
     vec4 color = u_UseRGSS ? sampleRGSS(u_BlockTex, v_TexCoord, u_TexelSize) : sampleNearest(u_BlockTex, v_TexCoord, u_TexelSize);
     color *= v_Color; // Apply per-vertex color modulator
 
@@ -164,8 +180,8 @@ void main() {
     for (uint i = sectionStart; i < sectionEnd; i++) {
         Light light = lights.array[i];
         vec4 data = unpackUnorm4x8(light.data);
-        Ray ray = ray(light, v_Pos + vec3(0, 0.1, 0));
-        lightColor += samplePointLight(light.pos, v_Pos, data.w * 16, data.xyz) * testSimple(ray, light.shadowRangeStart, light.shadowRangeEnd);
+        Ray ray = ray(light, texturePos);
+        lightColor += samplePointLight(light.pos, texturePos, data.w * 16, data.xyz) * testSimple(ray, light.shadowRangeStart, light.shadowRangeEnd);
     }
 
     fragColor = vec4(color.rgb * lightColor * (1 - total_fog_value(v_FragDistance.y, v_FragDistance.x, u_EnvironmentFog.x, u_EnvironmentFog.y, u_RenderFog.x, u_RenderFog.y)), 0);

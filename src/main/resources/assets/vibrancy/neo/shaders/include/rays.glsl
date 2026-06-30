@@ -113,7 +113,8 @@ bool sampleColoredQuad(bool checkDir, sampler2D Sampler0, ivec2 Sampler0Size, ve
 
     if (raycastQuad(checkDir, origin, dir, len, margin, q.vert1, q.vert2, q.vert3, q.vert4, uv, dist)) {
         vec2 texUv = mix(mix(q.uv1, q.uv2, uv.x), mix(q.uv4, q.uv3, uv.x), uv.y);
-        vec4 pixel = texture(Sampler0, texUv);
+        vec4 color = mix(mix(unpackUnorm4x8(q.color1), unpackUnorm4x8(q.color2), uv.x), mix(unpackUnorm4x8(q.color4), unpackUnorm4x8(q.color3), uv.x), uv.y);
+        vec4 pixel = texture(Sampler0, texUv) * color;
         outColor = pixel;
 
         return true;
