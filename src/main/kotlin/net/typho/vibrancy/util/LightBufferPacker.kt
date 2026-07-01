@@ -30,8 +30,10 @@ object LightBufferPacker {
 
         var cellRangeIndex = 0
         val shadows = mutableListOf<BlockFace>()
+        var hasShadows = false
+        val blockShadows = mutableMapOf<IVec3<Int>, ShadowCell?>()
         val sectionGrid = Array(256) { mutableListOf<SectionData>() }
-        val sectionCache = ChunkSectionCache(Minecraft.getInstance().level!!)
+        //val sectionCache = ChunkSectionCache(Minecraft.getInstance().level!!)
         val sectionMeshes = hashMapOf<SectionPos, SectionMeshCache?>()
         val grids = mutableListOf<Array<ShadowCell?>>()
         var numLightInstances = 0
@@ -48,30 +50,40 @@ object LightBufferPacker {
                 val gridWidth = light.shadowRadius * 2 + 1
                 val grid = arrayOfNulls<ShadowCell>(gridWidth * gridWidth * gridWidth)
 
-                sectionCache[light.shadowBox].forEach { (pos, state) ->
+                light.shadowBox.iterator().forEach { pos -> //TODO figure out why section cache block state is wrong
+                    val state = Minecraft.getInstance().level!!.getBlockState(pos.toBlockPos())
+
                     try {
                         if (pos != light.pos) {
-                            if (state.isSolidRender) {
-                                grid[getGridIndex(pos - light.pos, light.shadowRadius)] = ShadowCell(0, 1)
+                            val cell = if (state.isAir) {
+                                null
+                            } else if (state.isSolidRender) {
+                                ShadowCell(0, 1)
                             } else {
-                                val sectionPos = SectionPos.of(
-                                    SectionPos.blockToSectionCoord(pos.x),
-                                    SectionPos.blockToSectionCoord(pos.y),
-                                    SectionPos.blockToSectionCoord(pos.z)
-                                )
-                                sectionMeshes.computeIfAbsent(sectionPos) { key -> synchronized(manager.sectionLock) { manager.sectionMeshCaches[key] } }?.let { section ->
-                                    section.get(pos.x, pos.y, pos.z)?.let { block ->
-                                        val start = shadows.size
-                                        block.collect { shadows.add(it.copyWithOffset(pos.x, pos.y, pos.z)) }
-                                        val end = shadows.size
-                                        grid[getGridIndex(pos - light.pos, light.shadowRadius)] = ShadowCell(start, (end - start) shl 1)
+                                blockShadows.computeIfAbsent(pos) {
+                                    val sectionPos = SectionPos.of(
+                                        SectionPos.blockToSectionCoord(pos.x),
+                                        SectionPos.blockToSectionCoord(pos.y),
+                                        SectionPos.blockToSectionCoord(pos.z)
+                                    )
+                                    sectionMeshes.computeIfAbsent(sectionPos) { key -> synchronized(manager.sectionLock) { manager.sectionMeshCaches[key] } }?.let { section ->
+                                        section.get(pos.x, pos.y, pos.z)?.let { block ->
+                                            val start = shadows.size
+                                            block.collect { shadows.add(it.copyWithOffset(pos.x, pos.y, pos.z)) }
+                                            val end = shadows.size
+                                            ShadowCell(start, (end - start) shl 1)
+                                        }
                                     }
                                 }
                             }
+                            cell?.let {
+                                grid[getGridIndex(pos - light.pos, light.shadowRadius)] = it
+                                hasShadows = true
+                            }
                         }
                     } catch (e: Exception) {
+                        println("$pos $state")
                         e.printStackTrace()
-                        println(pos)
                     }
                 }
 
@@ -107,7 +119,7 @@ object LightBufferPacker {
             return
         }
 
-        if (shadows.isEmpty()) {
+        if (!hasShadows) {
             Vibrancy.LOGGER.warn("No shadows, yet $numLights lights? Skipping ${region.x} ${region.y} ${region.z}")
             output.`vibrancy$clear`()
             return
@@ -156,7 +168,7 @@ object LightBufferPacker {
             }
         }
 
-        val shadowBuffer = GpuObjects.buffer(
+        val shadowBuffer = if (shadows.isEmpty()) null else GpuObjects.buffer(
             { "Vibrancy Shadow Buffer (${region.x}, ${region.y}, ${region.z})" },
             shadows.size * 32L * 4L,
             bufferUsage
@@ -193,7 +205,7 @@ object LightBufferPacker {
             }
         }
 
-        Vibrancy.LOGGER.info("Uploading ${lightBuffer.size} light buffer, ${shadowBuffer.size} shadow buffer, ${gridBuffer.size} grid buffer, total of ${lightBuffer.size + shadowBuffer.size + gridBuffer.size} bytes. $numLights lights, $numLightInstances light instances, ${shadows.size} shadows, meaning ${shadows.size / numLights} shadows per light, ${shadows.size / numLightInstances} shadows per light instance")
+        Vibrancy.LOGGER.info("Uploading ${lightBuffer.size} light buffer, ${shadowBuffer?.size} shadow buffer, ${gridBuffer.size} grid buffer, total of ${lightBuffer.size + (shadowBuffer?.size ?: 0) + gridBuffer.size} bytes. $numLights lights, $numLightInstances light instances, ${shadows.size} shadows, meaning ${shadows.size / numLights} shadows per light, ${shadows.size / numLightInstances} shadows per light instance")
 
         output.`vibrancy$lightBuffer` = lightBuffer
         output.`vibrancy$shadowBuffer` = shadowBuffer
