@@ -2,7 +2,6 @@
 
 #include "sodium:globals"
 #include "sodium:fog"
-#include "sodium:chunk_vertex"
 #include "vibrancy:rays"
 #include "vibrancy:fragment"
 

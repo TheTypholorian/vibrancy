@@ -49,30 +49,29 @@ object LightBufferPacker {
                 val grid = arrayOfNulls<ShadowCell>(gridWidth * gridWidth * gridWidth)
 
                 sectionCache[light.shadowBox].forEach { (pos, state) ->
-                    if (pos != light.pos) {
-                        if (state.isSolidRender) {
-                            grid[getGridIndex(pos - light.pos, light.shadowRadius)] = ShadowCell(0, 1)
-                        } else {
-                            val sectionPos = SectionPos.of(
-                                SectionPos.blockToSectionCoord(pos.x),
-                                SectionPos.blockToSectionCoord(pos.y),
-                                SectionPos.blockToSectionCoord(pos.z)
-                            )
-                            sectionMeshes.computeIfAbsent(sectionPos) { key -> synchronized(manager.sectionLock) { manager.sectionMeshCaches[key] } }?.let { section ->
-                                section.get(pos.x, pos.y, pos.z)?.let { block ->
-                                    val start = shadows.size
-                                    block.collect {
-                                        val face = it.copyWithOffset(pos.x, pos.y, pos.z)
-
-                                        if (face.pointsToward(light.absolutePos.x, light.absolutePos.y, light.absolutePos.z)) {
-                                            shadows.add(face)
-                                        }
+                    try {
+                        if (pos != light.pos) {
+                            if (state.isSolidRender) {
+                                grid[getGridIndex(pos - light.pos, light.shadowRadius)] = ShadowCell(0, 1)
+                            } else {
+                                val sectionPos = SectionPos.of(
+                                    SectionPos.blockToSectionCoord(pos.x),
+                                    SectionPos.blockToSectionCoord(pos.y),
+                                    SectionPos.blockToSectionCoord(pos.z)
+                                )
+                                sectionMeshes.computeIfAbsent(sectionPos) { key -> synchronized(manager.sectionLock) { manager.sectionMeshCaches[key] } }?.let { section ->
+                                    section.get(pos.x, pos.y, pos.z)?.let { block ->
+                                        val start = shadows.size
+                                        block.collect { shadows.add(it.copyWithOffset(pos.x, pos.y, pos.z)) }
+                                        val end = shadows.size
+                                        grid[getGridIndex(pos - light.pos, light.shadowRadius)] = ShadowCell(start, (end - start) shl 1)
                                     }
-                                    val end = shadows.size
-                                    grid[getGridIndex(pos - light.pos, light.shadowRadius)] = ShadowCell(start, end - start)
                                 }
                             }
                         }
+                    } catch (e: Exception) {
+                        e.printStackTrace()
+                        println(pos)
                     }
                 }
 
