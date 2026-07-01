@@ -2,6 +2,7 @@ package net.typho.vibrancy.util
 
 import net.caffeinemc.mods.sodium.client.render.chunk.LocalSectionIndex
 import net.caffeinemc.mods.sodium.client.render.chunk.region.RenderRegion
+import net.minecraft.client.Minecraft
 import net.minecraft.core.SectionPos
 import net.typho.big_shot_lib.api.client.rendering.common.GpuObjects
 import net.typho.big_shot_lib.api.client.rendering.common.constant.GpuBufferUsage
@@ -18,7 +19,7 @@ object LightBufferPacker {
             @JvmField
             val start: Int,
             @JvmField
-            val end: Int
+            val data: Int
         )
         class SectionData(
             @JvmField
@@ -30,6 +31,7 @@ object LightBufferPacker {
         var cellRangeIndex = 0
         val shadows = mutableListOf<BlockFace>()
         val sectionGrid = Array(256) { mutableListOf<SectionData>() }
+        val sectionCache = ChunkSectionCache(Minecraft.getInstance().level!!)
         val sectionMeshes = hashMapOf<SectionPos, SectionMeshCache?>()
         val grids = mutableListOf<Array<ShadowCell?>>()
         var numLightInstances = 0
@@ -46,19 +48,29 @@ object LightBufferPacker {
                 val gridWidth = light.shadowRadius * 2 + 1
                 val grid = arrayOfNulls<ShadowCell>(gridWidth * gridWidth * gridWidth)
 
-                light.shadowBox.iterator().forEach { pos ->
+                sectionCache[light.shadowBox].forEach { (pos, state) ->
                     if (pos != light.pos) {
-                        val sectionPos = SectionPos.of(
-                            SectionPos.blockToSectionCoord(pos.x),
-                            SectionPos.blockToSectionCoord(pos.y),
-                            SectionPos.blockToSectionCoord(pos.z)
-                        )
-                        sectionMeshes.computeIfAbsent(sectionPos) { key -> synchronized(manager.sectionLock) { manager.sectionMeshCaches[key] } }?.let { section ->
-                            section.get(pos.x, pos.y, pos.z)?.let { block ->
-                                val start = shadows.size
-                                block.collect { shadows.add(it.copyWithOffset(pos.x, pos.y, pos.z)) }
-                                val end = shadows.size
-                                grid[getGridIndex(pos - light.pos, light.shadowRadius)] = ShadowCell(start, end)
+                        if (state.isSolidRender) {
+                            grid[getGridIndex(pos - light.pos, light.shadowRadius)] = ShadowCell(0, 1)
+                        } else {
+                            val sectionPos = SectionPos.of(
+                                SectionPos.blockToSectionCoord(pos.x),
+                                SectionPos.blockToSectionCoord(pos.y),
+                                SectionPos.blockToSectionCoord(pos.z)
+                            )
+                            sectionMeshes.computeIfAbsent(sectionPos) { key -> synchronized(manager.sectionLock) { manager.sectionMeshCaches[key] } }?.let { section ->
+                                section.get(pos.x, pos.y, pos.z)?.let { block ->
+                                    val start = shadows.size
+                                    block.collect {
+                                        val face = it.copyWithOffset(pos.x, pos.y, pos.z)
+
+                                        if (face.pointsToward(light.absolutePos.x, light.absolutePos.y, light.absolutePos.z)) {
+                                            shadows.add(face)
+                                        }
+                                    }
+                                    val end = shadows.size
+                                    grid[getGridIndex(pos - light.pos, light.shadowRadius)] = ShadowCell(start, end - start)
+                                }
                             }
                         }
                     }
@@ -176,11 +188,13 @@ object LightBufferPacker {
                         output.writeLong(0) // must write 0, cannot skip bytes here
                     } else {
                         output.writeInt(cell.start)
-                        output.writeInt(cell.end)
+                        output.writeInt(cell.data)
                     }
                 }
             }
         }
+
+        Vibrancy.LOGGER.info("Uploading ${lightBuffer.size} light buffer, ${shadowBuffer.size} shadow buffer, ${gridBuffer.size} grid buffer, total of ${lightBuffer.size + shadowBuffer.size + gridBuffer.size} bytes. $numLights lights, $numLightInstances light instances, ${shadows.size} shadows, meaning ${shadows.size / numLights} shadows per light, ${shadows.size / numLightInstances} shadows per light instance")
 
         output.`vibrancy$lightBuffer` = lightBuffer
         output.`vibrancy$shadowBuffer` = shadowBuffer

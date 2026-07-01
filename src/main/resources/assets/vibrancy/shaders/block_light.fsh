@@ -26,8 +26,8 @@ struct Light {
     uint cellRangeStart;
 };
 struct ShadowCell {
-    uint shadowRangeStart;
-    uint shadowRangeEnd;
+    uint shadowIndex;
+    uint data;
 };
 
 layout(std430, binding = 0) readonly buffer LightBuffer {
@@ -143,8 +143,11 @@ vec3 test(Ray ray, ivec3 lightPos, uint radius, uint cellRangeStart) {
 
     vec3 tint = vec3(0);
     float denom = 0;
+    uint index = 0u;
 
     while (any(greaterThanEqual(abs(voxel), ivec3(radius)))) {
+        index++;
+
         ivec3 oldVoxel = voxel;
 
         if (tMax.x < tMax.y) {
@@ -173,19 +176,29 @@ vec3 test(Ray ray, ivec3 lightPos, uint radius, uint cellRangeStart) {
     uint gridIndex = cellRangeStart + getGridIndex(voxel, radius);
 
     while (all(lessThan(abs(voxel), ivec3(radius)))) {
+        index++;
+
         ShadowCell cell = shadowGrid[gridIndex];
 
-        for (uint j = cell.shadowRangeStart; j < cell.shadowRangeEnd; j++) {
-            float dist;
-            vec4 outColor;
-            ColoredQuad quad = shadows[j];
+        if ((cell.data & 1u) == 1u) {
+            if (index > 1u) {
+                return vec3(0);
+            }
+        } else {
+            uint endIndex = cell.shadowIndex + (cell.data >> 1u);
 
-            if (sampleColoredQuad(true, u_BlockTex, textureSize(u_BlockTex, 0), ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor)) {
-                if (outColor.a == 1) {
-                    return vec3(0);
-                } else if (outColor.a != 0) {
-                    tint += outColor.rgb * outColor.a;
-                    denom += outColor.a;
+            for (uint j = cell.shadowIndex; j < endIndex; j++) {
+                float dist;
+                vec4 outColor;
+                ColoredQuad quad = shadows[j];
+
+                if (sampleColoredQuad(true, u_BlockTex, textureSize(u_BlockTex, 0), ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor)) {
+                    if (outColor.a == 1) {
+                        return vec3(0);
+                    } else if (outColor.a != 0) {
+                        tint += outColor.rgb * outColor.a;
+                        denom += outColor.a;
+                    }
                 }
             }
         }

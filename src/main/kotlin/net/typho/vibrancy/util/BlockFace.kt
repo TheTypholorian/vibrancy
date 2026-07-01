@@ -1,8 +1,11 @@
 package net.typho.vibrancy.util
 
 import net.typho.big_shot_lib.api.client.rendering.common.GpuTexture
+import net.typho.big_shot_lib.api.client.rendering.util.PackedNormal
 import net.typho.big_shot_lib.api.client.rendering.util.mesh.PrimitiveQuad
 import net.typho.big_shot_lib.api.client.rendering.util.mesh.PrimitiveVertex
+import net.typho.big_shot_lib.api.math.IVec3
+import org.joml.Vector3f
 import kotlin.math.abs
 import kotlin.math.ceil
 
@@ -44,6 +47,11 @@ open class BlockFace(
 
     override fun copyWithOffset(x: Int, y: Int, z: Int): BlockFace {
         return copyWithOffset(x.toFloat(), y.toFloat(), z.toFloat())
+    }
+
+    fun pointsToward(x: Float, y: Float, z: Float): Boolean {
+        val delta = Vector3f(x - v0.x, y - v0.y, z - v0.z).normalize()
+        return Vector3f(PackedNormal.unpackX(v0.normal), PackedNormal.unpackY(v0.normal), PackedNormal.unpackZ(v0.normal)).dot(delta) > 0
     }
 
     open class Consumer(

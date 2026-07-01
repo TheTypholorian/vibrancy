@@ -44,7 +44,8 @@ class ChunkSectionCache(
             }
 
             override fun next(): Pair<BlockPos, BlockState> {
-                val item = sections.get(SectionPos.blockToSectionCoord(pos.x), SectionPos.blockToSectionCoord(pos.y), SectionPos.blockToSectionCoord(pos.z)).getBlockState(pos.x and 15, pos.y and 15, pos.z and 15)
+                val item = sections.get(SectionPos.blockToSectionCoord(pos.x), SectionPos.blockToSectionCoord(pos.y), SectionPos.blockToSectionCoord(pos.z))
+                    .getBlockState(SectionPos.sectionRelative(pos.x), SectionPos.sectionRelative(pos.y), SectionPos.sectionRelative(pos.z))
 
                 pos.z++
 
