@@ -136,13 +136,13 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
                                     }
 
                                     pass.setVertexBuffer(0, region.getResources().getGeometryBuffer().slice());
-                                    pass.setStorageBuffer(0, lightBuffer);
+                                    pass.setStorageBuffer("LightBuffer", lightBuffer);
 
                                     if (shadowBuffer != null) {
-                                        pass.setStorageBuffer(1, shadowBuffer);
+                                        pass.setStorageBuffer("ShadowBuffer", shadowBuffer);
                                     }
 
-                                    pass.setStorageBuffer(2, gridBuffer);
+                                    pass.setStorageBuffer("GridBuffer", gridBuffer);
                                     this.drawContext.updateData(region, camera);
                                     batch.draw(this.drawContext);
                                 }

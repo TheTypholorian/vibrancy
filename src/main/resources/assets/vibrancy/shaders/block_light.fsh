@@ -25,15 +25,15 @@ struct Light {
     uint cellRangeStart;
 };
 
-layout(std430, binding = 0) readonly buffer LightBuffer {
+layout(std430) readonly buffer LightBuffer {
     ivec3 worldOffset;
     uint sectionRanges[256];
     Light array[];
 } lights;
-layout(std430, binding = 1) readonly buffer ShadowBuffer {
+layout(std430) readonly buffer ShadowBuffer {
     ColoredQuad shadows[];
 };
-layout(std430, binding = 2) readonly buffer GridBuffer {
+layout(std430) readonly buffer GridBuffer {
     uint shadowGrid[];
 };
 
