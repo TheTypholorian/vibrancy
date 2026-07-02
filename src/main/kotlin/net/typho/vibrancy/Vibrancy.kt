@@ -27,6 +27,7 @@ import net.typho.big_shot_lib.api.event.NeoEventBus
 import net.typho.big_shot_lib.api.math.IVec3
 import net.typho.vibrancy.block.BlockLightInfoLoader
 import net.typho.vibrancy.block.BlockLightRegistry
+import net.typho.vibrancy.util.ExtraAtlases
 import net.typho.vibrancy.sky.SkyLightInfoLoader
 import net.typho.vibrancy.sky.SkyLightRegistry
 import org.slf4j.Logger
@@ -115,6 +116,7 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
         bus.register(AddAssetReloadListenersEvent { output ->
             output(BlockLightInfoLoader)
             output(SkyLightInfoLoader)
+            output(ExtraAtlases)
         })
         bus.register(ClientLevelChangedEvent { old, new ->
             if (VibrancyConfig.modEnabled) {
@@ -127,6 +129,7 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
         bus.register(ClientEndFrameEvent {
             lightManager.postRender()
         })
+        ExtraAtlases.onInitializeClient(bus)
         /*
         bus.register(RegisterDebugScreenEntriesEvent { output ->
             output(DebugScreenEntry(id("debug_info"), false) { out ->

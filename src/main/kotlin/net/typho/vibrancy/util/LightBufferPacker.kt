@@ -175,12 +175,18 @@ object LightBufferPacker {
                     output.writeFloat(vertex.x)
                     output.writeFloat(vertex.y)
                     output.writeFloat(vertex.z)
+                    //output.writeShort(((vertex.x - 0.5f) / 1.5f * 32767).toInt())
+                    //output.writeShort(((vertex.y - 0.5f) / 1.5f * 32767).toInt())
+                    //output.writeShort(((vertex.z - 0.5f) / 1.5f * 32767).toInt())
+                    //output.skip(2)
+
                     output.writeInt(vertex.color)
+                    output.write2x2(
+                        (vertex.u * 65535).toInt(),
+                        (vertex.v * 65535).toInt()
+                    )
 
-                    output.writeFloat(vertex.u)
-                    output.writeFloat(vertex.v)
-
-                    output.skip(8)
+                    output.skip(12)
                 }
             }
         }

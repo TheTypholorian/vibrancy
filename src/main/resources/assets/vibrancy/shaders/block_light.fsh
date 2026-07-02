@@ -110,8 +110,9 @@ struct Ray {
 Ray ray(Light light, vec3 pos) {
     vec3 delta = light.pos - pos;
     vec3 dir = normalize(delta);
+    vec3 invDir = 1 / dir;
     float len = length(delta);
-    return Ray(pos, dir, 1 / dir, len);
+    return Ray(pos, dir, invDir, len);
 }
 
 uint getGridIndex(ivec3 voxel, uint radius, uint size) {
@@ -120,7 +121,7 @@ uint getGridIndex(ivec3 voxel, uint radius, uint size) {
 }
 
 vec3 test(Ray ray, ivec3 lightPos, uint radius, uint cellRangeStart) {
-    ivec3 voxel = ivec3(floor(ray.pos) - lightPos);
+    ivec3 voxel = clamp(ivec3(floor(ray.pos) - lightPos), ivec3(-radius), ivec3(radius));
     ivec3 step = ivec3(sign(ray.dir));
     uint gridSize = radius * 2 + 1;
     ivec3 indexStep = step * ivec3(gridSize * gridSize, gridSize, 1);
@@ -136,35 +137,9 @@ vec3 test(Ray ray, ivec3 lightPos, uint radius, uint cellRangeStart) {
     vec3 tint = vec3(0);
     float denom = 0;
 
-    while (any(greaterThanEqual(abs(voxel), ivec3(radius)))) {
-        ivec3 oldVoxel = voxel;
-
-        if (tMax.x < tMax.y) {
-            if (tMax.x < tMax.z) {
-                voxel.x += step.x;
-                tMax.x += tDelta.x;
-            } else {
-                voxel.z += step.z;
-                tMax.z += tDelta.z;
-            }
-        } else {
-            if (tMax.y < tMax.z) {
-                voxel.y += step.y;
-                tMax.y += tDelta.y;
-            } else {
-                voxel.z += step.z;
-                tMax.z += tDelta.z;
-            }
-        }
-
-        if (oldVoxel == voxel) {
-            return vec3(1);
-        }
-    }
-
     uint gridIndex = cellRangeStart + getGridIndex(voxel, radius, gridSize);
 
-    while (all(lessThan(abs(voxel), ivec3(radius))) && voxel != ivec3(0)) {
+    while (all(lessThanEqual(abs(voxel), ivec3(radius))) && voxel != ivec3(0)) {
         uint cell = shadowGrid[gridIndex];
         bool cellSolid = (cell & 1u) == 1u;
 
@@ -179,7 +154,7 @@ vec3 test(Ray ray, ivec3 lightPos, uint radius, uint cellRangeStart) {
                 vec4 outColor;
                 ColoredQuad quad = shadows[j];
 
-                if (sampleColoredQuad(false, u_BlockTex, textureSize(u_BlockTex, 0), ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor)) {
+                if (sampleColoredQuad(true, u_TransmissionTex, textureSize(u_TransmissionTex, 0), ray.pos, ray.dir, ray.len, 1e-3, vec3(voxel + lightPos) + 0.5, quad, dist, outColor)) {
                     if (outColor.a == 1) {
                         return vec3(0);
                     } else if (outColor.a != 0) {
@@ -245,12 +220,6 @@ void main() {
 
     vec4 color = u_UseRGSS ? sampleRGSS(u_BlockTex, v_TexCoord, u_TexelSize) : sampleNearest(u_BlockTex, v_TexCoord, u_TexelSize);
     color *= v_Color; // Apply per-vertex color modulator
-
-    #ifdef ALPHA_CUTOUT
-    if (color.a < ALPHA_CUTOUT) {
-        discard;
-    }
-    #endif
 
     vec3 lightColor = vec3(0);
     uint sectionRange = lights.sectionRanges[v_SectionPos];
