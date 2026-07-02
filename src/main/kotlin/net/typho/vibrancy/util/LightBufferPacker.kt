@@ -60,7 +60,7 @@ object LightBufferPacker {
                                 sectionMeshes.computeIfAbsent(sectionPos) { key -> synchronized(manager.sectionLock) { manager.sectionMeshCaches[key] } }?.let { section ->
                                     section.get(pos.x, pos.y, pos.z)?.let { block ->
                                         val start = shadows.size
-                                        block.collect { shadows.add(it) }
+                                        block.collect { shadows.add(it.copyWithOffset(pos.x, pos.y, pos.z)) }
                                         val end = shadows.size
                                         val len = end - start
 
@@ -167,21 +167,26 @@ object LightBufferPacker {
 
         val shadowBuffer = if (shadows.isEmpty()) null else GpuObjects.buffer(
             { "Vibrancy Shadow Buffer (${region.x}, ${region.y}, ${region.z})" },
-            shadows.size * 16L * 4L,
+            shadows.size * 32L * 4L,
             bufferUsage
         ) { output ->
             for (face in shadows) {
                 face.apply { vertex ->
-                    output.writeShort(((vertex.x - 0.5f) / 1.5f * 32767).toInt())
-                    output.writeShort(((vertex.y - 0.5f) / 1.5f * 32767).toInt())
-                    output.writeShort(((vertex.z - 0.5f) / 1.5f * 32767).toInt())
-                    output.skip(2)
+                    output.writeFloat(vertex.x)
+                    output.writeFloat(vertex.y)
+                    output.writeFloat(vertex.z)
+                    //output.writeShort(((vertex.x - 0.5f) / 1.5f * 32767).toInt())
+                    //output.writeShort(((vertex.y - 0.5f) / 1.5f * 32767).toInt())
+                    //output.writeShort(((vertex.z - 0.5f) / 1.5f * 32767).toInt())
+                    //output.skip(2)
 
                     output.writeInt(vertex.color)
                     output.write2x2(
                         (vertex.u * 65535).toInt(),
                         (vertex.v * 65535).toInt()
                     )
+
+                    output.skip(12)
                 }
             }
         }
