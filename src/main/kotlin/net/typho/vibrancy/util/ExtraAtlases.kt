@@ -19,7 +19,7 @@ import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.mixin.SpriteContentsAccessor
 import java.io.FileNotFoundException
 
-object ReflectionAtlases : NamedResource, SingleStepNeoReloadListener {
+object ExtraAtlases : NamedResource, SingleStepNeoReloadListener {
     private class Animation(
         @JvmField
         val x: Int,
@@ -41,25 +41,38 @@ object ReflectionAtlases : NamedResource, SingleStepNeoReloadListener {
     )
 
     @JvmField
-    val idConverter = FileToIdConverter("rtx/reflections", "png")
-    override val location: Identifier = Vibrancy.id("reflection_atlases")
-    private val atlases = hashMapOf<Identifier, Atlas>()
+    val reflectionIdConverter = FileToIdConverter("rtx/reflections", "png")
+    @JvmField
+    val transmissionIdConverter = FileToIdConverter("rtx/transmission", "png")
+    override val location: Identifier = Vibrancy.id("extra_atlases")
+    private val reflection = hashMapOf<Identifier, Atlas>()
+    private val transmission = hashMapOf<Identifier, Atlas>()
 
     override fun onResourceManagerReload(manager: ResourceManager) {
-        atlases.forEach { (key, atlas) -> GpuQueue.runOrQueue {
+        reflection.forEach { (key, atlas) -> GpuQueue.runOrQueue {
             atlas.texture.recycle()
 
             for (animation in atlas.animations) {
                 animation.contents.close()
             }
         } }
-        atlases.clear()
+        reflection.clear()
+
+        transmission.forEach { (key, atlas) -> GpuQueue.runOrQueue {
+            atlas.texture.recycle()
+
+            for (animation in atlas.animations) {
+                animation.contents.close()
+            }
+        } }
+        transmission.clear()
     }
 
     // TODO
+    @JvmStatic
     fun onInitializeClient(bus: NeoClientEventBus) {
         bus.register(ClientStartTickEvent {
-            for ((key, atlas) in atlases) {
+            for ((key, atlas) in reflection) {
                 /*
                 atlas.texture.bind(GlTextureTarget.TEXTURE_2D).use { texture ->
                     for (animation in atlas.animations) {
@@ -88,34 +101,42 @@ object ReflectionAtlases : NamedResource, SingleStepNeoReloadListener {
         })
     }
 
-    operator fun get(key: Identifier, resources: ResourceManager = Minecraft.getInstance().resourceManager): GpuTexture {
-        return atlases.computeIfAbsent(key) { key ->
-            val parent = try {
-                Minecraft.getInstance().atlasManager.getAtlasOrThrow(key)
-            } catch (_: NullPointerException) {
-                throw FileNotFoundException("No atlas $key")
-            }
-            val texture = GpuObjects.texture({ "Vibrancy Reflection Atlas $key" }, parent.texture.width, parent.texture.height, GpuTextureUsage.COPY_DST or GpuTextureUsage.COPY_SRC or GpuTextureUsage.TEXTURE_BINDING or GpuTextureUsage.RENDER_ATTACHMENT)
-            val loader = SpriteResourceLoader.create(setOf(AnimationMetadataSection.TYPE))
+    private fun createAtlas(type: String, key: Identifier, idConverter: FileToIdConverter, resources: ResourceManager): Atlas {
+        val parent = try {
+            Minecraft.getInstance().atlasManager.getAtlasOrThrow(key)
+        } catch (_: NullPointerException) {
+            throw FileNotFoundException("No atlas $key")
+        }
+        val texture = GpuObjects.texture({ "Vibrancy $type Atlas $key" }, parent.texture.width, parent.texture.height, GpuTextureUsage.COPY_DST or GpuTextureUsage.COPY_SRC or GpuTextureUsage.TEXTURE_BINDING)
+        val loader = SpriteResourceLoader.create(setOf(AnimationMetadataSection.TYPE))
 
-            for (resource in idConverter.listMatchingResources(resources)) {
-                val id = idConverter.fileToId(resource.key)
-                val sprite = parent.getSprite(id)
+        for (resource in idConverter.listMatchingResources(resources)) {
+            val id = idConverter.fileToId(resource.key)
+            val sprite = parent.getSprite(id)
 
-                resource.value.open().use { stream ->
-                    loader.loadSprite(resource.key, resource.value)?.let { contents ->
-                        texture.upload(
-                            (contents as SpriteContentsAccessor).`vibrancy$getOriginalImage`(),
-                            0,
-                            0,
-                            sprite.x,
-                            sprite.y
-                        )
-                    }
+            resource.value.open().use { stream ->
+                loader.loadSprite(resource.key, resource.value)?.let { contents ->
+                    texture.upload(
+                        (contents as SpriteContentsAccessor).`vibrancy$getOriginalImage`(),
+                        0,
+                        0,
+                        sprite.x,
+                        sprite.y
+                    )
                 }
             }
+        }
 
-            return@computeIfAbsent Atlas(texture, listOf())
-        }.texture
+        return Atlas(texture, listOf())
+    }
+
+    @JvmStatic
+    fun getReflection(key: Identifier, resources: ResourceManager = Minecraft.getInstance().resourceManager): GpuTexture {
+        return reflection.computeIfAbsent(key) { key -> createAtlas("Reflection", key, reflectionIdConverter, resources) }.texture
+    }
+
+    @JvmStatic
+    fun getTransmission(key: Identifier, resources: ResourceManager = Minecraft.getInstance().resourceManager): GpuTexture {
+        return transmission.computeIfAbsent(key) { key -> createAtlas("Transmission", key, transmissionIdConverter, resources) }.texture
     }
 }

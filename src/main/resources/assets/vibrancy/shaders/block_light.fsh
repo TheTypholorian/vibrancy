@@ -112,27 +112,6 @@ Ray ray(Light light, vec3 pos) {
     vec3 dir = normalize(delta);
     vec3 invDir = 1 / dir;
     float len = length(delta);
-
-    vec3 boxMin = floor(light.pos - light.shadowRadius);
-    vec3 boxMax = ceil(light.pos + light.shadowRadius);
-
-    vec3 t0 = (boxMin - pos) * invDir;
-    vec3 t1 = (boxMax - pos) * invDir;
-
-    vec3 tMin = min(t0, t1);
-    vec3 tMax = max(t0, t1);
-
-    float tEnter = max(max(tMin.x, tMin.y), tMin.z);
-    float tExit = min(min(tMax.x, tMax.y), tMax.z);
-
-    //if (tEnter < tExit && tEnter > 0) {
-        //pos = clamp(pos/* + dir * tEnter*/, boxMin + 1e-3, boxMax - 1e-3);
-        //delta = light.pos - pos;
-        //dir = normalize(delta);
-        //invDir = 1 / dir;
-        //len = length(delta);
-    //}
-
     return Ray(pos, dir, invDir, len);
 }
 
@@ -175,7 +154,7 @@ vec3 test(Ray ray, ivec3 lightPos, uint radius, uint cellRangeStart) {
                 vec4 outColor;
                 ColoredQuad quad = shadows[j];
 
-                if (sampleColoredQuad(true, u_BlockTex, textureSize(u_BlockTex, 0), ray.pos, ray.dir, ray.len, 1e-3, vec3(voxel + lightPos) + 0.5, quad, dist, outColor)) {
+                if (sampleColoredQuad(true, u_TransmissionTex, textureSize(u_TransmissionTex, 0), ray.pos, ray.dir, ray.len, 1e-3, vec3(voxel + lightPos) + 0.5, quad, dist, outColor)) {
                     if (outColor.a == 1) {
                         return vec3(0);
                     } else if (outColor.a != 0) {

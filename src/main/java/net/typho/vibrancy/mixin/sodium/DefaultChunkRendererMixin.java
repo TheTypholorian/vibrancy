@@ -9,6 +9,7 @@ import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.FilterMode;
 import com.mojang.blaze3d.textures.GpuSamplerImpl;
+import com.mojang.blaze3d.textures.GpuTextureImpl;
 import net.caffeinemc.mods.sodium.client.gpu.arena.GlBufferSegment;
 import net.caffeinemc.mods.sodium.client.gpu.device.batch.MultiDrawBatch;
 import net.caffeinemc.mods.sodium.client.gpu.device.context.DrawContext;
@@ -26,6 +27,7 @@ import net.caffeinemc.mods.sodium.client.util.FogParameters;
 import net.caffeinemc.mods.sodium.mixin.core.GlRenderPassAccessor;
 import net.caffeinemc.mods.sodium.mixin.core.RenderPassAccessor;
 import net.minecraft.client.Minecraft;
+import net.minecraft.data.AtlasIds;
 import net.minecraft.util.RandomSource;
 import net.typho.big_shot_lib.api.client.rendering.common.GpuBuffer;
 import net.typho.big_shot_lib.api.client.rendering.common.GpuObjects;
@@ -38,6 +40,7 @@ import net.typho.vibrancy.VibrancyConfig;
 import net.typho.vibrancy.block.impl.RayPointLight;
 import net.typho.vibrancy.block.impl.RayPointLightStorage;
 import net.typho.vibrancy.block.impl.RayPointLightType;
+import net.typho.vibrancy.util.ExtraAtlases;
 import net.typho.vibrancy.util.LightBufferPacker;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
@@ -110,6 +113,7 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
                     pass.setUniform("u_SectionTimeInfo", sectionTimeInfo);
                     pass.bindTexture("u_LightTex", Minecraft.getInstance().gameRenderer.lightmap(), RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR));
                     pass.bindTexture("u_BlockTex", renderPass.getAtlas(), terrainSampler);
+                    pass.bindTexture("u_TransmissionTex", RenderSystem.getDevice().createTextureView((GpuTextureImpl) ExtraAtlases.getTransmission(AtlasIds.BLOCKS, Minecraft.getInstance().getResourceManager()), 0, 1), terrainSampler);
 
                     renderLists.iterator(renderPass.isTranslucent()).forEachRemaining(renderList -> {
                         RenderRegion region = renderList.getRegion();
@@ -136,13 +140,13 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
                                     }
 
                                     pass.setVertexBuffer(0, region.getResources().getGeometryBuffer().slice());
-                                    pass.setStorageBuffer(0, lightBuffer);
+                                    pass.setStorageBuffer("LightBuffer", lightBuffer);
 
                                     if (shadowBuffer != null) {
-                                        pass.setStorageBuffer(1, shadowBuffer);
+                                        pass.setStorageBuffer("ShadowBuffer", shadowBuffer);
                                     }
 
-                                    pass.setStorageBuffer(2, gridBuffer);
+                                    pass.setStorageBuffer("GridBuffer", gridBuffer);
                                     this.drawContext.updateData(region, camera);
                                     batch.draw(this.drawContext);
                                 }
