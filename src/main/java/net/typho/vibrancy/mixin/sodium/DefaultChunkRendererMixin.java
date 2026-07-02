@@ -118,7 +118,7 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
                         if (storage != null) {
                             RenderRegionExtension ext = (RenderRegionExtension) region;
 
-                            if (lightStorage.getDirty() || !ext.getVibrancy$initialized()) {
+                            if (lightStorage.getDirty() || Vibrancy.lightManager.dirtySections.stream().anyMatch(section -> (section.getFirst().getX() >> 3) == region.getX() && (section.getFirst().getY() >> 2) == region.getY() && (section.getFirst().getZ() >> 3) == region.getZ()) || !ext.getVibrancy$initialized()) {
                                 LightBufferPacker.pack(region, lightStorage.getMap().values(), Vibrancy.lightManager, ext);
                                 ext.setVibrancy$initialized(true);
                             }
