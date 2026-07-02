@@ -23,10 +23,10 @@ struct Quad {
     vec3 vert4; uint uv4;
 };
 struct ColoredQuad {
-    vec3 vert1; uint color1; vec2 uv1;
-    vec3 vert2; uint color2; vec2 uv2;
-    vec3 vert3; uint color3; vec2 uv3;
-    vec3 vert4; uint color4; vec2 uv4;
+    uvec2 vert1; uint color1; uint uv1;
+    uvec2 vert2; uint color2; uint uv2;
+    uvec2 vert3; uint color3; uint uv3;
+    uvec2 vert4; uint color4; uint uv4;
 };
 struct ComplexQuad {
     vec3 vert1; float u1; float v1; uint overlay1; uint color1; uint normal1;
@@ -108,11 +108,11 @@ bool sampleComplexQuad(bool checkDir, sampler2D Sampler0, ivec2 Sampler0Size, ve
     }
 }
 
-bool sampleColoredQuad(bool checkDir, sampler2D Sampler0, ivec2 Sampler0Size, vec3 origin, vec3 dir, float len, float margin, ColoredQuad q, out float dist, out vec4 outColor) {
+bool sampleColoredQuad(bool checkDir, sampler2D Sampler0, ivec2 Sampler0Size, vec3 origin, vec3 dir, float len, float margin, vec3 quadPos, ColoredQuad q, out float dist, out vec4 outColor) {
     vec2 uv;
 
-    if (raycastQuad(checkDir, origin, dir, len, margin, q.vert1, q.vert2, q.vert3, q.vert4, uv, dist)) {
-        vec2 texUv = mix(mix(q.uv1, q.uv2, uv.x), mix(q.uv4, q.uv3, uv.x), uv.y);
+    if (raycastQuad(checkDir, origin, dir, len, margin, vec3(unpackSnorm2x16(q.vert1.x), unpackSnorm2x16(q.vert1.y).x) * 1.5 + quadPos, vec3(unpackSnorm2x16(q.vert2.x), unpackSnorm2x16(q.vert2.y).x) * 1.5 + quadPos, vec3(unpackSnorm2x16(q.vert3.x), unpackSnorm2x16(q.vert3.y).x) * 1.5 + quadPos, vec3(unpackSnorm2x16(q.vert4.x), unpackSnorm2x16(q.vert4.y).x) * 1.5 + quadPos, uv, dist)) {
+        vec2 texUv = mix(mix(unpackUnorm2x16(q.uv1), unpackUnorm2x16(q.uv2), uv.x), mix(unpackUnorm2x16(q.uv4), unpackUnorm2x16(q.uv3), uv.x), uv.y);
         vec4 color = mix(mix(unpackUnorm4x8(q.color1), unpackUnorm4x8(q.color2), uv.x), mix(unpackUnorm4x8(q.color4), unpackUnorm4x8(q.color3), uv.x), uv.y);
         vec4 pixel = texture(Sampler0, texUv) * color;
         outColor = pixel;

@@ -175,7 +175,7 @@ vec3 test(Ray ray, ivec3 lightPos, uint radius, uint cellRangeStart) {
                 vec4 outColor;
                 ColoredQuad quad = shadows[j];
 
-                if (sampleColoredQuad(true, u_BlockTex, textureSize(u_BlockTex, 0), ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor)) {
+                if (sampleColoredQuad(true, u_BlockTex, textureSize(u_BlockTex, 0), ray.pos, ray.dir, ray.len, 1e-3, vec3(voxel + lightPos) + 0.5, quad, dist, outColor)) {
                     if (outColor.a == 1) {
                         return vec3(0);
                     } else if (outColor.a != 0) {
