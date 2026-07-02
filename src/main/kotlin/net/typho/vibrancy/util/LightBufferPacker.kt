@@ -45,46 +45,42 @@ object LightBufferPacker {
                 val grid = arrayOfNulls<Int>(light.shadowBox.areaInclusive)
 
                 sectionCache[light.shadowBox].forEach { (pos, state) ->
-                    try {
-                        if (pos != light.pos) {
-                            val cell = if (state.isAir) {
-                                null
-                            } else if (state.isSolidRender) {
-                                1
-                            } else {
-                                blockShadows.computeIfAbsent(pos.immutable()) {
-                                    val sectionPos = SectionPos.of(
-                                        SectionPos.blockToSectionCoord(pos.x),
-                                        SectionPos.blockToSectionCoord(pos.y),
-                                        SectionPos.blockToSectionCoord(pos.z)
-                                    )
-                                    sectionMeshes.computeIfAbsent(sectionPos) { key -> synchronized(manager.sectionLock) { manager.sectionMeshCaches[key] } }?.let { section ->
-                                        section.get(pos.x, pos.y, pos.z)?.let { block ->
-                                            val start = shadows.size
-                                            block.collect { shadows.add(it.copyWithOffset(pos.x, pos.y, pos.z)) }
-                                            val end = shadows.size
-                                            val len = end - start
+                    if (pos != light.pos) {
+                        val cell = if (state.isAir) {
+                            null
+                        } else if (state.isSolidRender) {
+                            1
+                        } else {
+                            blockShadows.computeIfAbsent(pos.immutable()) {
+                                val sectionPos = SectionPos.of(
+                                    SectionPos.blockToSectionCoord(pos.x),
+                                    SectionPos.blockToSectionCoord(pos.y),
+                                    SectionPos.blockToSectionCoord(pos.z)
+                                )
+                                sectionMeshes.computeIfAbsent(sectionPos) { key -> synchronized(manager.sectionLock) { manager.sectionMeshCaches[key] } }?.let { section ->
+                                    section.get(pos.x, pos.y, pos.z)?.let { block ->
+                                        val start = shadows.size
+                                        block.collect { shadows.add(it.copyWithOffset(pos.x, pos.y, pos.z)) }
+                                        val end = shadows.size
+                                        val len = end - start
 
-                                            if (start and 524287.inv() != 0) {
-                                                throw IndexOutOfBoundsException(start)
-                                            }
-
-                                            if (len and 4095.inv() != 0) {
-                                                throw IndexOutOfBoundsException(len)
-                                            }
-
-                                            (start shl 13) or (len shl 1)
+                                        if (start and 524287.inv() != 0) {
+                                            throw IndexOutOfBoundsException(start)
                                         }
+
+                                        if (len and 4095.inv() != 0) {
+                                            throw IndexOutOfBoundsException(len)
+                                        }
+
+                                        (start shl 13) or (len shl 1)
                                     }
                                 }
                             }
-                            cell?.let {
-                                grid[getGridIndex(pos, light.shadowBox)] = it
-                                hasShadows = true
-                            }
                         }
-                    } catch (e: Exception) {
-                        throw RuntimeException("Error packing light buffer $pos $state", e)
+                        cell?.let {
+                            grid[getGridIndex(pos, light.shadowBox)] = it
+                            hasShadows = true
+                        }
                     }
                 }
 

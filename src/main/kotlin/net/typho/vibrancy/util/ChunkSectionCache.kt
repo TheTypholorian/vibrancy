@@ -35,7 +35,7 @@ class ChunkSectionCache(
 
         return object : Iterator<Pair<BlockPos, BlockState>> {
             override fun hasNext(): Boolean {
-                return pos.x <= max.x
+                return pos.x < max.x
             }
 
             override fun next(): Pair<BlockPos, BlockState> {
