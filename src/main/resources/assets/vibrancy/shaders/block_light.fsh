@@ -24,10 +24,6 @@ struct Light {
     uint shadowRadius;
     uint cellRangeStart;
 };
-struct ShadowCell {
-    uint shadowIndex;
-    uint data;
-};
 
 layout(std430, binding = 0) readonly buffer LightBuffer {
     ivec3 worldOffset;
@@ -38,7 +34,7 @@ layout(std430, binding = 1) readonly buffer ShadowBuffer {
     ColoredQuad shadows[];
 };
 layout(std430, binding = 2) readonly buffer GridBuffer {
-    ShadowCell shadowGrid[];
+    uint shadowGrid[];
 };
 
 vec4 sampleNearest(sampler2D source, vec2 uv, vec2 pixelSize, vec2 du, vec2 dv, vec2 texelScreenSize) {
@@ -118,19 +114,16 @@ Ray ray(Light light, vec3 pos) {
     return Ray(pos, dir, 1 / dir, len);
 }
 
-bool isInGrid(ivec3 voxel, ivec3 gridMin, ivec3 gridMax) {
-    return any(greaterThanEqual(voxel, gridMin)) && any(lessThan(voxel, gridMax)) && voxel != ivec3(0);
-}
-
-uint getGridIndex(ivec3 voxel, uint size) {
-    ivec3 voxel1 = voxel + ivec3(size);
+uint getGridIndex(ivec3 voxel, uint radius, uint size) {
+    ivec3 voxel1 = voxel + ivec3(radius);
     return uint((voxel1.x * size + voxel1.y) * size + voxel1.z);
 }
 
 vec3 test(Ray ray, ivec3 lightPos, uint radius, uint cellRangeStart) {
     ivec3 voxel = ivec3(floor(ray.pos) - lightPos);
     ivec3 step = ivec3(sign(ray.dir));
-    ivec3 indexStep = step * ivec3(radius * radius, radius, 1);
+    uint gridSize = radius * 2 + 1;
+    ivec3 indexStep = step * ivec3(gridSize * gridSize, gridSize, 1);
 
     vec3 nextPos;
     nextPos.x = ray.dir.x > 0 ? float(voxel.x + 1) : float(voxel.x);
@@ -142,11 +135,8 @@ vec3 test(Ray ray, ivec3 lightPos, uint radius, uint cellRangeStart) {
 
     vec3 tint = vec3(0);
     float denom = 0;
-    uint index = 0u;
 
     while (any(greaterThanEqual(abs(voxel), ivec3(radius)))) {
-        index++;
-
         ivec3 oldVoxel = voxel;
 
         if (tMax.x < tMax.y) {
@@ -172,26 +162,24 @@ vec3 test(Ray ray, ivec3 lightPos, uint radius, uint cellRangeStart) {
         }
     }
 
-    uint gridIndex = cellRangeStart + getGridIndex(voxel, radius);
+    uint gridIndex = cellRangeStart + getGridIndex(voxel, radius, gridSize);
 
-    while (all(lessThan(abs(voxel), ivec3(radius)))) {
-        index++;
+    while (all(lessThan(abs(voxel), ivec3(radius))) && voxel != ivec3(0)) {
+        uint cell = shadowGrid[gridIndex];
+        bool cellSolid = (cell & 1u) == 1u;
 
-        ShadowCell cell = shadowGrid[gridIndex];
-
-        if ((cell.data & 1u) == 1u) {
-            if (index > 1u) {
-                return vec3(0);
-            }
+        if (cellSolid) {
+            return vec3(0);
         } else {
-            uint endIndex = cell.shadowIndex + (cell.data >> 1u);
+            uint cellStart = cell >> 13u;
+            uint cellEnd = cellStart + ((cell >> 1u) & 4095u);
 
-            for (uint j = cell.shadowIndex; j < endIndex; j++) {
+            for (uint j = cellStart; j < cellEnd; j++) {
                 float dist;
                 vec4 outColor;
                 ColoredQuad quad = shadows[j];
 
-                if (sampleColoredQuad(true, u_BlockTex, textureSize(u_BlockTex, 0), ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor)) {
+                if (sampleColoredQuad(false, u_BlockTex, textureSize(u_BlockTex, 0), ray.pos, ray.dir, ray.len, 1e-3, quad, dist, outColor)) {
                     if (outColor.a == 1) {
                         return vec3(0);
                     } else if (outColor.a != 0) {

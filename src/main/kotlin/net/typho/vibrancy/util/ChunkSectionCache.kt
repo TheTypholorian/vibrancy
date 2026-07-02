@@ -31,12 +31,7 @@ class ChunkSectionCache(
         val max = max.atY(max.y.coerceAtLeast(level.minY).coerceAtMost(level.maxY))
 
         val pos = BlockPos.MutableBlockPos().set(min)
-        val minSection = SectionPos.of(min)
-        val maxSection = SectionPos.of(max)
-        val sections = Offset3DArray(
-            IRect3(minSection.x, minSection.y, minSection.z, maxSection.x, maxSection.y, maxSection.z),
-            Offset3DArray.FlatInitializer { x, y, z -> this[SectionPos.of(x, y, z)] }
-        )
+        pos.z--
 
         return object : Iterator<Pair<BlockPos, BlockState>> {
             override fun hasNext(): Boolean {
@@ -44,9 +39,6 @@ class ChunkSectionCache(
             }
 
             override fun next(): Pair<BlockPos, BlockState> {
-                val state = sections.get(SectionPos.blockToSectionCoord(pos.x), SectionPos.blockToSectionCoord(pos.y), SectionPos.blockToSectionCoord(pos.z))
-                    .getBlockState(SectionPos.sectionRelative(pos.x), SectionPos.sectionRelative(pos.y), SectionPos.sectionRelative(pos.z))
-
                 pos.z++
 
                 if (pos.z > max.z) {
@@ -58,6 +50,11 @@ class ChunkSectionCache(
                         pos.x++
                     }
                 }
+
+                val state = get(pos) //sections.get(SectionPos.blockToSectionCoord(pos.x), SectionPos.blockToSectionCoord(pos.y), SectionPos.blockToSectionCoord(pos.z))
+                    //.getBlockState(SectionPos.sectionRelative(pos.x), SectionPos.sectionRelative(pos.y), SectionPos.sectionRelative(pos.z))
+
+                //println("section $pos $state")
 
                 return pos to state
             }

@@ -6,6 +6,7 @@ import net.minecraft.client.Minecraft
 import net.minecraft.core.SectionPos
 import net.typho.big_shot_lib.api.client.rendering.common.GpuObjects
 import net.typho.big_shot_lib.api.client.rendering.common.constant.GpuBufferUsage
+import net.typho.big_shot_lib.api.math.IRect3
 import net.typho.big_shot_lib.api.math.IVec3
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.RenderRegionExtension
@@ -15,12 +16,6 @@ import net.typho.vibrancy.block.impl.RayPointLight
 object LightBufferPacker {
     @JvmStatic
     fun pack(region: RenderRegion, lights: Iterable<RayPointLight>, manager: LightManager, output: RenderRegionExtension) {
-        class ShadowCell(
-            @JvmField
-            val start: Int,
-            @JvmField
-            val data: Int
-        )
         class SectionData(
             @JvmField
             val light: RayPointLight,
@@ -31,36 +26,33 @@ object LightBufferPacker {
         var cellRangeIndex = 0
         val shadows = mutableListOf<BlockFace>()
         var hasShadows = false
-        val blockShadows = mutableMapOf<IVec3<Int>, ShadowCell?>()
+        val blockShadows = mutableMapOf<IVec3<Int>, Int?>()
         val sectionGrid = Array(256) { mutableListOf<SectionData>() }
-        //val sectionCache = ChunkSectionCache(Minecraft.getInstance().level!!)
+        val sectionCache = ChunkSectionCache(Minecraft.getInstance().level!!)
         val sectionMeshes = hashMapOf<SectionPos, SectionMeshCache?>()
-        val grids = mutableListOf<Array<ShadowCell?>>()
+        val grids = mutableListOf<Array<Int?>>()
         var numLightInstances = 0
         var numLights = 0
 
-        fun getGridIndex(voxel: IVec3<Int>, radius: Int): Int {
-            val voxel1 = voxel + radius
-            return (voxel1.x * radius + voxel1.y) * radius + voxel1.z
+        fun getGridIndex(voxel: IVec3<Int>, box: IRect3<Int>): Int {
+            val voxel = voxel - box.min
+            return (voxel.x * box.sizeInclusive.x + voxel.y) * box.sizeInclusive.y + voxel.z
         }
 
         for (light in lights) {
             var added = false
             val cellRangeStart by lazy {
-                val gridWidth = light.shadowRadius * 2 + 1
-                val grid = arrayOfNulls<ShadowCell>(gridWidth * gridWidth * gridWidth)
+                val grid = arrayOfNulls<Int>(light.shadowBox.areaInclusive)
 
-                light.shadowBox.iterator().forEach { pos -> //TODO figure out why section cache block state is wrong
-                    val state = Minecraft.getInstance().level!!.getBlockState(pos.toBlockPos())
-
+                sectionCache[light.shadowBox].forEach { (pos, state) ->
                     try {
                         if (pos != light.pos) {
                             val cell = if (state.isAir) {
                                 null
                             } else if (state.isSolidRender) {
-                                ShadowCell(0, 1)
+                                1
                             } else {
-                                blockShadows.computeIfAbsent(pos) {
+                                blockShadows.computeIfAbsent(pos.immutable()) {
                                     val sectionPos = SectionPos.of(
                                         SectionPos.blockToSectionCoord(pos.x),
                                         SectionPos.blockToSectionCoord(pos.y),
@@ -71,19 +63,28 @@ object LightBufferPacker {
                                             val start = shadows.size
                                             block.collect { shadows.add(it.copyWithOffset(pos.x, pos.y, pos.z)) }
                                             val end = shadows.size
-                                            ShadowCell(start, (end - start) shl 1)
+                                            val len = end - start
+
+                                            if (start and 524287.inv() != 0) {
+                                                throw IndexOutOfBoundsException(start)
+                                            }
+
+                                            if (len and 4095.inv() != 0) {
+                                                throw IndexOutOfBoundsException(len)
+                                            }
+
+                                            (start shl 13) or (len shl 1)
                                         }
                                     }
                                 }
                             }
                             cell?.let {
-                                grid[getGridIndex(pos - light.pos, light.shadowRadius)] = it
+                                grid[getGridIndex(pos, light.shadowBox)] = it
                                 hasShadows = true
                             }
                         }
                     } catch (e: Exception) {
-                        println("$pos $state")
-                        e.printStackTrace()
+                        throw RuntimeException("Error packing light buffer $pos $state", e)
                     }
                 }
 
@@ -190,22 +191,17 @@ object LightBufferPacker {
 
         val gridBuffer = GpuObjects.buffer(
             { "Vibrancy Shadow Grid Buffer (${region.x}, ${region.y}, ${region.z})" },
-            cellRangeIndex * 8L,
+            cellRangeIndex * 4L,
             bufferUsage
         ) { output ->
             for (grid in grids) {
                 for (cell in grid) {
-                    if (cell == null) {
-                        output.writeLong(0) // must write 0, cannot skip bytes here
-                    } else {
-                        output.writeInt(cell.start)
-                        output.writeInt(cell.data)
-                    }
+                    output.writeInt(cell ?: 0) // must write 0, cannot skip bytes here
                 }
             }
         }
 
-        Vibrancy.LOGGER.info("Uploading ${lightBuffer.size} light buffer, ${shadowBuffer?.size} shadow buffer, ${gridBuffer.size} grid buffer, total of ${lightBuffer.size + (shadowBuffer?.size ?: 0) + gridBuffer.size} bytes. $numLights lights, $numLightInstances light instances, ${shadows.size} shadows, meaning ${shadows.size / numLights} shadows per light, ${shadows.size / numLightInstances} shadows per light instance")
+        Vibrancy.LOGGER.info("Uploading ${lightBuffer.size} light buffer, ${shadowBuffer?.size} shadow buffer, ${gridBuffer.size} grid buffer, total of ${lightBuffer.size + (shadowBuffer?.size ?: 0) + gridBuffer.size} bytes. $numLights lights, $numLightInstances light instances, ${shadows.size} shadows, meaning ${shadows.size / numLights} shadows per light, ${shadows.size / numLightInstances} shadows per light instance, max grid cell index $cellRangeIndex")
 
         output.`vibrancy$lightBuffer` = lightBuffer
         output.`vibrancy$shadowBuffer` = shadowBuffer
