@@ -182,8 +182,8 @@ object LightBufferPacker {
 
                     output.writeInt(vertex.color)
                     output.write2x2(
-                        (vertex.u * 65535).toInt(),
-                        (vertex.v * 65535).toInt()
+                        (vertex.v * 65535).toInt(),
+                        (vertex.u * 65535).toInt()
                     )
 
                     output.skip(12)

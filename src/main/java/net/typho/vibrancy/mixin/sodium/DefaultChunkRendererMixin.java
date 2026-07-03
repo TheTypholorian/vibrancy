@@ -111,9 +111,8 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
 
                     pass.setUniform("u_Globals", uniformData);
                     pass.setUniform("u_SectionTimeInfo", sectionTimeInfo);
-                    pass.bindTexture("u_LightTex", Minecraft.getInstance().gameRenderer.lightmap(), RenderSystem.getSamplerCache().getClampToEdge(FilterMode.LINEAR));
                     pass.bindTexture("u_BlockTex", renderPass.getAtlas(), terrainSampler);
-                    pass.bindTexture("u_TransmissionTex", RenderSystem.getDevice().createTextureView((GpuTextureImpl) ExtraAtlases.getTransmission(AtlasIds.BLOCKS, Minecraft.getInstance().getResourceManager()), 0, 1), terrainSampler);
+                    pass.bindTexture("u_TransmissionTex", ExtraAtlases.getTransmission(AtlasIds.BLOCKS, Minecraft.getInstance().getResourceManager()).getTextureView(), terrainSampler);
 
                     renderLists.iterator(renderPass.isTranslucent()).forEachRemaining(renderList -> {
                         RenderRegion region = renderList.getRegion();

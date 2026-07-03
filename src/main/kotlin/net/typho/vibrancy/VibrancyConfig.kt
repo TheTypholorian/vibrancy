@@ -22,27 +22,6 @@ internal fun <T : Any> Option.Builder<T>.binding(def: T, property: KMutablePrope
 }
 
 object VibrancyConfig {
-    @JvmField
-    val isPotato: Boolean
-
-    init {
-        val renderer = glGetString(GL_RENDERER)
-
-        isPotato = when {
-            renderer == null -> false
-            renderer.contains("Intel", true) -> true
-            renderer.contains("AMD Radeon(TM) Graphics", true) -> true
-            renderer.contains("Vega", true) && !renderer.contains("RX", true) -> true
-            else -> false
-        }
-
-        if (isPotato) {
-            Vibrancy.LOGGER.info("Detected that you own a potato (GPU renderer $renderer), setting config defaults accordingly")
-        } else {
-            Vibrancy.LOGGER.info("Detected that you own a non-potato (GPU renderer $renderer), setting config defaults accordingly")
-        }
-    }
-
     var modEnabled = true
         set(value) {
             field = value
@@ -52,7 +31,7 @@ object VibrancyConfig {
         }
     @JvmField
     var useMultithreading = true
-    var asyncThreads: Int = if (isPotato) 4 else 8
+    var asyncThreads: Int = 4
         set(value) {
             if (value < field) {
                 VibrancyThreadPool.corePoolSize = value
@@ -79,11 +58,11 @@ object VibrancyConfig {
     @JvmField
     var entityShadowsEnabled = true
     @JvmField
-    var blockEntityShadows = !isPotato
+    var blockEntityShadows = true
     @JvmField
-    var entityShadowDistance = if (isPotato) 3 else 4
+    var entityShadowDistance = 3
     @JvmField
-    var entityShadowMaxBlockLights = if (isPotato) 0 else 10
+    var entityShadowMaxBlockLights = 10
 
     var rayLightsEnabled = true
         set(value) {
@@ -93,7 +72,7 @@ object VibrancyConfig {
             }
         }
     @JvmField
-    var rayLightsMaxRendered: Int = if (isPotato) 200 else 400
+    var rayLightsMaxRendered: Int = 400
     @JvmField
     var rayLightBrightness: Float = 1f
     var rayLightShadowRadius: Int = 6
@@ -120,7 +99,7 @@ object VibrancyConfig {
     var subtleLightsRenderDistance: Int = 6
     @JvmField
     var subtleLightBrightness = 1f
-    var subtleLightCullingMode = if (isPotato) SubtleLightCullingMode.NON_AIR_NEIGHBOR else SubtleLightCullingMode.SOLID_NEIGHBOR
+    var subtleLightCullingMode = SubtleLightCullingMode.SOLID_NEIGHBOR
         set(value) {
             field = value
             GpuQueue.runOrQueue {
@@ -136,10 +115,10 @@ object VibrancyConfig {
             }
         }
     @JvmField
-    var skyLightShadowDistance: Int = if (isPotato) 8 else 16
+    var skyLightShadowDistance: Int = 16
     @JvmField
     var skyLightBrightness: Float = 1f
-    var skyLightResolution: Int = if (isPotato) 1 else 2
+    var skyLightResolution: Int = 2
         set(value) {
             field = value
             /*
@@ -315,7 +294,7 @@ object VibrancyConfig {
 
                 .option(Option.createBuilder<Int>()
                     .name(Component.translatable("config.vibrancy.general.asyncThreads"))
-                    .binding(if (isPotato) 4 else 8, VibrancyConfig::asyncThreads)
+                    .binding(4, VibrancyConfig::asyncThreads)
                     .controller { opt ->
                         IntegerSliderControllerBuilder.create(opt)
                             .range(1, 8)
@@ -361,7 +340,7 @@ object VibrancyConfig {
 
                     .option(Option.createBuilder<Int>()
                         .name(Component.translatable("config.vibrancy.blockLights.raytraced.maxRendered"))
-                        .binding(if (isPotato) 200 else 400, VibrancyConfig::rayLightsMaxRendered)
+                        .binding(400, VibrancyConfig::rayLightsMaxRendered)
                         .description(OptionDescription.of(
                             Component.translatable("config.vibrancy.blockLights.raytraced.maxRendered.tooltip")
                         ))
@@ -447,7 +426,7 @@ object VibrancyConfig {
 
                     .option(Option.createBuilder<SubtleLightCullingMode>()
                         .name(Component.translatable("config.vibrancy.blockLights.subtle.cullingMode"))
-                        .binding(if (isPotato) SubtleLightCullingMode.NON_AIR_NEIGHBOR else SubtleLightCullingMode.SOLID_NEIGHBOR, VibrancyConfig::subtleLightCullingMode)
+                        .binding(SubtleLightCullingMode.SOLID_NEIGHBOR, VibrancyConfig::subtleLightCullingMode)
                         .description(OptionDescription.of(
                             Component.translatable("config.vibrancy.blockLights.subtle.cullingMode.tooltip0"),
                             Component.translatable("config.vibrancy.blockLights.subtle.cullingMode.tooltip1"),
@@ -474,7 +453,7 @@ object VibrancyConfig {
 
                 .option(Option.createBuilder<Int>()
                     .name(Component.translatable("config.vibrancy.skyLights.shadow_distance"))
-                    .binding(if (isPotato) 8 else 16, VibrancyConfig::skyLightShadowDistance)
+                    .binding(16, VibrancyConfig::skyLightShadowDistance)
                     .description(OptionDescription.of(
                         Component.translatable("config.vibrancy.skyLights.shadow_distance.tooltip")
                     ))
@@ -497,7 +476,7 @@ object VibrancyConfig {
 
                 .option(Option.createBuilder<Int>()
                     .name(Component.translatable("config.vibrancy.skyLights.resolution"))
-                    .binding(if (isPotato) 1 else 2, VibrancyConfig::skyLightResolution)
+                    .binding(2, VibrancyConfig::skyLightResolution)
                     .description(OptionDescription.of(
                         Component.translatable("config.vibrancy.skyLights.resolution.tooltip")
                     ))
@@ -568,13 +547,13 @@ object VibrancyConfig {
 
                 .option(Option.createBuilder<Boolean>()
                     .name(Component.translatable("config.vibrancy.entityShadows.blockEntityShadows"))
-                    .binding(!isPotato, VibrancyConfig::blockEntityShadows)
+                    .binding(true, VibrancyConfig::blockEntityShadows)
                     .controller(TickBoxControllerBuilder::create)
                     .build())
 
                 .option(Option.createBuilder<Int>()
                     .name(Component.translatable("config.vibrancy.entityShadows.distance"))
-                    .binding(if (isPotato) 2 else 4, VibrancyConfig::entityShadowDistance)
+                    .binding(3, VibrancyConfig::entityShadowDistance)
                     .controller { opt ->
                         IntegerSliderControllerBuilder.create(opt)
                             .range(1, 16)
@@ -584,7 +563,7 @@ object VibrancyConfig {
 
                 .option(Option.createBuilder<Int>()
                     .name(Component.translatable("config.vibrancy.entityShadows.maxLights"))
-                    .binding(if (isPotato) 0 else 10, VibrancyConfig::entityShadowMaxBlockLights)
+                    .binding(10, VibrancyConfig::entityShadowMaxBlockLights)
                     .controller { opt ->
                         IntegerSliderControllerBuilder.create(opt)
                             .range(0, 100)

@@ -12,7 +12,7 @@ in vec2 v_TexCoord; // The interpolated block texture coordinates
 in vec2 v_FragDistance; // The fragment's distance from the camera (cylindrical and spherical)
 
 uniform sampler2D u_BlockTex; // The block texture
-uniform sampler2D u_ReflectionTex; // The reflection texture
+//uniform sampler2D u_ReflectionTex; // The reflection texture
 uniform sampler2D u_TransmissionTex; // The transmission texture
 
 out vec4 fragColor; // The output fragment for the color framebuffer
@@ -151,15 +151,19 @@ vec3 test(Ray ray, ivec3 lightPos, uint radius, uint cellRangeStart) {
 
             for (uint j = cellStart; j < cellEnd; j++) {
                 float dist;
-                vec4 outColor;
-                ColoredQuad quad = shadows[j];
+                ColoredQuad q = shadows[j];
+                vec2 uv;
 
-                if (sampleColoredQuad(true, u_TransmissionTex, textureSize(u_TransmissionTex, 0), ray.pos, ray.dir, ray.len, 1e-3, vec3(voxel + lightPos) + 0.5, quad, dist, outColor)) {
-                    if (outColor.a == 1) {
+                if (raycastQuad(false, ray.pos, ray.dir, ray.len, 1e-3, q.vert1, q.vert2, q.vert3, q.vert4, uv, dist)) {
+                    vec2 texUv = mix(mix(unpackUnorm2x16(q.uv1), unpackUnorm2x16(q.uv2), uv.x), mix(unpackUnorm2x16(q.uv4), unpackUnorm2x16(q.uv3), uv.x), uv.y);
+                    vec4 color = mix(mix(unpackUnorm4x8(q.color1), unpackUnorm4x8(q.color2), uv.x), mix(unpackUnorm4x8(q.color4), unpackUnorm4x8(q.color3), uv.x), uv.y);
+                    vec4 pixel = sampleNearest(u_TransmissionTex, texUv, u_TexelSize) * color;
+
+                    if (pixel.a == 1) {
                         return vec3(0);
-                    } else if (outColor.a != 0) {
-                        tint += outColor.rgb * outColor.a;
-                        denom += outColor.a;
+                    } else if (pixel.a != 0) {
+                        tint += pixel.rgb * pixel.a;
+                        denom += pixel.a;
                     }
                 }
             }
@@ -234,5 +238,5 @@ void main() {
         }
     }
 
-    fragColor = vec4(color.rgb * lightColor * (1 - total_fog_value(v_FragDistance.y, v_FragDistance.x, u_EnvironmentFog.x, u_EnvironmentFog.y, u_RenderFog.x, u_RenderFog.y)), 0);
+    fragColor = vec4(color.rgb * color.a * lightColor * (1 - total_fog_value(v_FragDistance.y, v_FragDistance.x, u_EnvironmentFog.x, u_EnvironmentFog.y, u_RenderFog.x, u_RenderFog.y)), 0);
 }

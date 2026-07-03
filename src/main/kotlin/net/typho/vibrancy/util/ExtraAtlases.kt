@@ -1,142 +1,121 @@
 package net.typho.vibrancy.util
 
 import net.minecraft.client.Minecraft
+import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite
 import net.minecraft.client.renderer.texture.SpriteContents
+import net.minecraft.client.renderer.texture.SpriteLoader
+import net.minecraft.client.renderer.texture.TextureAtlas
+import net.minecraft.client.renderer.texture.TextureAtlasSprite
 import net.minecraft.client.renderer.texture.atlas.SpriteResourceLoader
+import net.minecraft.client.renderer.texture.atlas.SpriteSourceList
 import net.minecraft.client.resources.metadata.animation.AnimationMetadataSection
 import net.minecraft.resources.FileToIdConverter
 import net.minecraft.resources.Identifier
 import net.minecraft.server.packs.resources.ResourceManager
 import net.typho.big_shot_lib.api.client.event.ClientStartTickEvent
-import net.typho.big_shot_lib.api.client.rendering.common.GpuObjects
 import net.typho.big_shot_lib.api.client.rendering.common.GpuQueue
-import net.typho.big_shot_lib.api.client.rendering.common.GpuTexture
-import net.typho.big_shot_lib.api.client.rendering.common.constant.GpuTextureUsage
 import net.typho.big_shot_lib.api.event.NeoClientEventBus
 import net.typho.big_shot_lib.api.util.resource.NamedResource
 import net.typho.big_shot_lib.api.util.resource.SingleStepNeoReloadListener
 import net.typho.vibrancy.Vibrancy
-import net.typho.vibrancy.mixin.SpriteContentsAccessor
+import net.typho.vibrancy.mixin.TextureAtlasAccessor
+import net.typho.vibrancy.mixin.TextureAtlasSpriteAccessor
 import java.io.FileNotFoundException
+import java.util.concurrent.CompletableFuture
 
 object ExtraAtlases : NamedResource, SingleStepNeoReloadListener {
-    private class Animation(
-        @JvmField
-        val x: Int,
-        @JvmField
-        val y: Int,
-        @JvmField
-        val contents: SpriteContents,
-        //? if <1.21.11 {
-        /*@JvmField
-        val ticker: SpriteTicker
-        *///? }
-    )
-
-    private class Atlas(
-        @JvmField
-        val texture: GpuTexture,
-        @JvmField
-        val animations: List<Animation>
-    )
-
     @JvmField
-    val reflectionIdConverter = FileToIdConverter("rtx/reflections", "png")
+    val reflectionIdConverter = FileToIdConverter("rtx/reflections", ".png")
     @JvmField
-    val transmissionIdConverter = FileToIdConverter("rtx/transmission", "png")
+    val transmissionIdConverter = FileToIdConverter("rtx/transmission", ".png")
     override val location: Identifier = Vibrancy.id("extra_atlases")
-    private val reflection = hashMapOf<Identifier, Atlas>()
-    private val transmission = hashMapOf<Identifier, Atlas>()
+    private val reflection = hashMapOf<Identifier, TextureAtlas>()
+    private val transmission = hashMapOf<Identifier, TextureAtlas>()
 
     override fun onResourceManagerReload(manager: ResourceManager) {
         reflection.forEach { (key, atlas) -> GpuQueue.runOrQueue {
-            atlas.texture.recycle()
-
-            for (animation in atlas.animations) {
-                animation.contents.close()
-            }
+            atlas.close()
         } }
         reflection.clear()
 
         transmission.forEach { (key, atlas) -> GpuQueue.runOrQueue {
-            atlas.texture.recycle()
-
-            for (animation in atlas.animations) {
-                animation.contents.close()
-            }
+            atlas.close()
         } }
         transmission.clear()
     }
 
-    // TODO
     @JvmStatic
     fun onInitializeClient(bus: NeoClientEventBus) {
         bus.register(ClientStartTickEvent {
-            for ((key, atlas) in reflection) {
-                /*
-                atlas.texture.bind(GlTextureTarget.TEXTURE_2D).use { texture ->
-                    for (animation in atlas.animations) {
-                        //? if <1.21.5 {
-                        /*animation.ticker.tickAndUpload(animation.x, animation.y)
-                        *///? } else if <1.21.11 {
-                        /*animation.ticker.tickAndUpload(animation.x, animation.y, GlTextureAccessor.`vibrancy$init`(
-                            //? if >=1.21.6 {
-                            GpuTexture.USAGE_COPY_DST,
-                            //? }
-                            "Vibrancy Reflection Atlas $key",
-                            TextureFormat.RGBA8,
-                            atlas.texture.width!!,
-                            atlas.texture.height!!,
-                            //? if >=1.21.6 {
-                            1,
-                            //? }
-                            1,
-                            atlas.texture.glId
-                        ))
-                        *///? }
-                    }
-                }
-                 */
-            }
+            reflection.forEach { (key, atlas) -> atlas.tick() }
+            transmission.forEach { (key, atlas) -> atlas.tick() }
         })
     }
 
-    private fun createAtlas(type: String, key: Identifier, idConverter: FileToIdConverter, resources: ResourceManager): Atlas {
+    private fun createAtlas(type: String, parentKey: Identifier, idConverter: FileToIdConverter, resources: ResourceManager, defaults: Boolean): TextureAtlas {
         val parent = try {
-            Minecraft.getInstance().atlasManager.getAtlasOrThrow(key)
+            Minecraft.getInstance().atlasManager.getAtlasOrThrow(parentKey)
         } catch (_: NullPointerException) {
-            throw FileNotFoundException("No atlas $key")
+            throw FileNotFoundException("No atlas $parentKey")
         }
-        val texture = GpuObjects.texture({ "Vibrancy $type Atlas $key" }, parent.texture.width, parent.texture.height, GpuTextureUsage.COPY_DST or GpuTextureUsage.COPY_SRC or GpuTextureUsage.TEXTURE_BINDING)
+        val key = Vibrancy.id(parentKey.toString('/') + "/$type")
         val loader = SpriteResourceLoader.create(setOf(AnimationMetadataSection.TYPE))
+        val sprites = mutableMapOf<Identifier, TextureAtlasSprite>()
 
-        for (resource in idConverter.listMatchingResources(resources)) {
-            val id = idConverter.fileToId(resource.key)
-            val sprite = parent.getSprite(id)
+        sprites[MissingTextureAtlasSprite.getLocation()] = parent.missingSprite()
 
-            resource.value.open().use { stream ->
-                loader.loadSprite(resource.key, resource.value)?.let { contents ->
-                    texture.upload(
-                        (contents as SpriteContentsAccessor).`vibrancy$getOriginalImage`(),
-                        0,
-                        0,
-                        sprite.x,
-                        sprite.y
+        if (defaults) {
+            SpriteSourceList.load(resources, parentKey).list(resources).forEach {
+                it.get(loader)?.let { contents ->
+                    val parentSprite = parent.getSprite(contents.name())
+                    val sprite = TextureAtlasSpriteAccessor.init(
+                        contents.name(),
+                        contents,
+                        parent.texture.width,
+                        parent.texture.height,
+                        parentSprite.x,
+                        parentSprite.y,
+                        (parentSprite as TextureAtlasSpriteAccessor).`vibrancy$getPadding`()
                     )
+                    sprites[contents.name()] = sprite
                 }
             }
         }
 
-        return Atlas(texture, listOf())
+        for ((fileId, resource) in idConverter.listMatchingResources(resources)) {
+            val id = idConverter.fileToId(fileId)
+            val parentSprite = parent.getSprite(id)
+
+            loader.loadSprite(id, resource)?.let { contents ->
+                val sprite = TextureAtlasSpriteAccessor.init(
+                    id,
+                    contents,
+                    parent.texture.width,
+                    parent.texture.height,
+                    parentSprite.x,
+                    parentSprite.y,
+                    (parentSprite as TextureAtlasSpriteAccessor).`vibrancy$getPadding`()
+                )
+                sprites[id] = sprite
+            }
+        }
+
+        val mipLevel = (parent as TextureAtlasAccessor).`vibrancy$getMaxMipLevel`()
+
+        sprites.values.forEach { it.contents().increaseMipLevel(mipLevel) }
+
+        val atlas = TextureAtlas(key)
+        atlas.upload(SpriteLoader.Preparations(parent.texture.width, parent.texture.height, mipLevel, parent.missingSprite(), sprites, CompletableFuture.completedFuture(null)))
+        return atlas
     }
 
     @JvmStatic
-    fun getReflection(key: Identifier, resources: ResourceManager = Minecraft.getInstance().resourceManager): GpuTexture {
-        return reflection.computeIfAbsent(key) { key -> createAtlas("Reflection", key, reflectionIdConverter, resources) }.texture
+    fun getReflection(key: Identifier, resources: ResourceManager = Minecraft.getInstance().resourceManager): TextureAtlas {
+        return reflection.computeIfAbsent(key) { key -> createAtlas("reflection", key, reflectionIdConverter, resources, false) }
     }
 
     @JvmStatic
-    fun getTransmission(key: Identifier, resources: ResourceManager = Minecraft.getInstance().resourceManager): GpuTexture {
-        return transmission.computeIfAbsent(key) { key -> createAtlas("Transmission", key, transmissionIdConverter, resources) }.texture
+    fun getTransmission(key: Identifier, resources: ResourceManager = Minecraft.getInstance().resourceManager): TextureAtlas {
+        return transmission.computeIfAbsent(key) { key -> createAtlas("transmission", key, transmissionIdConverter, resources, true) }
     }
 }
