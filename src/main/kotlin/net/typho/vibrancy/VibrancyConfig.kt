@@ -6,7 +6,10 @@ import dev.isxander.yacl3.api.*
 import dev.isxander.yacl3.api.controller.*
 import net.minecraft.client.gui.screens.Screen
 import net.minecraft.network.chat.Component
+import net.typho.big_shot_lib.api.client.rendering.common.GpuBuffer
+import net.typho.big_shot_lib.api.client.rendering.common.GpuObjects
 import net.typho.big_shot_lib.api.client.rendering.common.GpuQueue
+import net.typho.big_shot_lib.api.client.rendering.common.constant.GpuBufferUsage
 import net.typho.big_shot_lib.api.util.platform.PlatformUtil
 import net.typho.vibrancy.block.impl.RayPointLightStorage
 import net.typho.vibrancy.block.impl.RayPointLightType
@@ -22,6 +25,35 @@ internal fun <T : Any> Option.Builder<T>.binding(def: T, property: KMutablePrope
 }
 
 object VibrancyConfig {
+    val configBuffer by lazy { GpuObjects.buffer({ "Vibrancy Config UBO" }, 64L, GpuBufferUsage.UNIFORM or GpuBufferUsage.COPY_DST) }
+    @JvmField
+    var configBufferDirty = true
+
+    @JvmStatic
+    fun loadConfigBuffer(): GpuBuffer {
+        val buffer = configBuffer
+
+        if (configBufferDirty) {
+            configBufferDirty = false
+
+            buffer.upload { output ->
+                output.writeInt(if (limitLightBrightness) 1 else 0)
+                output.writeInt(if (alignPixels) 1 else 0)
+                output.writeFloat(rayLightBrightness)
+                output.writeFloat(subtleLightBrightness)
+                output.writeFloat(1f) // TODO
+                output.writeFloat(skyLightBrightness)
+                output.skip(8)
+
+                output.writeInt(if (reflectionsEnabled) 1 else 0)
+                output.writeFloat(reflectionStrength)
+                output.writeFloat(reflectionExponent)
+            }
+        }
+
+        return buffer
+    }
+
     var modEnabled = true
         set(value) {
             field = value
@@ -43,17 +75,34 @@ object VibrancyConfig {
 
             field = value
         }
-    @JvmField
     var limitLightBrightness = false
+        set(value) {
+            field = value
+            configBufferDirty = true
+        }
+    var alignPixels = true
+        set(value) {
+            field = value
+            configBufferDirty = true
+        }
     @JvmField
     var flickerStrength = 1f
 
-    @JvmField
     var reflectionsEnabled = true
-    @JvmField
+        set(value) {
+            field = value
+            configBufferDirty = true
+        }
     var reflectionStrength = 3.5f
-    @JvmField
+        set(value) {
+            field = value
+            configBufferDirty = true
+        }
     var reflectionExponent = 3f
+        set(value) {
+            field = value
+            configBufferDirty = true
+        }
 
     @JvmField
     var entityShadowsEnabled = true
@@ -73,8 +122,11 @@ object VibrancyConfig {
         }
     @JvmField
     var rayLightsMaxRendered: Int = 400
-    @JvmField
     var rayLightBrightness: Float = 1f
+        set(value) {
+            field = value
+            configBufferDirty = true
+        }
     var rayLightShadowRadius: Int = 6
         set(value) {
             field = value
@@ -97,8 +149,11 @@ object VibrancyConfig {
         }
     @JvmField
     var subtleLightsRenderDistance: Int = 6
-    @JvmField
     var subtleLightBrightness = 1f
+        set(value) {
+            field = value
+            configBufferDirty = true
+        }
     var subtleLightCullingMode = SubtleLightCullingMode.SOLID_NEIGHBOR
         set(value) {
             field = value
@@ -116,8 +171,11 @@ object VibrancyConfig {
         }
     @JvmField
     var skyLightShadowDistance: Int = 16
-    @JvmField
     var skyLightBrightness: Float = 1f
+        set(value) {
+            field = value
+            configBufferDirty = true
+        }
     var skyLightResolution: Int = 2
         set(value) {
             field = value
@@ -144,6 +202,7 @@ object VibrancyConfig {
                 .name("useMultithreading").value(useMultithreading)
                 .name("asyncThreads").value(asyncThreads)
                 .name("limitLightBrightness").value(limitLightBrightness)
+                .name("alignPixels").value(alignPixels)
                 .name("flickerStrength").value(flickerStrength)
 
                 .name("specularReflections").beginObject()
@@ -213,6 +272,7 @@ object VibrancyConfig {
                 json.getAsJsonPrimitive("useMultithreading")?.let { useMultithreading = it.asBoolean }
                 json.getAsJsonPrimitive("asyncThreads")?.let { asyncThreads = it.asInt }
                 json.getAsJsonPrimitive("limitLightBrightness")?.let { limitLightBrightness = it.asBoolean }
+                json.getAsJsonPrimitive("alignPixels")?.let { alignPixels = it.asBoolean }
                 json.getAsJsonPrimitive("flickerStrength")?.let { flickerStrength = it.asFloat }
 
                 json.getAsJsonObject("specularReflections")?.let { reflections ->
@@ -309,6 +369,15 @@ object VibrancyConfig {
                         Component.translatable("config.vibrancy.general.limitLightBrightness.tooltip1")
                     ))
                     .binding(false, VibrancyConfig::limitLightBrightness)
+                    .controller(TickBoxControllerBuilder::create)
+                    .build())
+
+                .option(Option.createBuilder<Boolean>()
+                    .name(Component.translatable("config.vibrancy.general.alignPixels"))
+                    .description(OptionDescription.of(
+                        Component.translatable("config.vibrancy.general.alignPixels.tooltip")
+                    ))
+                    .binding(true, VibrancyConfig::alignPixels)
                     .controller(TickBoxControllerBuilder::create)
                     .build())
 

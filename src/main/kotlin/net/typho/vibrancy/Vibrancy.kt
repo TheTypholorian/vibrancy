@@ -66,6 +66,7 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
             .sampler("u_BlockTex")
             .sampler("u_TransmissionTex")
             .uniform("u_Globals")
+            .uniform("u_VibrancyConfig")
             .texelBuffer("u_SectionTimeInfo", GpuDataType.sint32, 1),
         RenderType.SMALL_BUFFER_SIZE,
         false,

@@ -110,6 +110,7 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
                     }
 
                     pass.setUniform("u_Globals", uniformData);
+                    pass.setUniform("u_VibrancyConfig", VibrancyConfig.loadConfigBuffer());
                     pass.setUniform("u_SectionTimeInfo", sectionTimeInfo);
                     pass.bindTexture("u_BlockTex", renderPass.getAtlas(), terrainSampler);
                     pass.bindTexture("u_TransmissionTex", ExtraAtlases.getTransmission(AtlasIds.BLOCKS, Minecraft.getInstance().getResourceManager()).getTextureView(), terrainSampler);

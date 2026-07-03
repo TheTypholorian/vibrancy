@@ -148,7 +148,7 @@ vec3 test(Ray ray, ivec3 lightPos, uint radius, uint cellRangeStart) {
         bool cellSolid = (cell & 1u) == 1u;
 
         if (cellSolid) {
-            if (tExit - tEnter > 1e-3) {
+            if (!config.visuals.alignPixels || tExit - tEnter > 1e-3) {
                 return vec3(0);
             }
         } else {
@@ -218,22 +218,8 @@ vec3 test(Ray ray, ivec3 lightPos, uint radius, uint cellRangeStart) {
     }
 }
 
-vec3 snapVertexPosition() {
-    ivec2 textureSize = textureSize(u_BlockTex, 0);
-    vec2 texelPos = v_TexCoord * textureSize;
-    vec2 d = (floor(texelPos) + 0.5 - texelPos) / textureSize;
-
-    vec2 stepA = dFdx(v_TexCoord);
-    vec2 stepB = dFdy(v_TexCoord);
-    float det = stepA.x * stepB.y - stepA.y * stepB.x;
-    float a = (d.x * stepB.y - d.y * stepB.x) / det;
-    float b = (-d.x * stepA.y + d.y * stepA.x) / det;
-
-    return v_Pos + dFdx(v_Pos) * a + dFdy(v_Pos) * b;
-}
-
 void main() {
-    vec3 texturePos = snapVertexPosition();
+    vec3 shadowPos = getShadowPosition(textureSize(u_TransmissionTex, 0), v_TexCoord, v_Pos);
 
     vec4 color = u_UseRGSS ? sampleRGSS(u_BlockTex, v_TexCoord, u_TexelSize) : sampleNearest(u_BlockTex, v_TexCoord, u_TexelSize);
     color *= v_Color; // Apply per-vertex color modulator
@@ -248,9 +234,9 @@ void main() {
         vec3 delta = light.pos - v_Pos;
 
         if (all(lessThan(abs(delta), vec3(light.radius))) && dot(v_Normal, normalize(delta)) > 0) {
-            lightColor += samplePointLight(light.pos, v_Pos, light.radius, unpackUnorm4x8(light.color).xyz) * test(ray(light, texturePos), ivec3(floor(light.pos)), light.shadowRadius, light.cellRangeStart);
+            lightColor += samplePointLight(light.pos, v_Pos, light.radius, unpackUnorm4x8(light.color).xyz) * test(ray(light, shadowPos), ivec3(floor(light.pos)), light.shadowRadius, light.cellRangeStart);
         }
     }
 
-    fragColor = vec4(color.rgb * color.a * lightColor * (1 - total_fog_value(v_FragDistance.y, v_FragDistance.x, u_EnvironmentFog.x, u_EnvironmentFog.y, u_RenderFog.x, u_RenderFog.y)), 0);
+    fragColor = vec4(color.rgb * color.a * config.visuals.rayBrightness * lightColor * (1 - total_fog_value(v_FragDistance.y, v_FragDistance.x, u_EnvironmentFog.x, u_EnvironmentFog.y, u_RenderFog.x, u_RenderFog.y)), 0);
 }
