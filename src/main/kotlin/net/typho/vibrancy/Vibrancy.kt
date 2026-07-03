@@ -43,8 +43,6 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
     val lightManager = LightManager()
     @JvmField
     var disableFlywheelInstancing = false
-    @JvmField
-    var tickDelta = 0f
 
     @JvmField
     val entityShadowTextureBlacklist = hashSetOf(

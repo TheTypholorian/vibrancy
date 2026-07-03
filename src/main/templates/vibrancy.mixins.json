@@ -1,6 +1,9 @@
 {
   "required": true,
   "minVersion": "0.8",
+  "mixinextras": {
+    "minVersion": "0.5.4"
+  },
   "package": "net.typho.vibrancy.mixin",
   "refmap": "vibrancy.refmap.json",
   "compatibilityLevel": "JAVA_${java_version}",

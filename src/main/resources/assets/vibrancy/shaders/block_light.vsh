@@ -4,7 +4,10 @@
 #include "sodium:fog"
 #include "sodium:chunk_vertex"
 
+in vec3 a_VibrancyNormal;
+
 out vec3 v_Pos;
+out vec3 v_Normal;
 out flat uint v_SectionPos;
 out vec4 v_Color;
 out vec2 v_TexCoord;
@@ -70,10 +73,10 @@ void main() {
     // Transform the vertex position into model-view-projection space
     gl_Position = u_ProjectionMatrix * u_ModelViewMatrix * vec4(position, 1.0);
 
-    v_Pos = _vert_position + lights.worldOffset + _get_draw_translation(_draw_id);
+    v_Pos = _vert_position + lights.worldOffset + _get_draw_translation(_draw_id) + a_VibrancyNormal * 1e-3;
     v_SectionPos = _draw_id;
 
-    // Pass the texture coordinates to the fragment shader
+    v_Normal = a_VibrancyNormal;
     v_Color = _vert_color * fadeFactor;
     v_TexCoord = (_vert_tex_diffuse_coord_bias * u_TexCoordShrink) + _vert_tex_diffuse_coord; // FMA for precision
 }
