@@ -134,6 +134,7 @@ vec3 test(Ray ray, ivec3 lightPos, uint radius, uint cellRangeStart) {
 
     vec3 tMax = (nextPos - (ray.pos - lightPos)) * ray.invDir;
     vec3 tDelta = abs(ray.invDir);
+    float tEnter = 0;
 
     vec3 tint = vec3(0);
     float denom = 0;
@@ -141,11 +142,15 @@ vec3 test(Ray ray, ivec3 lightPos, uint radius, uint cellRangeStart) {
     uint gridIndex = cellRangeStart + getGridIndex(voxel, radius, gridSize);
 
     while (all(lessThanEqual(abs(voxel), ivec3(radius)))) {
+        float tExit = min(tMax.x, min(tMax.y, tMax.z));
+
         uint cell = shadowGrid[gridIndex];
         bool cellSolid = (cell & 1u) == 1u;
 
         if (cellSolid) {
-            return vec3(0);
+            if (tExit - tEnter > 1e-3) {
+                return vec3(0);
+            }
         } else {
             uint cellStart = cell >> 13u;
             uint cellEnd = cellStart + ((cell >> 1u) & 4095u);
@@ -175,6 +180,7 @@ vec3 test(Ray ray, ivec3 lightPos, uint radius, uint cellRangeStart) {
         }
 
         ivec3 oldVoxel = voxel;
+        float tNext = min(tMax.x, min(tMax.y, tMax.z));
 
         if (tMax.x < tMax.y) {
             if (tMax.x < tMax.z) {
@@ -201,6 +207,8 @@ vec3 test(Ray ray, ivec3 lightPos, uint radius, uint cellRangeStart) {
         if (oldVoxel == voxel) {
             return vec3(1);
         }
+
+        tEnter = tNext;
     }
 
     if (denom > 0) {
