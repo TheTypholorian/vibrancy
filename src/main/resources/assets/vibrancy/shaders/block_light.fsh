@@ -139,7 +139,7 @@ vec3 test(Ray ray, ivec3 lightPos, uint radius, uint cellRangeStart) {
 
     uint gridIndex = cellRangeStart + getGridIndex(voxel, radius, gridSize);
 
-    while (all(lessThanEqual(abs(voxel), ivec3(radius))) && voxel != ivec3(0)) {
+    while (all(lessThanEqual(abs(voxel), ivec3(radius)))) {
         uint cell = shadowGrid[gridIndex];
         bool cellSolid = (cell & 1u) == 1u;
 
@@ -167,6 +167,10 @@ vec3 test(Ray ray, ivec3 lightPos, uint radius, uint cellRangeStart) {
                     }
                 }
             }
+        }
+
+        if (voxel == ivec3(0)) {
+            break;
         }
 
         ivec3 oldVoxel = voxel;
