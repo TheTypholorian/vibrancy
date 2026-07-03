@@ -6,6 +6,6 @@ import net.typho.big_shot_lib.api.math.IVec3
 interface PointLight {
     val pos: IVec3<Int>?
     val absolutePos: IVec3<Float>
-    val boundingBox: IRect3<Int>
+    val boundingBox: IRect3<Float>
     val shadowBox: IRect3<Int>
 }

@@ -156,7 +156,7 @@ object LightBufferPacker {
                         (light.light.color.x * 255).toInt()
                     )
 
-                    output.writeInt(light.light.radius)
+                    output.writeFloat(light.light.radius)
                     output.writeInt(light.light.shadowRadius)
                     output.writeInt(light.cellRangeStart)
 

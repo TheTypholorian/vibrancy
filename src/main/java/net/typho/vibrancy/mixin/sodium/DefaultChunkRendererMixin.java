@@ -3,14 +3,9 @@ package net.typho.vibrancy.mixin.sodium;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.blaze3d.IndexType;
 import com.mojang.blaze3d.buffers.GpuBufferImpl;
-import com.mojang.blaze3d.opengl.GlStateManager;
 import com.mojang.blaze3d.systems.CommandEncoder;
 import com.mojang.blaze3d.systems.RenderPass;
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.textures.FilterMode;
 import com.mojang.blaze3d.textures.GpuSamplerImpl;
-import com.mojang.blaze3d.textures.GpuTextureImpl;
-import net.caffeinemc.mods.sodium.client.gpu.arena.GlBufferSegment;
 import net.caffeinemc.mods.sodium.client.gpu.device.batch.MultiDrawBatch;
 import net.caffeinemc.mods.sodium.client.gpu.device.context.DrawContext;
 import net.caffeinemc.mods.sodium.client.render.chunk.ChunkRenderMatrices;
@@ -24,20 +19,12 @@ import net.caffeinemc.mods.sodium.client.render.chunk.terrain.TerrainRenderPass;
 import net.caffeinemc.mods.sodium.client.render.chunk.vertex.format.ChunkVertexType;
 import net.caffeinemc.mods.sodium.client.render.viewport.CameraTransform;
 import net.caffeinemc.mods.sodium.client.util.FogParameters;
-import net.caffeinemc.mods.sodium.mixin.core.GlRenderPassAccessor;
-import net.caffeinemc.mods.sodium.mixin.core.RenderPassAccessor;
 import net.minecraft.client.Minecraft;
 import net.minecraft.data.AtlasIds;
-import net.minecraft.util.RandomSource;
 import net.typho.big_shot_lib.api.client.rendering.common.GpuBuffer;
-import net.typho.big_shot_lib.api.client.rendering.common.GpuObjects;
-import net.typho.big_shot_lib.api.client.rendering.common.constant.GpuBufferUsage;
-import net.typho.big_shot_lib.api.math.IVec3;
-import net.typho.big_shot_lib.api.util.buffer.MemoryPointer;
 import net.typho.vibrancy.RenderRegionExtension;
 import net.typho.vibrancy.Vibrancy;
 import net.typho.vibrancy.VibrancyConfig;
-import net.typho.vibrancy.block.impl.RayPointLight;
 import net.typho.vibrancy.block.impl.RayPointLightStorage;
 import net.typho.vibrancy.block.impl.RayPointLightType;
 import net.typho.vibrancy.util.ExtraAtlases;
@@ -49,13 +36,10 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.ArrayList;
-import java.util.List;
 import java.util.Optional;
 import java.util.OptionalDouble;
 
 import static org.lwjgl.opengl.GL20.glGetUniformLocation;
-import static org.lwjgl.opengl.GL20.glUniform3f;
 
 @Mixin(DefaultChunkRenderer.class)
 public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
@@ -98,7 +82,7 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
          */
 
         if (VibrancyConfig.INSTANCE.getModEnabled() && VibrancyConfig.INSTANCE.getRayLightsEnabled()) {
-            activeProgram = Vibrancy.blockLightRenderType.pipeline();
+            activeProgram = Vibrancy.raytracedPointRenderType.pipeline();
 
             if (Vibrancy.lightManager.blockLights.get(RayPointLightType.INSTANCE) instanceof RayPointLightStorage lightStorage) {
                 try (RenderPass pass = encoder.createRenderPass(() -> "Vibrancy Block Lights", renderPass.getTarget().getColorTextureView(), Optional.empty(), renderPass.getTarget().getDepthTextureView(), OptionalDouble.empty())) {

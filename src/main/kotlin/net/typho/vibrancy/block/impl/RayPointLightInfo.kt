@@ -14,7 +14,7 @@ data class RayPointLightInfo(
     @JvmField
     val flicker: StateFunction<Float>,
     @JvmField
-    val radius: StateFunction<Int>,
+    val radius: StateFunction<Float>,
     @JvmField
     val brightness: StateFunction<Float>,
     @JvmField
@@ -33,7 +33,7 @@ data class RayPointLightInfo(
                 StateFunction.codec(Codec.FLOAT, stateDefinition)
                     .optionalFieldOf("flicker", StateFunction(0f))
                     .forGetter { info -> info.flicker },
-                StateFunction.codec(Codec.INT, stateDefinition)
+                StateFunction.codec(Codec.FLOAT, stateDefinition)
                     .fieldOf("radius")
                     .forGetter { info -> info.radius },
                 StateFunction.codec(Codec.FLOAT, stateDefinition)

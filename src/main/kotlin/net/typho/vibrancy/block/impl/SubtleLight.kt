@@ -31,10 +31,10 @@ open class SubtleLight(
 
     override val absolutePos: IVec3<Float>
         get() = pos.toFloat() + offset
-    override val boundingBox: IRect3<Int>
+    override val boundingBox: IRect3<Float>
         get() = IRect3(
-            pos - 1,
-            pos + 1,
+            pos.toFloat() - 1f,
+            pos.toFloat() + 2f
         )
     override val shadowBox: IRect3<Int>
         get() = IRect3(

@@ -12,6 +12,7 @@ import net.typho.big_shot_lib.api.math.IVec3
 import net.typho.vibrancy.VibrancyConfig
 import net.typho.vibrancy.util.PointLight
 import org.lwjgl.system.NativeResource
+import kotlin.math.ceil
 
 open class RayPointLight(
     level: Level,
@@ -20,7 +21,7 @@ open class RayPointLight(
     @JvmField
     val flicker: Float,
     @JvmField
-    val radius: Int,
+    val radius: Float,
     @JvmField
     val offset: IVec3<Float>,
     override val pos: IVec3<Int>
@@ -59,21 +60,21 @@ open class RayPointLight(
     val absoluteBlockPos: IVec3<Float>
         get() = pos.toFloat()
     //? }
-    override val boundingBox: IRect3<Int> = IRect3(pos - radius, pos + radius)
+    override val boundingBox: IRect3<Float> = IRect3(pos.toFloat() - radius, pos.toFloat() + radius)
     override var shadowBox: IRect3<Int> = createShadowBox()
     @JvmField
     val sections: List<SectionPos> = SectionPos.betweenClosedStream(
-        SectionPos.blockToSectionCoord(boundingBox.min.x),
-        SectionPos.blockToSectionCoord(boundingBox.min.y).coerceAtLeast(level.minSectionY).coerceAtMost(level.maxSectionY),
-        SectionPos.blockToSectionCoord(boundingBox.min.z),
-        SectionPos.blockToSectionCoord(boundingBox.max.x),
-        SectionPos.blockToSectionCoord(boundingBox.max.y).coerceAtLeast(level.minSectionY).coerceAtMost(level.maxSectionY),
-        SectionPos.blockToSectionCoord(boundingBox.max.z)
+        SectionPos.blockToSectionCoord(boundingBox.min.x.toInt()),
+        SectionPos.blockToSectionCoord(boundingBox.min.y.toInt()).coerceAtLeast(level.minSectionY).coerceAtMost(level.maxSectionY),
+        SectionPos.blockToSectionCoord(boundingBox.min.z.toInt()),
+        SectionPos.blockToSectionCoord(ceil(boundingBox.max.x).toInt()),
+        SectionPos.blockToSectionCoord(ceil(boundingBox.max.y).toInt()).coerceAtLeast(level.minSectionY).coerceAtMost(level.maxSectionY),
+        SectionPos.blockToSectionCoord(ceil(boundingBox.max.z).toInt())
     ).toList()
     @JvmField
     val sectionPos = SectionPos.of(absolutePos.toBlockPos())
     val shadowRadius: Int
-        get() = radius.coerceAtMost(VibrancyConfig.rayLightShadowRadius)
+        get() = radius.toInt().coerceAtMost(VibrancyConfig.rayLightShadowRadius)
 
     fun createShadowBox(): IRect3<Int> {
         val shadowRadius = shadowRadius
