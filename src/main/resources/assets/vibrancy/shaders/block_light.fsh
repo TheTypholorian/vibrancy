@@ -6,6 +6,7 @@
 #include "vibrancy:fragment"
 
 in vec3 v_Pos;
+in vec3 v_Normal;
 in flat uint v_SectionPos;
 in vec4 v_Color; // The interpolated vertex color
 in vec2 v_TexCoord; // The interpolated block texture coordinates
@@ -236,8 +237,9 @@ void main() {
 
     for (uint i = sectionStart; i < sectionEnd; i++) {
         Light light = lights.array[i];
+        vec3 delta = light.pos - v_Pos;
 
-        if (all(lessThan(abs(light.pos - v_Pos), vec3(light.radius)))) {
+        if (all(lessThan(abs(delta), vec3(light.radius))) && dot(v_Normal, normalize(delta)) > 0) {
             lightColor += samplePointLight(light.pos, v_Pos, light.radius, unpackUnorm4x8(light.color).xyz) * test(ray(light, texturePos), ivec3(floor(light.pos)), light.shadowRadius, light.cellRangeStart);
         }
     }
