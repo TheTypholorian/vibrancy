@@ -90,17 +90,7 @@ vec3 testRaytracedPointLightRay(Ray ray, RaytracedPointLight light, sampler2D tr
             }
         }
 
-        if (dda.voxel == ivec3(0)) {
-            break;
-        }
-
-        ivec3 oldVoxel = dda.voxel;
-
         stepDDA(dda, gridIndex, indexStep);
-
-        if (oldVoxel == dda.voxel) {
-            return vec3(multiplier);
-        }
     }
 
     if (denom > 0) {
