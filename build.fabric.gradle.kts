@@ -122,6 +122,12 @@ modstitch {
     }
 }
 
+tasks.getByName("runClient") {
+    doFirst {
+        println()
+    }
+}
+
 val env = DotEnvBuilder.dotEnv {
     addFileIfExists("$rootDir/.env")
     addFileIfExists("$projectDir/.env")
