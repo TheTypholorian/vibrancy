@@ -31,42 +31,60 @@ vec3 getRaytracedPointLightColor(RaytracedPointLight light, vec3 fragPos) {
     return a * a * a * unpackUnorm4x8(light.color).rgb;
 }
 
-vec3 testRaytracedPointLightRay(Ray ray, RaytracedPointLight light, sampler2D transmissionTex) {
+vec3 testRaytracedPointLightRay(Ray ray, RaytracedPointLight light, sampler2D transmissionTex, sampler2D reflectionTex) {
     ivec3 lightVoxel = ivec3(floor(light.pos));
     DDAState dda = createDDA(ray, ray.pos - lightVoxel, clamp(ivec3(floor(ray.pos)) - lightVoxel, ivec3(-light.shadowRadius), ivec3(light.shadowRadius)));
     ivec3 indexStep = getShadowGridIncrement(light, dda);
 
     vec3 tint = vec3(0);
     float denom = 0;
+    float multiplier = 1;
 
     uint gridIndex = light.cellRangeStart + getShadowGridIndex(light, dda.voxel);
 
-    while (all(lessThanEqual(abs(dda.voxel), ivec3(light.shadowRadius)))) {
+    while (all(lessThanEqual(abs(dda.voxel), ivec3(light.shadowRadius))) && dda.voxel != ivec3(0)) { // TODO make testing center voxel configurable
         uint cell = shadowGrid[gridIndex];
         bool cellSolid = (cell & 1u) == 1u;
 
-        if (cellSolid) {
-            if (!config.visuals.alignPixels || dda.tExit - dda.tEnter > 1e-3) {
+        if (!config.visuals.alignPixels || dda.tExit - dda.tEnter > 1e-3) {
+            if (cellSolid) {
                 return vec3(0);
-            }
-        } else {
-            uint cellStart = cell >> 13u;
-            uint cellEnd = cellStart + ((cell >> 1u) & 4095u);
+            } else {
+                uint cellStart = cell >> 13u;
+                uint cellEnd = cellStart + ((cell >> 1u) & 4095u);
 
-            for (uint j = cellStart; j < cellEnd; j++) {
-                float denom;
-                vec2 uv;
-                float dist;
-                ColoredQuad quad = shadows[j];
+                for (uint j = cellStart; j < cellEnd; j++) {
+                    float denom;
+                    vec2 uv;
+                    float dist;
+                    ColoredQuad quad = shadows[j];
 
-                if (raycastQuad(ray, 1e-3, quad, denom, uv, dist)) {
-                    vec4 pixel = sampleNearest(transmissionTex, interpolateQuadUV(quad, uv), u_TexelSize) * interpolateQuadColor(quad, uv);
+                    if (raycastQuad(ray, 1e-3, quad, denom, uv, dist)) {
+                        vec2 texUv = interpolateQuadUV(quad, uv);
+                        vec4 pixel = sampleNearest(transmissionTex, texUv, u_TexelSize) * interpolateQuadColor(quad, uv);
 
-                    if (pixel.a == 1) {
-                        return vec3(0);
-                    } else if (pixel.a != 0) {
-                        tint += pixel.rgb * pixel.a;
-                        denom += pixel.a;
+                        if (dda.voxel == ivec3(0)) {
+                            float emission = sampleNearest(reflectionTex, texUv, u_TexelSize).g;
+
+                            if (emission > 0) {
+                                multiplier = emission;
+                                break; // TODO sort properly
+                            } else {
+                                if (pixel.a == 1) {
+                                    return vec3(0);
+                                } else if (pixel.a != 0) {
+                                    tint += pixel.rgb * pixel.a;
+                                    denom += pixel.a;
+                                }
+                            }
+                        } else {
+                            if (pixel.a == 1) {
+                                return vec3(0);
+                            } else if (pixel.a != 0) {
+                                tint += pixel.rgb * pixel.a;
+                                denom += pixel.a;
+                            }
+                        }
                     }
                 }
             }
@@ -81,14 +99,14 @@ vec3 testRaytracedPointLightRay(Ray ray, RaytracedPointLight light, sampler2D tr
         stepDDA(dda, gridIndex, indexStep);
 
         if (oldVoxel == dda.voxel) {
-            return vec3(1);
+            return vec3(multiplier);
         }
     }
 
     if (denom > 0) {
-        return tint / denom;
+        return tint / denom * multiplier;
     } else {
-        return vec3(1);
+        return vec3(multiplier);
     }
 }
 
@@ -96,19 +114,40 @@ vec3 specularRaytracedPointLight(RaytracedPointLight light, vec3 color, vec3 ver
     vec3 lightDelta = light.pos - vertexPos;
     vec3 cameraDir = normalize(cameraPos - vertexPos);
     vec3 resultDir = 2 * dot(cameraDir, normal) * normal - cameraDir;
-    float radius = 8.0 / 16.0;
-    vec3 delta = abs(resultDir * length(lightDelta) - lightDelta);
-    float dist = max(delta.x, max(delta.y, delta.z));
-    float multiplier = dist > radius ? 0 : config.specular.strength;
 
-    return color + color * texture(reflectionTex, texCoord0).r * multiplier;
+    Ray ray = createRay(vertexPos, resultDir, length(lightDelta));
+
+    float multiplier = 0;
+
+    uint cell = shadowGrid[light.cellRangeStart + getShadowGridIndex(light, ivec3(0))];
+    uint cellStart = cell >> 13u;
+    uint cellEnd = cellStart + ((cell >> 1u) & 4095u);
+
+    for (uint j = cellStart; j < cellEnd; j++) {
+        float denom;
+        vec2 uv;
+        float dist;
+        ColoredQuad quad = shadows[j];
+
+        if (raycastQuad(ray, 1e-3, quad, denom, uv, dist) && denom < 0) {
+            vec2 texUv = interpolateQuadUV(quad, uv);
+            float emission = sampleNearest(reflectionTex, texUv, u_TexelSize).g;
+
+            if (emission > 0) {
+                multiplier = emission;
+                break; // TODO sort properly
+            }
+        }
+    }
+
+    return color + color * texture(reflectionTex, texCoord0).r * multiplier * config.specular.strength;
 }
 
 void calculateRaytracedPointLight(RaytracedPointLight light, vec3 fragPos, vec3 shadowPos, vec3 normal, vec2 texCoord0, sampler2D transmissionTex, sampler2D reflectionTex, inout vec3 totalLightColor) {
     vec3 delta = light.pos - fragPos;
 
     if (all(lessThan(abs(delta), vec3(light.radius))) && dot(normal, normalize(delta)) > 0) {
-        vec3 lightColor = getRaytracedPointLightColor(light, fragPos) * testRaytracedPointLightRay(createRayTo(shadowPos, light.pos), light, transmissionTex);
+        vec3 lightColor = getRaytracedPointLightColor(light, fragPos) * testRaytracedPointLightRay(createRayTo(shadowPos, light.pos), light, transmissionTex, reflectionTex);
         vec3 specularColor = specularRaytracedPointLight(light, lightColor, shadowPos, CameraBlockPos - CameraOffset, normal, reflectionTex, texCoord0);
 
         if (config.visuals.limitBrightness) {

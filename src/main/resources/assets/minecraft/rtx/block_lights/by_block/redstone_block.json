@@ -1,6 +1,5 @@
 {
   "type": "vibrancy:subtle",
-  "shape": 1,
-  "color": [ 1, 0.79, 0.9 ],
+  "color": [ 1, 0, 0 ],
   "brightness": 0.4
 }

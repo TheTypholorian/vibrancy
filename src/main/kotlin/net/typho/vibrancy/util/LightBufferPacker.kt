@@ -3,6 +3,7 @@ package net.typho.vibrancy.util
 import net.caffeinemc.mods.sodium.client.render.chunk.LocalSectionIndex
 import net.caffeinemc.mods.sodium.client.render.chunk.region.RenderRegion
 import net.minecraft.client.Minecraft
+import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
 import net.typho.big_shot_lib.api.client.rendering.common.GpuObjects
 import net.typho.big_shot_lib.api.client.rendering.common.constant.GpuBufferUsage
@@ -39,48 +40,54 @@ object LightBufferPacker {
             return (voxel.x * box.sizeInclusive.x + voxel.y) * box.sizeInclusive.y + voxel.z
         }
 
+        fun getBlockShadow(pos: BlockPos): Int? {
+            return blockShadows.computeIfAbsent(pos.immutable()) {
+                val sectionPos = SectionPos.of(
+                    SectionPos.blockToSectionCoord(pos.x),
+                    SectionPos.blockToSectionCoord(pos.y),
+                    SectionPos.blockToSectionCoord(pos.z)
+                )
+                sectionMeshes.computeIfAbsent(sectionPos) { key -> synchronized(manager.sectionLock) { manager.sectionMeshCaches[key] } }?.let { section ->
+                    section.get(pos.x, pos.y, pos.z)?.let { block ->
+                        val start = shadows.size
+                        block.collect { shadows.add(it.copyWithOffset(pos.x, pos.y, pos.z)) }
+                        val end = shadows.size
+                        val len = end - start
+
+                        if (start and 524287.inv() != 0) {
+                            throw IndexOutOfBoundsException(start)
+                        }
+
+                        if (len and 4095.inv() != 0) {
+                            throw IndexOutOfBoundsException(len)
+                        }
+
+                        (start shl 13) or (len shl 1)
+                    }
+                }
+            }
+        }
+
         for (light in lights) {
             var added = false
             val cellRangeStart by lazy {
                 val grid = arrayOfNulls<Int>(light.shadowBox.areaInclusive)
 
                 sectionCache[light.shadowBox].forEach { (pos, state) ->
-                    if (pos != light.pos) {
-                        val cell = if (state.isAir) {
+                    val cell = if (pos == light.pos) {
+                        getBlockShadow(pos)
+                    } else {
+                        if (state.isAir) {
                             null
                         } else if (state.isSolidRender) {
                             1
                         } else {
-                            blockShadows.computeIfAbsent(pos.immutable()) {
-                                val sectionPos = SectionPos.of(
-                                    SectionPos.blockToSectionCoord(pos.x),
-                                    SectionPos.blockToSectionCoord(pos.y),
-                                    SectionPos.blockToSectionCoord(pos.z)
-                                )
-                                sectionMeshes.computeIfAbsent(sectionPos) { key -> synchronized(manager.sectionLock) { manager.sectionMeshCaches[key] } }?.let { section ->
-                                    section.get(pos.x, pos.y, pos.z)?.let { block ->
-                                        val start = shadows.size
-                                        block.collect { shadows.add(it.copyWithOffset(pos.x, pos.y, pos.z)) }
-                                        val end = shadows.size
-                                        val len = end - start
-
-                                        if (start and 524287.inv() != 0) {
-                                            throw IndexOutOfBoundsException(start)
-                                        }
-
-                                        if (len and 4095.inv() != 0) {
-                                            throw IndexOutOfBoundsException(len)
-                                        }
-
-                                        (start shl 13) or (len shl 1)
-                                    }
-                                }
-                            }
+                            getBlockShadow(pos)
                         }
-                        cell?.let {
-                            grid[getGridIndex(pos, light.shadowBox)] = it
-                            hasShadows = true
-                        }
+                    }
+                    cell?.let {
+                        grid[getGridIndex(pos, light.shadowBox)] = it
+                        hasShadows = true
                     }
                 }
 
