@@ -15,10 +15,6 @@ import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.block.impl.RayPointLight
 
 object LightBufferPacker {
-    const val SHADOW_GRID_SHIFT = 1
-    const val SHADOW_GRID_SIZE = 1 shl SHADOW_GRID_SHIFT
-    const val SHADOW_GRID_AREA = SHADOW_GRID_SIZE * SHADOW_GRID_SIZE * SHADOW_GRID_SIZE
-
     @JvmStatic
     fun pack(region: RenderRegion, lights: Iterable<RayPointLight>, manager: LightManager, output: RenderRegionExtension) {
         class SectionData(
@@ -28,19 +24,6 @@ object LightBufferPacker {
             val cellRangeStart: Int
         )
 
-        class ShadowGridCell(
-            @JvmField
-            val voxels: Array<Int?> = arrayOfNulls(SHADOW_GRID_AREA)
-        ) {
-            fun getIndex(x: Int, y: Int, z: Int): Int {
-                return (((x shl SHADOW_GRID_SHIFT) + y) shl SHADOW_GRID_SHIFT) + z
-            }
-
-            operator fun get(x: Int, y: Int, z: Int): Int? {
-                return voxels[getIndex(x, y, z)]
-            }
-        }
-
         var cellRangeIndex = 0
         val shadows = mutableListOf<BlockFace>()
         var hasShadows = false
@@ -48,7 +31,7 @@ object LightBufferPacker {
         val sectionGrid = Array(256) { mutableListOf<SectionData>() }
         val sectionCache = ChunkSectionCache(Minecraft.getInstance().level!!)
         val sectionMeshes = hashMapOf<SectionPos, SectionMeshCache?>()
-        val grids = mutableListOf<Array<ShadowGridCell?>>()
+        val grids = mutableListOf<Array<Int?>>()
         var numLightInstances = 0
         var numLights = 0
 
@@ -71,10 +54,6 @@ object LightBufferPacker {
                         val end = shadows.size
                         val len = end - start
 
-                        if (start != end) {
-                            hasShadows = true
-                        }
-
                         if (start and 524287.inv() != 0) {
                             throw IndexOutOfBoundsException(start)
                         }
@@ -92,41 +71,29 @@ object LightBufferPacker {
         for (light in lights) {
             var added = false
             val cellRangeStart by lazy {
-                val shadowBox = light.getShadowBox(SHADOW_GRID_SHIFT)
-                val grid = arrayOfNulls<ShadowGridCell>(shadowBox.area)
+                val grid = arrayOfNulls<Int>(light.shadowBox.area)
 
-                sectionCache.get(shadowBox.min.toBlockPos(), (shadowBox.max - 1).toBlockPos()).forEach { (pos, state) ->
-                    val worldPos = light.shadowGridCellRelativePosToWorldPos(pos, SHADOW_GRID_SHIFT)
-                    val cell = ShadowGridCell()
-                    var relativeIndex = 0
-
-                    for (x in 0 until SHADOW_GRID_SIZE) {
-                        for (y in 0 until SHADOW_GRID_SIZE) {
-                            for (z in 0 until SHADOW_GRID_SIZE) {
-                                val pos = worldPos.plus(x, y, z)
-
-                                cell.voxels[relativeIndex++] = if (pos == light.pos) {
-                                    getBlockShadow(pos.toBlockPos())
-                                } else {
-                                    if (state.isAir) {
-                                        null
-                                    } else if (state.isSolidRender) {
-                                        hasShadows = true
-                                        1
-                                    } else {
-                                        getBlockShadow(pos.toBlockPos())
-                                    }
-                                }
-                            }
+                sectionCache.get(light.shadowBox.min.toBlockPos(), (light.shadowBox.max - 1).toBlockPos()).forEach { (pos, state) ->
+                    val cell = if (pos == light.pos) {
+                        getBlockShadow(pos)
+                    } else {
+                        if (state.isAir) {
+                            null
+                        } else if (state.isSolidRender) {
+                            1
+                        } else {
+                            getBlockShadow(pos)
                         }
                     }
-
-                    grid[getGridIndex(pos, shadowBox)] = cell
+                    cell?.let {
+                        grid[getGridIndex(pos, light.shadowBox)] = it
+                        hasShadows = true
+                    }
                 }
 
                 val start = cellRangeIndex
 
-                grids.add(grid) // TODO why could be null?
+                grids.add(grid)
                 cellRangeIndex += grid.size
 
                 start
@@ -197,7 +164,7 @@ object LightBufferPacker {
                     )
 
                     output.writeFloat(light.light.radius)
-                    output.writeInt(light.light.shadowRadius ushr SHADOW_GRID_SHIFT)
+                    output.writeInt(light.light.shadowRadius)
                     output.writeInt(light.cellRangeStart)
 
                     output.skip(4)
@@ -233,20 +200,12 @@ object LightBufferPacker {
 
         val gridBuffer = GpuObjects.buffer(
             { "Vibrancy Shadow Grid Buffer (${region.x}, ${region.y}, ${region.z})" },
-            cellRangeIndex * SHADOW_GRID_AREA * 4L,
+            cellRangeIndex * 4L,
             bufferUsage
         ) { output ->
             for (grid in grids) {
                 for (cell in grid) {
-                    if (cell == null) {
-                        repeat(SHADOW_GRID_AREA) {
-                            output.writeInt(0)
-                        }
-                    } else {
-                        for (voxel in cell.voxels) {
-                            output.writeInt(voxel ?: 0) // must write 0, cannot skip bytes here
-                        }
-                    }
+                    output.writeInt(cell ?: 0) // must write 0, cannot skip bytes here
                 }
             }
         }

@@ -131,13 +131,11 @@ object VibrancyConfig {
         set(value) {
             field = value
 
-            /*
             Vibrancy.lightManager.blockLights[RayPointLightType]?.let {
                 for (light in (it as RayPointLightStorage).map.values) {
                     light.shadowBox = light.createShadowBox()
                 }
             }
-             */
         }
     @JvmField
     var rayLightMaxHighQuality: Int = 10

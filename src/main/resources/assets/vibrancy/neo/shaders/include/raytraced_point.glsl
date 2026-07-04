@@ -1,6 +1,6 @@
 #include "vibrancy:rays"
 
-const uint SHADOW_GRID_SHIFT = 1u; // TODO
+const uint SHADOW_GRID_SHIFT = 0u; // TODO
 const uint SHADOW_GRID_SIZE = 1u << SHADOW_GRID_SHIFT;
 const uint SHADOW_GRID_AREA = SHADOW_GRID_SIZE * SHADOW_GRID_SIZE * SHADOW_GRID_SIZE;
 

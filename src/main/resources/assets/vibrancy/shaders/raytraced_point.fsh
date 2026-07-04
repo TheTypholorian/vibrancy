@@ -43,45 +43,33 @@ vec3 testRaytracedPointLightRay(Ray ray, RaytracedPointLight light, sampler2D tr
     uint gridIndex = light.cellRangeStart + getShadowGridIndex(light, dda.voxel);
 
     while (all(lessThanEqual(abs(dda.voxel), ivec3(light.shadowRadius))) && dda.voxel != ivec3(0)) { // TODO make testing center voxel configurable
-        ShadowGridCell cell = shadowGrid[gridIndex];
+        uint cell = shadowGrid[gridIndex].voxels[0]; // TODO
+        bool cellSolid = (cell & 1u) == 1u;
 
-        for (uint voxelIndex = 0u; voxelIndex < SHADOW_GRID_AREA; voxelIndex++) {
-            uint voxel = cell.voxels[voxelIndex];
-            bool voxelSolid = (voxel & 1u) == 1u;
+        if (!config.visuals.alignPixels || dda.tExit - dda.tEnter > 1e-3) {
+            if (cellSolid) {
+                return vec3(0);
+            } else {
+                uint cellStart = cell >> 13u;
+                uint cellEnd = cellStart + ((cell >> 1u) & 4095u);
 
-            if (!config.visuals.alignPixels || dda.tExit - dda.tEnter > 1e-3) {
-                if (voxelSolid) {
-                    // TODO
-                    //return vec3(0);
-                } else {
-                    uint voxelStart = voxel >> 13u;
-                    uint voxelEnd = voxelStart + ((voxel >> 1u) & 4095u);
+                for (uint j = cellStart; j < cellEnd; j++) {
+                    float denom;
+                    vec2 uv;
+                    float dist;
+                    ColoredQuad quad = shadows[j];
 
-                    for (uint j = voxelStart; j < voxelEnd; j++) {
-                        float denom;
-                        vec2 uv;
-                        float dist;
-                        ColoredQuad quad = shadows[j];
+                    if (raycastQuad(ray, 1e-3, quad, denom, uv, dist)) {
+                        vec2 texUv = interpolateQuadUV(quad, uv);
+                        vec4 pixel = sampleNearest(transmissionTex, texUv, u_TexelSize) * interpolateQuadColor(quad, uv);
 
-                        if (raycastQuad(ray, 1e-3, quad, denom, uv, dist)) {
-                            vec2 texUv = interpolateQuadUV(quad, uv);
-                            vec4 pixel = sampleNearest(transmissionTex, texUv, u_TexelSize) * interpolateQuadColor(quad, uv);
+                        if (dda.voxel == ivec3(0)) {
+                            float emission = sampleNearest(reflectionTex, texUv, u_TexelSize).g;
 
-                            if (dda.voxel == ivec3(0)) {
-                                float emission = sampleNearest(reflectionTex, texUv, u_TexelSize).g;
-
-                                if (emission > 0) {
-                                    multiplier = emission;
-                                    // TODO remove breaking here
-                                    break; // TODO sort properly
-                                } else {
-                                    if (pixel.a == 1) {
-                                        return vec3(0);
-                                    } else if (pixel.a != 0) {
-                                        tint += pixel.rgb * pixel.a;
-                                        denom += pixel.a;
-                                    }
-                                }
+                            if (emission > 0) {
+                                multiplier = emission;
+                                // TODO remove breaking here
+                                break; // TODO sort properly
                             } else {
                                 if (pixel.a == 1) {
                                     return vec3(0);
@@ -89,6 +77,13 @@ vec3 testRaytracedPointLightRay(Ray ray, RaytracedPointLight light, sampler2D tr
                                     tint += pixel.rgb * pixel.a;
                                     denom += pixel.a;
                                 }
+                            }
+                        } else {
+                            if (pixel.a == 1) {
+                                return vec3(0);
+                            } else if (pixel.a != 0) {
+                                tint += pixel.rgb * pixel.a;
+                                denom += pixel.a;
                             }
                         }
                     }
