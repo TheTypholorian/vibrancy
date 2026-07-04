@@ -87,10 +87,6 @@ open class RayPointLight(
         return pos.plus(x, y, z)
     }
 
-    fun shadowGridCellPosToWorldPos(cell: IVec3<Int>, voxelShift: Int): IVec3<Int> {
-        return shadowGridCellRelativePosToWorldPos(cell - pos, voxelShift)
-    }
-
     constructor(level: Level, info: RayPointLightInfo, state: BlockState, pos: IVec3<Int>) : this(
         level,
         info.color(state) * info.brightness(state),

@@ -5,7 +5,6 @@ import net.caffeinemc.mods.sodium.client.render.chunk.region.RenderRegion
 import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
-import net.minecraft.world.level.levelgen.SurfaceRules.state
 import net.typho.big_shot_lib.api.client.rendering.common.GpuObjects
 import net.typho.big_shot_lib.api.client.rendering.common.constant.GpuBufferUsage
 import net.typho.big_shot_lib.api.math.IRect3
@@ -96,19 +95,18 @@ object LightBufferPacker {
                 val shadowBox = light.getShadowBox(SHADOW_GRID_SHIFT)
                 val grid = arrayOfNulls<ShadowGridCell>(shadowBox.area)
 
-                for (pos in shadowBox.copyWithUnchecked(shadowBox.min, shadowBox.max - 1).iterator()) {
-                    val worldPos = light.shadowGridCellPosToWorldPos(pos, SHADOW_GRID_SHIFT)
+                sectionCache.get(shadowBox.min.toBlockPos(), (shadowBox.max - 1).toBlockPos()).forEach { (pos, state) ->
+                    val worldPos = light.shadowGridCellRelativePosToWorldPos(pos, SHADOW_GRID_SHIFT)
                     val cell = ShadowGridCell()
                     var relativeIndex = 0
 
                     for (x in 0 until SHADOW_GRID_SIZE) {
                         for (y in 0 until SHADOW_GRID_SIZE) {
                             for (z in 0 until SHADOW_GRID_SIZE) {
-                                val pos = worldPos.plus(x, y, z).toBlockPos()
-                                val state = sectionCache[pos] // TODO optimize?
+                                val pos = worldPos.plus(x, y, z)
 
                                 cell.voxels[relativeIndex++] = if (pos == light.pos) {
-                                    getBlockShadow(pos)
+                                    getBlockShadow(pos.toBlockPos())
                                 } else {
                                     if (state.isAir) {
                                         null

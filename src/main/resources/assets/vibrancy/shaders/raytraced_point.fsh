@@ -42,7 +42,7 @@ vec3 testRaytracedPointLightRay(Ray ray, RaytracedPointLight light, sampler2D tr
 
     uint gridIndex = light.cellRangeStart + getShadowGridIndex(light, dda.voxel);
 
-    while (all(lessThanEqual(abs(dda.voxel), ivec3(light.shadowRadius)))) { // TODO make testing center voxel configurable
+    while (all(lessThanEqual(abs(dda.voxel), ivec3(light.shadowRadius))) && dda.voxel != ivec3(0)) { // TODO make testing center voxel configurable
         ShadowGridCell cell = shadowGrid[gridIndex];
 
         for (uint voxelIndex = 0u; voxelIndex < SHADOW_GRID_AREA; voxelIndex++) {
@@ -51,13 +51,6 @@ vec3 testRaytracedPointLightRay(Ray ray, RaytracedPointLight light, sampler2D tr
 
             if (!config.visuals.alignPixels || dda.tExit - dda.tEnter > 1e-3) {
                 if (voxelSolid) {
-                    ivec3 worldPos = shadowGridRelativeToWorldPos(light, dda.voxel) + getShadowGridCellPosFromIndex(voxelIndex);
-                    AABB box = AABB(vec3(worldPos), vec3(worldPos) + 1);
-
-                    if (testRayAABB(ray, box)) {
-                        return vec3(0);
-                    }
-
                     // TODO
                     //return vec3(0);
                 } else {
@@ -101,10 +94,6 @@ vec3 testRaytracedPointLightRay(Ray ray, RaytracedPointLight light, sampler2D tr
                     }
                 }
             }
-        }
-
-        if (dda.voxel == ivec3(0)) {
-            break;
         }
 
         stepDDA(dda, gridIndex, indexStep);
