@@ -1,8 +1,9 @@
 #version 430 core
 
+#include "minecraft:globals"
 #include "vibrancy:fragment"
-#include "vibrancy:raytraced_point"
 #include "vibrancy:pixel_alignment"
+#include "vibrancy:raytraced_point"
 
 in vec3 v_Pos;
 in vec3 v_Normal;
@@ -11,27 +12,36 @@ in vec4 v_Color;
 in vec2 v_TexCoord;
 
 uniform sampler2D u_BlockTex;
-//uniform sampler2D u_ReflectionTex;
+uniform sampler2D u_ReflectionTex;
 uniform sampler2D u_TransmissionTex;
 
 out vec4 fragColor;
 
-uint getGridIndex(ivec3 voxel, uint radius, uint size) {
-    ivec3 voxel1 = voxel + ivec3(radius);
-    return uint((voxel1.x * size + voxel1.y) * size + voxel1.z);
+vec3 getRaytracedPointLightColor(RaytracedPointLight light, vec3 fragPos) {
+    vec3 delta = light.pos - fragPos;
+    float distSq = dot(delta, delta);
+    float radiusSq = light.radius * light.radius;
+
+    if (distSq >= radiusSq) {
+        return vec3(0);
+    }
+
+    float s = sqrt(distSq) / light.radius;
+    float a = 1 - s;
+    return a * a * a * unpackUnorm4x8(light.color).rgb;
 }
 
-vec3 testRay(Ray ray, ivec3 lightPos, uint radius, uint cellRangeStart) {
-    DDAState dda = createDDA(ray, ray.pos - lightPos, clamp(ivec3(floor(ray.pos) - lightPos), ivec3(-radius), ivec3(radius)));
-    uint gridSize = radius * 2 + 1;
-    ivec3 indexStep = dda.step * ivec3(gridSize * gridSize, gridSize, 1);
+vec3 testRaytracedPointLightRay(Ray ray, RaytracedPointLight light, sampler2D transmissionTex) {
+    ivec3 lightVoxel = ivec3(floor(light.pos));
+    DDAState dda = createDDA(ray, ray.pos - lightVoxel, clamp(ivec3(floor(ray.pos)) - lightVoxel, ivec3(-light.shadowRadius), ivec3(light.shadowRadius)));
+    ivec3 indexStep = getShadowGridIncrement(light, dda);
 
     vec3 tint = vec3(0);
     float denom = 0;
 
-    uint gridIndex = cellRangeStart + getGridIndex(dda.voxel, radius, gridSize);
+    uint gridIndex = light.cellRangeStart + getShadowGridIndex(light, dda.voxel);
 
-    while (all(lessThanEqual(abs(dda.voxel), ivec3(radius)))) {
+    while (all(lessThanEqual(abs(dda.voxel), ivec3(light.shadowRadius)))) {
         uint cell = shadowGrid[gridIndex];
         bool cellSolid = (cell & 1u) == 1u;
 
@@ -50,7 +60,7 @@ vec3 testRay(Ray ray, ivec3 lightPos, uint radius, uint cellRangeStart) {
                 ColoredQuad quad = shadows[j];
 
                 if (raycastQuad(ray, 1e-3, quad, denom, uv, dist)) {
-                    vec4 pixel = sampleNearest(u_TransmissionTex, interpolateQuadUV(quad, uv), u_TexelSize) * interpolateQuadColor(quad, uv);
+                    vec4 pixel = sampleNearest(transmissionTex, interpolateQuadUV(quad, uv), u_TexelSize) * interpolateQuadColor(quad, uv);
 
                     if (pixel.a == 1) {
                         return vec3(0);
@@ -82,6 +92,33 @@ vec3 testRay(Ray ray, ivec3 lightPos, uint radius, uint cellRangeStart) {
     }
 }
 
+vec3 specularRaytracedPointLight(RaytracedPointLight light, vec3 color, vec3 vertexPos, vec3 cameraPos, vec3 normal, sampler2D reflectionTex, vec2 texCoord0) {
+    vec3 lightDelta = light.pos - vertexPos;
+    vec3 cameraDir = normalize(cameraPos - vertexPos);
+    vec3 resultDir = 2 * dot(cameraDir, normal) * normal - cameraDir;
+    float radius = 8.0 / 16.0;
+    vec3 delta = abs(resultDir * length(lightDelta) - lightDelta);
+    float dist = max(delta.x, max(delta.y, delta.z));
+    float multiplier = dist > radius ? 0 : config.specular.strength;
+
+    return color + color * texture(reflectionTex, texCoord0).r * multiplier;
+}
+
+void calculateRaytracedPointLight(RaytracedPointLight light, vec3 fragPos, vec3 shadowPos, vec3 normal, vec2 texCoord0, sampler2D transmissionTex, sampler2D reflectionTex, inout vec3 totalLightColor) {
+    vec3 delta = light.pos - fragPos;
+
+    if (all(lessThan(abs(delta), vec3(light.radius))) && dot(normal, normalize(delta)) > 0) {
+        vec3 lightColor = getRaytracedPointLightColor(light, fragPos) * testRaytracedPointLightRay(createRayTo(shadowPos, light.pos), light, transmissionTex);
+        vec3 specularColor = specularRaytracedPointLight(light, lightColor, shadowPos, CameraBlockPos - CameraOffset, normal, reflectionTex, texCoord0);
+
+        if (config.visuals.limitBrightness) {
+            totalLightColor = max(specularColor, totalLightColor);
+        } else {
+            totalLightColor += specularColor;
+        }
+    }
+}
+
 void main() {
     vec3 shadowPos = getShadowPosition(textureSize(u_TransmissionTex, 0), v_TexCoord, v_Pos);
     vec4 color = sampleTexture(u_BlockTex, v_TexCoord, u_TexelSize) * v_Color;
@@ -90,12 +127,7 @@ void main() {
     uint sectionRange = lights.sectionRanges[v_SectionPos];
 
     for (uint i = sectionRange >> 16u; i < (sectionRange & 0xFFFFu); i++) {
-        RaytracedPointLight light = lights.array[i];
-        vec3 delta = light.pos - v_Pos;
-
-        if (all(lessThan(abs(delta), vec3(light.radius))) && dot(v_Normal, normalize(delta)) > 0) {
-            totalLightColor += sampleRaytracedPointLight(light, v_Pos) * testRay(createRayTo(shadowPos, light.pos), ivec3(floor(light.pos)), light.shadowRadius, light.cellRangeStart);
-        }
+        calculateRaytracedPointLight(lights.array[i], v_Pos, shadowPos, v_Normal, v_TexCoord, u_TransmissionTex, u_ReflectionTex, totalLightColor);
     }
 
     fragColor = vec4(color.rgb * color.a * config.visuals.rayBrightness * totalLightColor * getFogScale(), 0);

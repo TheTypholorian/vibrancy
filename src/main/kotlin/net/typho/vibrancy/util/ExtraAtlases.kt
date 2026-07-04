@@ -110,11 +110,13 @@ object ExtraAtlases : NamedResource, SingleStepNeoReloadListener {
     }
 
     @JvmStatic
+    @JvmOverloads
     fun getReflection(key: Identifier, resources: ResourceManager = Minecraft.getInstance().resourceManager): TextureAtlas {
         return reflection.computeIfAbsent(key) { key -> createAtlas("reflection", key, reflectionIdConverter, resources, false) }
     }
 
     @JvmStatic
+    @JvmOverloads
     fun getTransmission(key: Identifier, resources: ResourceManager = Minecraft.getInstance().resourceManager): TextureAtlas {
         return transmission.computeIfAbsent(key) { key -> createAtlas("transmission", key, transmissionIdConverter, resources, true) }
     }

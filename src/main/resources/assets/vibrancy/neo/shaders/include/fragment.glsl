@@ -12,15 +12,6 @@ vec3 sampleCubeLight(vec3 lightPos, vec3 fragPos, float startRadius, float endRa
     return clamp((endRadius - dist) / (endRadius - startRadius), 0, 1) * lightColor;
 }
 
-vec3 specularReflection(SpecularConfig config, vec3 baseColor, vec3 lightColor, vec3 lightDir, vec3 cameraPos, vec3 vertexPos, vec3 normal, sampler2D reflectionSampler, vec2 texCoord0) {
-    vec3 inputNormal = lightDir;
-    vec3 outputNormal = normalize(cameraPos - vertexPos);
-    vec3 reflectedNormal = 2 * dot(inputNormal, normal) * normal - inputNormal;
-    float multiplier = pow(clamp(dot(outputNormal, reflectedNormal), 0, 1) * (1 - (dot(inputNormal, outputNormal) / 2 + 0.5)), config.exponent) * config.strength;
-
-    return baseColor + lightColor * texture(reflectionSampler, texCoord0).r * multiplier;
-}
-
 vec4 sampleNearest(sampler2D source, vec2 uv, vec2 pixelSize, vec2 du, vec2 dv, vec2 texelScreenSize) {
     vec2 uvTexelCoords = uv / pixelSize;
     vec2 texelCenter = round(uvTexelCoords) - 0.5f;

@@ -5,6 +5,7 @@ import com.mojang.blaze3d.IndexType;
 import com.mojang.blaze3d.buffers.GpuBufferImpl;
 import com.mojang.blaze3d.systems.CommandEncoder;
 import com.mojang.blaze3d.systems.RenderPass;
+import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.GpuSamplerImpl;
 import net.caffeinemc.mods.sodium.client.gpu.device.batch.MultiDrawBatch;
 import net.caffeinemc.mods.sodium.client.gpu.device.context.DrawContext;
@@ -93,11 +94,13 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
                         pass.setIndexBuffer(this.sharedIndexBuffer.getBufferObject(), IndexType.INT);
                     }
 
+                    pass.setUniform("Globals", RenderSystem.getGlobalSettingsUniform());
                     pass.setUniform("u_Globals", uniformData);
                     pass.setUniform("u_VibrancyConfig", VibrancyConfig.loadConfigBuffer());
                     pass.setUniform("u_SectionTimeInfo", sectionTimeInfo);
                     pass.bindTexture("u_BlockTex", renderPass.getAtlas(), terrainSampler);
-                    pass.bindTexture("u_TransmissionTex", ExtraAtlases.getTransmission(AtlasIds.BLOCKS, Minecraft.getInstance().getResourceManager()).getTextureView(), terrainSampler);
+                    pass.bindTexture("u_ReflectionTex", ExtraAtlases.getReflection(AtlasIds.BLOCKS).getTextureView(), terrainSampler);
+                    pass.bindTexture("u_TransmissionTex", ExtraAtlases.getTransmission(AtlasIds.BLOCKS).getTextureView(), terrainSampler);
 
                     renderLists.iterator(renderPass.isTranslucent()).forEachRemaining(renderList -> {
                         RenderRegion region = renderList.getRegion();

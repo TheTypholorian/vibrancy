@@ -20,16 +20,13 @@ layout(std430) readonly buffer GridBuffer {
     uint shadowGrid[];
 };
 
-vec3 sampleRaytracedPointLight(RaytracedPointLight light, vec3 fragPos) {
-    vec3 delta = light.pos - fragPos;
-    float distSq = dot(delta, delta);
-    float radiusSq = light.radius * light.radius;
+ivec3 getShadowGridIncrement(RaytracedPointLight light, DDAState dda) {
+    uint size = light.shadowRadius * 2 + 1;
+    return dda.step * ivec3(size * size, size, 1);
+}
 
-    if (distSq >= radiusSq) {
-        return vec3(0);
-    }
-
-    float s = sqrt(distSq) / light.radius;
-    float a = 1 - s;
-    return a * a * a * unpackUnorm4x8(light.color).rgb;
+uint getShadowGridIndex(RaytracedPointLight light, ivec3 voxel) {
+    ivec3 voxel1 = voxel + ivec3(light.shadowRadius);
+    uint size = light.shadowRadius * 2 + 1;
+    return uint((voxel1.x * size + voxel1.y) * size + voxel1.z);
 }
