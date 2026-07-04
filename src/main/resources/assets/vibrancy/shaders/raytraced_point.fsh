@@ -115,7 +115,7 @@ vec3 specularRaytracedPointLight(RaytracedPointLight light, vec3 color, vec3 ver
     vec3 cameraDir = normalize(cameraPos - vertexPos);
     vec3 resultDir = 2 * dot(cameraDir, normal) * normal - cameraDir;
 
-    Ray ray = createRay(vertexPos, resultDir, length(lightDelta));
+    EndlessRay ray = createEndlessRay(vertexPos, resultDir);
 
     float multiplier = 0;
 

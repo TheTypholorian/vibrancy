@@ -5,6 +5,12 @@ struct Ray {
     float len;
 };
 
+struct EndlessRay {
+    vec3 pos;
+    vec3 dir;
+    vec3 invDir;
+};
+
 Ray createRay(vec3 pos, vec3 dir, float len) {
     return Ray(pos, dir, 1 / dir, len);
 }
@@ -14,12 +20,25 @@ Ray createRayTo(vec3 from, vec3 to) {
     return createRay(from, normalize(delta), length(delta));
 }
 
+EndlessRay createEndlessRay(vec3 pos, vec3 dir) {
+    return EndlessRay(pos, dir, 1 / dir);
+}
+
+EndlessRay createEndlessRayTo(vec3 from, vec3 to) {
+    vec3 delta = to - from;
+    return createEndlessRay(from, normalize(delta));
+}
+
+EndlessRay createEndlessRay(Ray ray) {
+    return EndlessRay(ray.pos, ray.dir, ray.invDir);
+}
+
 struct AABB {
     vec3 min;
     vec3 max;
 };
 
-bool testRayAABB(Ray ray, AABB aabb) {
+bool testRayAABB(Ray ray, AABB aabb) { // TODO length checking stuff
     vec3 t0 = (aabb.min - ray.pos) * ray.invDir;
     vec3 t1 = (aabb.max - ray.pos) * ray.invDir;
 
@@ -91,6 +110,52 @@ bool raycastQuad(Ray ray, float margin, ColoredQuad quad, out float denom, out v
     return raycastQuad(ray, margin, quad.vert1, quad.vert2, quad.vert3, quad.vert4, denom, uv, tt);
 }
 
+bool raycastQuad(EndlessRay ray, float margin, vec3 v1, vec3 v2, vec3 v3, vec3 v4, out float denom, out vec2 uv, out float tt) {
+    vec3 normal = normalize(cross(v2 - v1, v4 - v1));
+
+    denom = dot(ray.dir, normal);
+
+    float d = dot(normal, v1);
+
+    tt = (d - dot(ray.pos, normal)) / denom;
+    if (tt < margin * sign(denom)) return false;
+
+    vec3 p = ray.pos + tt * ray.dir;
+    vec3 vp = p - v1;
+
+    vec3 diagonal1 = v2 - v1;
+    vec3 diagonal2 = v4 - v1;
+
+    float d1p = dot(diagonal1, vp);
+    float d2p = dot(diagonal2, vp);
+
+    float d11 = dot(diagonal1, diagonal1);
+    float d12 = dot(diagonal1, diagonal2);
+    float d22 = dot(diagonal2, diagonal2);
+    float invDet = 1 / (d11 * d22 - d12 * d12);
+
+    float inv11 = d22 * invDet;
+    float inv12 = -d12 * invDet;
+    float inv22 = d11 * invDet;
+
+    float a = inv11 * d1p + inv12 * d2p;
+    float b = inv12 * d1p + inv22 * d2p;
+
+    if (a < -margin || b < -margin || a > 1 + margin || b > 1 + margin) return false;
+
+    uv = clamp(vec2(a, b), margin, 1 - margin);
+
+    return true;
+}
+
+bool raycastQuad(EndlessRay ray, float margin, Quad quad, out float denom, out vec2 uv, out float tt) {
+    return raycastQuad(ray, margin, quad.vert1, quad.vert2, quad.vert3, quad.vert4, denom, uv, tt);
+}
+
+bool raycastQuad(EndlessRay ray, float margin, ColoredQuad quad, out float denom, out vec2 uv, out float tt) {
+    return raycastQuad(ray, margin, quad.vert1, quad.vert2, quad.vert3, quad.vert4, denom, uv, tt);
+}
+
 vec2 interpolateQuadUV(Quad quad, vec2 uv) {
     return mix(mix(unpackUnorm2x16(quad.uv1), unpackUnorm2x16(quad.uv2), uv.x), mix(unpackUnorm2x16(quad.uv4), unpackUnorm2x16(quad.uv3), uv.x), uv.y);
 }
@@ -113,7 +178,7 @@ struct DDAState {
     float tExit;
 };
 
-DDAState createDDA(Ray ray, vec3 pos, ivec3 voxel) {
+DDAState createDDA(EndlessRay ray, vec3 pos, ivec3 voxel) {
     DDAState dda;
 
     dda.voxel = voxel;
@@ -129,12 +194,24 @@ DDAState createDDA(Ray ray, vec3 pos, ivec3 voxel) {
     return dda;
 }
 
-DDAState createDDA(Ray ray, vec3 pos) {
+DDAState createDDA(EndlessRay ray, vec3 pos) {
     return createDDA(ray, pos, ivec3(floor(pos)));
 }
 
-DDAState createDDA(Ray ray) {
+DDAState createDDA(EndlessRay ray) {
     return createDDA(ray, ray.pos);
+}
+
+DDAState createDDA(Ray ray, vec3 pos, ivec3 voxel) {
+    return createDDA(createEndlessRay(ray), pos, voxel);
+}
+
+DDAState createDDA(Ray ray, vec3 pos) {
+    return createDDA(createEndlessRay(ray), pos);
+}
+
+DDAState createDDA(Ray ray) {
+    return createDDA(createEndlessRay(ray));
 }
 
 void stepDDA(inout DDAState dda) {
