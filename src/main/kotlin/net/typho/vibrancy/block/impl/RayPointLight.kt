@@ -61,7 +61,6 @@ open class RayPointLight(
         get() = pos.toFloat()
     //? }
     override val boundingBox: IRect3<Float> = IRect3(pos.toFloat() - radius, pos.toFloat() + radius)
-    override var shadowBox: IRect3<Int> = createShadowBox()
     @JvmField
     val sections: List<SectionPos> = SectionPos.betweenClosedStream(
         SectionPos.blockToSectionCoord(boundingBox.min.x.toInt()),
@@ -74,11 +73,18 @@ open class RayPointLight(
     @JvmField
     val sectionPos = SectionPos.of(absolutePos.toBlockPos())
     val shadowRadius: Int
-        get() = radius.toInt().coerceAtMost(VibrancyConfig.rayLightShadowRadius)
+        get() = ceil(radius).toInt().coerceAtMost(VibrancyConfig.rayLightShadowRadius).coerceAtLeast(0)
 
-    fun createShadowBox(): IRect3<Int> {
-        val shadowRadius = shadowRadius
+    fun getShadowBox(voxelShift: Int): IRect3<Int> {
+        val shadowRadius = shadowRadius ushr voxelShift
         return IRect3(pos - shadowRadius, pos + shadowRadius)
+    }
+
+    fun shadowGridCellRelativePosToWorldPos(cell: IVec3<Int>, voxelShift: Int): IVec3<Int> {
+        val x = cell.x shl voxelShift
+        val y = cell.y shl voxelShift
+        val z = cell.z shl voxelShift
+        return pos.plus(x, y, z)
     }
 
     constructor(level: Level, info: RayPointLightInfo, state: BlockState, pos: IVec3<Int>) : this(

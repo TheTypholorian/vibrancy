@@ -36,11 +36,6 @@ open class SubtleLight(
             pos.toFloat() - 1f,
             pos.toFloat() + 2f
         )
-    override val shadowBox: IRect3<Int>
-        get() = IRect3(
-            pos - 1,
-            pos + 1,
-        )
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
