@@ -64,7 +64,8 @@ vec3 testRaytracedPointLightRay(Ray ray, RaytracedPointLight light, sampler2D tr
                         vec4 pixel = sampleNearest(transmissionTex, texUv, u_TexelSize) * interpolateQuadColor(quad, uv);
 
                         if (dda.voxel == ivec3(0)) {
-                            float emission = sampleNearest(reflectionTex, texUv, u_TexelSize).g;
+                            vec4 material = sampleNearest(reflectionTex, texUv, u_TexelSize);
+                            float emission = material.g * material.a;
 
                             if (emission > 0) {
                                 multiplier = emission;
@@ -121,7 +122,8 @@ vec3 specularRaytracedPointLight(RaytracedPointLight light, vec3 color, vec3 ver
 
         if (raycastQuad(ray, 1e-3, quad, denom, uv, dist) && denom < 0) {
             vec2 texUv = interpolateQuadUV(quad, uv);
-            float emission = sampleNearest(reflectionTex, texUv, u_TexelSize).g;
+            vec4 material = sampleNearest(reflectionTex, texUv, u_TexelSize);
+            float emission = material.g * material.a;
 
             if (emission > 0) {
                 multiplier = emission;
@@ -130,7 +132,8 @@ vec3 specularRaytracedPointLight(RaytracedPointLight light, vec3 color, vec3 ver
         }
     }
 
-    return color + color * texture(reflectionTex, texCoord0).r * multiplier * config.specular.strength;
+    vec4 material = texture(reflectionTex, texCoord0);
+    return color + color * material.r * material.a * multiplier * config.specular.strength;
 }
 
 void calculateRaytracedPointLight(RaytracedPointLight light, vec3 fragPos, vec3 shadowPos, vec3 normal, vec2 texCoord0, sampler2D transmissionTex, sampler2D reflectionTex, inout vec3 totalLightColor) {

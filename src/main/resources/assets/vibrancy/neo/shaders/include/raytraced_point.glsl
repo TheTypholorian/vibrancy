@@ -8,15 +8,15 @@ struct RaytracedPointLight {
     uint cellRangeStart;
 };
 
-layout(std430) readonly buffer LightBuffer {
+layout(std430, binding = 0) readonly buffer u_Lights {
     ivec3 worldOffset;
     uint sectionRanges[256];
     RaytracedPointLight array[];
 } lights;
-layout(std430) readonly buffer ShadowBuffer {
+layout(std430, binding = 1) readonly buffer u_Shadows {
     ColoredQuad shadows[];
 };
-layout(std430) readonly buffer GridBuffer {
+layout(std430, binding = 2) readonly buffer u_Grids {
     uint shadowGrid[];
 };
 

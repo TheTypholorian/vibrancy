@@ -15,8 +15,6 @@ import net.typho.vibrancy.block.impl.RayPointLightStorage
 import net.typho.vibrancy.block.impl.RayPointLightType
 import net.typho.vibrancy.block.impl.SubtleLightCullingMode
 import net.typho.vibrancy.util.VibrancyThreadPool
-import org.lwjgl.opengl.GL11.GL_RENDERER
-import org.lwjgl.opengl.GL11.glGetString
 import java.nio.file.Files
 import kotlin.reflect.KMutableProperty0
 

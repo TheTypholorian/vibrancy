@@ -70,6 +70,9 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
             .uniform("Globals")
             .uniform("u_Globals")
             .uniform("u_VibrancyConfig")
+            .storageBuffer("u_Lights")
+            .storageBuffer("u_Shadows")
+            .storageBuffer("u_Grids")
             .texelBuffer("u_SectionTimeInfo", GpuDataType.sint32, 1),
         RenderType.SMALL_BUFFER_SIZE,
         false,
@@ -85,22 +88,6 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
     @JvmField
     var toggleSubtleLightsKey: KeyMapping? = null
      */
-
-    init {
-        if (PlatformUtil.isDevEnv()) {
-            NeoShaderPreprocessor.REGISTRY.add(object : NeoShaderPreprocessor {
-                override fun apply(
-                    location: Identifier,
-                    type: GpuShaderType,
-                    code: String,
-                    resources: Map<Identifier, Resource>
-                ): String {
-                    LOGGER.info("Code for shader $location:\n$code")
-                    return code
-                }
-            })
-        }
-    }
 
     override fun addClientListener(listener: Consumer<NeoClientEventBus>) {
         super<NeoClientInitializer>.addClientListener(listener)

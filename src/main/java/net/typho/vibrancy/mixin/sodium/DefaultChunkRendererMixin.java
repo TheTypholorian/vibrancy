@@ -7,6 +7,7 @@ import com.mojang.blaze3d.systems.CommandEncoder;
 import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.GpuSamplerImpl;
+import com.mojang.blaze3d.textures.GpuTextureView;
 import net.caffeinemc.mods.sodium.client.gpu.device.batch.MultiDrawBatch;
 import net.caffeinemc.mods.sodium.client.gpu.device.context.DrawContext;
 import net.caffeinemc.mods.sodium.client.render.chunk.ChunkRenderMatrices;
@@ -40,8 +41,6 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import java.util.Optional;
 import java.util.OptionalDouble;
 
-import static org.lwjgl.opengl.GL20.glGetUniformLocation;
-
 @Mixin(DefaultChunkRenderer.class)
 public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
     @Shadow
@@ -74,18 +73,15 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
             @Local CommandEncoder encoder,
             @Local(ordinal = 2) boolean useIndexedTessellation
     ) {
-        /*
-        if (Vibrancy.lightManager.blockLights.get(RayPointLightType.INSTANCE) instanceof RayPointLightStorage storage) {
-            for (RayPointLight light : storage.getMap().values()) {
-                if (light.sections.contains())
-            }
-        }
-         */
-
         if (VibrancyConfig.INSTANCE.getModEnabled() && VibrancyConfig.INSTANCE.getRayLightsEnabled()) {
-            activeProgram = Vibrancy.raytracedPointRenderType.pipeline();
-
             if (Vibrancy.lightManager.blockLights.get(RayPointLightType.INSTANCE) instanceof RayPointLightStorage lightStorage) {
+                activeProgram = Vibrancy.raytracedPointRenderType.pipeline();
+
+                // get atlases here because they might create render passes and vulkan doesn't like render pass inception
+                GpuTextureView reflectionTex = ExtraAtlases.getReflection(AtlasIds.BLOCKS).getTextureView();
+                GpuTextureView transmissionTex = ExtraAtlases.getTransmission(AtlasIds.BLOCKS).getTextureView();
+                GpuBuffer configBuffer = VibrancyConfig.loadConfigBuffer();
+
                 try (RenderPass pass = encoder.createRenderPass(() -> "Vibrancy Block Lights", renderPass.getTarget().getColorTextureView(), Optional.empty(), renderPass.getTarget().getDepthTextureView(), OptionalDouble.empty())) {
                     pass.setPipeline(this.activeProgram);
                     this.drawContext.setContext(pass, this.activeProgram);
@@ -96,11 +92,11 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
 
                     pass.setUniform("Globals", RenderSystem.getGlobalSettingsUniform());
                     pass.setUniform("u_Globals", uniformData);
-                    pass.setUniform("u_VibrancyConfig", VibrancyConfig.loadConfigBuffer());
+                    pass.setUniform("u_VibrancyConfig", configBuffer);
                     pass.setUniform("u_SectionTimeInfo", sectionTimeInfo);
                     pass.bindTexture("u_BlockTex", renderPass.getAtlas(), terrainSampler);
-                    pass.bindTexture("u_ReflectionTex", ExtraAtlases.getReflection(AtlasIds.BLOCKS).getTextureView(), terrainSampler);
-                    pass.bindTexture("u_TransmissionTex", ExtraAtlases.getTransmission(AtlasIds.BLOCKS).getTextureView(), terrainSampler);
+                    pass.bindTexture("u_ReflectionTex", reflectionTex, terrainSampler);
+                    pass.bindTexture("u_TransmissionTex", transmissionTex, terrainSampler);
 
                     renderLists.iterator(renderPass.isTranslucent()).forEachRemaining(renderList -> {
                         RenderRegion region = renderList.getRegion();
@@ -118,6 +114,7 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
                             GpuBuffer shadowBuffer = ext.getVibrancy$shadowBuffer();
                             GpuBuffer gridBuffer = ext.getVibrancy$gridBuffer();
 
+                            // TODO shadowBuffer null
                             if (lightBuffer != null && gridBuffer != null) {
                                 MultiDrawBatch batch = region.getCachedBatch(renderPass);
 
@@ -126,14 +123,16 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
                                         pass.setIndexBuffer(region.getResources().getIndexBuffer(), IndexType.INT);
                                     }
 
-                                    pass.setVertexBuffer(0, region.getResources().getGeometryBuffer().slice());
-                                    pass.setStorageBuffer("LightBuffer", lightBuffer);
+                                    pass.setUniform("u_Lights", lightBuffer);
 
-                                    if (shadowBuffer != null) {
-                                        pass.setStorageBuffer("ShadowBuffer", shadowBuffer);
+                                    if (shadowBuffer == null) {
+                                        pass.setUniform("u_Shadows", RenderRegionExtension.getEmptyShadowBuffer());
+                                    } else {
+                                        pass.setUniform("u_Shadows", shadowBuffer);
                                     }
 
-                                    pass.setStorageBuffer("GridBuffer", gridBuffer);
+                                    pass.setUniform("u_Grids", gridBuffer);
+                                    pass.setVertexBuffer(0, region.getResources().getGeometryBuffer().slice());
                                     this.drawContext.updateData(region, camera);
                                     batch.draw(this.drawContext);
                                 }
@@ -141,10 +140,10 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
                         }
                     });
                 }
-            }
 
-            this.drawContext.endDraw();
-            activeProgram = null;
+                this.drawContext.endDraw();
+                activeProgram = null;
+            }
         }
     }
 }

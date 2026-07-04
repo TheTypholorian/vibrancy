@@ -129,7 +129,7 @@ object LightBufferPacker {
             return
         }
 
-        val bufferUsage = GpuBufferUsage.UNIFORM
+        val bufferUsage = GpuBufferUsage.SHADER_STORAGE
 
         val lightBuffer = GpuObjects.buffer(
             { "Vibrancy Light Buffer (${region.x}, ${region.y}, ${region.z})" },
