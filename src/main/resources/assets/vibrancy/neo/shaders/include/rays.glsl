@@ -38,17 +38,17 @@ struct AABB {
     vec3 max;
 };
 
-bool testRayAABB(Ray ray, AABB aabb) {
+bool testRayAABB(Ray ray, AABB aabb) { // TODO length checking stuff
     vec3 t0 = (aabb.min - ray.pos) * ray.invDir;
     vec3 t1 = (aabb.max - ray.pos) * ray.invDir;
 
     vec3 ts = min(t0, t1);
     vec3 tb = max(t0, t1);
 
-    float tEnter = max(max(ts.x, ts.y), ts.z);
-    float tExit = min(min(tb.x, tb.y), tb.z);
+    float tmin = max(max(ts.x, ts.y), ts.z);
+    float tmax = min(min(tb.x, tb.y), tb.z);
 
-    return tExit >= 0 && tEnter <= tExit && tEnter <= ray.len;
+    return tmax >= 0 && tmin <= tmax && tmin <= ray.len;
 }
 
 struct Quad {

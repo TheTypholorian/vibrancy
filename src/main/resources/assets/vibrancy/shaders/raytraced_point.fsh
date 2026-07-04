@@ -32,8 +32,8 @@ vec3 getRaytracedPointLightColor(RaytracedPointLight light, vec3 fragPos) {
 }
 
 vec3 testRaytracedPointLightRay(Ray ray, RaytracedPointLight light, sampler2D transmissionTex, sampler2D reflectionTex) {
-    ivec3 lightVoxel = ivec3(floor(light.pos)) >> SHADOW_GRID_SHIFT;
-    DDAState dda = createDDA(ray, worldPosToShadowGridRelative(light, ray.pos), clamp(worldPosToShadowGridRelative(light, ivec3(floor(ray.pos))), ivec3(-light.shadowRadius), ivec3(light.shadowRadius)));
+    ivec3 lightVoxel = ivec3(floor(light.pos));
+    DDAState dda = createDDA(ray, ray.pos - lightVoxel, clamp(ivec3(floor(ray.pos)) - lightVoxel, ivec3(-light.shadowRadius), ivec3(light.shadowRadius)));
     ivec3 indexStep = getShadowGridIncrement(light, dda);
 
     vec3 tint = vec3(0);
@@ -43,7 +43,7 @@ vec3 testRaytracedPointLightRay(Ray ray, RaytracedPointLight light, sampler2D tr
     uint gridIndex = light.cellRangeStart + getShadowGridIndex(light, dda.voxel);
 
     while (all(lessThanEqual(abs(dda.voxel), ivec3(light.shadowRadius))) && dda.voxel != ivec3(0)) { // TODO make testing center voxel configurable
-        uint cell = shadowGrid[gridIndex].voxels[0]; // TODO
+        uint cell = shadowGrid[gridIndex];
         bool cellSolid = (cell & 1u) == 1u;
 
         if (!config.visuals.alignPixels || dda.tExit - dda.tEnter > 1e-3) {
@@ -68,7 +68,6 @@ vec3 testRaytracedPointLightRay(Ray ray, RaytracedPointLight light, sampler2D tr
 
                             if (emission > 0) {
                                 multiplier = emission;
-                                // TODO remove breaking here
                                 break; // TODO sort properly
                             } else {
                                 if (pixel.a == 1) {
@@ -91,7 +90,17 @@ vec3 testRaytracedPointLightRay(Ray ray, RaytracedPointLight light, sampler2D tr
             }
         }
 
+        if (dda.voxel == ivec3(0)) {
+            break;
+        }
+
+        ivec3 oldVoxel = dda.voxel;
+
         stepDDA(dda, gridIndex, indexStep);
+
+        if (oldVoxel == dda.voxel) {
+            return vec3(multiplier);
+        }
     }
 
     if (denom > 0) {
@@ -110,7 +119,7 @@ vec3 specularRaytracedPointLight(RaytracedPointLight light, vec3 color, vec3 ver
 
     float multiplier = 0;
 
-    uint cell = shadowGrid[light.cellRangeStart + getShadowGridIndex(light, ivec3(0))].voxels[0]; // TODO
+    uint cell = shadowGrid[light.cellRangeStart + getShadowGridIndex(light, ivec3(0))];
     uint cellStart = cell >> 13u;
     uint cellEnd = cellStart + ((cell >> 1u) & 4095u);
 

@@ -37,7 +37,7 @@ object LightBufferPacker {
 
         fun getGridIndex(voxel: IVec3<Int>, box: IRect3<Int>): Int {
             val voxel = voxel - box.min
-            return (voxel.x * box.size.x + voxel.y) * box.size.y + voxel.z
+            return (voxel.x * box.sizeInclusive.x + voxel.y) * box.sizeInclusive.y + voxel.z
         }
 
         fun getBlockShadow(pos: BlockPos): Int? {
@@ -71,9 +71,9 @@ object LightBufferPacker {
         for (light in lights) {
             var added = false
             val cellRangeStart by lazy {
-                val grid = arrayOfNulls<Int>(light.shadowBox.area)
+                val grid = arrayOfNulls<Int>(light.shadowBox.areaInclusive)
 
-                sectionCache.get(light.shadowBox.min.toBlockPos(), (light.shadowBox.max - 1).toBlockPos()).forEach { (pos, state) ->
+                sectionCache[light.shadowBox].forEach { (pos, state) ->
                     val cell = if (pos == light.pos) {
                         getBlockShadow(pos)
                     } else {
