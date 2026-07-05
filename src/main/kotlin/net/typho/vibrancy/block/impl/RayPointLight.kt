@@ -19,6 +19,8 @@ open class RayPointLight(
     @JvmField
     val color: IVec3<Float>,
     @JvmField
+    val brightness: Float,
+    @JvmField
     val flicker: Float,
     @JvmField
     val radius: Float,
@@ -83,7 +85,8 @@ open class RayPointLight(
 
     constructor(level: Level, info: RayPointLightInfo, state: BlockState, pos: IVec3<Int>) : this(
         level,
-        info.color(state) * info.brightness(state),
+        info.color(state),
+        info.brightness(state),
         info.flicker(state),
         info.radius(state),
         info.offset(state),

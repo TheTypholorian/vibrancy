@@ -167,7 +167,7 @@ object LightBufferPacker {
                     output.writeInt(light.light.shadowRadius)
                     output.writeInt(light.cellRangeStart)
 
-                    output.skip(4)
+                    output.writeFloat(light.light.brightness)
                 }
             }
         }

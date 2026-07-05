@@ -1,8 +1,8 @@
 package net.typho.vibrancy.util
 
+import net.caffeinemc.mods.sodium.client.render.texture.SpriteContentsExtension
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite
-import net.minecraft.client.renderer.texture.SpriteContents
 import net.minecraft.client.renderer.texture.SpriteLoader
 import net.minecraft.client.renderer.texture.TextureAtlas
 import net.minecraft.client.renderer.texture.TextureAtlasSprite
@@ -33,22 +33,24 @@ object ExtraAtlases : NamedResource, SingleStepNeoReloadListener {
     private val transmission = hashMapOf<Identifier, TextureAtlas>()
 
     override fun onResourceManagerReload(manager: ResourceManager) {
-        reflection.forEach { (key, atlas) -> GpuQueue.runOrQueue {
-            atlas.close()
-        } }
+        reflection.forEach { (key, atlas) -> GpuQueue.runOrQueue { atlas.close() } }
         reflection.clear()
 
-        transmission.forEach { (key, atlas) -> GpuQueue.runOrQueue {
-            atlas.close()
-        } }
+        transmission.forEach { (key, atlas) -> GpuQueue.runOrQueue { atlas.close() } }
         transmission.clear()
     }
 
     @JvmStatic
     fun onInitializeClient(bus: NeoClientEventBus) {
         bus.register(ClientStartTickEvent {
-            reflection.forEach { (key, atlas) -> atlas.tick() }
-            transmission.forEach { (key, atlas) -> atlas.tick() }
+            reflection.forEach { (key, atlas) ->
+                (atlas as TextureAtlasAccessor).`vibrancy$getTexturesByName`().values.forEach { (it.contents() as SpriteContentsExtension).`sodium$setActive`(true) }
+                atlas.tick()
+            }
+            transmission.forEach { (key, atlas) ->
+                (atlas as TextureAtlasAccessor).`vibrancy$getTexturesByName`().values.forEach { (it.contents() as SpriteContentsExtension).`sodium$setActive`(true) }
+                atlas.tick()
+            }
         })
     }
 

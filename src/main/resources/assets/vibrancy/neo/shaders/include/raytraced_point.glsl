@@ -6,6 +6,7 @@ struct RaytracedPointLight {
     float radius;
     uint shadowRadius;
     uint cellRangeStart;
+    float brightness;
 };
 
 layout(std430, binding = 0) readonly buffer u_Lights {
