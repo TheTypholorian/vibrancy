@@ -43,7 +43,7 @@ vec3 testRaytracedPointLightRay(Ray ray, RaytracedPointLight light, sampler2D tr
     uint gridIndex = light.cellRangeStart + getShadowGridIndex(light, dda.voxel);
     ivec3 lastVoxel = dda.voxel - dda.step;
 
-    while (all(lessThanEqual(abs(dda.voxel), ivec3(light.shadowRadius))) && lastVoxel != ivec3(0) && dda.voxel != lastVoxel) { // TODO make testing center voxel configurable
+    while (all(lessThanEqual(abs(dda.voxel), ivec3(light.shadowRadius))) && (config.raycastLightModel ? lastVoxel : dda.voxel) != ivec3(0) && dda.voxel != lastVoxel) { // TODO make testing center voxel configurable
         uint cell = shadowGrid[gridIndex];
         bool cellSolid = (cell & 1u) == 1u;
 

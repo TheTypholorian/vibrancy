@@ -11,6 +11,8 @@
   "config.vibrancy.general.limitLightBrightness.tooltip1": "Better for videos in some situations, but loses some detail and quality.",
   "config.vibrancy.general.alignPixels": "Align Pixels",
   "config.vibrancy.general.alignPixels.tooltip": "If light shadows should be aligned to block pixels.",
+  "config.vibrancy.general.raycastLightModel": "Raycast Light Model",
+  "config.vibrancy.general.raycastLightModel.tooltip": "If block lights should cast their own model as shadows.",
   "config.vibrancy.general.flickerStrength": "Flicker Strength",
   "config.vibrancy.general.flickerStrength.tooltip": "Global multiplier for all light flickering, set to 0 to disable them.",
 

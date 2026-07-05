@@ -1,6 +1,7 @@
 struct VisualsConfig {
     bool limitBrightness;
     bool alignPixels;
+    bool raycastLightModel;
     float rayBrightness;
     float subtleBrightness;
     float beamBrightness;

@@ -37,6 +37,7 @@ object VibrancyConfig {
             buffer.upload { output ->
                 output.writeInt(if (limitLightBrightness) 1 else 0)
                 output.writeInt(if (alignPixels) 1 else 0)
+                output.writeInt(if (raycastLightModel) 1 else 0)
                 output.writeFloat(rayLightBrightness)
                 output.writeFloat(subtleLightBrightness)
                 output.writeFloat(1f) // TODO
@@ -79,6 +80,11 @@ object VibrancyConfig {
             configBufferDirty = true
         }
     var alignPixels = true
+        set(value) {
+            field = value
+            configBufferDirty = true
+        }
+    var raycastLightModel = false
         set(value) {
             field = value
             configBufferDirty = true
@@ -201,6 +207,7 @@ object VibrancyConfig {
                 .name("asyncThreads").value(asyncThreads)
                 .name("limitLightBrightness").value(limitLightBrightness)
                 .name("alignPixels").value(alignPixels)
+                .name("raycastLightModel").value(raycastLightModel)
                 .name("flickerStrength").value(flickerStrength)
 
                 .name("specularReflections").beginObject()
@@ -271,6 +278,7 @@ object VibrancyConfig {
                 json.getAsJsonPrimitive("asyncThreads")?.let { asyncThreads = it.asInt }
                 json.getAsJsonPrimitive("limitLightBrightness")?.let { limitLightBrightness = it.asBoolean }
                 json.getAsJsonPrimitive("alignPixels")?.let { alignPixels = it.asBoolean }
+                json.getAsJsonPrimitive("raycastLightModel")?.let { raycastLightModel = it.asBoolean }
                 json.getAsJsonPrimitive("flickerStrength")?.let { flickerStrength = it.asFloat }
 
                 json.getAsJsonObject("specularReflections")?.let { reflections ->
@@ -376,6 +384,15 @@ object VibrancyConfig {
                         Component.translatable("config.vibrancy.general.alignPixels.tooltip")
                     ))
                     .binding(true, VibrancyConfig::alignPixels)
+                    .controller(TickBoxControllerBuilder::create)
+                    .build())
+
+                .option(Option.createBuilder<Boolean>()
+                    .name(Component.translatable("config.vibrancy.general.raycastLightModel"))
+                    .description(OptionDescription.of(
+                        Component.translatable("config.vibrancy.general.raycastLightModel.tooltip")
+                    ))
+                    .binding(false, VibrancyConfig::raycastLightModel)
                     .controller(TickBoxControllerBuilder::create)
                     .build())
 
