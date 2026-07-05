@@ -75,6 +75,8 @@ bool raycastQuad(Ray ray, float margin, vec3 v1, vec3 v2, vec3 v3, vec3 v4, out 
 
     denom = dot(ray.dir, normal);
 
+    if (abs(denom) < margin) return false;
+
     float d = dot(normal, v1);
 
     tt = (d - dot(ray.pos, normal)) / denom;
@@ -124,6 +126,8 @@ bool raycastQuad(EndlessRay ray, float margin, vec3 v1, vec3 v2, vec3 v3, vec3 v
     vec3 normal = normalize(cross(v2 - v1, v4 - v1));
 
     denom = dot(ray.dir, normal);
+
+    if (abs(denom) < margin) return false;
 
     float d = dot(normal, v1);
 

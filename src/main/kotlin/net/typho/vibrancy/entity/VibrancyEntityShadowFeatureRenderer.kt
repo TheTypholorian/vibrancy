@@ -13,8 +13,11 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexFormat
 import com.mojang.blaze3d.vertex.VertexSorting
+import net.caffeinemc.mods.sodium.client.gui.options.control.ControlValueFormatterImpls.brightness
+import net.fabricmc.fabric.api.networking.v1.PlayerLookup.level
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.Font
+import net.minecraft.client.renderer.Lightmap
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.client.renderer.StagedVertexBuffer
 import net.minecraft.client.renderer.SubmitNodeStorage
@@ -48,6 +51,8 @@ import net.typho.vibrancy.util.SectionMeshCache
 import org.joml.Matrix4f
 import org.joml.Vector3f
 import org.joml.Vector4f
+import java.nio.ByteBuffer
+import java.nio.ByteOrder
 import java.util.*
 import java.util.function.Supplier
 
@@ -155,7 +160,7 @@ open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityS
                         }
                     }
                 }
-            val builder = BufferBuilder(ByteBufferBuilder(RenderType.SMALL_BUFFER_SIZE), PrimitiveTopology.QUADS, DefaultVertexFormat.POSITION_TEX)
+            val builder = BufferBuilder(ByteBufferBuilder(RenderType.SMALL_BUFFER_SIZE), PrimitiveTopology.QUADS, DefaultVertexFormat.POSITION_TEX_LIGHTMAP_COLOR)
             val sections = mutableMapOf<SectionPos, SectionMeshCache?>()
             val camera = (Minecraft.getInstance().levelRenderer as LevelRendererAccessor).`vibrancy$getLevelRenderState`().cameraRenderState
 
@@ -170,13 +175,16 @@ open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityS
                             }
                         }?.let { section ->
                             section[pos]?.solidFaces?.forEach { face ->
-                                if (PackedNormal.unpackByteY(face.v0.normal) > 0) {
+                                if (PackedNormal.unpackByteY(face.v0.normal) >= 0) {
                                     face.apply { vertex ->
                                         builder.addVertex(
                                             (vertex.x + pos.x - camera.pos.x).toFloat(),
                                             (vertex.y + pos.y - camera.pos.y).toFloat(),
                                             (vertex.z + pos.z - camera.pos.z).toFloat()
-                                        ).setUv(vertex.u, vertex.v)
+                                        )
+                                            .setUv(vertex.u, vertex.v)
+                                            .setLight(vertex.light)
+                                            .setColor(vertex.color)
                                     }
                                 }
                             }

@@ -13,6 +13,7 @@ uniform sampler2D u_TransmissionTex;
 
 in vec3 vertexPosition;
 in vec2 texCoord0;
+in float vertexLight;
 
 out vec4 fragColor;
 
@@ -38,7 +39,7 @@ void main() {
 
                     if (color.a > 0) {
                         if (color.a == 1) {
-                            //color.rgb = vec3(0);
+                            color.rgb = vec3(0);
                         }
 
                         minHit = tt;
@@ -47,5 +48,9 @@ void main() {
                 }
             }
         }
+    }
+
+    if (minHit != -1) {
+        fragColor.a *= clamp(2 - minHit, 0, 1) * vertexLight * texture(u_BlockTex, texCoord0).a;
     }
 }

@@ -93,7 +93,7 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
     @JvmField
     val entityShadowRenderType = GpuObjects.renderType(
         id("entity_shadow"),
-        DefaultVertexFormat.POSITION_TEX,
+        DefaultVertexFormat.POSITION_TEX_LIGHTMAP_COLOR,
         GpuDrawSettings.Builder()
             .blend(GpuBlendFunction.TRANSLUCENT) // TODO
             .shader(id("entity_shadow"))
