@@ -42,7 +42,7 @@ object VibrancyConfig {
                 output.writeFloat(subtleLightBrightness)
                 output.writeFloat(1f) // TODO
                 output.writeFloat(skyLightBrightness)
-                output.skip(8)
+                output.skip(4)
 
                 output.writeInt(if (reflectionsEnabled) 1 else 0)
                 output.writeFloat(reflectionStrength)
