@@ -21,6 +21,7 @@ import net.caffeinemc.mods.sodium.client.render.chunk.terrain.TerrainRenderPass;
 import net.caffeinemc.mods.sodium.client.render.chunk.vertex.format.ChunkVertexType;
 import net.caffeinemc.mods.sodium.client.render.viewport.CameraTransform;
 import net.caffeinemc.mods.sodium.client.util.FogParameters;
+import net.minecraft.client.renderer.texture.TextureAtlas;
 import net.minecraft.data.AtlasIds;
 import net.typho.big_shot_lib.api.client.rendering.common.GpuBuffer;
 import net.typho.vibrancy.RenderRegionExtension;
@@ -58,6 +59,7 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
             method = "render",
             at = @At("TAIL")
     )
+    @SuppressWarnings("deprecation")
     private void render(
             ChunkRenderMatrices matrices,
             ChunkRenderListIterable renderLists,
@@ -77,8 +79,8 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
                 activeProgram = Vibrancy.raytracedPointRenderType.pipeline();
 
                 // get atlases here because they might create render passes and vulkan doesn't like render pass inception
-                GpuTextureView materialTex = ExtraAtlases.getMaterial(AtlasIds.BLOCKS).getTextureView();
-                GpuTextureView transmissionTex = ExtraAtlases.getTransmission(AtlasIds.BLOCKS).getTextureView();
+                GpuTextureView materialTex = ExtraAtlases.getMaterialOrThrow(TextureAtlas.LOCATION_BLOCKS).getTextureView();
+                GpuTextureView transmissionTex = ExtraAtlases.getTransmissionOrThrow(TextureAtlas.LOCATION_BLOCKS).getTextureView();
                 GpuBuffer configBuffer = VibrancyConfig.loadConfigBuffer();
 
                 try (RenderPass pass = encoder.createRenderPass(() -> "Vibrancy Block Lights", renderPass.getTarget().getColorTextureView(), Optional.empty(), renderPass.getTarget().getDepthTextureView(), OptionalDouble.empty())) {

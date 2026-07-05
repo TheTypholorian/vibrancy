@@ -2,10 +2,12 @@ package net.typho.vibrancy.util
 
 import net.caffeinemc.mods.sodium.client.render.texture.SpriteContentsExtension
 import net.minecraft.client.Minecraft
+import net.minecraft.client.renderer.texture.AbstractTexture
 import net.minecraft.client.renderer.texture.MissingTextureAtlasSprite
 import net.minecraft.client.renderer.texture.SpriteLoader
 import net.minecraft.client.renderer.texture.TextureAtlas
 import net.minecraft.client.renderer.texture.TextureAtlasSprite
+import net.minecraft.client.renderer.texture.TickableTexture
 import net.minecraft.client.renderer.texture.atlas.SpriteResourceLoader
 import net.minecraft.client.renderer.texture.atlas.SpriteSourceList
 import net.minecraft.client.resources.metadata.animation.AnimationMetadataSection
@@ -20,7 +22,6 @@ import net.typho.big_shot_lib.api.util.resource.SingleStepNeoReloadListener
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.mixin.TextureAtlasAccessor
 import net.typho.vibrancy.mixin.TextureAtlasSpriteAccessor
-import java.io.FileNotFoundException
 import java.util.concurrent.CompletableFuture
 
 object ExtraAtlases : NamedResource, SingleStepNeoReloadListener {
@@ -29,38 +30,44 @@ object ExtraAtlases : NamedResource, SingleStepNeoReloadListener {
     @JvmField
     val transmissionIdConverter = FileToIdConverter("rtx/transmission", ".png")
     override val location: Identifier = Vibrancy.id("extra_atlases")
-    private val reflection = hashMapOf<Identifier, TextureAtlas>()
-    private val transmission = hashMapOf<Identifier, TextureAtlas>()
+    private val reflection = hashMapOf<Identifier, AbstractTexture?>()
+    private val transmission = hashMapOf<Identifier, AbstractTexture?>()
 
     override fun onResourceManagerReload(manager: ResourceManager) {
-        reflection.forEach { (key, atlas) -> GpuQueue.runOrQueue { atlas.close() } }
+        reflection.forEach { (key, texture) -> GpuQueue.runOrQueue { texture?.close() } }
         reflection.clear()
 
-        transmission.forEach { (key, atlas) -> GpuQueue.runOrQueue { atlas.close() } }
+        transmission.forEach { (key, texture) -> GpuQueue.runOrQueue { texture?.close() } }
         transmission.clear()
     }
 
     @JvmStatic
     fun onInitializeClient(bus: NeoClientEventBus) {
         bus.register(ClientStartTickEvent {
-            reflection.forEach { (key, atlas) ->
-                (atlas as TextureAtlasAccessor).`vibrancy$getTexturesByName`().values.forEach { (it.contents() as SpriteContentsExtension).`sodium$setActive`(true) }
-                atlas.tick()
+            reflection.forEach { (key, texture) ->
+                if (texture is TextureAtlas) {
+                    (texture as TextureAtlasAccessor).`vibrancy$getTexturesByName`().values.forEach { (it.contents() as SpriteContentsExtension).`sodium$setActive`(true) }
+                }
+
+                if (texture is TickableTexture) {
+                    texture.tick()
+                }
             }
-            transmission.forEach { (key, atlas) ->
-                (atlas as TextureAtlasAccessor).`vibrancy$getTexturesByName`().values.forEach { (it.contents() as SpriteContentsExtension).`sodium$setActive`(true) }
-                atlas.tick()
+            transmission.forEach { (key, texture) ->
+                if (texture is TextureAtlas) {
+                    (texture as TextureAtlasAccessor).`vibrancy$getTexturesByName`().values.forEach { (it.contents() as SpriteContentsExtension).`sodium$setActive`(true) }
+                }
+
+                if (texture is TickableTexture) {
+                    texture.tick()
+                }
             }
         })
     }
 
-    private fun createAtlas(type: String, parentKey: Identifier, idConverter: FileToIdConverter, resources: ResourceManager, defaults: Boolean): TextureAtlas {
-        val parent = try {
-            Minecraft.getInstance().atlasManager.getAtlasOrThrow(parentKey)
-        } catch (_: NullPointerException) {
-            throw FileNotFoundException("No atlas $parentKey")
-        }
-        val key = Vibrancy.id(parentKey.toString('/') + "/$type")
+    private fun createAtlas(type: String, parentKey: Identifier, idConverter: FileToIdConverter, resources: ResourceManager, defaults: Boolean): TextureAtlas? {
+        val parent = Minecraft.getInstance().atlasManager.atlasByTexture[parentKey]?.atlas ?: return null
+        val key = Vibrancy.id("$type/${parentKey.toString('/')}")
         val loader = SpriteResourceLoader.create(setOf(AnimationMetadataSection.TYPE))
         val sprites = mutableMapOf<Identifier, TextureAtlasSprite>()
 
@@ -113,13 +120,25 @@ object ExtraAtlases : NamedResource, SingleStepNeoReloadListener {
 
     @JvmStatic
     @JvmOverloads
-    fun getMaterial(key: Identifier, resources: ResourceManager = Minecraft.getInstance().resourceManager): TextureAtlas {
+    fun getMaterial(key: Identifier, resources: ResourceManager = Minecraft.getInstance().resourceManager): AbstractTexture? {
         return reflection.computeIfAbsent(key) { key -> createAtlas("reflection", key, materialIdConverter, resources, false) }
     }
 
     @JvmStatic
     @JvmOverloads
-    fun getTransmission(key: Identifier, resources: ResourceManager = Minecraft.getInstance().resourceManager): TextureAtlas {
+    fun getMaterialOrThrow(key: Identifier, resources: ResourceManager = Minecraft.getInstance().resourceManager): AbstractTexture {
+        return getMaterial(key, resources) ?: throw NullPointerException("No Vibrancy material layer for texture $key")
+    }
+
+    @JvmStatic
+    @JvmOverloads
+    fun getTransmission(key: Identifier, resources: ResourceManager = Minecraft.getInstance().resourceManager): AbstractTexture? {
         return transmission.computeIfAbsent(key) { key -> createAtlas("transmission", key, transmissionIdConverter, resources, true) }
+    }
+
+    @JvmStatic
+    @JvmOverloads
+    fun getTransmissionOrThrow(key: Identifier, resources: ResourceManager = Minecraft.getInstance().resourceManager): AbstractTexture {
+        return getTransmission(key, resources) ?: throw NullPointerException("No Vibrancy transmission layer for texture $key")
     }
 }

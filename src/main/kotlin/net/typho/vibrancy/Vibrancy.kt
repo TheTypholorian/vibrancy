@@ -1,5 +1,6 @@
 package net.typho.vibrancy
 
+import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import net.caffeinemc.mods.sodium.client.render.chunk.vertex.format.impl.CompactChunkVertex
 import net.fabricmc.fabric.api.resource.v1.ResourceLoader
 import net.fabricmc.fabric.api.resource.v1.pack.PackActivationType
@@ -7,29 +8,24 @@ import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.core.Direction
 import net.minecraft.resources.Identifier
-import net.minecraft.server.packs.PackType
-import net.minecraft.server.packs.resources.Resource
 import net.typho.big_shot_lib.api.NeoCommonInitializer
 import net.typho.big_shot_lib.api.client.NeoClientInitializer
 import net.typho.big_shot_lib.api.client.event.AddAssetReloadListenersEvent
 import net.typho.big_shot_lib.api.client.event.ClientEndFrameEvent
 import net.typho.big_shot_lib.api.client.event.ClientLevelChangedEvent
 import net.typho.big_shot_lib.api.client.event.ClientStartFrameEvent
-import net.typho.big_shot_lib.api.client.rendering.NeoShaderPreprocessor
 import net.typho.big_shot_lib.api.client.rendering.common.GpuDrawSettings
 import net.typho.big_shot_lib.api.client.rendering.common.GpuObjects
 import net.typho.big_shot_lib.api.client.rendering.common.GpuQueue
 import net.typho.big_shot_lib.api.client.rendering.common.constant.GpuAlphaFunction
 import net.typho.big_shot_lib.api.client.rendering.common.constant.GpuBlendFunction
 import net.typho.big_shot_lib.api.client.rendering.common.constant.GpuDataType
-import net.typho.big_shot_lib.api.client.rendering.common.constant.GpuShaderType
 import net.typho.big_shot_lib.api.event.BlockChangedEvent
 import net.typho.big_shot_lib.api.event.ChunkLoadedEvent
 import net.typho.big_shot_lib.api.event.ChunkUnloadedEvent
 import net.typho.big_shot_lib.api.event.NeoClientEventBus
 import net.typho.big_shot_lib.api.event.NeoEventBus
 import net.typho.big_shot_lib.api.math.IVec3
-import net.typho.big_shot_lib.api.util.platform.PlatformUtil
 import net.typho.vibrancy.block.BlockLightInfoLoader
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.util.ExtraAtlases
@@ -81,6 +77,28 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
         RenderType.SMALL_BUFFER_SIZE,
         false,
         true,
+        false
+    )
+
+    @JvmField
+    val entityShadowRenderType = GpuObjects.renderType(
+        id("entity_shadow"),
+        DefaultVertexFormat.POSITION_TEX_COLOR,
+        GpuDrawSettings.Builder()
+            .blend(GpuBlendFunction.ADDITIVE)
+            .shader(id("entity_shadow"))
+            .cull()
+            .depth(GpuAlphaFunction.gequal)
+            .writeDepth(false)
+            .zOffset()
+            .sampler("u_BaseTex")
+            //.sampler("u_MaterialTex")
+            .sampler("u_TransmissionTex")
+            .uniform("Globals")
+            .uniform("u_VibrancyConfig"),
+        RenderType.SMALL_BUFFER_SIZE,
+        false,
+        false,
         false
     )
 

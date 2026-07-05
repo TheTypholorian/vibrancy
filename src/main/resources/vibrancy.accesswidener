@@ -1,1 +1,11 @@
 accessWidener v2 named
+
+accessible class net/minecraft/client/renderer/feature/RenderTypeFeatureRenderer$Group
+accessible field net/minecraft/client/renderer/feature/RenderTypeFeatureRenderer groups Ljava/util/List;
+accessible field net/minecraft/client/renderer/feature/RenderTypeFeatureRenderer$Group draws Ljava/util/List;
+accessible field net/minecraft/client/renderer/feature/RenderTypeFeatureRenderer$Group drawRenderTypes Ljava/util/List;
+
+accessible class net/minecraft/client/renderer/rendertype/RenderSetup$TextureBinding
+
+accessible class net/minecraft/client/resources/model/sprite/AtlasManager$AtlasEntry
+accessible field net/minecraft/client/resources/model/sprite/AtlasManager atlasByTexture Ljava/util/Map;
