@@ -35,9 +35,9 @@ public class StagedVertexBufferMixin {
             VertexFormat newFormat = DefaultVertexFormat.POSITION_TEX_COLOR;
 
             if (
-                    !Objects.equals(vertexFormat.getElement(DefaultVertexFormat.POSITION_SEMANTIC_NAME), newFormat.getElement(DefaultVertexFormat.POSITION_SEMANTIC_NAME)) ||
-                    !Objects.equals(vertexFormat.getElement(DefaultVertexFormat.UV0_SEMANTIC_NAME), newFormat.getElement(DefaultVertexFormat.UV0_SEMANTIC_NAME)) ||
-                    !Objects.equals(vertexFormat.getElement(DefaultVertexFormat.COLOR_SEMANTIC_NAME), newFormat.getElement(DefaultVertexFormat.COLOR_SEMANTIC_NAME))
+                    !newFormat.contains(DefaultVertexFormat.POSITION_SEMANTIC_NAME) ||
+                    !newFormat.contains(DefaultVertexFormat.UV0_SEMANTIC_NAME) ||
+                    !newFormat.contains(DefaultVertexFormat.COLOR_SEMANTIC_NAME)
             ) {
                 insufficientComponents.set(true);
                 return null;

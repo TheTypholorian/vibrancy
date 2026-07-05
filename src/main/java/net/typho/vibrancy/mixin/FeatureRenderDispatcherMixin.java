@@ -33,7 +33,7 @@ public class FeatureRenderDispatcherMixin {
     )
     private StagedVertexBuffer init(RenderBuffers instance, Operation<StagedVertexBuffer> original) {
         if ((Object) this instanceof VibrancyEntityShadowFeatureRenderer.Dispatcher) {
-            return new StagedVertexBuffer(() -> "Vibrancy Entity Shadow Collection", 786432);
+            return new VibrancyEntityShadowFeatureRenderer.VertexBuffer(() -> "Vibrancy Entity Shadow Collection", 786432);
         } else {
             return original.call(instance);
         }
