@@ -95,7 +95,7 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
         id("entity_shadow"),
         DefaultVertexFormat.POSITION_TEX_LIGHTMAP_COLOR,
         GpuDrawSettings.Builder()
-            .blend(GpuBlendFunction.TRANSLUCENT) // TODO
+            .blend(GpuBlendFunction.TRANSLUCENT)
             .shader(id("entity_shadow"))
             .cull()
             .depth(GpuAlphaFunction.gequal)
