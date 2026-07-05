@@ -10,6 +10,7 @@ import com.mojang.blaze3d.textures.GpuTextureView
 import com.mojang.blaze3d.vertex.BufferBuilder
 import com.mojang.blaze3d.vertex.ByteBufferBuilder
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
+import com.mojang.blaze3d.vertex.MeshData
 import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexFormat
 import com.mojang.blaze3d.vertex.VertexSorting
@@ -38,6 +39,7 @@ import net.minecraft.util.ARGB
 import net.typho.big_shot_lib.api.client.rendering.common.GpuBuffer
 import net.typho.big_shot_lib.api.client.rendering.common.GpuObjects
 import net.typho.big_shot_lib.api.client.rendering.common.GpuTexture
+import net.typho.big_shot_lib.api.client.rendering.common.Recyclable
 import net.typho.big_shot_lib.api.client.rendering.common.constant.GpuBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.common.constant.GpuTextureUsage
 import net.typho.big_shot_lib.api.client.rendering.util.PackedNormal
@@ -55,6 +57,7 @@ import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.*
 import java.util.function.Supplier
+import kotlin.collections.mapTo
 
 open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityShadowFeatureRenderer.Submit<*>> {
     companion object {
@@ -80,6 +83,20 @@ open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityS
             Minecraft.getInstance().gameRenderer.gameRenderState()
         )
     }
+
+    data class BlockMesh(
+        @JvmField
+        val input: Set<BlockBox>,
+        @JvmField
+        val meshData: MeshData,
+        @JvmField
+        val vertexBuffer: GpuBuffer,
+        @JvmField
+        val indexBuffer: Pair<GpuBuffer, IndexType>
+    )
+
+    @JvmField
+    protected var cachedBlockMesh: BlockMesh? = null
 
     open fun getTexture(width: Int, height: Int): GpuTextureView {
         texture?.let {
@@ -160,64 +177,78 @@ open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityS
                         }
                     }
                 }
-            val builder = BufferBuilder(ByteBufferBuilder(RenderType.SMALL_BUFFER_SIZE), PrimitiveTopology.QUADS, DefaultVertexFormat.POSITION_TEX_LIGHTMAP_COLOR)
-            val sections = mutableMapOf<SectionPos, SectionMeshCache?>()
             val camera = (Minecraft.getInstance().levelRenderer as LevelRendererAccessor).`vibrancy$getLevelRenderState`().cameraRenderState
 
-            val collectedBlocks = mutableSetOf<BlockPos>()
+            val blockBoxes = submits.mapTo(mutableSetOf()) { it.boundingBox }
 
-            for (submit in submits) {
-                for (pos in submit.boundingBox) {
-                    if (collectedBlocks.add(pos)) {
-                        sections.computeIfAbsent(SectionPos.of(pos)) { key ->
-                            synchronized(Vibrancy.lightManager) {
-                                Vibrancy.lightManager.sectionMeshCaches[key]
-                            }
-                        }?.let { section ->
-                            section[pos]?.solidFaces?.forEach { face ->
-                                if (PackedNormal.unpackByteY(face.v0.normal) >= 0) {
-                                    face.apply { vertex ->
-                                        builder.addVertex(
-                                            (vertex.x + pos.x - camera.pos.x).toFloat(),
-                                            (vertex.y + pos.y - camera.pos.y).toFloat(),
-                                            (vertex.z + pos.z - camera.pos.z).toFloat()
-                                        )
-                                            .setUv(vertex.u, vertex.v)
-                                            .setLight(vertex.light)
-                                            .setColor(vertex.color)
+            val cachedBlockMesh = cachedBlockMesh
+            val blockMesh = if (cachedBlockMesh == null || cachedBlockMesh.input != blockBoxes) {
+                val builder = BufferBuilder(ByteBufferBuilder(RenderType.SMALL_BUFFER_SIZE), PrimitiveTopology.QUADS, DefaultVertexFormat.POSITION_TEX_LIGHTMAP_COLOR)
+                val sections = mutableMapOf<SectionPos, SectionMeshCache?>()
+
+                val collectedBlocks = mutableSetOf<BlockPos>()
+
+                for (submit in submits) {
+                    for (pos in submit.boundingBox) {
+                        if (collectedBlocks.add(pos)) {
+                            sections.computeIfAbsent(SectionPos.of(pos)) { key ->
+                                synchronized(Vibrancy.lightManager) {
+                                    Vibrancy.lightManager.sectionMeshCaches[key]
+                                }
+                            }?.let { section ->
+                                section[pos]?.solidFaces?.forEach { face ->
+                                    if (PackedNormal.unpackByteY(face.v0.normal) >= 0) {
+                                        face.apply { vertex ->
+                                            builder.addVertex(
+                                                (vertex.x + pos.x - camera.pos.x).toFloat(),
+                                                (vertex.y + pos.y - camera.pos.y).toFloat(),
+                                                (vertex.z + pos.z - camera.pos.z).toFloat()
+                                            )
+                                                .setUv(vertex.u, vertex.v)
+                                                .setLight(vertex.light)
+                                                .setColor(vertex.color)
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                 }
-            }
 
-            builder.build()?.let { mesh ->
-                val vertexBuffer1 = vertexBuffer
-                val vertexBuffer = if (vertexBuffer1 == null || vertexBuffer1.size < mesh.vertexBufferSlice().size()) {
-                    vertexBuffer1?.recycle()
-                    val buffer = GpuObjects.buffer({ "Vibrancy Entity Shadows Vertex Buffer" }, GpuBufferUsage.VERTEX or GpuBufferUsage.COPY_DST, MemoryPointer.wrap(mesh.vertexBufferSlice().byteBuffer()))
-                    vertexBuffer = buffer
-                    buffer
-                } else {
-                    vertexBuffer1.upload(mesh.vertexBufferSlice().byteBuffer())
-                    vertexBuffer1
-                }
-
-                val indexBuffer1 = indexBuffer
-                val indexBuffer = mesh.indexBuffer()?.let { meshIndexBuffer ->
-                    if (indexBuffer1 == null || indexBuffer1.first.size < meshIndexBuffer.capacity()) {
-                        indexBuffer1?.first?.recycle()
-                        val buffer = GpuObjects.buffer({ "Vibrancy Entity Shadows Index Buffer" }, GpuBufferUsage.INDEX or GpuBufferUsage.COPY_DST, MemoryPointer.wrap(meshIndexBuffer)) to mesh.drawState().indexType
-                        indexBuffer = buffer
+                val mesh = builder.build()?.use { mesh ->
+                    val vertexBuffer1 = vertexBuffer
+                    val vertexBuffer = if (vertexBuffer1 == null || vertexBuffer1.size < mesh.vertexBufferSlice().size()) {
+                        vertexBuffer1?.recycle()
+                        val buffer = GpuObjects.buffer({ "Vibrancy Entity Shadows Vertex Buffer" }, GpuBufferUsage.VERTEX or GpuBufferUsage.COPY_DST, MemoryPointer.wrap(mesh.vertexBufferSlice().byteBuffer()))
+                        vertexBuffer = buffer
                         buffer
                     } else {
-                        indexBuffer1.first.upload(meshIndexBuffer)
-                        indexBuffer1
+                        vertexBuffer1.upload(mesh.vertexBufferSlice().byteBuffer())
+                        vertexBuffer1
                     }
-                } ?: RenderSystem.getSequentialBuffer(PrimitiveTopology.QUADS).let { it.getBuffer(mesh.drawState().indexCount) to it.type() }
 
+                    val indexBuffer1 = indexBuffer
+                    val indexBuffer = mesh.indexBuffer()?.let { meshIndexBuffer ->
+                        if (indexBuffer1 == null || indexBuffer1.first.size < meshIndexBuffer.capacity()) {
+                            indexBuffer1?.first?.recycle()
+                            val buffer = GpuObjects.buffer({ "Vibrancy Entity Shadows Index Buffer" }, GpuBufferUsage.INDEX or GpuBufferUsage.COPY_DST, MemoryPointer.wrap(meshIndexBuffer)) to mesh.drawState().indexType
+                            indexBuffer = buffer
+                            buffer
+                        } else {
+                            indexBuffer1.first.upload(meshIndexBuffer)
+                            indexBuffer1
+                        }
+                    } ?: RenderSystem.getSequentialBuffer(PrimitiveTopology.QUADS).let { it.getBuffer(mesh.drawState().indexCount) to it.type() }
+
+                    BlockMesh(blockBoxes, mesh, vertexBuffer, indexBuffer)
+                }
+                this.cachedBlockMesh = mesh
+                mesh
+            } else {
+                cachedBlockMesh
+            }
+
+            if (blockMesh != null) {
                 RenderSystem.getDevice().createCommandEncoder().createRenderPass(
                     { "Vibrancy Entity Shadows" },
                     texture,
@@ -238,10 +269,10 @@ open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityS
 
                         pass.setUniform("u_Shadows", draw.info.vertexBuffer.slice(draw.info.firstIndex / 6L * 4 * Vibrancy.entityShadowFormat.vertexSize, draw.info.indexCount / 6L * 4 * Vibrancy.entityShadowFormat.vertexSize))
 
-                        pass.setVertexBuffer(0, (vertexBuffer as GpuBufferImpl).slice())
-                        pass.setIndexBuffer(indexBuffer.first, indexBuffer.second)
+                        pass.setVertexBuffer(0, (blockMesh.vertexBuffer as GpuBufferImpl).slice())
+                        pass.setIndexBuffer(blockMesh.indexBuffer.first, blockMesh.indexBuffer.second)
 
-                        pass.drawIndexed(mesh.drawState().indexCount, 1, 0, 0, 0)
+                        pass.drawIndexed(blockMesh.meshData.drawState().indexCount, 1, 0, 0, 0)
                     }
                 }
 

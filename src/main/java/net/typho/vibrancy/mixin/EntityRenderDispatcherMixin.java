@@ -46,7 +46,7 @@ public class EntityRenderDispatcherMixin {
                         renderer,
                         renderState,
                         poseStack.last().copy(),
-                        BlockBox.of(pos.minus(3), pos.plus(3))
+                        BlockBox.of(pos.minus(1, 3, 1), pos.plus(1))
                 ));
                 return true;
             } else if (PlatformUtil.INSTANCE.isDevEnv()) {

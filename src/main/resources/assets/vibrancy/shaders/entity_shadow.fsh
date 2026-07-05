@@ -18,49 +18,30 @@ in float vertexLight;
 out vec4 fragColor;
 
 bool raycastEntityShadowQuad(vec3 shadowPos, float margin, EntityQuad quad, out float denom, out vec2 uv, out float tt) {
-    if (shadowPos.x < min(quad.vert1.x, min(quad.vert2.x, min(quad.vert3.x, quad.vert4.x)))) return false;
-    if (shadowPos.x > max(quad.vert1.x, max(quad.vert2.x, max(quad.vert3.x, quad.vert4.x)))) return false;
+    vec2 edge1 = quad.vert2.xz - quad.vert1.xz;
+    vec2 edge2 = quad.vert4.xz - quad.vert1.xz;
+    vec2 delta = shadowPos.xz - quad.vert1.xz;
 
-    if (shadowPos.z < min(quad.vert1.z, min(quad.vert2.z, min(quad.vert3.z, quad.vert4.z)))) return false;
-    if (shadowPos.z > max(quad.vert1.z, max(quad.vert2.z, max(quad.vert3.z, quad.vert4.z)))) return false;
+    float det = edge1.x * edge2.y - edge1.y * edge2.x;
+    if (abs(det) < margin) return false;
 
-    vec3 normal = cross(quad.vert2 - quad.vert1, quad.vert4 - quad.vert1);
+    float invDet = 1.0 / det;
 
-    denom = normal.y;
+    float a = (delta.x * edge2.y - delta.y * edge2.x) * invDet;
+    float b = (edge1.x * delta.y - edge1.y * delta.x) * invDet;
 
-    if (abs(denom) < margin) return false;
+    if (a < -margin || b < -margin || a > 1.0 + margin || b > 1.0 + margin) return false;
 
-    float d = dot(normal, quad.vert1);
+    uv = clamp(vec2(a, b), margin, 1.0 - margin);
 
-    tt = (d - dot(shadowPos, normal)) / denom;
-    if (tt < margin * sign(denom)) return false;
+    float y = quad.vert1.y
+    + a * (quad.vert2.y - quad.vert1.y)
+    + b * (quad.vert4.y - quad.vert1.y);
 
-    vec3 vp;
-    vp.x = shadowPos.x - quad.vert1.x;
-    vp.z = shadowPos.z - quad.vert1.z;
-    vp.y = tt + shadowPos.y - quad.vert1.y;
+    tt = y - shadowPos.y;
+    denom = det;
 
-    vec3 diagonal1 = quad.vert2 - quad.vert1;
-    vec3 diagonal2 = quad.vert4 - quad.vert1;
-
-    float d1p = dot(diagonal1, vp);
-    float d2p = dot(diagonal2, vp);
-
-    float d11 = dot(diagonal1, diagonal1);
-    float d12 = dot(diagonal1, diagonal2);
-    float d22 = dot(diagonal2, diagonal2);
-    float invDet = 1 / (d11 * d22 - d12 * d12);
-
-    float inv11 = d22 * invDet;
-    float inv12 = -d12 * invDet;
-    float inv22 = d11 * invDet;
-
-    float a = inv11 * d1p + inv12 * d2p;
-    float b = inv12 * d1p + inv22 * d2p;
-
-    if (a < -margin || b < -margin || a > 1 + margin || b > 1 + margin) return false;
-
-    uv = clamp(vec2(a, b), margin, 1 - margin);
+    if (tt < margin) return false;
 
     return true;
 }
