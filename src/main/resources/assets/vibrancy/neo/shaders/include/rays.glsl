@@ -63,6 +63,12 @@ struct ColoredQuad {
     vec3 vert3; uint color3; uint uv3;
     vec3 vert4; uint color4; uint uv4;
 };
+struct EntityQuad {
+    vec3 vert1; float u1; float v1; uint color1; uvec2 padding1;
+    vec3 vert2; float u2; float v2; uint color2; uvec2 padding2;
+    vec3 vert3; float u3; float v3; uint color3; uvec2 padding3;
+    vec3 vert4; float u4; float v4; uint color4; uvec2 padding4;
+};
 
 bool raycastQuad(Ray ray, float margin, vec3 v1, vec3 v2, vec3 v3, vec3 v4, out float denom, out vec2 uv, out float tt) {
     vec3 normal = normalize(cross(v2 - v1, v4 - v1));
@@ -107,6 +113,10 @@ bool raycastQuad(Ray ray, float margin, Quad quad, out float denom, out vec2 uv,
 }
 
 bool raycastQuad(Ray ray, float margin, ColoredQuad quad, out float denom, out vec2 uv, out float tt) {
+    return raycastQuad(ray, margin, quad.vert1, quad.vert2, quad.vert3, quad.vert4, denom, uv, tt);
+}
+
+bool raycastQuad(Ray ray, float margin, EntityQuad quad, out float denom, out vec2 uv, out float tt) {
     return raycastQuad(ray, margin, quad.vert1, quad.vert2, quad.vert3, quad.vert4, denom, uv, tt);
 }
 
@@ -156,6 +166,10 @@ bool raycastQuad(EndlessRay ray, float margin, ColoredQuad quad, out float denom
     return raycastQuad(ray, margin, quad.vert1, quad.vert2, quad.vert3, quad.vert4, denom, uv, tt);
 }
 
+bool raycastQuad(EndlessRay ray, float margin, EntityQuad quad, out float denom, out vec2 uv, out float tt) {
+    return raycastQuad(ray, margin, quad.vert1, quad.vert2, quad.vert3, quad.vert4, denom, uv, tt);
+}
+
 vec2 interpolateQuadUV(Quad quad, vec2 uv) {
     return mix(mix(unpackUnorm2x16(quad.uv1), unpackUnorm2x16(quad.uv2), uv.x), mix(unpackUnorm2x16(quad.uv4), unpackUnorm2x16(quad.uv3), uv.x), uv.y);
 }
@@ -164,7 +178,15 @@ vec2 interpolateQuadUV(ColoredQuad quad, vec2 uv) {
     return mix(mix(unpackUnorm2x16(quad.uv1), unpackUnorm2x16(quad.uv2), uv.x), mix(unpackUnorm2x16(quad.uv4), unpackUnorm2x16(quad.uv3), uv.x), uv.y);
 }
 
+vec2 interpolateQuadUV(EntityQuad quad, vec2 uv) {
+    return mix(mix(vec2(quad.u1, quad.v1), vec2(quad.u2, quad.v2), uv.x), mix(vec2(quad.u4, quad.v4), vec2(quad.u3, quad.v3), uv.x), uv.y);
+}
+
 vec4 interpolateQuadColor(ColoredQuad quad, vec2 uv) {
+    return mix(mix(unpackUnorm4x8(quad.color1), unpackUnorm4x8(quad.color2), uv.x), mix(unpackUnorm4x8(quad.color4), unpackUnorm4x8(quad.color3), uv.x), uv.y);
+}
+
+vec4 interpolateQuadColor(EntityQuad quad, vec2 uv) {
     return mix(mix(unpackUnorm4x8(quad.color1), unpackUnorm4x8(quad.color2), uv.x), mix(unpackUnorm4x8(quad.color4), unpackUnorm4x8(quad.color3), uv.x), uv.y);
 }
 

@@ -3,20 +3,59 @@ package net.typho.vibrancy.mixin;
 import com.llamalad7.mixinextras.injector.ModifyReturnValue;
 import com.llamalad7.mixinextras.injector.wrapoperation.Operation;
 import com.llamalad7.mixinextras.injector.wrapoperation.WrapOperation;
+import com.llamalad7.mixinextras.sugar.Local;
 import com.llamalad7.mixinextras.sugar.Share;
 import com.llamalad7.mixinextras.sugar.ref.LocalBooleanRef;
+import com.llamalad7.mixinextras.sugar.ref.LocalRef;
 import com.mojang.blaze3d.PrimitiveTopology;
 import com.mojang.blaze3d.vertex.*;
 import net.minecraft.client.renderer.StagedVertexBuffer;
 import net.typho.big_shot_lib.api.client.rendering.util.mesh.EmptyVertexConsumer;
+import net.typho.vibrancy.Vibrancy;
+import net.typho.vibrancy.entity.StagedVertexBufferDrawExtension;
 import net.typho.vibrancy.entity.VibrancyEntityShadowFeatureRenderer;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
-
-import java.util.Objects;
+import org.spongepowered.asm.mixin.injection.ModifyArg;
 
 @Mixin(StagedVertexBuffer.class)
 public class StagedVertexBufferMixin {
+    @ModifyArg(
+            method = "appendDraw(Lcom/mojang/blaze3d/vertex/VertexFormat;Lcom/mojang/blaze3d/PrimitiveTopology;Lcom/mojang/blaze3d/vertex/VertexSorting;)Lnet/minecraft/client/renderer/StagedVertexBuffer$Draw;",
+            at = @At(
+                    value = "INVOKE",
+                    target = "Lnet/minecraft/client/renderer/StagedVertexBuffer$Draw;<init>(Lcom/mojang/blaze3d/vertex/VertexFormat;Lcom/mojang/blaze3d/PrimitiveTopology;Lcom/mojang/blaze3d/vertex/VertexSorting;)V"
+            )
+    )
+    private VertexFormat appendDraw(
+            VertexFormat format,
+            @Share("originalFormat") LocalRef<VertexFormat> originalFormat
+    ) {
+        if ((Object) this instanceof VibrancyEntityShadowFeatureRenderer.VertexBuffer) {
+            originalFormat.set(format);
+            return Vibrancy.entityShadowFormat;
+        } else {
+            originalFormat.set(null);
+        }
+
+        return format;
+    }
+
+    @ModifyReturnValue(
+            method = "appendDraw(Lcom/mojang/blaze3d/vertex/VertexFormat;Lcom/mojang/blaze3d/PrimitiveTopology;Lcom/mojang/blaze3d/vertex/VertexSorting;)Lnet/minecraft/client/renderer/StagedVertexBuffer$Draw;",
+            at = @At("TAIL")
+    )
+    private StagedVertexBuffer.Draw appendDraw(
+            StagedVertexBuffer.Draw original,
+            @Share("originalFormat") LocalRef<VertexFormat> originalFormat
+    ) {
+        if (originalFormat.get() != null) {
+            ((StagedVertexBufferDrawExtension) original).setVibrancy$originalFormat(originalFormat.get());
+        }
+
+        return original;
+    }
+
     @WrapOperation(
             method = "getVertexBuilder",
             at = @At(
@@ -29,15 +68,17 @@ public class StagedVertexBufferMixin {
             PrimitiveTopology primitiveTopology,
             VertexFormat vertexFormat,
             Operation<BufferBuilder> original,
+            @Local(argsOnly = true) StagedVertexBuffer.Draw draw,
             @Share("insufficientComponents") LocalBooleanRef insufficientComponents
     ) {
         if ((Object) this instanceof VibrancyEntityShadowFeatureRenderer.VertexBuffer) {
-            VertexFormat newFormat = DefaultVertexFormat.POSITION_TEX_COLOR;
+            VertexFormat originalFormat = ((StagedVertexBufferDrawExtension) draw).getVibrancy$originalFormat();
 
             if (
-                    !newFormat.contains(DefaultVertexFormat.POSITION_SEMANTIC_NAME) ||
-                    !newFormat.contains(DefaultVertexFormat.UV0_SEMANTIC_NAME) ||
-                    !newFormat.contains(DefaultVertexFormat.COLOR_SEMANTIC_NAME)
+                    originalFormat == null ||
+                            !originalFormat.contains(DefaultVertexFormat.POSITION_SEMANTIC_NAME) ||
+                            !originalFormat.contains(DefaultVertexFormat.UV0_SEMANTIC_NAME) ||
+                            !originalFormat.contains(DefaultVertexFormat.COLOR_SEMANTIC_NAME)
             ) {
                 insufficientComponents.set(true);
                 return null;
@@ -45,7 +86,7 @@ public class StagedVertexBufferMixin {
 
             insufficientComponents.set(false);
 
-            return original.call(byteBufferBuilder, primitiveTopology, newFormat);
+            return original.call(byteBufferBuilder, primitiveTopology, Vibrancy.entityShadowFormat);
         } else {
             return original.call(byteBufferBuilder, primitiveTopology, vertexFormat);
         }

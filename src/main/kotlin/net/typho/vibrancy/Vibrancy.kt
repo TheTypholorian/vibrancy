@@ -1,6 +1,7 @@
 package net.typho.vibrancy
 
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
+import com.mojang.blaze3d.vertex.VertexFormat
 import net.caffeinemc.mods.sodium.client.render.chunk.vertex.format.impl.CompactChunkVertex
 import net.fabricmc.fabric.api.resource.v1.ResourceLoader
 import net.fabricmc.fabric.api.resource.v1.pack.PackActivationType
@@ -82,6 +83,14 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
     )
 
     @JvmField
+    @Suppress("DEPRECATION")
+    val entityShadowFormat = VertexFormat.builder(0)
+        .position()
+        .textureUV()
+        .attribute("Color", GpuDataType.unorm8, 4, 12) // 8 bytes of padding cus SSBOs
+        .build() // TODO fix NeoVertexFormats problem
+
+    @JvmField
     val entityShadowRenderType = GpuObjects.renderType(
         id("entity_shadow"),
         DefaultVertexFormat.POSITION_TEX,
@@ -92,9 +101,9 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
             .depth(GpuAlphaFunction.gequal)
             .writeDepth(false)
             .zOffset()
-            .sampler("u_BaseTex")
-            //.sampler("u_MaterialTex")
+            .sampler("u_BlockTex")
             .sampler("u_TransmissionTex")
+            .storageBuffer("u_Shadows")
             .uniform("DynamicTransforms")
             .uniform("Projection")
             .uniform("u_VibrancyConfig"),

@@ -11,6 +11,8 @@ import com.mojang.blaze3d.vertex.BufferBuilder
 import com.mojang.blaze3d.vertex.ByteBufferBuilder
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.mojang.blaze3d.vertex.PoseStack
+import com.mojang.blaze3d.vertex.VertexFormat
+import com.mojang.blaze3d.vertex.VertexSorting
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.Font
 import net.minecraft.client.renderer.RenderType
@@ -27,6 +29,7 @@ import net.minecraft.client.resources.model.sprite.AtlasManager
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
+import net.minecraft.data.AtlasIds
 import net.minecraft.resources.Identifier
 import net.minecraft.util.ARGB
 import net.typho.big_shot_lib.api.client.rendering.common.GpuBuffer
@@ -220,10 +223,12 @@ open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityS
                     RenderSystem.bindDefaultUniforms(pass)
                     pass.setUniform("DynamicTransforms", prepared.dynamicTransforms)
                     pass.setUniform("u_VibrancyConfig", configBuffer)
+                    pass.bindTexture("u_BlockTex", Minecraft.getInstance().atlasManager.getAtlasOrThrow(AtlasIds.BLOCKS).textureView, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST))
 
                     for (draw in draws) {
-                        pass.bindTexture("u_BaseTex", draw.texture.textureView, draw.texture.sampler)
                         pass.bindTexture("u_TransmissionTex", draw.transmissionTex ?: draw.texture.textureView, draw.texture.sampler)
+
+                        pass.setUniform("u_Shadows", draw.info.vertexBuffer.slice(draw.info.firstIndex / 6L * 4 * Vibrancy.entityShadowFormat.vertexSize, draw.info.indexCount / 6L * 4 * Vibrancy.entityShadowFormat.vertexSize))
 
                         pass.setVertexBuffer(0, (vertexBuffer as GpuBufferImpl).slice())
                         pass.setIndexBuffer(indexBuffer.first, indexBuffer.second)

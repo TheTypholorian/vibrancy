@@ -45,7 +45,7 @@ public class EntityRenderDispatcherMixin {
                 storage.order(0).shadows.submit(new VibrancyEntityShadowFeatureRenderer.Submit<S>(
                         renderer,
                         renderState,
-                        poseStack.last(),
+                        poseStack.last().copy(),
                         BlockBox.of(pos.minus(3), pos.plus(3))
                 ));
                 return true;
