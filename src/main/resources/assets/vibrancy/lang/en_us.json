@@ -4,8 +4,6 @@
   "config.vibrancy.general": "General",
 
   "config.vibrancy.general.modEnabled": "Mod Enabled",
-  "config.vibrancy.general.useMultithreading": "Use Multithreading",
-  "config.vibrancy.general.asyncThreads": "Async Threads",
   "config.vibrancy.general.limitLightBrightness": "Limit Light Brightness",
   "config.vibrancy.general.limitLightBrightness.tooltip0": "Limits how bright Vibrancy lights can make each pixel.",
   "config.vibrancy.general.limitLightBrightness.tooltip1": "Better for videos in some situations, but loses some detail and quality.",
@@ -96,10 +94,6 @@
   "solid_neighbor": "Solid",
   "non_air_neighbor": "Not Air",
 
-  "loading.vibrancy.raytraced_point": "Raytraced Point: %s",
-  "loading.vibrancy.subtle": "Subtle: %s",
-  "loading.vibrancy.overworld": "Overworld (Sky Light): %s",
-  "loading.vibrancy.timeout": "Times out in %s seconds",
-  "loading.vibrancy.tip1": "To get faster loads, increase the Async Threads option in Vibrancy config.",
-  "loading.vibrancy.tip2": "(this does use more of your CPU and might lag other apps while lights are generating)"
+  "vibrancy/bare_bones_compat": "Vibrancy Bare Bones Compat",
+  "vibrancy/bare_bones_compat.description": "Vibrancy compat with the Bare Bones resource pack. Place above Bare Bones."
 }

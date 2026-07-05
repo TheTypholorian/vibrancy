@@ -21,7 +21,6 @@ import net.caffeinemc.mods.sodium.client.render.chunk.terrain.TerrainRenderPass;
 import net.caffeinemc.mods.sodium.client.render.chunk.vertex.format.ChunkVertexType;
 import net.caffeinemc.mods.sodium.client.render.viewport.CameraTransform;
 import net.caffeinemc.mods.sodium.client.util.FogParameters;
-import net.minecraft.client.Minecraft;
 import net.minecraft.data.AtlasIds;
 import net.typho.big_shot_lib.api.client.rendering.common.GpuBuffer;
 import net.typho.vibrancy.RenderRegionExtension;
@@ -78,7 +77,7 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
                 activeProgram = Vibrancy.raytracedPointRenderType.pipeline();
 
                 // get atlases here because they might create render passes and vulkan doesn't like render pass inception
-                GpuTextureView reflectionTex = ExtraAtlases.getReflection(AtlasIds.BLOCKS).getTextureView();
+                GpuTextureView materialTex = ExtraAtlases.getMaterial(AtlasIds.BLOCKS).getTextureView();
                 GpuTextureView transmissionTex = ExtraAtlases.getTransmission(AtlasIds.BLOCKS).getTextureView();
                 GpuBuffer configBuffer = VibrancyConfig.loadConfigBuffer();
 
@@ -95,7 +94,7 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
                     pass.setUniform("u_VibrancyConfig", configBuffer);
                     pass.setUniform("u_SectionTimeInfo", sectionTimeInfo);
                     pass.bindTexture("u_BlockTex", renderPass.getAtlas(), terrainSampler);
-                    pass.bindTexture("u_ReflectionTex", reflectionTex, terrainSampler);
+                    pass.bindTexture("u_MaterialTex", materialTex, terrainSampler);
                     pass.bindTexture("u_TransmissionTex", transmissionTex, terrainSampler);
 
                     renderLists.iterator(renderPass.isTranslucent()).forEachRemaining(renderList -> {

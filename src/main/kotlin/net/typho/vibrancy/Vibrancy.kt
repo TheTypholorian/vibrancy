@@ -1,9 +1,13 @@
 package net.typho.vibrancy
 
 import net.caffeinemc.mods.sodium.client.render.chunk.vertex.format.impl.CompactChunkVertex
+import net.fabricmc.fabric.api.resource.v1.ResourceLoader
+import net.fabricmc.fabric.api.resource.v1.pack.PackActivationType
+import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.core.Direction
 import net.minecraft.resources.Identifier
+import net.minecraft.server.packs.PackType
 import net.minecraft.server.packs.resources.Resource
 import net.typho.big_shot_lib.api.NeoCommonInitializer
 import net.typho.big_shot_lib.api.client.NeoClientInitializer
@@ -65,7 +69,7 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
             .writeDepth(false)
             .zOffset()
             .sampler("u_BlockTex")
-            .sampler("u_ReflectionTex")
+            .sampler("u_MaterialTex")
             .sampler("u_TransmissionTex")
             .uniform("Globals")
             .uniform("u_Globals")
@@ -119,6 +123,9 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
 
     @Suppress("RedundantSamConstructor", "RedundantSuppression")
     override fun onInitializeClient(bus: NeoClientEventBus) {
+        // TODO
+        ResourceLoader.registerBuiltinPack(id("bare_bones_compat"), FabricLoader.getInstance().getModContainer(modId).orElseThrow(), PackActivationType.NORMAL)
+
         bus.register(AddAssetReloadListenersEvent { output ->
             output(BlockLightInfoLoader)
             output(SkyLightInfoLoader)

@@ -1,0 +1,11 @@
+{
+  "pack": {
+    "pack_format": 34,
+    "supported_formats": [34, 88],
+    "min_format": [34, 0],
+    "max_format": [88, 0],
+    "description": {
+      "translate": "vibrancy/bare_bones_compat.description"
+    }
+  }
+}

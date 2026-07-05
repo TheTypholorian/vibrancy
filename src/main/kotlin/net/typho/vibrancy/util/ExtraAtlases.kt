@@ -25,7 +25,7 @@ import java.util.concurrent.CompletableFuture
 
 object ExtraAtlases : NamedResource, SingleStepNeoReloadListener {
     @JvmField
-    val reflectionIdConverter = FileToIdConverter("rtx/reflections", ".png")
+    val materialIdConverter = FileToIdConverter("rtx/material", ".png")
     @JvmField
     val transmissionIdConverter = FileToIdConverter("rtx/transmission", ".png")
     override val location: Identifier = Vibrancy.id("extra_atlases")
@@ -113,8 +113,8 @@ object ExtraAtlases : NamedResource, SingleStepNeoReloadListener {
 
     @JvmStatic
     @JvmOverloads
-    fun getReflection(key: Identifier, resources: ResourceManager = Minecraft.getInstance().resourceManager): TextureAtlas {
-        return reflection.computeIfAbsent(key) { key -> createAtlas("reflection", key, reflectionIdConverter, resources, false) }
+    fun getMaterial(key: Identifier, resources: ResourceManager = Minecraft.getInstance().resourceManager): TextureAtlas {
+        return reflection.computeIfAbsent(key) { key -> createAtlas("reflection", key, materialIdConverter, resources, false) }
     }
 
     @JvmStatic
