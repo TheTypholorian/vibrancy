@@ -4,7 +4,6 @@ import com.mojang.blaze3d.IndexType
 import com.mojang.blaze3d.PrimitiveTopology
 import com.mojang.blaze3d.buffers.GpuBufferImpl
 import com.mojang.blaze3d.systems.RenderSystem
-import com.mojang.blaze3d.systems.SamplerCache
 import com.mojang.blaze3d.textures.FilterMode
 import com.mojang.blaze3d.textures.GpuTextureImpl
 import com.mojang.blaze3d.textures.GpuTextureView
@@ -29,6 +28,7 @@ import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
 import net.minecraft.resources.Identifier
+import net.minecraft.util.ARGB
 import net.typho.big_shot_lib.api.client.rendering.common.GpuBuffer
 import net.typho.big_shot_lib.api.client.rendering.common.GpuObjects
 import net.typho.big_shot_lib.api.client.rendering.common.GpuTexture
@@ -42,6 +42,8 @@ import net.typho.vibrancy.mixin.FeatureRenderDispatcherAccessor
 import net.typho.vibrancy.mixin.LevelRendererAccessor
 import net.typho.vibrancy.util.ExtraAtlases
 import net.typho.vibrancy.util.SectionMeshCache
+import org.joml.Matrix4f
+import org.joml.Vector3f
 import org.joml.Vector4f
 import java.util.*
 import java.util.function.Supplier
@@ -212,9 +214,11 @@ open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityS
                     target.depthTextureView,
                     OptionalDouble.empty()
                 ).use { pass ->
-                    pass.setPipeline(Vibrancy.entityShadowRenderType.pipeline())
+                    val prepared = Vibrancy.entityShadowRenderType.prepare()
+                    pass.setPipeline(prepared.pipeline)
 
                     RenderSystem.bindDefaultUniforms(pass)
+                    pass.setUniform("DynamicTransforms", prepared.dynamicTransforms)
                     pass.setUniform("u_VibrancyConfig", configBuffer)
 
                     for (draw in draws) {
@@ -235,7 +239,8 @@ open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityS
                     target.depthTextureView,
                     OptionalDouble.empty()
                 ).use { pass ->
-                    pass.setPipeline(Vibrancy.entityShadowBlitRenderType.pipeline())
+                    val prepared = Vibrancy.entityShadowBlitRenderType.prepare()
+                    pass.setPipeline(prepared.pipeline)
 
                     RenderSystem.bindDefaultUniforms(pass)
                     pass.bindTexture("u_ShadowTex", texture, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST))

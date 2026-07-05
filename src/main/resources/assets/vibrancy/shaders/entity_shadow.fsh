@@ -1,6 +1,7 @@
 #version 330
 
-#include "minecraft:dynamictransforms"
+#include "vibrancy:config"
+#include "vibrancy:pixel_alignment"
 
 uniform sampler2D u_BaseTex;
 
@@ -15,5 +16,5 @@ void main() {
         discard;
     }
 
-    fragColor = color * ColorModulator;
+    fragColor = color;
 }

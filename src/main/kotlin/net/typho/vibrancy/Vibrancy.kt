@@ -95,7 +95,8 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
             .sampler("u_BaseTex")
             //.sampler("u_MaterialTex")
             .sampler("u_TransmissionTex")
-            .uniform("Globals")
+            .uniform("DynamicTransforms")
+            .uniform("Projection")
             .uniform("u_VibrancyConfig"),
         RenderType.SMALL_BUFFER_SIZE,
         false,
@@ -132,6 +133,7 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
         GpuDrawSettings.Builder()
             .blend(GpuBlendFunction.TRANSLUCENT)
             .shader(id("entity_shadow_blit"))
+            .depth(GpuAlphaFunction.always)
             .writeDepth(false)
             .sampler("u_ShadowTex")
             .uniform("u_VibrancyConfig"),

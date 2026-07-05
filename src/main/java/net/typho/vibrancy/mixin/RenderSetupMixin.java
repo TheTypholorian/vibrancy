@@ -7,7 +7,6 @@ import com.mojang.blaze3d.textures.GpuSamplerImpl;
 import com.mojang.blaze3d.textures.GpuTextureView;
 import net.minecraft.client.renderer.RenderSetup;
 import net.minecraft.client.renderer.rendertype.PreparedRenderType;
-import net.minecraft.client.renderer.texture.AbstractTexture;
 import net.typho.vibrancy.entity.PreparedRenderTypeTextureExtension;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
