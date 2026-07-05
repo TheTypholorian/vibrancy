@@ -37,9 +37,9 @@ public class ChunkBuilderMeshingTaskMixin {
             CallbackInfoReturnable<ChunkBuildOutput> cir,
             @Local ChunkBuildBuffers buffers
     ) {
-        if (Vibrancy.lightManager.blockLights.values().stream().anyMatch(storage -> storage.shouldCollectMeshGeometry(renderContext.getOrigin()))) {
-            ((SectionMeshCache.Holder) buffers).setVibrancy$sectionMeshCache(SectionMeshCache.poll(renderContext.getOrigin()));
-        }
+        //if (Vibrancy.lightManager.blockLights.values().stream().anyMatch(storage -> storage.shouldCollectMeshGeometry(renderContext.getOrigin()))) {
+        ((SectionMeshCache.Holder) buffers).setVibrancy$sectionMeshCache(SectionMeshCache.poll(renderContext.getOrigin()));
+        //}
     }
 
     @Inject(

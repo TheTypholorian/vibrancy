@@ -19,6 +19,7 @@ import net.typho.big_shot_lib.api.client.rendering.common.GpuObjects
 import net.typho.big_shot_lib.api.client.rendering.common.GpuQueue
 import net.typho.big_shot_lib.api.client.rendering.common.constant.GpuAlphaFunction
 import net.typho.big_shot_lib.api.client.rendering.common.constant.GpuBlendFunction
+import net.typho.big_shot_lib.api.client.rendering.common.constant.GpuBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.common.constant.GpuDataType
 import net.typho.big_shot_lib.api.event.BlockChangedEvent
 import net.typho.big_shot_lib.api.event.ChunkLoadedEvent
@@ -83,9 +84,9 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
     @JvmField
     val entityShadowRenderType = GpuObjects.renderType(
         id("entity_shadow"),
-        DefaultVertexFormat.POSITION_TEX_COLOR,
+        DefaultVertexFormat.POSITION_TEX,
         GpuDrawSettings.Builder()
-            .blend(GpuBlendFunction.ADDITIVE)
+            .blend(GpuBlendFunction.TRANSLUCENT) // TODO
             .shader(id("entity_shadow"))
             .cull()
             .depth(GpuAlphaFunction.gequal)
@@ -95,6 +96,44 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
             //.sampler("u_MaterialTex")
             .sampler("u_TransmissionTex")
             .uniform("Globals")
+            .uniform("u_VibrancyConfig"),
+        RenderType.SMALL_BUFFER_SIZE,
+        false,
+        false,
+        false
+    )
+    val blitVertexBuffer by lazy {
+        GpuObjects.buffer(
+            { "Vibrancy Blit Vertex Buffer" },
+            20L * 6,
+            GpuBufferUsage.VERTEX
+        ) { output ->
+            fun vertex(x: Float, y: Float) {
+                output.writeFloat(x * 2 - 1)
+                output.writeFloat(y * 2 - 1)
+                output.writeFloat(0f)
+                output.writeFloat(x)
+                output.writeFloat(y)
+            }
+
+            vertex(0f, 0f)
+            vertex(1f, 0f)
+            vertex(1f, 1f)
+
+            vertex(1f, 1f)
+            vertex(0f, 1f)
+            vertex(0f, 0f)
+        }
+    }
+    @JvmField
+    val entityShadowBlitRenderType = GpuObjects.renderType(
+        id("entity_shadow_blit"),
+        DefaultVertexFormat.POSITION_TEX,
+        GpuDrawSettings.Builder()
+            .blend(GpuBlendFunction.TRANSLUCENT)
+            .shader(id("entity_shadow_blit"))
+            .writeDepth(false)
+            .sampler("u_ShadowTex")
             .uniform("u_VibrancyConfig"),
         RenderType.SMALL_BUFFER_SIZE,
         false,

@@ -1,37 +1,49 @@
 package net.typho.vibrancy.entity
 
+import com.mojang.blaze3d.IndexType
+import com.mojang.blaze3d.PrimitiveTopology
+import com.mojang.blaze3d.buffers.GpuBufferImpl
 import com.mojang.blaze3d.systems.RenderSystem
+import com.mojang.blaze3d.systems.SamplerCache
+import com.mojang.blaze3d.textures.FilterMode
 import com.mojang.blaze3d.textures.GpuTextureImpl
 import com.mojang.blaze3d.textures.GpuTextureView
+import com.mojang.blaze3d.vertex.BufferBuilder
+import com.mojang.blaze3d.vertex.ByteBufferBuilder
+import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.mojang.blaze3d.vertex.PoseStack
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.Font
+import net.minecraft.client.renderer.RenderType
 import net.minecraft.client.renderer.StagedVertexBuffer
 import net.minecraft.client.renderer.SubmitNodeStorage
 import net.minecraft.client.renderer.entity.EntityRenderer
 import net.minecraft.client.renderer.entity.state.EntityRenderState
-import net.minecraft.client.renderer.feature.FeatureFrameContext
-import net.minecraft.client.renderer.feature.FeatureRenderDispatcher
-import net.minecraft.client.renderer.feature.FeatureRenderer
-import net.minecraft.client.renderer.feature.FeatureRendererType
-import net.minecraft.client.renderer.feature.RenderTypeFeatureRenderer
+import net.minecraft.client.renderer.feature.*
 import net.minecraft.client.renderer.feature.submit.SubmitNode
 import net.minecraft.client.renderer.rendertype.PreparedRenderType
 import net.minecraft.client.renderer.state.GameRenderState
 import net.minecraft.client.resources.model.ModelManager
 import net.minecraft.client.resources.model.sprite.AtlasManager
+import net.minecraft.core.BlockBox
+import net.minecraft.core.BlockPos
+import net.minecraft.core.SectionPos
 import net.minecraft.resources.Identifier
+import net.typho.big_shot_lib.api.client.rendering.common.GpuBuffer
 import net.typho.big_shot_lib.api.client.rendering.common.GpuObjects
 import net.typho.big_shot_lib.api.client.rendering.common.GpuTexture
+import net.typho.big_shot_lib.api.client.rendering.common.constant.GpuBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.common.constant.GpuTextureUsage
+import net.typho.big_shot_lib.api.client.rendering.util.PackedNormal
+import net.typho.big_shot_lib.api.util.buffer.MemoryPointer
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyConfig
 import net.typho.vibrancy.mixin.FeatureRenderDispatcherAccessor
 import net.typho.vibrancy.mixin.LevelRendererAccessor
 import net.typho.vibrancy.util.ExtraAtlases
+import net.typho.vibrancy.util.SectionMeshCache
 import org.joml.Vector4f
-import java.util.Optional
-import java.util.OptionalDouble
+import java.util.*
 import java.util.function.Supplier
 
 open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityShadowFeatureRenderer.Submit<*>> {
@@ -44,6 +56,10 @@ open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityS
     protected var texture: GpuTexture? = null
     @JvmField
     protected var textureView: GpuTextureView? = null
+    @JvmField
+    protected var vertexBuffer: GpuBuffer? = null
+    @JvmField
+    protected var indexBuffer: Pair<GpuBuffer, IndexType>? = null
     @JvmField
     protected val storage = Storage()
     protected val dispatcher by lazy {
@@ -77,8 +93,13 @@ open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityS
         submits: List<Submit<*>>,
         strictlyOrdered: Boolean
     ) {
+        val stack = PoseStack()
+
         for (submit in submits) {
-            submit.renderer.submit(submit.state, submit.pose, storage, (Minecraft.getInstance().levelRenderer as LevelRendererAccessor).`vibrancy$getLevelRenderState`().cameraRenderState)
+            stack.pushPose()
+            stack.mulPose(submit.pose.pose())
+            submit.renderer.submit(submit.state, stack, storage, (Minecraft.getInstance().levelRenderer as LevelRendererAccessor).`vibrancy$getLevelRenderState`().cameraRenderState)
+            stack.popPose()
         }
     }
 
@@ -129,27 +150,99 @@ open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityS
                         }
                     }
                 }
+            val builder = BufferBuilder(ByteBufferBuilder(RenderType.SMALL_BUFFER_SIZE), PrimitiveTopology.QUADS, DefaultVertexFormat.POSITION_TEX)
+            val sections = mutableMapOf<SectionPos, SectionMeshCache?>()
+            val camera = (Minecraft.getInstance().levelRenderer as LevelRendererAccessor).`vibrancy$getLevelRenderState`().cameraRenderState
 
-            RenderSystem.getDevice().createCommandEncoder().createRenderPass(
-                { "Vibrancy Entity Shadows" },
-                texture,
-                Optional.of(Vector4f(0f)),
-                target.depthTextureView,
-                OptionalDouble.empty()
-            ).use { pass ->
-                pass.setPipeline(Vibrancy.entityShadowRenderType.pipeline())
+            val collectedBlocks = mutableSetOf<BlockPos>()
 
-                pass.setUniform("Globals", RenderSystem.getGlobalSettingsUniform()!!)
-                pass.setUniform("u_VibrancyConfig", configBuffer)
+            for (submit in submits) {
+                for (pos in submit.boundingBox) {
+                    if (collectedBlocks.add(pos)) {
+                        sections.computeIfAbsent(SectionPos.of(pos)) { key ->
+                            synchronized(Vibrancy.lightManager) {
+                                Vibrancy.lightManager.sectionMeshCaches[key]
+                            }
+                        }?.let { section ->
+                            section[pos]?.solidFaces?.forEach { face ->
+                                if (PackedNormal.unpackByteY(face.v0.normal) > 0) {
+                                    face.apply { vertex ->
+                                        builder.addVertex(
+                                            (vertex.x + pos.x - camera.pos.x).toFloat(),
+                                            (vertex.y + pos.y - camera.pos.y).toFloat(),
+                                            (vertex.z + pos.z - camera.pos.z).toFloat()
+                                        ).setUv(vertex.u, vertex.v)
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
 
-                for (draw in draws) {
-                    pass.bindTexture("u_BaseTex", draw.texture.textureView, draw.texture.sampler)
-                    pass.bindTexture("u_TransmissionTex", draw.transmissionTex ?: draw.texture.textureView, draw.texture.sampler)
+            builder.build()?.let { mesh ->
+                val vertexBuffer1 = vertexBuffer
+                val vertexBuffer = if (vertexBuffer1 == null || vertexBuffer1.size < mesh.vertexBufferSlice().size()) {
+                    vertexBuffer1?.recycle()
+                    val buffer = GpuObjects.buffer({ "Vibrancy Entity Shadows Vertex Buffer" }, GpuBufferUsage.VERTEX or GpuBufferUsage.COPY_DST, MemoryPointer.wrap(mesh.vertexBufferSlice().byteBuffer()))
+                    vertexBuffer = buffer
+                    buffer
+                } else {
+                    vertexBuffer1.upload(mesh.vertexBufferSlice().byteBuffer())
+                    vertexBuffer1
+                }
 
-                    pass.setVertexBuffer(0, draw.info.vertexBuffer.slice()) // TODO use block models
-                    pass.setIndexBuffer(draw.info.indexBuffer, draw.info.indexType)
+                val indexBuffer1 = indexBuffer
+                val indexBuffer = mesh.indexBuffer()?.let { meshIndexBuffer ->
+                    if (indexBuffer1 == null || indexBuffer1.first.size < meshIndexBuffer.capacity()) {
+                        indexBuffer1?.first?.recycle()
+                        val buffer = GpuObjects.buffer({ "Vibrancy Entity Shadows Index Buffer" }, GpuBufferUsage.INDEX or GpuBufferUsage.COPY_DST, MemoryPointer.wrap(meshIndexBuffer)) to mesh.drawState().indexType
+                        indexBuffer = buffer
+                        buffer
+                    } else {
+                        indexBuffer1.first.upload(meshIndexBuffer)
+                        indexBuffer1
+                    }
+                } ?: RenderSystem.getSequentialBuffer(PrimitiveTopology.QUADS).let { it.getBuffer(mesh.drawState().indexCount) to it.type() }
 
-                    pass.drawIndexed(draw.info.indexCount, 1, draw.info.firstIndex, draw.info.baseVertex, 0)
+                RenderSystem.getDevice().createCommandEncoder().createRenderPass(
+                    { "Vibrancy Entity Shadows" },
+                    texture,
+                    Optional.of(Vector4f(0f)),
+                    target.depthTextureView,
+                    OptionalDouble.empty()
+                ).use { pass ->
+                    pass.setPipeline(Vibrancy.entityShadowRenderType.pipeline())
+
+                    RenderSystem.bindDefaultUniforms(pass)
+                    pass.setUniform("u_VibrancyConfig", configBuffer)
+
+                    for (draw in draws) {
+                        pass.bindTexture("u_BaseTex", draw.texture.textureView, draw.texture.sampler)
+                        pass.bindTexture("u_TransmissionTex", draw.transmissionTex ?: draw.texture.textureView, draw.texture.sampler)
+
+                        pass.setVertexBuffer(0, (vertexBuffer as GpuBufferImpl).slice())
+                        pass.setIndexBuffer(indexBuffer.first, indexBuffer.second)
+
+                        pass.drawIndexed(mesh.drawState().indexCount, 1, 0, 0, 0)
+                    }
+                }
+
+                RenderSystem.getDevice().createCommandEncoder().createRenderPass(
+                    { "Vibrancy Entity Shadow Blit" },
+                    target.colorTextureView!!,
+                    Optional.empty(),
+                    target.depthTextureView,
+                    OptionalDouble.empty()
+                ).use { pass ->
+                    pass.setPipeline(Vibrancy.entityShadowBlitRenderType.pipeline())
+
+                    RenderSystem.bindDefaultUniforms(pass)
+                    pass.bindTexture("u_ShadowTex", texture, RenderSystem.getSamplerCache().getClampToEdge(FilterMode.NEAREST))
+                    pass.setUniform("u_VibrancyConfig", configBuffer)
+
+                    pass.setVertexBuffer(0, (Vibrancy.blitVertexBuffer as GpuBufferImpl).slice())
+                    pass.draw(6, 1, 0, 0)
                 }
             }
         }
@@ -184,9 +277,9 @@ open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityS
         @JvmField
         val state: S,
         @JvmField
-        val pose: PoseStack,
-        //@JvmField
-        //val boundingBox: BlockBox
+        val pose: PoseStack.Pose,
+        @JvmField
+        val boundingBox: BlockBox
     ) : SubmitNode {
         override fun featureType(): FeatureRendererType<out Submit<*>> {
             return TYPE
