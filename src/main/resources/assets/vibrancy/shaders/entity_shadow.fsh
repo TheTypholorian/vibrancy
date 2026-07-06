@@ -61,20 +61,17 @@ void main() {
         if (raycastEntityShadowQuad(shadowPos, 1e-3, quad, denom, uv, tt) && denom < 1e-3 && tt > 0) {
             if (tt < minHit || minHit == -1) {
                 vec2 texUv = interpolateQuadUV(quad, uv);
+                vec4 color = texture(u_TransmissionTex, texUv) * interpolateQuadColor(quad, uv);
 
-                if (clamp(texUv, vec2(0), vec2(1)) == texUv) {
-                    vec4 color = texture(u_TransmissionTex, texUv) * interpolateQuadColor(quad, uv);
-
-                    if (color.a > 0) {
-                        if (color.a == 1) {
-                            minHit = tt;
-                            fragColor = vec4(0, 0, 0, 1);
-                            break;
-                        }
-
+                if (color.a > 0) {
+                    if (color.a == 1) {
                         minHit = tt;
-                        fragColor = color;
+                        fragColor = vec4(0, 0, 0, 1);
+                        break;
                     }
+
+                    minHit = tt;
+                    fragColor = color;
                 }
             }
         }

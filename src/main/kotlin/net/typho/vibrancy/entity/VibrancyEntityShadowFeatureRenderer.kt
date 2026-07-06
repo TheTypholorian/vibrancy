@@ -15,12 +15,14 @@ import com.mojang.blaze3d.vertex.PoseStack
 import com.mojang.blaze3d.vertex.VertexFormat
 import com.mojang.blaze3d.vertex.VertexSorting
 import net.caffeinemc.mods.sodium.client.gui.options.control.ControlValueFormatterImpls.brightness
+import net.fabricmc.fabric.api.client.rendering.v1.SubmitRenderPhase
 import net.fabricmc.fabric.api.networking.v1.PlayerLookup.level
 import net.minecraft.client.Minecraft
 import net.minecraft.client.gui.Font
 import net.minecraft.client.renderer.Lightmap
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.client.renderer.StagedVertexBuffer
+import net.minecraft.client.renderer.SubmitNodeCollector
 import net.minecraft.client.renderer.SubmitNodeStorage
 import net.minecraft.client.renderer.entity.EntityRenderer
 import net.minecraft.client.renderer.entity.state.EntityRenderState
@@ -200,9 +202,9 @@ open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityS
                                     if (PackedNormal.unpackByteY(face.v0.normal) >= 0) {
                                         face.apply { vertex ->
                                             builder.addVertex(
-                                                (vertex.x + pos.x - camera.pos.x).toFloat(),
-                                                (vertex.y + pos.y - camera.pos.y).toFloat(),
-                                                (vertex.z + pos.z - camera.pos.z).toFloat()
+                                                vertex.x + pos.x,
+                                                vertex.y + pos.y,
+                                                vertex.z + pos.z
                                             )
                                                 .setUv(vertex.u, vertex.v)
                                                 .setLight(vertex.light)
@@ -249,6 +251,9 @@ open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityS
             }
 
             if (blockMesh != null) {
+                val stack = RenderSystem.getModelViewStack()
+                stack.pushMatrix()
+                stack.translate(-camera.pos.x.toFloat(), -camera.pos.y.toFloat(), -camera.pos.z.toFloat())
                 RenderSystem.getDevice().createCommandEncoder().createRenderPass(
                     { "Vibrancy Entity Shadows" },
                     texture,
@@ -267,7 +272,7 @@ open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityS
                     for (draw in draws) {
                         pass.bindTexture("u_TransmissionTex", draw.transmissionTex ?: draw.texture.textureView, draw.texture.sampler)
 
-                        pass.setUniform("u_Shadows", draw.info.vertexBuffer.slice(draw.info.firstIndex / 6L * 4 * Vibrancy.entityShadowFormat.vertexSize, draw.info.indexCount / 6L * 4 * Vibrancy.entityShadowFormat.vertexSize))
+                        pass.setUniform("u_Shadows", draw.info.vertexBuffer.slice((draw.info.firstIndex / 6L * 4 + draw.info.baseVertex) * Vibrancy.entityShadowFormat.vertexSize, draw.info.indexCount / 6L * 4 * Vibrancy.entityShadowFormat.vertexSize))
 
                         pass.setVertexBuffer(0, (blockMesh.vertexBuffer as GpuBufferImpl).slice())
                         pass.setIndexBuffer(blockMesh.indexBuffer.first, blockMesh.indexBuffer.second)
@@ -275,6 +280,7 @@ open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityS
                         pass.drawIndexed(blockMesh.meshData.drawState().indexCount, 1, 0, 0, 0)
                     }
                 }
+                stack.popMatrix()
 
                 RenderSystem.getDevice().createCommandEncoder().createRenderPass(
                     { "Vibrancy Entity Shadow Blit" },
@@ -318,7 +324,11 @@ open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityS
         initialCapacity: Int
     ) : StagedVertexBuffer(label, initialCapacity)
 
-    open class Storage : SubmitNodeStorage()
+    open class Storage : SubmitNodeStorage() {
+        override fun <T : SubmitNode> submitCustom(phase: SubmitRenderPhase<T>, node: T) {
+            // TODO
+        }
+    }
 
     open class Submit<S : EntityRenderState>(
         @JvmField

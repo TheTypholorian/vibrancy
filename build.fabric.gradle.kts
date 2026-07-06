@@ -106,11 +106,7 @@ modstitch {
         archiveVersion.set("${rootProject.version}+${project.property("deps.minecraft")}-fabric")
     }
 
-    loom {
-        configureLoom {
-            accessWidenerPath = accessWidener
-        }
-    }
+    classTweaker.set(accessWidener)
 
     moddevgradle {
         findProperty("deps.forge")?.let { forgeVersion = it as String }

@@ -10,6 +10,7 @@ import net.minecraft.client.renderer.SubmitNodeStorage;
 import net.minecraft.client.renderer.entity.EntityRenderDispatcher;
 import net.minecraft.client.renderer.entity.EntityRenderer;
 import net.minecraft.client.renderer.entity.state.EntityRenderState;
+import net.minecraft.client.renderer.state.level.CameraRenderState;
 import net.minecraft.core.BlockBox;
 import net.minecraft.core.BlockPos;
 import net.typho.big_shot_lib.api.util.platform.PlatformUtil;
@@ -35,6 +36,7 @@ public class EntityRenderDispatcherMixin {
             List<EntityRenderState.ShadowPiece> list,
             Operation<Boolean> original,
             @Local(argsOnly = true) S renderState,
+            @Local(argsOnly = true) CameraRenderState camera,
             @Local(argsOnly = true) PoseStack poseStack,
             @Local(argsOnly = true) SubmitNodeCollector submitNodeCollector,
             @Local EntityRenderer<?, ? super S> renderer
@@ -42,10 +44,12 @@ public class EntityRenderDispatcherMixin {
         if (VibrancyConfig.entityShadowsEnabled) {
             if (submitNodeCollector instanceof SubmitNodeStorage storage) {
                 BlockPos pos = BlockPos.containing(renderState.x, renderState.y, renderState.z);
-                storage.order(0).shadows.submit(new VibrancyEntityShadowFeatureRenderer.Submit<S>(
+                PoseStack.Pose pose = poseStack.last().copy();
+                pose.translate((float) camera.pos.x, (float) camera.pos.y, (float) camera.pos.z);
+                storage.order(0).shadows.submit(new VibrancyEntityShadowFeatureRenderer.Submit<>(
                         renderer,
                         renderState,
-                        poseStack.last().copy(),
+                        pose,
                         BlockBox.of(pos.minus(1, 3, 1), pos.plus(1))
                 ));
                 return true;

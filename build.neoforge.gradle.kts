@@ -86,6 +86,10 @@ modstitch {
         archiveVersion.set("${rootProject.version}+${project.property("deps.minecraft")}-neoforge")
     }
 
+    if (accessTransformer.exists()) {
+        classTweaker.set(accessTransformer)
+    }
+
     moddevgradle {
         findProperty("deps.forge")?.let { forgeVersion = it as String }
         findProperty("deps.neoform")?.let { neoFormVersion = it as String }
@@ -93,12 +97,6 @@ modstitch {
         findProperty("deps.mcp")?.let { mcpVersion = it as String }
 
         defaultRuns()
-
-        configureNeoForge {
-            if (accessTransformer.exists()) {
-                accessTransformers.from(accessTransformer)
-            }
-        }
     }
 }
 

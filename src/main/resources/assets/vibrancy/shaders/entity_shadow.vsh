@@ -16,5 +16,5 @@ void main() {
 
     vertexPosition = Position;
     texCoord0 = UV0;
-    vertexLight = float(max(UV1.x, UV1.y)) / 256.0 + 5.0 / 16.0;
+    vertexLight = float(max(UV1.x, UV1.y)) / 240.0;
 }

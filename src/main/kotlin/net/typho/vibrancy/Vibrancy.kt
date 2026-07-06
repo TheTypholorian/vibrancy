@@ -33,6 +33,9 @@ import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.util.ExtraAtlases
 import net.typho.vibrancy.sky.SkyLightInfoLoader
 import net.typho.vibrancy.sky.SkyLightRegistry
+import org.lwjgl.opengl.GL
+import org.lwjgl.opengl.GL11
+import org.lwjgl.opengl.GL30
 import org.slf4j.Logger
 import org.slf4j.LoggerFactory
 import java.util.function.Consumer
