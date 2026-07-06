@@ -66,22 +66,23 @@ object ExtraAtlases : NamedResource, SingleStepNeoReloadListener {
     }
 
     private fun createAtlas(type: String, parentKey: Identifier, idConverter: FileToIdConverter, resources: ResourceManager, defaults: Boolean): TextureAtlas? {
-        val parent = Minecraft.getInstance().atlasManager.atlasByTexture[parentKey]?.atlas ?: return null
-        val key = Vibrancy.id("$type/${parentKey.toString('/')}")
+        val parent = Minecraft.getInstance().atlasManager.atlasByTexture[parentKey] ?: return null
+        val parentId = Minecraft.getInstance().atlasManager.atlasById.entries.first { it.value === parent }.key
+        val key = Vibrancy.id("$type/${parentId.toString('/')}")
         val loader = SpriteResourceLoader.create(setOf(AnimationMetadataSection.TYPE))
         val sprites = mutableMapOf<Identifier, TextureAtlasSprite>()
 
-        sprites[MissingTextureAtlasSprite.getLocation()] = parent.missingSprite()
+        sprites[MissingTextureAtlasSprite.getLocation()] = parent.atlas.missingSprite()
 
         if (defaults) {
-            SpriteSourceList.load(resources, parentKey).list(resources).forEach {
+            SpriteSourceList.load(resources, parentId).list(resources).forEach {
                 it.get(loader)?.let { contents ->
-                    val parentSprite = parent.getSprite(contents.name())
+                    val parentSprite = parent.atlas.getSprite(contents.name())
                     val sprite = TextureAtlasSpriteAccessor.init(
                         contents.name(),
                         contents,
-                        parent.texture.width,
-                        parent.texture.height,
+                        parent.atlas.texture.width,
+                        parent.atlas.texture.height,
                         parentSprite.x,
                         parentSprite.y,
                         (parentSprite as TextureAtlasSpriteAccessor).`vibrancy$getPadding`()
@@ -93,14 +94,14 @@ object ExtraAtlases : NamedResource, SingleStepNeoReloadListener {
 
         for ((fileId, resource) in idConverter.listMatchingResources(resources)) {
             val id = idConverter.fileToId(fileId)
-            val parentSprite = parent.getSprite(id)
+            val parentSprite = parent.atlas.getSprite(id)
 
             loader.loadSprite(id, resource)?.let { contents ->
                 val sprite = TextureAtlasSpriteAccessor.init(
                     id,
                     contents,
-                    parent.texture.width,
-                    parent.texture.height,
+                    parent.atlas.texture.width,
+                    parent.atlas.texture.height,
                     parentSprite.x,
                     parentSprite.y,
                     (parentSprite as TextureAtlasSpriteAccessor).`vibrancy$getPadding`()
@@ -109,12 +110,12 @@ object ExtraAtlases : NamedResource, SingleStepNeoReloadListener {
             }
         }
 
-        val mipLevel = (parent as TextureAtlasAccessor).`vibrancy$getMaxMipLevel`()
+        val mipLevel = (parent.atlas as TextureAtlasAccessor).`vibrancy$getMaxMipLevel`()
 
         sprites.values.forEach { it.contents().increaseMipLevel(mipLevel) }
 
         val atlas = TextureAtlas(key)
-        atlas.upload(SpriteLoader.Preparations(parent.texture.width, parent.texture.height, mipLevel, parent.missingSprite(), sprites, CompletableFuture.completedFuture(null)))
+        atlas.upload(SpriteLoader.Preparations(parent.atlas.texture.width, parent.atlas.texture.height, mipLevel, parent.atlas.missingSprite(), sprites, CompletableFuture.completedFuture(null)))
         return atlas
     }
 

@@ -9,3 +9,4 @@ accessible class net/minecraft/client/renderer/rendertype/RenderSetup$TextureBin
 
 accessible class net/minecraft/client/resources/model/sprite/AtlasManager$AtlasEntry
 accessible field net/minecraft/client/resources/model/sprite/AtlasManager atlasByTexture Ljava/util/Map;
+accessible field net/minecraft/client/resources/model/sprite/AtlasManager atlasById Ljava/util/Map;
