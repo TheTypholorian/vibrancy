@@ -45,6 +45,7 @@ import org.joml.Vector4f
 import java.util.*
 import java.util.function.Supplier
 import kotlin.collections.isNotEmpty
+import kotlin.to
 
 open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityShadowFeatureRenderer.Submit> {
     companion object {
@@ -115,7 +116,9 @@ open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityS
             @JvmField
             val vertexBuffer: GpuBufferSlice,
             @JvmField
-            val indexBuffer: GpuBufferSlice,
+            val indexBuffer: GpuBuffer,
+            @JvmField
+            val indexCount: Int,
             @JvmField
             val indexType: IndexType
         )
@@ -140,11 +143,11 @@ open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityS
         var map2 = 0
 
         ByteBufferBuilder(RenderType.SMALL_BUFFER_SIZE).use { byteBufferBuilder ->
-            val builder = BufferBuilder(byteBufferBuilder, PrimitiveTopology.QUADS, DefaultVertexFormat.POSITION_TEX_LIGHTMAP_COLOR) // TODO replace with persistent mapping
+            val format = DefaultVertexFormat.POSITION_TEX_LIGHTMAP_COLOR
+            val builder = BufferBuilder(byteBufferBuilder, PrimitiveTopology.QUADS, format) // TODO replace with persistent mapping
             var totalVertices = 0L
-            var totalIndices = 0L
             val blockMeshRanges = submits.map { submit ->
-                val ret = totalVertices to totalIndices
+                val ret = totalVertices
 
                 SectionPos.betweenClosedStream(
                     SectionPos.blockToSectionCoord(submit.boundingBox.min.x),
@@ -175,7 +178,6 @@ open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityS
                             section[pos]?.solidFaces?.forEach { face ->
                                 if (PackedNormal.unpackByteY(face.v0.normal) >= 0) {
                                     totalVertices += 4
-                                    totalIndices += 6
                                     face.apply { vertex ->
                                         builder.addVertex(
                                             (vertex.x + pos.x - camera.pos.x).toFloat(),
@@ -192,7 +194,7 @@ open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityS
                     }
                 }
 
-                ret to ((totalVertices - ret.first) to (totalIndices - ret.second))
+                ret to (totalVertices - ret)
             }
 
             val built = builder.build() ?: return
@@ -212,8 +214,9 @@ open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityS
 
             for (offset in blockMeshRanges) {
                 blockMeshes.add(BlockMesh(
-                    vertexBuffer.slice(offset.first.first, offset.second.first),
-                    indexBuffer.first.slice(offset.first.second, offset.second.second),
+                    vertexBuffer.slice(offset.first * format.vertexSize, offset.second * format.vertexSize),
+                    indexBuffer.first,
+                    built.drawState().indexCount,
                     indexBuffer.second
                 ))
             }
@@ -280,9 +283,9 @@ open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityS
                     pass.setUniform("u_Shadows", draw.info.vertexBuffer)
 
                     pass.setVertexBuffer(0, draw.blockMesh.vertexBuffer)
-                    pass.setIndexBuffer(draw.blockMesh.indexBuffer.buffer, draw.blockMesh.indexType)
+                    pass.setIndexBuffer(draw.blockMesh.indexBuffer, draw.blockMesh.indexType)
 
-                    pass.drawIndexed(draw.blockMesh.indexBuffer.length.toInt(), 1, 0, 0, 0)
+                    pass.drawIndexed(draw.blockMesh.indexCount, 1, 0, 0, 0)
                 }
             }
 
