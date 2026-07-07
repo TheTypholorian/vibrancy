@@ -41,8 +41,9 @@ public abstract class SubmitNodeStorageMixin implements OrderedSubmitNodeCollect
     @Override
     public void vibrancy$submitEntityShadow() {
         if (vibrancy$entityShadowSubmit.submit != null) {
-            order(0).shadows.submit(vibrancy$entityShadowSubmit.submit);
+            var submit = vibrancy$entityShadowSubmit.submit;
             vibrancy$entityShadowSubmit.submit = null;
+            order(0).shadows.submit(submit);
         }
     }
 

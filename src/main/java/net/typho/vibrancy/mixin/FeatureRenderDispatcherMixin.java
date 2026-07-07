@@ -39,6 +39,7 @@ public class FeatureRenderDispatcherMixin {
         }
     }
 
+    @SuppressWarnings("ConstantValue")
     @Inject(
             method = "<init>",
             at = @At("TAIL")
@@ -51,6 +52,8 @@ public class FeatureRenderDispatcherMixin {
             GameRenderState gameRenderState,
             CallbackInfo ci
     ) {
-        featureRenderers.put(VibrancyEntityShadowFeatureRenderer.TYPE, new VibrancyEntityShadowFeatureRenderer());
+        if (!((Object) this instanceof VibrancyEntityShadowFeatureRenderer.Dispatcher)) {
+            featureRenderers.put(VibrancyEntityShadowFeatureRenderer.TYPE, new VibrancyEntityShadowFeatureRenderer());
+        }
     }
 }

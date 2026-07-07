@@ -10,3 +10,9 @@ accessible class net/minecraft/client/renderer/rendertype/RenderSetup$TextureBin
 accessible class net/minecraft/client/resources/model/sprite/AtlasManager$AtlasEntry
 accessible field net/minecraft/client/resources/model/sprite/AtlasManager atlasByTexture Ljava/util/Map;
 accessible field net/minecraft/client/resources/model/sprite/AtlasManager atlasById Ljava/util/Map;
+
+accessible class net/minecraft/client/renderer/feature/FeatureRenderDispatcher$PhaseSubmitGrouper
+accessible method net/minecraft/client/renderer/feature/FeatureRenderDispatcher$PreparedFrame begin (Lnet/minecraft/client/renderer/feature/FeatureFrameContext;Lnet/minecraft/client/renderer/SubmitNodeStorage;)Lnet/minecraft/client/renderer/feature/FeatureRenderDispatcher$PreparedFrame;
+accessible field net/minecraft/client/renderer/feature/FeatureRenderDispatcher$PreparedFrame groupsByFeature Ljava/util/Map;
+accessible class net/minecraft/client/renderer/feature/FeatureRenderDispatcher$PreparedGroup
+accessible field net/minecraft/client/renderer/feature/FeatureRenderDispatcher$PreparedFrame allSubmits Ljava/util/List;
