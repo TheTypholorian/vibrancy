@@ -23,6 +23,7 @@ import net.minecraft.client.renderer.state.GameRenderState
 import net.minecraft.client.resources.model.ModelManager
 import net.minecraft.client.resources.model.sprite.AtlasManager
 import net.minecraft.core.BlockBox
+import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
 import net.minecraft.data.AtlasIds
 import net.minecraft.resources.Identifier
@@ -32,6 +33,7 @@ import net.typho.big_shot_lib.api.client.rendering.common.GpuTexture
 import net.typho.big_shot_lib.api.client.rendering.common.constant.GpuBufferUsage
 import net.typho.big_shot_lib.api.client.rendering.common.constant.GpuTextureUsage
 import net.typho.big_shot_lib.api.client.rendering.util.PackedNormal
+import net.typho.big_shot_lib.api.math.IRect3
 import net.typho.big_shot_lib.api.util.buffer.MemoryPointer
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyConfig
@@ -56,6 +58,13 @@ open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityS
     protected var textureView: GpuTextureView? = null
     @JvmField
     protected var vertexBuffer: GpuBuffer? = null
+    protected val shadowRangeBuffer by lazy {
+        GpuObjects.buffer(
+            { "Vibrancy Entity Shadow Range Buffer" },
+            8L,
+            GpuBufferUsage.COPY_DST or GpuBufferUsage.UNIFORM
+        )
+    }
     protected val dispatcher by lazy {
         Dispatcher(
             Minecraft.getInstance().modelManager,
@@ -127,6 +136,9 @@ open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityS
         val blockMeshes = mutableListOf<BlockMesh>()
         val draws = mutableListOf<Draw>()
 
+        var map1 = 0
+        var map2 = 0
+
         ByteBufferBuilder(RenderType.SMALL_BUFFER_SIZE).use { byteBufferBuilder ->
             val builder = BufferBuilder(byteBufferBuilder, PrimitiveTopology.QUADS, DefaultVertexFormat.POSITION_TEX_LIGHTMAP_COLOR) // TODO replace with persistent mapping
             var totalVertices = 0L
@@ -134,25 +146,46 @@ open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityS
             val blockMeshRanges = submits.map { submit ->
                 val ret = totalVertices to totalIndices
 
-                for (pos in submit.boundingBox) {
-                    sections.computeIfAbsent(SectionPos.of(pos)) { key ->
+                SectionPos.betweenClosedStream(
+                    SectionPos.blockToSectionCoord(submit.boundingBox.min.x),
+                    SectionPos.blockToSectionCoord(submit.boundingBox.min.y),
+                    SectionPos.blockToSectionCoord(submit.boundingBox.min.z),
+                    SectionPos.blockToSectionCoord(submit.boundingBox.max.x),
+                    SectionPos.blockToSectionCoord(submit.boundingBox.max.y),
+                    SectionPos.blockToSectionCoord(submit.boundingBox.max.z)
+                ).forEach { sectionPos ->
+                    map1++
+                    sections.computeIfAbsent(sectionPos) { key ->
                         synchronized(Vibrancy.lightManager) {
                             Vibrancy.lightManager.sectionMeshCaches[key]
                         }
                     }?.let { section ->
-                        section[pos]?.solidFaces?.forEach { face ->
-                            if (PackedNormal.unpackByteY(face.v0.normal) >= 0) {
-                                totalVertices += 4
-                                totalIndices += 6
-                                face.apply { vertex ->
-                                    builder.addVertex(
-                                        (vertex.x + pos.x - camera.pos.x).toFloat(),
-                                        (vertex.y + pos.y - camera.pos.y).toFloat(),
-                                        (vertex.z + pos.z - camera.pos.z).toFloat()
-                                    )
-                                        .setUv(vertex.u, vertex.v)
-                                        .setLight(vertex.light)
-                                        .setColor(vertex.color)
+                        BlockBox(
+                            BlockPos(
+                                sectionPos.minBlockX(),
+                                sectionPos.minBlockY(),
+                                sectionPos.minBlockZ()
+                            ).max(submit.boundingBox.min),
+                            BlockPos(
+                                sectionPos.maxBlockX(),
+                                sectionPos.maxBlockY(),
+                                sectionPos.maxBlockZ()
+                            ).min(submit.boundingBox.max)
+                        ).forEach { pos ->
+                            section[pos]?.solidFaces?.forEach { face ->
+                                if (PackedNormal.unpackByteY(face.v0.normal) >= 0) {
+                                    totalVertices += 4
+                                    totalIndices += 6
+                                    face.apply { vertex ->
+                                        builder.addVertex(
+                                            (vertex.x + pos.x - camera.pos.x).toFloat(),
+                                            (vertex.y + pos.y - camera.pos.y).toFloat(),
+                                            (vertex.z + pos.z - camera.pos.z).toFloat()
+                                        )
+                                            .setUv(vertex.u, vertex.v)
+                                            .setLight(vertex.light)
+                                            .setColor(vertex.color)
+                                    }
                                 }
                             }
                         }
@@ -198,6 +231,7 @@ open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityS
                                 dispatcher.vertexBuffer.getExecuteInfo(draw)?.let { info ->
                                     (renderType.textures.find { it.name == "Sampler0" } ?: renderType.textures.firstOrNull())?.let { texture ->
                                         (texture as PreparedRenderTypeTextureExtension).`vibrancy$identifier`?.let { textureId ->
+                                            map2++
                                             Draw(
                                                 blockMesh,
                                                 info,
@@ -215,6 +249,8 @@ open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityS
                     }
             }
         }
+
+        println("$map1 $map2")
 
         if (draws.isNotEmpty()) {
             RenderSystem.getDevice().createCommandEncoder().createRenderPass(
@@ -235,9 +271,15 @@ open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityS
                 for (draw in draws) {
                     pass.bindTexture("u_TransmissionTex", draw.transmissionTex ?: draw.texture.textureView, draw.texture.sampler)
 
-                    pass.setUniform("u_Shadows", draw.info.vertexBuffer.slice((draw.info.firstIndex / 6L * 4 + draw.info.baseVertex) * Vibrancy.entityShadowFormat.vertexSize, draw.info.indexCount / 6L * 4 * Vibrancy.entityShadowFormat.vertexSize))
+                    shadowRangeBuffer.upload { output ->
+                        output.writeInt(draw.info.firstIndex / 6 + draw.info.baseVertex / 4)
+                        output.writeInt(draw.info.indexCount / 6)
+                    }
 
-                    pass.setVertexBuffer(0, (draw.blockMesh.vertexBuffer as GpuBufferImpl).slice())
+                    pass.setUniform("u_ShadowRange", shadowRangeBuffer)
+                    pass.setUniform("u_Shadows", draw.info.vertexBuffer)
+
+                    pass.setVertexBuffer(0, draw.blockMesh.vertexBuffer)
                     pass.setIndexBuffer(draw.blockMesh.indexBuffer.buffer, draw.blockMesh.indexType)
 
                     pass.drawIndexed(draw.blockMesh.indexBuffer.length.toInt(), 1, 0, 0, 0)
@@ -262,6 +304,8 @@ open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityS
                 pass.draw(6, 1, 0, 0)
             }
         }
+
+        dispatcher.vertexBuffer.endFrame()
     }
 
     open class Dispatcher(

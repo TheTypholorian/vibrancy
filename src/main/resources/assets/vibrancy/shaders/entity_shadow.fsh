@@ -4,6 +4,10 @@
 #include "vibrancy:rays"
 #include "vibrancy:pixel_alignment"
 
+layout(std140) uniform u_ShadowRange {
+    uint shadowRangeStart;
+    uint shadowRangeLength;
+};
 layout(std430, binding = 0) readonly buffer u_Shadows {
     EntityQuad shadows[];
 };
@@ -50,15 +54,16 @@ void main() {
     fragColor = vec4(0);
 
     vec3 shadowPos = getShadowPosition(textureSize(u_BlockTex, 0), texCoord0, vertexPosition);
+    shadowPos.y = vertexPosition.y;
     float minHit = -1;
 
-    for (uint i = 0u; i < shadows.length(); i++) {
+    for (uint i = shadowRangeStart; i < shadowRangeStart + shadowRangeLength; i++) {
         EntityQuad quad = shadows[i];
         float denom;
         vec2 uv;
         float tt;
 
-        if (raycastEntityShadowQuad(shadowPos, 1e-3, quad, denom, uv, tt) && denom < 1e-3 && tt > 0) {
+        if (raycastEntityShadowQuad(shadowPos, 1e-3, quad, denom, uv, tt) && tt > 0) {
             if (tt < minHit || minHit == -1) {
                 vec2 texUv = interpolateQuadUV(quad, uv);
                 vec4 color = texture(u_TransmissionTex, texUv) * interpolateQuadColor(quad, uv);

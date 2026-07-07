@@ -106,6 +106,7 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
             .zOffset()
             .sampler("u_BlockTex")
             .sampler("u_TransmissionTex")
+            .uniform("u_ShadowRange")
             .storageBuffer("u_Shadows")
             .uniform("DynamicTransforms")
             .uniform("Projection")

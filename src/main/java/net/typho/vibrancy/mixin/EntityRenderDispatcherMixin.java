@@ -35,7 +35,7 @@ public class EntityRenderDispatcherMixin {
             var ext = OrderedSubmitNodeCollectorExtension.get(submitNodeCollector);
 
             if (ext != null) {
-                double radius = (renderState.boundingBoxWidth + 1) / 2;
+                double radius = (renderState.boundingBoxWidth + 8) / 2;
                 ext.getVibrancy$entityShadowSubmit().submit = new VibrancyEntityShadowFeatureRenderer.Submit(new BlockBox(
                         BlockPos.containing(renderState.x - radius, renderState.y - 4, renderState.z - radius),
                         BlockPos.containing(renderState.x + radius, renderState.y + renderState.boundingBoxHeight + 1, renderState.z + radius)
