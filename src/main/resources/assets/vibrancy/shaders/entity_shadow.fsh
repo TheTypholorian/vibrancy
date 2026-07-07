@@ -22,30 +22,43 @@ in float vertexLight;
 out vec4 fragColor;
 
 bool raycastEntityShadowQuad(vec3 shadowPos, float margin, EntityQuad quad, out float denom, out vec2 uv, out float tt) {
-    vec2 edge1 = quad.vert2.xz - quad.vert1.xz;
-    vec2 edge2 = quad.vert4.xz - quad.vert1.xz;
-    vec2 delta = shadowPos.xz - quad.vert1.xz;
+    vec3 normal = cross(quad.vert2 - quad.vert1, quad.vert4 - quad.vert1);
 
-    float det = edge1.x * edge2.y - edge1.y * edge2.x;
-    if (abs(det) < margin) return false;
+    denom = normal.y;
 
-    float invDet = 1.0 / det;
+    if (abs(denom) < margin) return false;
 
-    float a = (delta.x * edge2.y - delta.y * edge2.x) * invDet;
-    float b = (edge1.x * delta.y - edge1.y * delta.x) * invDet;
+    float d = dot(normal, quad.vert1);
 
-    if (a < -margin || b < -margin || a > 1.0 + margin || b > 1.0 + margin) return false;
+    tt = (d - dot(shadowPos, normal)) / denom;
+    if (tt < margin * sign(denom)) return false;
 
-    uv = clamp(vec2(a, b), margin, 1.0 - margin);
+    vec3 vp;
+    vp.x = shadowPos.x - quad.vert1.x;
+    vp.z = shadowPos.z - quad.vert1.z;
+    vp.y = tt + shadowPos.y - quad.vert1.y;
 
-    float y = quad.vert1.y
-    + a * (quad.vert2.y - quad.vert1.y)
-    + b * (quad.vert4.y - quad.vert1.y);
+    vec3 diagonal1 = quad.vert2 - quad.vert1;
+    vec3 diagonal2 = quad.vert4 - quad.vert1;
 
-    tt = y - shadowPos.y;
-    denom = det;
+    float d1p = dot(diagonal1, vp);
+    float d2p = dot(diagonal2, vp);
 
-    if (tt < margin) return false;
+    float d11 = dot(diagonal1, diagonal1);
+    float d12 = dot(diagonal1, diagonal2);
+    float d22 = dot(diagonal2, diagonal2);
+    float invDet = 1 / (d11 * d22 - d12 * d12);
+
+    float inv11 = d22 * invDet;
+    float inv12 = -d12 * invDet;
+    float inv22 = d11 * invDet;
+
+    float a = inv11 * d1p + inv12 * d2p;
+    float b = inv12 * d1p + inv22 * d2p;
+
+    if (a < -margin || b < -margin || a > 1 + margin || b > 1 + margin) return false;
+
+    uv = clamp(vec2(a, b), margin, 1 - margin);
 
     return true;
 }
@@ -70,19 +83,31 @@ void main() {
 
                 if (color.a > 0) {
                     if (color.a == 1) {
-                        minHit = tt;
-                        fragColor = vec4(0, 0, 0, 1);
-                        break;
+                        color.rgb = vec3(0);
                     }
+
+                    /*
+                    if (config.visuals.alignPixels) {
+                        vec2 quadSize = abs(vec2(quad.u1 - quad.u3, quad.v1 - quad.v3)) * textureSize(u_TransmissionTex, 0);
+                        vec2 pixelUv = uv * quadSize;
+                        float smoothing = min(min(clamp(pixelUv.x, 0, 1), clamp(quadSize.x - pixelUv.x, 0, 1)), min(clamp(pixelUv.y, 0, 1), clamp(quadSize.y - pixelUv.y, 0, 1)));
+
+                        color.a *= smoothing;
+                    }
+                    */
 
                     minHit = tt;
                     fragColor = color;
+
+                    if (color.a == 1) {
+                        break;
+                    }
                 }
             }
         }
     }
 
     if (minHit != -1) {
-        fragColor.a *= clamp(2 - minHit, 0, 1) * vertexLight * texture(u_BlockTex, texCoord0).a;
+        fragColor.a *= clamp(2 - minHit / 2, 0, 1) * vertexLight * texture(u_BlockTex, texCoord0).a;
     }
 }
