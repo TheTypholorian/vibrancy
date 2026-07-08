@@ -3,6 +3,7 @@ package net.typho.vibrancy.block.impl
 import net.caffeinemc.mods.sodium.client.render.chunk.LocalSectionIndex
 import net.caffeinemc.mods.sodium.client.render.chunk.region.RenderRegion
 import net.minecraft.client.Minecraft
+import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
 import net.minecraft.world.level.ChunkPos
@@ -14,6 +15,7 @@ import net.typho.big_shot_lib.api.client.rendering.common.GpuBuffer
 import net.typho.big_shot_lib.api.client.rendering.common.GpuObjects
 import net.typho.big_shot_lib.api.client.rendering.common.Recyclable
 import net.typho.big_shot_lib.api.client.rendering.common.constant.GpuBufferUsage
+import net.typho.big_shot_lib.api.client.rendering.util.PackedNormal
 import net.typho.big_shot_lib.api.math.IRect3
 import net.typho.big_shot_lib.api.math.IVec3
 import net.typho.vibrancy.LightManager
@@ -129,7 +131,6 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
         var hasShadows = false
         val blockShadows = mutableMapOf<IVec3<Int>, Int?>()
         val sectionGrid = Array(256) { mutableListOf<SectionData>() }
-        val sectionCache = ChunkSectionCache(Minecraft.getInstance().level!!)
         val sectionMeshes = hashMapOf<SectionPos, SectionMeshCache?>()
         val grids = mutableListOf<Array<Int?>>()
         var numLightInstances = 0
@@ -141,30 +142,23 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
             return ((voxel.x - box.min.x) * (box.max.y - box.min.y + 1) + (voxel.y - box.min.y)) * (box.max.z - box.min.z + 1) + (voxel.z - box.min.z)
         }
 
-        fun getBlockShadow(pos: BlockPos): Int? {
+        fun getBlockShadow(section: SectionMeshCache, pos: BlockPos): Int? {
             return blockShadows.computeIfAbsent(pos.immutable()) {
-                val sectionPos = SectionPos.of(
-                    SectionPos.blockToSectionCoord(pos.x),
-                    SectionPos.blockToSectionCoord(pos.y),
-                    SectionPos.blockToSectionCoord(pos.z)
-                )
-                getSectionMesh(sectionPos)?.let { section ->
-                    section.get(pos.x, pos.y, pos.z)?.let { block ->
-                        val start = shadows.size
-                        block.collect { shadows.add(it.copyWithOffset(pos.x, pos.y, pos.z)) }
-                        val end = shadows.size
-                        val len = end - start
+                section.get(pos.x, pos.y, pos.z)?.let { block ->
+                    val start = shadows.size
+                    block.collect { shadows.add(it.copyWithOffset(pos.x, pos.y, pos.z)) }
+                    val end = shadows.size
+                    val len = end - start
 
-                        if (start and 524287.inv() != 0) {
-                            throw IndexOutOfBoundsException(start)
-                        }
-
-                        if (len and 4095.inv() != 0) {
-                            throw IndexOutOfBoundsException(len)
-                        }
-
-                        (start shl 13) or (len shl 1)
+                    if (start and 524287.inv() != 0) {
+                        throw IndexOutOfBoundsException(start)
                     }
+
+                    if (len and 4095.inv() != 0) {
+                        throw IndexOutOfBoundsException(len)
+                    }
+
+                    (start shl 13) or (len shl 1)
                 }
             }
         }
@@ -174,30 +168,45 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
             val cellRangeStart by lazy {
                 val grid = arrayOfNulls<Int>(light.shadowBox.areaInclusive)
 
-                light.shadowBox.iterator().forEach { pos ->
-                    val pos = pos.toBlockPos()
+                SectionPos.betweenClosedStream(
+                    SectionPos.blockToSectionCoord(light.shadowBox.min.x),
+                    SectionPos.blockToSectionCoord(light.shadowBox.min.y),
+                    SectionPos.blockToSectionCoord(light.shadowBox.min.z),
+                    SectionPos.blockToSectionCoord(light.shadowBox.max.x),
+                    SectionPos.blockToSectionCoord(light.shadowBox.max.y),
+                    SectionPos.blockToSectionCoord(light.shadowBox.max.z)
+                ).forEach { sectionPos ->
+                    getSectionMesh(sectionPos)?.let { mesh ->
+                        BlockBox(
+                            BlockPos(
+                                sectionPos.minBlockX(),
+                                sectionPos.minBlockY(),
+                                sectionPos.minBlockZ()
+                            ).max(light.shadowBox.min),
+                            BlockPos(
+                                sectionPos.maxBlockX(),
+                                sectionPos.maxBlockY(),
+                                sectionPos.maxBlockZ()
+                            ).min(light.shadowBox.max)
+                        ).forEach { pos ->
+                            val cell = if (pos == light.pos) {
+                                getBlockShadow(mesh, pos)
+                            } else {
+                                val index = mesh.index(pos.x, pos.y, pos.z) shl 1
 
-                    val cell = if (pos == light.pos) {
-                        getBlockShadow(pos)
-                    } else {
-                        val mesh = getSectionMesh(SectionPos.of(
-                            SectionPos.blockToSectionCoord(pos.x),
-                            SectionPos.blockToSectionCoord(pos.y),
-                            SectionPos.blockToSectionCoord(pos.z)
-                        )) ?: return@forEach
-                        val index = mesh.index(pos.x, pos.y, pos.z) shl 1
-
-                        if (mesh.stateFlags.get(index)) { // air
-                            null
-                        } else if (mesh.stateFlags.get(index + 1)) { // solid
-                            1
-                        } else {
-                            getBlockShadow(pos)
+                                if (mesh.stateFlags.get(index)) { // air
+                                    null
+                                } else if (mesh.stateFlags.get(index + 1)) { // solid
+                                    1
+                                } else {
+                                    getBlockShadow(mesh, pos)
+                                }
+                            }
+                            cell?.let {
+                                grid[getGridIndex(pos, light.shadowBox)] = it
+                                hasShadows = true
+                            }
                         }
-                    }
-                    cell?.let {
-                        grid[getGridIndex(pos, light.shadowBox)] = it
-                        hasShadows = true
                     }
                 }
 
@@ -316,7 +325,7 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
             }
         }
 
-        //Vibrancy.LOGGER.info("Uploading ${lightBuffer.size} light buffer, ${shadowBuffer?.size} shadow buffer, ${gridBuffer.size} grid buffer, total of ${lightBuffer.size + (shadowBuffer?.size ?: 0) + gridBuffer.size} bytes. $numLights lights, $numLightInstances light instances, ${shadows.size} shadows, meaning ${shadows.size / numLights} shadows per light, ${shadows.size / numLightInstances} shadows per light instance, max grid cell index $cellRangeIndex")
+        Vibrancy.LOGGER.info("Uploading $regionPos: ${lightBuffer.size} light buffer, ${shadowBuffer?.size} shadow buffer, ${gridBuffer.size} grid buffer, total of ${lightBuffer.size + (shadowBuffer?.size ?: 0) + gridBuffer.size} bytes. $numLights lights, $numLightInstances light instances, ${shadows.size} shadows, meaning ${shadows.size / numLights} shadows per light, ${shadows.size / numLightInstances} shadows per light instance, max grid cell index $cellRangeIndex, num non-solid blocks ${blockShadows.size}, num sections ${sectionMeshes.size}")
 
         val new = RegionData(lightBuffer, shadowBuffer, gridBuffer)
         regions[regionPos] = new

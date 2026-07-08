@@ -14,6 +14,7 @@ import net.typho.big_shot_lib.api.util.platform.PlatformUtil
 import net.typho.vibrancy.block.impl.RayPointLightStorage
 import net.typho.vibrancy.block.impl.RayPointLightType
 import net.typho.vibrancy.block.impl.SubtleLightCullingMode
+import net.typho.vibrancy.util.VibrancyThreadPool
 import java.nio.file.Files
 import kotlin.reflect.KMutableProperty0
 
@@ -58,6 +59,20 @@ object VibrancyConfig {
             GpuQueue.runOrQueue {
                 Vibrancy.lightManager.reload()
             }
+        }
+    @JvmField
+    var useMultithreading = true
+    var asyncThreads: Int = 4
+        set(value) {
+            if (value < field) {
+                VibrancyThreadPool.corePoolSize = value
+                VibrancyThreadPool.maximumPoolSize = value
+            } else {
+                VibrancyThreadPool.maximumPoolSize = value
+                VibrancyThreadPool.corePoolSize = value
+            }
+
+            field = value
         }
     var limitLightBrightness = false
         set(value) {
@@ -188,6 +203,8 @@ object VibrancyConfig {
             writer.beginObject()
 
                 .name("modEnabled").value(modEnabled)
+                .name("useMultithreading").value(useMultithreading)
+                .name("asyncThreads").value(asyncThreads)
                 .name("limitLightBrightness").value(limitLightBrightness)
                 .name("alignPixels").value(alignPixels)
                 .name("raycastLightModel").value(raycastLightModel)
@@ -257,6 +274,8 @@ object VibrancyConfig {
                 val json = Files.newBufferedReader(path).use { JsonParser.parseReader(it) }.asJsonObject
 
                 json.getAsJsonPrimitive("modEnabled")?.let { modEnabled = it.asBoolean }
+                json.getAsJsonPrimitive("useMultithreading")?.let { useMultithreading = it.asBoolean }
+                json.getAsJsonPrimitive("asyncThreads")?.let { asyncThreads = it.asInt }
                 json.getAsJsonPrimitive("limitLightBrightness")?.let { limitLightBrightness = it.asBoolean }
                 json.getAsJsonPrimitive("alignPixels")?.let { alignPixels = it.asBoolean }
                 json.getAsJsonPrimitive("raycastLightModel")?.let { raycastLightModel = it.asBoolean }
@@ -327,6 +346,26 @@ object VibrancyConfig {
                     .name(Component.translatable("config.vibrancy.general.modEnabled"))
                     .binding(true, VibrancyConfig::modEnabled)
                     .controller(TickBoxControllerBuilder::create)
+                    .build())
+
+                .also {
+                    if (PlatformUtil.isDevEnv()) {
+                        it.option(Option.createBuilder<Boolean>()
+                            .name(Component.translatable("config.vibrancy.general.useMultithreading"))
+                            .binding(true, VibrancyConfig::useMultithreading)
+                            .controller(TickBoxControllerBuilder::create)
+                            .build())
+                    }
+                }
+
+                .option(Option.createBuilder<Int>()
+                    .name(Component.translatable("config.vibrancy.general.asyncThreads"))
+                    .binding(4, VibrancyConfig::asyncThreads)
+                    .controller { opt ->
+                        IntegerSliderControllerBuilder.create(opt)
+                            .range(1, 8)
+                            .step(1)
+                    }
                     .build())
 
                 .option(Option.createBuilder<Boolean>()
