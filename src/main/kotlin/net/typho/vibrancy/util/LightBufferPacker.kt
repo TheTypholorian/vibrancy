@@ -36,8 +36,7 @@ object LightBufferPacker {
         var numLights = 0
 
         fun getGridIndex(voxel: IVec3<Int>, box: IRect3<Int>): Int {
-            val voxel = voxel - box.min
-            return (voxel.x * box.sizeInclusive.x + voxel.y) * box.sizeInclusive.y + voxel.z
+            return ((voxel.x - box.min.x) * (box.max.y - box.min.y + 1) + (voxel.y - box.min.y)) * (box.max.z - box.min.z + 1) + (voxel.z - box.min.z)
         }
 
         fun getBlockShadow(pos: BlockPos): Int? {
