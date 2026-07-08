@@ -9,6 +9,7 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkAccess
+import net.minecraft.world.level.levelgen.SurfaceRules.state
 import net.typho.big_shot_lib.api.client.rendering.common.GpuBuffer
 import net.typho.big_shot_lib.api.client.rendering.common.GpuObjects
 import net.typho.big_shot_lib.api.client.rendering.common.Recyclable
@@ -134,6 +135,8 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
         var numLightInstances = 0
         var numLights = 0
 
+        fun getSectionMesh(sectionPos: SectionPos) = sectionMeshes.computeIfAbsent(sectionPos) { key -> synchronized(manager.sectionLock) { manager.sectionMeshCaches[key] } }
+
         fun getGridIndex(voxel: IVec3<Int>, box: IRect3<Int>): Int {
             return ((voxel.x - box.min.x) * (box.max.y - box.min.y + 1) + (voxel.y - box.min.y)) * (box.max.z - box.min.z + 1) + (voxel.z - box.min.z)
         }
@@ -145,7 +148,7 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
                     SectionPos.blockToSectionCoord(pos.y),
                     SectionPos.blockToSectionCoord(pos.z)
                 )
-                sectionMeshes.computeIfAbsent(sectionPos) { key -> synchronized(manager.sectionLock) { manager.sectionMeshCaches[key] } }?.let { section ->
+                getSectionMesh(sectionPos)?.let { section ->
                     section.get(pos.x, pos.y, pos.z)?.let { block ->
                         val start = shadows.size
                         block.collect { shadows.add(it.copyWithOffset(pos.x, pos.y, pos.z)) }
@@ -171,13 +174,22 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
             val cellRangeStart by lazy {
                 val grid = arrayOfNulls<Int>(light.shadowBox.areaInclusive)
 
-                sectionCache[light.shadowBox].forEach { (pos, state) ->
+                light.shadowBox.iterator().forEach { pos ->
+                    val pos = pos.toBlockPos()
+
                     val cell = if (pos == light.pos) {
                         getBlockShadow(pos)
                     } else {
-                        if (state.isAir) {
+                        val mesh = getSectionMesh(SectionPos.of(
+                            SectionPos.blockToSectionCoord(pos.x),
+                            SectionPos.blockToSectionCoord(pos.y),
+                            SectionPos.blockToSectionCoord(pos.z)
+                        )) ?: return@forEach
+                        val index = mesh.index(pos.x, pos.y, pos.z) shl 1
+
+                        if (mesh.stateFlags.get(index)) { // air
                             null
-                        } else if (state.isSolidRender) {
+                        } else if (mesh.stateFlags.get(index + 1)) { // solid
                             1
                         } else {
                             getBlockShadow(pos)

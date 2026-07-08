@@ -8,6 +8,8 @@ import net.caffeinemc.mods.sodium.client.render.chunk.compile.ChunkBuildOutput;
 import net.caffeinemc.mods.sodium.client.render.chunk.compile.tasks.ChunkBuilderMeshingTask;
 import net.caffeinemc.mods.sodium.client.util.task.CancellationToken;
 import net.caffeinemc.mods.sodium.client.world.cloned.ChunkRenderContext;
+import net.minecraft.core.BlockPos;
+import net.minecraft.world.level.block.state.BlockState;
 import net.typho.big_shot_lib.api.math.IRect3;
 import net.typho.vibrancy.Vibrancy;
 import net.typho.vibrancy.util.SectionMeshCache;
@@ -38,7 +40,20 @@ public class ChunkBuilderMeshingTaskMixin {
             @Local ChunkBuildBuffers buffers
     ) {
         //if (Vibrancy.lightManager.blockLights.values().stream().anyMatch(storage -> storage.shouldCollectMeshGeometry(renderContext.getOrigin()))) {
-        ((SectionMeshCache.Holder) buffers).setVibrancy$sectionMeshCache(SectionMeshCache.poll(renderContext.getOrigin()));
+        SectionMeshCache cache = SectionMeshCache.poll(renderContext.getOrigin());
+        ((SectionMeshCache.Holder) buffers).setVibrancy$sectionMeshCache(cache);
+
+        for (int x = renderContext.getOrigin().minBlockX(); x < renderContext.getOrigin().maxBlockX(); x++) {
+            for (int y = renderContext.getOrigin().minBlockY(); y < renderContext.getOrigin().maxBlockY(); y++) {
+                for (int z = renderContext.getOrigin().minBlockZ(); z < renderContext.getOrigin().maxBlockZ(); z++) {
+                    BlockState state = buildContext.cache.getWorldSlice().getBlockState(x, y, z);
+                    int index = cache.index(x, y, z) << 1;
+                    cache.stateFlags.set(index, state.isAir());
+                    cache.stateFlags.set(index + 1, state.isSolidRender());
+                }
+            }
+        }
+
         //}
     }
 

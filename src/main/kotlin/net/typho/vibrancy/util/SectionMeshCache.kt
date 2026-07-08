@@ -6,6 +6,7 @@ import net.minecraft.core.SectionPos
 import net.typho.big_shot_lib.api.client.rendering.common.GpuTexture
 import net.typho.big_shot_lib.api.math.IVec3
 import net.typho.vibrancy.collectors.BlockMeshCollector
+import java.util.BitSet
 import java.util.concurrent.ConcurrentLinkedDeque
 import java.util.function.Consumer
 
@@ -34,6 +35,8 @@ class SectionMeshCache(
 
     @JvmField
     val models = arrayOfNulls<Block?>(16 * 16 * 16)
+    @JvmField
+    val stateFlags = BitSet(16 * 16 * 16 * 2)
 
     fun index(x: Int, y: Int, z: Int): Int = (x and 0xF shl 8) or (y and 0xF shl 4) or (z and 0xF)
 
