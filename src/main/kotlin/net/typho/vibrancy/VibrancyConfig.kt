@@ -422,6 +422,7 @@ object VibrancyConfig {
                         .controller(TickBoxControllerBuilder::create)
                         .build())
 
+                    /*
                     .option(Option.createBuilder<Int>()
                         .name(Component.translatable("config.vibrancy.blockLights.raytraced.maxRendered"))
                         .binding(400, VibrancyConfig::rayLightsMaxRendered)
@@ -433,6 +434,7 @@ object VibrancyConfig {
                                 .min(0)
                         }
                         .build())
+                     */
 
                     .option(Option.createBuilder<Float>()
                         .name(Component.translatable("config.vibrancy.blockLights.raytraced.brightness"))
@@ -461,6 +463,7 @@ object VibrancyConfig {
                         }
                         .build())
 
+                    /*
                     .option(Option.createBuilder<Int>()
                         .name(Component.translatable("config.vibrancy.blockLights.raytraced.maxHighQuality"))
                         .binding(10, VibrancyConfig::rayLightMaxHighQuality)
@@ -473,8 +476,10 @@ object VibrancyConfig {
                                 .step(5)
                         }
                         .build())
+                     */
                     .build())
 
+                /*
                 .group(OptionGroup.createBuilder()
                     .name(Component.translatable("config.vibrancy.blockLights.subtle"))
 
@@ -523,9 +528,11 @@ object VibrancyConfig {
                         }
                         .build())
                     .build())
+                 */
 
                 .build())
 
+                /*
             .category(ConfigCategory.createBuilder()
                 .name(Component.translatable("config.vibrancy.skyLights"))
 
@@ -589,6 +596,7 @@ object VibrancyConfig {
                     .build())
 
                 .build())
+                 */
 
             .category(ConfigCategory.createBuilder()
                 .name(Component.translatable("config.vibrancy.specularReflections"))
@@ -599,6 +607,7 @@ object VibrancyConfig {
                     .controller(TickBoxControllerBuilder::create)
                     .build())
 
+                /*
                 .option(Option.createBuilder<Float>()
                     .name(Component.translatable("config.vibrancy.specularReflections.strength"))
                     .binding(3.5f, VibrancyConfig::reflectionStrength)
@@ -618,6 +627,7 @@ object VibrancyConfig {
                             .step(0.5f)
                     }
                     .build())
+                 */
                 .build())
 
             .category(ConfigCategory.createBuilder()
@@ -629,6 +639,7 @@ object VibrancyConfig {
                     .controller(TickBoxControllerBuilder::create)
                     .build())
 
+                /*
                 .option(Option.createBuilder<Boolean>()
                     .name(Component.translatable("config.vibrancy.entityShadows.blockEntityShadows"))
                     .binding(true, VibrancyConfig::blockEntityShadows)
@@ -654,6 +665,7 @@ object VibrancyConfig {
                             .step(5)
                     }
                     .build())
+                 */
                 .build())
 
             .build()
