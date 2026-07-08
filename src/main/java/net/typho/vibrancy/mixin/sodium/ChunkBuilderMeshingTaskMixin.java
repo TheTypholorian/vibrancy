@@ -30,7 +30,7 @@ public class ChunkBuilderMeshingTaskMixin {
             method = "execute(Lnet/caffeinemc/mods/sodium/client/render/chunk/compile/ChunkBuildContext;Lnet/caffeinemc/mods/sodium/client/util/task/CancellationToken;)Lnet/caffeinemc/mods/sodium/client/render/chunk/compile/ChunkBuildOutput;",
             at = @At(
                     value = "INVOKE",
-                    target = "Lnet/caffeinemc/mods/sodium/client/render/chunk/compile/ChunkBuildBuffers;init(Lnet/caffeinemc/mods/sodium/client/render/chunk/data/BuiltSectionInfo$Builder;I)V"
+                    target = "Lnet/caffeinemc/mods/sodium/client/render/chunk/compile/pipeline/BlockRenderCache;getWorldSlice()Lnet/caffeinemc/mods/sodium/client/world/LevelSlice;"
             )
     )
     private void executeStart(
