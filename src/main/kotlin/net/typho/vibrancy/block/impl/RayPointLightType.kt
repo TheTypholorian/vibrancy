@@ -1,29 +1,18 @@
 package net.typho.vibrancy.block.impl
 
 import com.mojang.blaze3d.systems.RenderSystem
-import net.caffeinemc.mods.sodium.client.render.chunk.LocalSectionIndex
-import net.caffeinemc.mods.sodium.client.render.chunk.region.RenderRegion
-import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.texture.TextureAtlas
-import net.minecraft.core.BlockPos
-import net.minecraft.core.SectionPos
 import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.block.state.StateDefinition
 import net.typho.big_shot_lib.api.client.rendering.common.GpuObjects
 import net.typho.big_shot_lib.api.client.rendering.common.constant.GpuBufferUsage
-import net.typho.big_shot_lib.api.math.IRect3
-import net.typho.big_shot_lib.api.math.IVec3
 import net.typho.vibrancy.LightManager
-import net.typho.vibrancy.RenderRegionExtension
 import net.typho.vibrancy.TerrainOverlayContext
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyConfig
 import net.typho.vibrancy.block.BlockLightType
 import net.typho.vibrancy.mixin.TerrainRenderPassAccessor
-import net.typho.vibrancy.util.BlockFace
-import net.typho.vibrancy.util.ChunkSectionCache
 import net.typho.vibrancy.util.TextureLayers
-import net.typho.vibrancy.util.SectionMeshCache
 import java.util.function.BiConsumer
 
 object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLightStorage> {
@@ -37,203 +26,6 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLightStorag
     }
 
     override fun createStorage(manager: LightManager) = RayPointLightStorage()
-
-    @JvmStatic
-    fun pack(region: RenderRegion, lights: Iterable<RayPointLight>, manager: LightManager, output: RenderRegionExtension) {
-        class SectionData(
-            @JvmField
-            val light: RayPointLight,
-            @JvmField
-            val cellRangeStart: Int
-        )
-
-        var cellRangeIndex = 0
-        val shadows = mutableListOf<BlockFace>()
-        var hasShadows = false
-        val blockShadows = mutableMapOf<IVec3<Int>, Int?>()
-        val sectionGrid = Array(256) { mutableListOf<SectionData>() }
-        val sectionCache = ChunkSectionCache(Minecraft.getInstance().level!!)
-        val sectionMeshes = hashMapOf<SectionPos, SectionMeshCache?>()
-        val grids = mutableListOf<Array<Int?>>()
-        var numLightInstances = 0
-        var numLights = 0
-
-        fun getGridIndex(voxel: IVec3<Int>, box: IRect3<Int>): Int {
-            return ((voxel.x - box.min.x) * (box.max.y - box.min.y + 1) + (voxel.y - box.min.y)) * (box.max.z - box.min.z + 1) + (voxel.z - box.min.z)
-        }
-
-        fun getBlockShadow(pos: BlockPos): Int? {
-            return blockShadows.computeIfAbsent(pos.immutable()) {
-                val sectionPos = SectionPos.of(
-                    SectionPos.blockToSectionCoord(pos.x),
-                    SectionPos.blockToSectionCoord(pos.y),
-                    SectionPos.blockToSectionCoord(pos.z)
-                )
-                sectionMeshes.computeIfAbsent(sectionPos) { key -> synchronized(manager.sectionLock) { manager.sectionMeshCaches[key] } }?.let { section ->
-                    section.get(pos.x, pos.y, pos.z)?.let { block ->
-                        val start = shadows.size
-                        block.collect { shadows.add(it.copyWithOffset(pos.x, pos.y, pos.z)) }
-                        val end = shadows.size
-                        val len = end - start
-
-                        if (start and 524287.inv() != 0) {
-                            throw IndexOutOfBoundsException(start)
-                        }
-
-                        if (len and 4095.inv() != 0) {
-                            throw IndexOutOfBoundsException(len)
-                        }
-
-                        (start shl 13) or (len shl 1)
-                    }
-                }
-            }
-        }
-
-        for (light in lights) {
-            var added = false
-            val cellRangeStart by lazy {
-                val grid = arrayOfNulls<Int>(light.shadowBox.areaInclusive)
-
-                sectionCache[light.shadowBox].forEach { (pos, state) ->
-                    val cell = if (pos == light.pos) {
-                        getBlockShadow(pos)
-                    } else {
-                        if (state.isAir) {
-                            null
-                        } else if (state.isSolidRender) {
-                            1
-                        } else {
-                            getBlockShadow(pos)
-                        }
-                    }
-                    cell?.let {
-                        grid[getGridIndex(pos, light.shadowBox)] = it
-                        hasShadows = true
-                    }
-                }
-
-                val start = cellRangeIndex
-
-                grids.add(grid)
-                cellRangeIndex += grid.size
-
-                start
-            }
-
-            for (pos in light.sections) {
-                if ((pos.x shr 3) == region.x && (pos.y shr 2) == region.y && (pos.z shr 3) == region.z) {
-                    sectionGrid[LocalSectionIndex.pack(pos.x, pos.y, pos.z)].add(SectionData(light, cellRangeStart))
-                    numLightInstances++
-
-                    if (!added) {
-                        added = true
-                        numLights++
-                    }
-                }
-            }
-        }
-
-        if (numLightInstances == 0) {
-            output.`vibrancy$clear`()
-            return
-        }
-
-        if (numLightInstances > Short.MAX_VALUE) {
-            Vibrancy.LOGGER.warn("Unreasonably high amount of lights in a region ($numLightInstances instances, $numLights lights), skipping.")
-            output.`vibrancy$clear`()
-            return
-        }
-
-        if (!hasShadows) {
-            Vibrancy.LOGGER.warn("No shadows, yet $numLights lights? Skipping ${region.x} ${region.y} ${region.z}")
-            output.`vibrancy$clear`()
-            return
-        }
-
-        val bufferUsage = GpuBufferUsage.SHADER_STORAGE
-
-        val lightBuffer = GpuObjects.buffer(
-            { "Vibrancy Light Buffer (${region.x}, ${region.y}, ${region.z})" },
-            16L + 1024L + numLightInstances * 32L,
-            bufferUsage
-        ) { output ->
-            output.writeInt(region.originX)
-            output.writeInt(region.originY)
-            output.writeInt(region.originZ)
-
-            var index = 0
-
-            for (cell in sectionGrid) {
-                val index1 = index
-                index += cell.size
-                output.write2x2(index1, index)
-            }
-
-            output.skip(4)
-
-            for (cell in sectionGrid) {
-                for (light in cell) {
-                    output.writeFloat(light.light.absolutePos.x)
-                    output.writeFloat(light.light.absolutePos.y)
-                    output.writeFloat(light.light.absolutePos.z)
-
-                    output.write4x1(
-                        0,
-                        (light.light.color.z * 255).toInt(),
-                        (light.light.color.y * 255).toInt(),
-                        (light.light.color.x * 255).toInt()
-                    )
-
-                    output.writeFloat(light.light.radius)
-                    output.writeInt(light.light.shadowRadius)
-                    output.writeInt(light.cellRangeStart)
-
-                    output.writeFloat(light.light.brightness)
-                }
-            }
-        }
-
-        val shadowBuffer = if (shadows.isEmpty()) null else GpuObjects.buffer(
-            { "Vibrancy Shadow Buffer (${region.x}, ${region.y}, ${region.z})" },
-            shadows.size * 32L * 4L,
-            bufferUsage
-        ) { output ->
-            for (face in shadows) {
-                face.apply { vertex ->
-                    output.writeFloat(vertex.x)
-                    output.writeFloat(vertex.y)
-                    output.writeFloat(vertex.z)
-
-                    output.writeInt(vertex.color)
-                    output.write2x2(
-                        (vertex.v * 65535).toInt(),
-                        (vertex.u * 65535).toInt()
-                    )
-
-                    output.skip(12)
-                }
-            }
-        }
-
-        val gridBuffer = GpuObjects.buffer(
-            { "Vibrancy Shadow Grid Buffer (${region.x}, ${region.y}, ${region.z})" },
-            cellRangeIndex * 4L,
-            bufferUsage
-        ) { output ->
-            for (grid in grids) {
-                for (cell in grid) {
-                    output.writeInt(cell ?: 0) // must write 0, cannot skip bytes here
-                }
-            }
-        }
-
-        //Vibrancy.LOGGER.info("Uploading ${lightBuffer.size} light buffer, ${shadowBuffer?.size} shadow buffer, ${gridBuffer.size} grid buffer, total of ${lightBuffer.size + (shadowBuffer?.size ?: 0) + gridBuffer.size} bytes. $numLights lights, $numLightInstances light instances, ${shadows.size} shadows, meaning ${shadows.size / numLights} shadows per light, ${shadows.size / numLightInstances} shadows per light instance, max grid cell index $cellRangeIndex")
-
-        output.`vibrancy$lightBuffer` = lightBuffer
-        output.`vibrancy$shadowBuffer` = shadowBuffer
-        output.`vibrancy$gridBuffer` = gridBuffer
-    }
 
     @Suppress("DEPRECATION")
     override fun render(
@@ -265,32 +57,18 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLightStorag
                     val storage = renderList.region.getStorage(context.terrainType)
 
                     if (storage != null) {
-                        val ext = renderList.region as RenderRegionExtension
+                        val regionData = lights.getOrPackRegion(renderList.region, manager)
 
-                        if (lights.dirty || manager.isRenderRegionDirty(renderList.region) || !ext.`vibrancy$initialized`) {
-                            pack(
-                                renderList.region,
-                                lights.map.values,
-                                manager,
-                                ext
-                            )
-                            ext.`vibrancy$initialized` = true
-                        }
+                        if (regionData != null) {
+                            pass.setUniform("u_Lights", regionData.lightBuffer)
 
-                        val lightBuffer = ext.`vibrancy$lightBuffer`
-                        val shadowBuffer = ext.`vibrancy$shadowBuffer`
-                        val gridBuffer = ext.`vibrancy$gridBuffer`
-
-                        if (lightBuffer != null && gridBuffer != null) {
-                            pass.setUniform("u_Lights", lightBuffer)
-
-                            if (shadowBuffer == null) {
+                            if (regionData.shadowBuffer == null) {
                                 pass.setUniform("u_Shadows", emptyShadowBuffer)
                             } else {
-                                pass.setUniform("u_Shadows", shadowBuffer)
+                                pass.setUniform("u_Shadows", regionData.shadowBuffer)
                             }
 
-                            pass.setUniform("u_Grids", gridBuffer)
+                            pass.setUniform("u_Grids", regionData.gridBuffer)
                             draw.run()
                         }
                     }

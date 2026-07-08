@@ -259,7 +259,7 @@ open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityS
         dispatcher.vertexBuffer.upload()
 
         for ((draw, renderType, blockMesh) in unbakedDraws) {
-            @Suppress("KotlinConstantConditions")
+            @Suppress("CAST_NEVER_SUCCEEDS")
             dispatcher.vertexBuffer.getExecuteInfo(draw)?.let { info ->
                 (renderType.textures.find { it.name == "Sampler0" } ?: renderType.textures.firstOrNull())?.let { texture ->
                     (texture as PreparedRenderTypeTextureExtension).`vibrancy$identifier`?.let { textureId ->
