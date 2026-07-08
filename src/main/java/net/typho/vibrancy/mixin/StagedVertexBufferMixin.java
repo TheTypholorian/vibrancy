@@ -64,9 +64,9 @@ public class StagedVertexBufferMixin {
             )
     )
     private BufferBuilder getVertexBuilder(
-            ByteBufferBuilder byteBufferBuilder,
+            ByteBufferBuilder buffer,
             PrimitiveTopology primitiveTopology,
-            VertexFormat vertexFormat,
+            VertexFormat format,
             Operation<BufferBuilder> original,
             @Local(argsOnly = true) StagedVertexBuffer.Draw draw,
             @Share("insufficientComponents") LocalBooleanRef insufficientComponents
@@ -86,9 +86,9 @@ public class StagedVertexBufferMixin {
 
             insufficientComponents.set(false);
 
-            return original.call(byteBufferBuilder, primitiveTopology, Vibrancy.entityShadowFormat);
+            return original.call(buffer, primitiveTopology, Vibrancy.entityShadowFormat);
         } else {
-            return original.call(byteBufferBuilder, primitiveTopology, vertexFormat);
+            return original.call(buffer, primitiveTopology, format);
         }
     }
 

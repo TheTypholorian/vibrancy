@@ -75,6 +75,8 @@ open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityS
         )
     }
     @JvmField
+    protected val submits = mutableListOf<Submit>()
+    @JvmField
     protected val draws = mutableListOf<Draw>()
 
     data class BlockMesh(
@@ -118,12 +120,20 @@ open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityS
         return textureView
     }
 
+    override fun beginPrepare(context: FeatureFrameContext) {
+        submits.clear()
+        draws.clear()
+    }
+
     override fun prepareGroup(
         context: FeatureFrameContext,
         submits: List<Submit>,
         strictlyOrdered: Boolean
     ) {
-        draws.clear()
+        this.submits.addAll(submits)
+    }
+
+    override fun finishPrepare(context: FeatureFrameContext) {
         val blockMeshes = mutableListOf<BlockMesh>()
 
         val sections = mutableMapOf<SectionPos, SectionMeshCache?>()
@@ -276,11 +286,11 @@ open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityS
         submits: List<Submit>,
         strictlyOrdered: Boolean
     ) {
-        val target = Minecraft.getInstance().gameRenderer.mainRenderTarget()
-        val texture = getTexture(target.width, target.height)
-        val configBuffer = VibrancyConfig.loadConfigBuffer()
-
         if (draws.isNotEmpty()) {
+            val target = Minecraft.getInstance().gameRenderer.mainRenderTarget()
+            val texture = getTexture(target.width, target.height)
+            val configBuffer = VibrancyConfig.loadConfigBuffer()
+
             RenderSystem.getDevice().createCommandEncoder().createRenderPass(
                 { "Vibrancy Entity Shadows" },
                 texture,
@@ -336,6 +346,17 @@ open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityS
 
     override fun finishExecute(context: FeatureFrameContext) {
         dispatcher.vertexBuffer.endFrame()
+    }
+
+    override fun close() {
+        textureView?.close()
+        textureView = null
+        texture?.recycle()
+        texture = null
+        vertexBuffer?.recycle()
+        vertexBuffer = null
+        shadowRangeBuffer.recycle()
+        dispatcher.close()
     }
 
     open class Dispatcher(
