@@ -6,12 +6,15 @@ import dev.ryanhcode.sable.companion.SableCompanion
 import net.caffeinemc.mods.sodium.client.world.LevelRendererExtension
 *///? }
 
+import net.caffeinemc.mods.sodium.client.render.chunk.region.RenderRegion
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
 import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
 import net.minecraft.resources.Identifier
+import net.minecraft.util.profiling.Profiler
+import net.minecraft.util.profiling.ProfilerFiller
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkAccess
@@ -32,10 +35,6 @@ import org.lwjgl.system.NativeResource
 import java.util.*
 import java.util.function.Consumer
 
-//? if >=1.21.5 {
-
-//? }
-
 open class LightManager {
     @JvmField
     val sectionLock = Any()
@@ -50,7 +49,7 @@ open class LightManager {
     @JvmField
     var skyLight: Pair<SkyLightType<*, *>, SkyLightStorage<*>>? = null
     @JvmField
-    protected val debugInfo = HashMap<Identifier?, HashMap<String, Int>>()
+    protected val debugInfo = HashMap<Identifier?, HashMap<String, Int>>() // TODO improve debug info
     @JvmField
     val sectionMeshCaches = hashMapOf<SectionPos, SectionMeshCache>()
 
@@ -80,6 +79,8 @@ open class LightManager {
             blockLights.computeIfAbsent(type) { type -> type.createStorage(this) }
         }
     }
+
+    fun isRenderRegionDirty(region: RenderRegion) = dirtySections.any { section -> (section.first.x shr 3) == region.x && (section.first.y shr 2) == region.y && (section.first.z shr 3) == region.z }
 
     @Suppress("UNCHECKED_CAST")
     protected fun <I : BlockLightInfo> addBlockLight(
@@ -189,14 +190,21 @@ open class LightManager {
         blockLights.values.forEach { it.endFrame(this) }
     }
 
-    /*
     @Suppress("UNCHECKED_CAST")
-    protected fun <S : BlockLightStorage<*>> castAndRender(data: RenderEventData, result: GlFramebuffer, temp: GlFramebuffer, type: BlockLightType<*, S>, storage: BlockLightStorage<*>, profiler: ProfilerFiller) {
-        profiler.push(BlockLightRegistry.registry!!.getKey(type).location.toString())
-        type.render(this, result, temp, data, storage as S, getDebugOutput(BlockLightRegistry.registry!!.getKey(type)), profiler)
+    protected fun <S : BlockLightStorage<*>> castAndRender(context: TerrainOverlayContext, type: BlockLightType<*, S>, storage: BlockLightStorage<*>, profiler: ProfilerFiller) {
+        profiler.push(BlockLightRegistry.registry.getKey(type).toString())
+        type.render(this, context, storage as S, getDebugOutput(BlockLightRegistry.registry.getKey(type)), profiler)
         profiler.pop()
     }
 
+    @JvmOverloads
+    fun render(context: TerrainOverlayContext, profiler: ProfilerFiller = Profiler.get()) {
+        for (entry in blockLights) {
+            castAndRender(context, entry.key, entry.value, profiler)
+        }
+    }
+
+    /*
     @Suppress("UNCHECKED_CAST")
     protected fun <S : SkyLightStorage<*>> castAndRender(data: RenderEventData, result: GlFramebuffer, temp: GlFramebuffer, type: SkyLightType<*, S>, storage: SkyLightStorage<*>, profiler: ProfilerFiller) {
         profiler.push(SkyLightRegistry.registry!!.getKey(type).location.toString())

@@ -24,7 +24,7 @@ import net.typho.vibrancy.mixin.TextureAtlasAccessor
 import net.typho.vibrancy.mixin.TextureAtlasSpriteAccessor
 import java.util.concurrent.CompletableFuture
 
-object ExtraAtlases : NamedResource, SingleStepNeoReloadListener {
+object TextureLayers : NamedResource, SingleStepNeoReloadListener {
     @JvmField
     val materialIdConverter = FileToIdConverter("rtx/material", ".png")
     @JvmField

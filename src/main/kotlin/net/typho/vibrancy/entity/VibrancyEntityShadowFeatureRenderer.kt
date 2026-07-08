@@ -38,7 +38,7 @@ import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.VibrancyConfig
 import net.typho.vibrancy.mixin.FeatureRenderDispatcherAccessor
 import net.typho.vibrancy.mixin.LevelRendererAccessor
-import net.typho.vibrancy.util.ExtraAtlases
+import net.typho.vibrancy.util.TextureLayers
 import net.typho.vibrancy.util.SectionMeshCache
 import org.joml.Vector4f
 import java.util.*
@@ -270,7 +270,7 @@ open class VibrancyEntityShadowFeatureRenderer : FeatureRenderer<VibrancyEntityS
                                 renderType,
                                 texture,
                                 transmissionTextures.computeIfAbsent(textureId) { key ->
-                                    ExtraAtlases.getTransmission(key)?.textureView
+                                    TextureLayers.getTransmission(key)?.textureView
                                 }
                             )
                         )
