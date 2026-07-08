@@ -7,6 +7,7 @@ import net.caffeinemc.mods.sodium.client.world.LevelRendererExtension
 *///? }
 
 import net.caffeinemc.mods.sodium.client.render.chunk.region.RenderRegion
+import net.caffeinemc.mods.sodium.client.world.LevelRendererExtension
 import net.minecraft.ChatFormatting
 import net.minecraft.client.Minecraft
 import net.minecraft.client.multiplayer.ClientLevel
@@ -25,6 +26,9 @@ import net.typho.vibrancy.block.BlockLightInfoLoader
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.block.BlockLightStorage
 import net.typho.vibrancy.block.BlockLightType
+import net.typho.vibrancy.mixin.LevelRendererAccessor
+import net.typho.vibrancy.mixin.SodiumWorldRendererAccessor
+import net.typho.vibrancy.mixin.sodium.RenderSectionManagerAccessor
 import net.typho.vibrancy.sky.SkyLightInfo
 import net.typho.vibrancy.sky.SkyLightInfoLoader
 import net.typho.vibrancy.sky.SkyLightRegistry
@@ -39,9 +43,11 @@ open class LightManager {
     @JvmField
     val sectionLock = Any()
     @JvmField
-    var nextDirtySections: MutableList<Pair<SectionPos, IRect3<Int>>> = LinkedList()
+    val nextDirtySections = mutableListOf<SectionPos>()
     @JvmField
-    var dirtySections: MutableList<Pair<SectionPos, IRect3<Int>>> = LinkedList()
+    val dirtySections = mutableListOf<SectionPos>()
+    @JvmField
+    var dirtyVisibleSections = listOf<SectionPos>()
     @JvmField
     var dirtyBlocks: MutableMap<BlockPos, Pair<BlockState, BlockState>> = hashMapOf()
     @JvmField
@@ -80,7 +86,7 @@ open class LightManager {
         }
     }
 
-    fun isRenderRegionDirty(region: RenderRegion) = dirtySections.any { section -> (section.first.x shr 3) == region.x && (section.first.y shr 2) == region.y && (section.first.z shr 3) == region.z }
+    fun isRenderRegionDirty(region: RenderRegion) = dirtyVisibleSections.any { section -> (section.x shr 3) == region.x && (section.y shr 2) == region.y && (section.z shr 3) == region.z }
 
     @Suppress("UNCHECKED_CAST")
     protected fun <I : BlockLightInfo> addBlockLight(
@@ -178,13 +184,19 @@ open class LightManager {
         debugInfo.clear()
 
         synchronized(sectionLock) {
-            dirtySections = nextDirtySections
-            nextDirtySections = LinkedList()
+            dirtySections.addAll(nextDirtySections)
+            nextDirtySections.clear()
+            val renderer = (Minecraft.getInstance().levelRenderer as LevelRendererExtension).`sodium$getWorldRenderer`()
+            val sectionManager = (renderer as SodiumWorldRendererAccessor).`vibrancy$getRenderSectionManager`()
+            val tree = ((sectionManager as RenderSectionManagerAccessor).`vibrancy$getRenderTree`() ?: return@synchronized).tree
+            dirtyVisibleSections = dirtySections.filter {
+                tree.isSectionPresent(it.x, it.y, it.z)
+            }
         }
     }
 
     fun postRender() {
-        dirtySections.clear()
+        dirtySections.removeAll(dirtyVisibleSections)
         dirtyBlocks.clear()
 
         blockLights.values.forEach { it.endFrame(this) }

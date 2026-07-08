@@ -78,7 +78,7 @@ public class ChunkBuilderMeshingTaskMixin {
                     SectionMeshCache.getPool().add(old);
                 }
 
-                Vibrancy.lightManager.nextDirtySections.add(new Pair<>(cache.pos, IRect3.ofUnchecked(cache.pos.minBlockX(), cache.pos.minBlockY(), cache.pos.minBlockZ(), cache.pos.maxBlockX(), cache.pos.maxBlockY(), cache.pos.maxBlockZ())));
+                Vibrancy.lightManager.nextDirtySections.add(cache.pos);
             }
         }
 
