@@ -7,6 +7,18 @@ in vec2 v_FragDistance;
 in float v_FadeFactor;
 #endif
 
+#ifdef VULKAN
+layout(push_constant) uniform PC {
+    vec3 u_RegionOffset;
+    int u_CurrentTime;
+    uint u_RegionID;
+};
+#else
+uniform vec3 u_RegionOffset;
+uniform int u_CurrentTime;
+uniform uint u_RegionID;
+#endif
+
 vec3 sampleCubeLight(vec3 lightPos, vec3 fragPos, float startRadius, float endRadius, vec3 lightColor) {
     float dist = max(abs(lightPos.x - fragPos.x), max(abs(lightPos.y - fragPos.y), abs(lightPos.z - fragPos.z)));
     return clamp((endRadius - dist) / (endRadius - startRadius), 0, 1) * lightColor;

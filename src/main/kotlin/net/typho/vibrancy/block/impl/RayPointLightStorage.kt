@@ -22,6 +22,7 @@ import net.typho.vibrancy.util.BlockFace
 import net.typho.vibrancy.util.GpuTask
 import net.typho.vibrancy.util.SectionMeshCache
 import net.typho.vibrancy.util.VibrancyThreadPool
+import kotlin.math.abs
 
 class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPointLight>(RayPointLightType) {
     class RegionData(
@@ -40,7 +41,7 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
     }
 
     companion object {
-        const val NUM_CHEESE_WEDGES = 48
+        const val NUM_CHEESE_WEDGES = 24
 
         @JvmStatic
         fun getWedgeIndex(lightPos: IVec3<Float>, fragPos: IVec3<Float>): Int {
@@ -59,8 +60,17 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
                 index = index or 4
             }
 
-            index *= 6
+            index *= 3
 
+            index += if (delta.x >= delta.y && delta.x >= delta.z) {
+                0
+            } else if (delta.y >= delta.z) {
+                1
+            } else {
+                2
+            }
+
+            /*
             index += if (delta.x >= delta.y) {
                 if (delta.y >= delta.z) {
                     0
@@ -78,6 +88,59 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
                     5
                 }
             }
+             */
+
+            return index
+        }
+
+        @JvmStatic
+        fun getWedgeIndex(lightPos: IVec3<Float>, x: Int, y: Int, z: Int): Int {
+            val deltaX = abs(lightPos.x - x)
+            val deltaY = abs(lightPos.y - y)
+            val deltaZ = abs(lightPos.z - z)
+            var index = 0
+
+            if (x >= lightPos.x) {
+                index = index or 1
+            }
+
+            if (y >= lightPos.y) {
+                index = index or 2
+            }
+
+            if (z >= lightPos.z) {
+                index = index or 4
+            }
+
+            index *= 3
+
+            index += if (deltaX >= deltaY && deltaX >= deltaZ) {
+                0
+            } else if (deltaY >= deltaZ) {
+                1
+            } else {
+                2
+            }
+
+            /*
+            index += if (delta.x >= delta.y) {
+                if (delta.y >= delta.z) {
+                    0
+                } else if (delta.x >= delta.z) {
+                    1
+                } else {
+                    2
+                }
+            } else {
+                if (delta.y >= delta.z) {
+                    3
+                } else if (delta.x >= delta.z) {
+                    4
+                } else {
+                    5
+                }
+            }
+             */
 
             return index
         }
@@ -261,7 +324,26 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
                                         }
                                     }
                                     cell?.let {
-                                        wedges[getWedgeIndex(light.absolutePos, pos.toFloat() + 0.5f)].add(it)
+                                        val arr = BooleanArray(NUM_CHEESE_WEDGES)
+
+                                        fun test(x: Int, y: Int, z: Int) {
+                                            val index = getWedgeIndex(light.absolutePos, x, y, z)
+
+                                            if (!arr[index]) {
+                                                arr[index] = true
+                                                wedges[index].add(it)
+                                            }
+                                        }
+
+                                        test(pos.x    , pos.y    , pos.z    )
+                                        test(pos.x    , pos.y    , pos.z + 1)
+                                        test(pos.x    , pos.y + 1, pos.z    )
+                                        test(pos.x    , pos.y + 1, pos.z + 1)
+                                        test(pos.x + 1, pos.y    , pos.z    )
+                                        test(pos.x + 1, pos.y    , pos.z + 1)
+                                        test(pos.x + 1, pos.y + 1, pos.z    )
+                                        test(pos.x + 1, pos.y + 1, pos.z + 1)
+
                                         hasShadows = true
                                     }
                                 }
@@ -316,7 +398,7 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
 
                     val lightBuffer = GpuObjects.buffer(
                         { "Vibrancy Light Buffer $regionPos" },
-                        16L + 1024L + numLightInstances * 256L,
+                        16L + 1024L + numLightInstances * 128L,
                         bufferUsage
                     ) { output ->
                         output.writeInt(region.originX)
@@ -356,7 +438,7 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
                                     output.writeInt(i)
                                 }
 
-                                output.skip(36)
+                                output.skip(4)
                             }
                         }
                     }

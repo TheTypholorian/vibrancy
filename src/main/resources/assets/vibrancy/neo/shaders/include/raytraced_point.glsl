@@ -1,6 +1,6 @@
 #include "vibrancy:rays"
 
-#define NUM_CHEESE_WEDGES 48
+#define NUM_CHEESE_WEDGES 24
 
 struct RaytracedPointLight {
     vec3 pos;

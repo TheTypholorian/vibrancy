@@ -42,8 +42,17 @@ uint getWedgeIndex(RaytracedPointLight light, vec3 fragPos) {
         index |= 4u;
     }
 
-    index *= 6;
+    index *= 3;
 
+    if (delta.x >= delta.y && delta.x >= delta.z) {
+        index += 0;
+    } else if (delta.y >= delta.z) {
+        index += 1;
+    } else {
+        index += 2;
+    }
+
+    /*
     if (delta.x >= delta.y) {
         if (delta.y >= delta.z) {
             index += 0;
@@ -61,6 +70,7 @@ uint getWedgeIndex(RaytracedPointLight light, vec3 fragPos) {
             index += 5;
         }
     }
+    */
 
     return index;
 }
