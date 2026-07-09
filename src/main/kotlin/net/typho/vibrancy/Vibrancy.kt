@@ -74,7 +74,7 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
             .uniform("u_VibrancyConfig")
             .storageBuffer("u_Lights")
             .storageBuffer("u_Shadows")
-            .storageBuffer("u_Grids")
+            .storageBuffer("u_Cheese")
             .texelBuffer("u_SectionTimeInfo", GpuDataType.sint32, 1),
         RenderType.SMALL_BUFFER_SIZE,
         false,

@@ -68,7 +68,7 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLightStorag
                                 pass.setUniform("u_Shadows", regionData.shadowBuffer)
                             }
 
-                            pass.setUniform("u_Grids", regionData.gridBuffer)
+                            pass.setUniform("u_Cheese", regionData.cheeseBuffer)
                             draw.run()
                         }
                     }

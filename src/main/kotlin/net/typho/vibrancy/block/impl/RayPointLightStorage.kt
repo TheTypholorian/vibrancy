@@ -30,12 +30,56 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
         @JvmField
         val shadowBuffer: GpuBuffer?,
         @JvmField
-        val gridBuffer: GpuBuffer
+        val cheeseBuffer: GpuBuffer
     ) : Recyclable {
         override fun recycle() {
             lightBuffer.recycle()
             shadowBuffer?.recycle()
-            gridBuffer.recycle()
+            cheeseBuffer.recycle()
+        }
+    }
+
+    companion object {
+        const val NUM_CHEESE_WEDGES = 48
+
+        @JvmStatic
+        fun getWedgeIndex(lightPos: IVec3<Float>, fragPos: IVec3<Float>): Int {
+            val delta = (lightPos - fragPos).abs
+            var index = 0
+
+            if (fragPos.x >= lightPos.x) {
+                index = index or 1
+            }
+
+            if (fragPos.y >= lightPos.y) {
+                index = index or 2
+            }
+
+            if (fragPos.z >= lightPos.z) {
+                index = index or 4
+            }
+
+            index *= 6
+
+            index += if (delta.x >= delta.y) {
+                if (delta.y >= delta.z) {
+                    0
+                } else if (delta.x >= delta.z) {
+                    1
+                } else {
+                    2
+                }
+            } else {
+                if (delta.y >= delta.z) {
+                    3
+                } else if (delta.x >= delta.z) {
+                    4
+                } else {
+                    5
+                }
+            }
+
+            return index
         }
     }
 
@@ -128,20 +172,20 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
         if (dirty || manager.isRenderRegionOrNeighborsDirty(region) || (!regions.keys.contains(regionPos) && !tasks.keys.contains(regionPos))) {
             val lights = map.values.toList()
             val oldTask = tasks.put(regionPos, VibrancyThreadPool.submitClean(0.0) { isCancelled ->
-                class SectionData(
+                class LightInstance(
                     @JvmField
                     val light: RayPointLight,
                     @JvmField
-                    val cellRangeStart: Int
+                    val cheese: IntArray
                 )
 
-                var cellRangeIndex = 0
+                var cheeseIndex = 0
                 val shadows = mutableListOf<BlockFace>()
                 var hasShadows = false
                 val blockShadows = mutableMapOf<IVec3<Int>, Int?>()
-                val sectionGrid = Array(256) { mutableListOf<SectionData>() }
+                val sectionGrid = Array(256) { mutableListOf<LightInstance>() }
                 val sectionMeshes = hashMapOf<SectionPos, SectionMeshCache?>()
-                val grids = mutableListOf<Array<Int?>>()
+                val cheese = mutableListOf<List<Int?>>()
                 var numLightInstances = 0
                 var numLights = 0
 
@@ -178,8 +222,9 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
                     }
 
                     var added = false
-                    val cellRangeStart by lazy {
-                        val grid = arrayOfNulls<Int>(light.shadowBox.areaInclusive)
+                    val wedges by lazy {
+                        val wedges = Array<MutableList<Int>>(NUM_CHEESE_WEDGES) { mutableListOf() }
+                        //val grid = arrayOfNulls<Int>(light.shadowBox.areaInclusive)
 
                         SectionPos.betweenClosedStream(
                             SectionPos.blockToSectionCoord(light.shadowBox.min.x),
@@ -216,24 +261,29 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
                                         }
                                     }
                                     cell?.let {
-                                        grid[getGridIndex(pos, light.shadowBox)] = it
+                                        wedges[getWedgeIndex(light.absolutePos, pos.toFloat() + 0.5f)].add(it)
                                         hasShadows = true
                                     }
                                 }
                             }
                         }
 
-                        val start = cellRangeIndex
+                        val wedgeRanges = IntArray(NUM_CHEESE_WEDGES)
 
-                        grids.add(grid)
-                        cellRangeIndex += grid.size
+                        wedges.forEachIndexed { index, wedge ->
+                            val cheeseStart = cheeseIndex
+                            cheese.add(wedge)
+                            cheeseIndex += wedge.size
+                            val cheeseLength = cheeseIndex - cheeseStart
+                            wedgeRanges[index] = (cheeseStart shl 18) or cheeseLength
+                        }
 
-                        start
+                        wedgeRanges
                     }
 
                     for (pos in light.sections) {
                         if ((pos.x shr 3) == region.x && (pos.y shr 2) == region.y && (pos.z shr 3) == region.z) {
-                            sectionGrid[LocalSectionIndex.pack(pos.x, pos.y, pos.z)].add(SectionData(light, cellRangeStart))
+                            sectionGrid[LocalSectionIndex.pack(pos.x, pos.y, pos.z)].add(LightInstance(light, wedges))
                             numLightInstances++
 
                             if (!added) {
@@ -262,12 +312,11 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
                 }
 
                 {
-
                     val bufferUsage = GpuBufferUsage.SHADER_STORAGE
 
                     val lightBuffer = GpuObjects.buffer(
                         { "Vibrancy Light Buffer $regionPos" },
-                        16L + 1024L + numLightInstances * 32L,
+                        16L + 1024L + numLightInstances * 256L,
                         bufferUsage
                     ) { output ->
                         output.writeInt(region.originX)
@@ -299,9 +348,15 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
 
                                 output.writeFloat(light.light.radius)
                                 output.writeInt(light.light.shadowRadius)
-                                output.writeInt(light.cellRangeStart)
+                                //output.writeInt(light.cellRangeStart)
 
                                 output.writeFloat(light.light.brightness)
+
+                                for (i in light.cheese) {
+                                    output.writeInt(i)
+                                }
+
+                                output.skip(36)
                             }
                         }
                     }
@@ -328,21 +383,21 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
                         }
                     }
 
-                    val gridBuffer = GpuObjects.buffer(
-                        { "Vibrancy Shadow Grid Buffer $regionPos" },
-                        cellRangeIndex * 4L,
+                    val cheeseBuffer = GpuObjects.buffer(
+                        { "Vibrancy Cheese Buffer $regionPos" },
+                        cheeseIndex * 4L,
                         bufferUsage
                     ) { output ->
-                        for (grid in grids) {
+                        for (grid in cheese) {
                             for (cell in grid) {
                                 output.writeInt(cell ?: 0) // must write 0, cannot skip bytes here
                             }
                         }
                     }
 
-                    Vibrancy.LOGGER.info("Uploading $regionPos: ${lightBuffer.size} light buffer, ${shadowBuffer?.size} shadow buffer, ${gridBuffer.size} grid buffer, total of ${lightBuffer.size + (shadowBuffer?.size ?: 0) + gridBuffer.size} bytes. $numLights lights, $numLightInstances light instances, ${shadows.size} shadows, meaning ${shadows.size / numLights} shadows per light, ${shadows.size / numLightInstances} shadows per light instance, max grid cell index $cellRangeIndex, num non-solid blocks ${blockShadows.size}, num sections ${sectionMeshes.size}")
+                    Vibrancy.LOGGER.info("Uploading $regionPos: ${lightBuffer.size} light buffer, ${shadowBuffer?.size} shadow buffer, ${cheeseBuffer.size} grid buffer, total of ${lightBuffer.size + (shadowBuffer?.size ?: 0) + cheeseBuffer.size} bytes. $numLights lights, $numLightInstances light instances, ${shadows.size} shadows, meaning ${shadows.size / numLights} shadows per light, ${shadows.size / numLightInstances} shadows per light instance, max grid cell index $cheeseIndex, num non-solid blocks ${blockShadows.size}, num sections ${sectionMeshes.size}")
 
-                    RegionData(lightBuffer, shadowBuffer, gridBuffer)
+                    RegionData(lightBuffer, shadowBuffer, cheeseBuffer)
                 }
             })
             oldTask?.cancel()

@@ -1,12 +1,15 @@
 #include "vibrancy:rays"
 
+#define NUM_CHEESE_WEDGES 48
+
 struct RaytracedPointLight {
     vec3 pos;
     uint color;
     float radius;
     uint shadowRadius;
-    uint cellRangeStart;
+    //uint cellRangeStart;
     float brightness;
+    uint wedges[NUM_CHEESE_WEDGES];
 };
 
 layout(std430, binding = 0) readonly buffer u_Lights {
@@ -17,8 +20,8 @@ layout(std430, binding = 0) readonly buffer u_Lights {
 layout(std430, binding = 1) readonly buffer u_Shadows {
     ColoredQuad shadows[];
 };
-layout(std430, binding = 2) readonly buffer u_Grids {
-    uint shadowGrid[];
+layout(std430, binding = 2) readonly buffer u_Cheese {
+    uint cheese[];
 };
 
 ivec3 getShadowGridIncrement(RaytracedPointLight light, DDAState dda) {
