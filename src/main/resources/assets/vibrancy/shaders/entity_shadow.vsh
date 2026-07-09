@@ -5,7 +5,7 @@
 
 in vec3 Position;
 in vec2 UV0;
-in ivec2 UV1;
+in ivec2 UV2;
 
 out vec3 vertexPosition;
 out vec2 texCoord0;
@@ -16,5 +16,5 @@ void main() {
 
     vertexPosition = Position;
     texCoord0 = UV0;
-    vertexLight = float(max(UV1.x, UV1.y)) / 240.0;
+    vertexLight = float(max(UV2.x, UV2.y)) / 240.0;
 }
