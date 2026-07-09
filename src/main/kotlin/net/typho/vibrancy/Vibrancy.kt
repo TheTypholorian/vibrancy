@@ -95,7 +95,7 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
         id("entity_shadow"),
         DefaultVertexFormat.POSITION_TEX_LIGHTMAP_COLOR,
         GpuDrawSettings.Builder()
-            .blend(GpuBlendFunction.TRANSLUCENT)
+            .blend(GpuBlendFunction.ADDITIVE)
             .shader(id("entity_shadow"))
             .cull()
             .depth(GpuAlphaFunction.gequal)
@@ -174,7 +174,7 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
         bus.register(BlockChangedEvent { level, pos, old, new ->
             if (VibrancyConfig.modEnabled && level.isClientSide) {
                 GpuQueue.runOrQueue {
-                    lightManager.blockChanged(level, pos, old, new)
+                    lightManager.blockChanged(level, pos.immutable(), old, new)
                 }
             }
         })
