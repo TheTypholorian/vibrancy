@@ -26,7 +26,6 @@ import net.typho.vibrancy.block.BlockLightInfoLoader
 import net.typho.vibrancy.block.BlockLightRegistry
 import net.typho.vibrancy.block.BlockLightStorage
 import net.typho.vibrancy.block.BlockLightType
-import net.typho.vibrancy.mixin.LevelRendererAccessor
 import net.typho.vibrancy.mixin.SodiumWorldRendererAccessor
 import net.typho.vibrancy.mixin.sodium.RenderSectionManagerAccessor
 import net.typho.vibrancy.sky.SkyLightInfo
@@ -87,6 +86,11 @@ open class LightManager {
     }
 
     fun isRenderRegionDirty(region: RenderRegion) = dirtyVisibleSections.any { section -> (section.x shr 3) == region.x && (section.y shr 2) == region.y && (section.z shr 3) == region.z }
+
+    fun isRenderRegionOrNeighborsDirty(region: RenderRegion): Boolean {
+        val box = IRect3.unchecked(region.chunkX - 1, region.chunkY - 1, region.chunkZ - 1, region.chunkX + 9, region.chunkY + 5, region.chunkZ + 9)
+        return dirtyVisibleSections.any { box.contains(it) }
+    }
 
     @Suppress("UNCHECKED_CAST")
     protected fun <I : BlockLightInfo> addBlockLight(

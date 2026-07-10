@@ -3,6 +3,7 @@ package net.typho.vibrancy.mixin.sodium;
 import com.llamalad7.mixinextras.sugar.Local;
 import com.mojang.blaze3d.IndexType;
 import com.mojang.blaze3d.buffers.GpuBufferImpl;
+import com.mojang.blaze3d.buffers.GpuBufferSlice;
 import com.mojang.blaze3d.systems.CommandEncoder;
 import com.mojang.blaze3d.systems.RenderPass;
 import com.mojang.blaze3d.textures.GpuSamplerImpl;
@@ -65,7 +66,7 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
             FogParameters parameters,
             boolean indexedRenderingEnabled,
             GpuSamplerImpl terrainSampler,
-            GpuBufferImpl uniformData,
+            GpuBufferSlice uniformData,
             GpuBufferImpl sectionTimeInfo,
             CallbackInfo ci,
             @Local CommandEncoder encoder,
@@ -105,7 +106,7 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
 
                 @Override
                 @NotNull
-                public GpuBuffer getGlobals() {
+                public GpuBufferSlice getGlobals() {
                     return uniformData;
                 }
 

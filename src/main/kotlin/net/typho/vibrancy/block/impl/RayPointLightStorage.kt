@@ -2,7 +2,6 @@ package net.typho.vibrancy.block.impl
 
 import net.caffeinemc.mods.sodium.client.render.chunk.LocalSectionIndex
 import net.caffeinemc.mods.sodium.client.render.chunk.region.RenderRegion
-import net.minecraft.client.Minecraft
 import net.minecraft.core.BlockBox
 import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
@@ -10,20 +9,16 @@ import net.minecraft.world.level.ChunkPos
 import net.minecraft.world.level.Level
 import net.minecraft.world.level.block.state.BlockState
 import net.minecraft.world.level.chunk.ChunkAccess
-import net.minecraft.world.level.levelgen.SurfaceRules.state
 import net.typho.big_shot_lib.api.client.rendering.common.GpuBuffer
 import net.typho.big_shot_lib.api.client.rendering.common.GpuObjects
 import net.typho.big_shot_lib.api.client.rendering.common.Recyclable
 import net.typho.big_shot_lib.api.client.rendering.common.constant.GpuBufferUsage
-import net.typho.big_shot_lib.api.client.rendering.util.PackedNormal
 import net.typho.big_shot_lib.api.math.IRect3
 import net.typho.big_shot_lib.api.math.IVec3
-import net.typho.big_shot_lib.api.util.buffer.AntiLeakResource
 import net.typho.vibrancy.LightManager
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.block.HashMapBlockLightStorage
 import net.typho.vibrancy.util.BlockFace
-import net.typho.vibrancy.util.ChunkSectionCache
 import net.typho.vibrancy.util.GpuTask
 import net.typho.vibrancy.util.SectionMeshCache
 import net.typho.vibrancy.util.VibrancyThreadPool
@@ -130,7 +125,7 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
         val regionPos = IVec3(region.x, region.y, region.z)
         val oldRegionData = regions[regionPos]
 
-        if (dirty || manager.isRenderRegionDirty(region) || (!regions.keys.contains(regionPos) && !tasks.keys.contains(regionPos))) {
+        if (dirty || manager.isRenderRegionOrNeighborsDirty(region) || (!regions.keys.contains(regionPos) && !tasks.keys.contains(regionPos))) {
             val lights = map.values.toList()
             val oldTask = tasks.put(regionPos, VibrancyThreadPool.submitClean(0.0) { isCancelled ->
                 class SectionData(

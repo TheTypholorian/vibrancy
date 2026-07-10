@@ -4,7 +4,6 @@ import net.typho.big_shot_lib.api.client.rendering.common.GpuTexture
 import net.typho.big_shot_lib.api.client.rendering.util.PackedNormal
 import net.typho.big_shot_lib.api.client.rendering.util.mesh.PrimitiveQuad
 import net.typho.big_shot_lib.api.client.rendering.util.mesh.PrimitiveVertex
-import net.typho.big_shot_lib.api.math.IVec3
 import org.joml.Vector3f
 import kotlin.math.abs
 import kotlin.math.ceil
