@@ -1,5 +1,6 @@
 package net.typho.vibrancy
 
+import com.mojang.blaze3d.buffers.GpuBufferSlice
 import com.mojang.blaze3d.systems.CommandEncoder
 import com.mojang.blaze3d.systems.RenderPass
 import com.mojang.blaze3d.textures.GpuSamplerImpl
@@ -20,7 +21,7 @@ interface TerrainOverlayContext {
     val camera: CameraTransform
     val fog: FogParameters
     val terrainSampler: GpuSamplerImpl
-    val globals: GpuBuffer
+    val globals: GpuBufferSlice
     val sectionTimeInfo: GpuBuffer
     val encoder: CommandEncoder
 
