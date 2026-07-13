@@ -41,9 +41,9 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLightStorag
             val transmissionTex = TextureLayers.getTransmissionOrThrow(TextureAtlas.LOCATION_BLOCKS).getTextureView()
             val configBuffer = VibrancyConfig.loadConfigBuffer()
 
-            context.pass(
+            context.keyedPass(
                 { "Vibrancy Raytraced Point Lights for ${(context.terrainType as TerrainRenderPassAccessor).`vibrancy$getRenderType`()}" },
-                Vibrancy.raytracedPointRenderType
+                { Vibrancy.raytracedPointRenderTypes.apply(RayPointLightRenderTypeKey(it.region)) }
             ) { pass ->
                 pass.setUniform("Globals", RenderSystem.getGlobalSettingsUniform()!!)
                 pass.setUniform("u_Globals", context.globals)

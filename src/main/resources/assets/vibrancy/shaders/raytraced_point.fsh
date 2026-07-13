@@ -45,13 +45,18 @@ vec3 testRaytracedPointLightRay(Ray ray, RaytracedPointLight light, sampler2D tr
     uint gridIndex = light.cellRangeStart + getShadowGridIndex(lightShadowSize, startVoxel + ivec3(light.shadowRadius));
     ivec3 gridStep = getShadowGridIncrement(lightShadowSize, dda);
 
-    if (dda.voxel == startVoxel) {
-        stepDDA(dda, gridIndex, gridStep);
-    }
+    // TODO
+    #ifndef RAYCAST_LIGHT_MODEL
+    stepDDA(dda, gridIndex, gridStep);
+    #endif
 
     for (uint steps = 0; steps < 200u; steps++) {
-        //if (getShadowGridBit(light, dda.voxel)) {
-        if (uint(shadowGrid[gridIndex]) != 0u) {
+        if (
+            #ifdef ALIGN_PIXELS
+            dda.tExit - dda.tEnter > 1e-3 &&
+            #endif
+            uint(shadowGrid[gridIndex]) != 0u
+        ) {
             return vec3(0);
         }
 
@@ -62,6 +67,7 @@ vec3 testRaytracedPointLightRay(Ray ray, RaytracedPointLight light, sampler2D tr
         stepDDA(dda, gridIndex, gridStep);
     }
 
+    #ifdef TEST_QUADS
     for (uint i = light.shadowRangeStart; i < light.shadowRangeStart + light.shadowRangeLength; i++) {
         vec2 uv;
         ColoredQuad quad = shadows[i];
@@ -70,6 +76,7 @@ vec3 testRaytracedPointLightRay(Ray ray, RaytracedPointLight light, sampler2D tr
             return vec3(0);
         }
     }
+    #endif
 
     return vec3(1);
 }
@@ -119,11 +126,11 @@ void calculateRaytracedPointLight(RaytracedPointLight light, vec3 fragPos, vec3 
     vec3 lightColor = getRaytracedPointLightColor(light, fragPos) * testRaytracedPointLightRay(createRayTo(light.pos, shadowPos), light, transmissionTex, materialTex);
     vec3 specularColor = lightColor;//specularRaytracedPointLight(light, lightColor, shadowPos, CameraBlockPos - CameraOffset, normal, materialTex, texCoord0);
 
-    //if (config.visuals.limitBrightness) {
-    //    totalLightColor = max(specularColor, totalLightColor);
-    //} else {
-        totalLightColor += specularColor;
-    //}
+    #ifdef LIMIT_BRIGHTNESS
+    totalLightColor = max(specularColor, totalLightColor);
+    #else
+    totalLightColor += specularColor;
+    #endif
 }
 
 void main() {
@@ -141,5 +148,5 @@ void main() {
         }
     }
 
-    fragColor = vec4(color.rgb * color.a * config.visuals.rayBrightness * totalLightColor * getFogScale(), 0);
+    fragColor = vec4(color.rgb * color.a * BRIGHTNESS * totalLightColor * getFogScale(), 0);
 }

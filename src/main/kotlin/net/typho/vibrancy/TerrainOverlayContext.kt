@@ -30,4 +30,10 @@ interface TerrainOverlayContext {
         renderType: RenderType,
         out: Function<RenderPass, BiConsumer<ChunkRenderList, Runnable>>
     )
+
+    fun keyedPass(
+        name: GpuObjectName,
+        passFunc: Function<ChunkRenderList, RenderType>,
+        out: Function<RenderPass, BiConsumer<ChunkRenderList, Runnable>>
+    )
 }

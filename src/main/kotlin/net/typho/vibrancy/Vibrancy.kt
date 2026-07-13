@@ -9,6 +9,7 @@ import net.fabricmc.loader.api.FabricLoader
 import net.minecraft.client.renderer.RenderType
 import net.minecraft.core.Direction
 import net.minecraft.resources.Identifier
+import net.minecraft.util.Util
 import net.typho.big_shot_lib.api.NeoCommonInitializer
 import net.typho.big_shot_lib.api.client.NeoClientInitializer
 import net.typho.big_shot_lib.api.client.event.AddAssetReloadListenersEvent
@@ -30,6 +31,7 @@ import net.typho.big_shot_lib.api.event.NeoEventBus
 import net.typho.big_shot_lib.api.math.IVec3
 import net.typho.vibrancy.block.BlockLightInfoLoader
 import net.typho.vibrancy.block.BlockLightRegistry
+import net.typho.vibrancy.block.impl.RayPointLightRenderTypeKey
 import net.typho.vibrancy.util.TextureLayers
 import net.typho.vibrancy.sky.SkyLightInfoLoader
 import net.typho.vibrancy.sky.SkyLightRegistry
@@ -56,31 +58,60 @@ object Vibrancy : NeoCommonInitializer, NeoClientInitializer {
     )
 
     @JvmField
-    val raytracedPointRenderType = GpuObjects.renderType(
-        id("raytraced_point"),
-        CompactChunkVertex.VERTEX_FORMAT,
-        GpuDrawSettings.Builder()
-            .blend(GpuBlendFunction.ADDITIVE)
-            .shader(id("raytraced_point"))
-            .cull()
-            .depth(GpuAlphaFunction.gequal)
-            .writeDepth(false)
-            .zOffset()
-            .sampler("u_BlockTex")
-            .sampler("u_MaterialTex")
-            .sampler("u_TransmissionTex")
-            .uniform("Globals")
-            .uniform("u_Globals")
-            .uniform("u_VibrancyConfig")
-            .storageBuffer("u_Lights")
-            .storageBuffer("u_Shadows")
-            .storageBuffer("u_Grids")
-            .texelBuffer("u_SectionTimeInfo", GpuDataType.sint32, 1),
-        RenderType.SMALL_BUFFER_SIZE,
-        false,
-        true,
-        false
-    )
+    val raytracedPointRenderTypes = Util.memoize { key: RayPointLightRenderTypeKey ->
+        GpuObjects.renderType(
+            key.location,
+            CompactChunkVertex.VERTEX_FORMAT,
+            GpuDrawSettings.Builder()
+                .blend(GpuBlendFunction.ADDITIVE)
+                .shader(id("raytraced_point"))
+                .cull()
+                .depth(GpuAlphaFunction.gequal)
+                .writeDepth(false)
+                .zOffset()
+                .sampler("u_BlockTex")
+                .sampler("u_MaterialTex")
+                .sampler("u_TransmissionTex")
+                .uniform("Globals")
+                .uniform("u_Globals")
+                .uniform("u_VibrancyConfig")
+                .storageBuffer("u_Lights")
+                .storageBuffer("u_Shadows")
+                .storageBuffer("u_Grids")
+                .texelBuffer("u_SectionTimeInfo", GpuDataType.sint32, 1)
+                .define("USE_VERTEX_COMPRESSION")
+                .define("USE_FOG")
+                .apply {
+                    if (key.alignPixels) {
+                        define("ALIGN_PIXELS")
+                    }
+
+                    if (key.testQuads) {
+                        define("TEST_QUADS")
+                    }
+
+                    define("BRIGHTNESS", key.brightness)
+
+                    if (key.raycastLightModel) {
+                        define("RAYCAST_LIGHT_MODEL")
+                    }
+
+                    if (key.reflectionsEnabled) {
+                        define("REFLECTIONS_ENABLED")
+                    }
+
+                    define("REFLECTION_STRENGTH", key.reflectionStrength)
+
+                    if (key.limitBrightness) {
+                        define("LIMIT_BRIGHTNESS")
+                    }
+                },
+            RenderType.SMALL_BUFFER_SIZE,
+            false,
+            true,
+            false
+        )
+    }
 
     @JvmField
     @Suppress("DEPRECATION")

@@ -244,6 +244,8 @@ struct DDAState {
     ivec3 step;
     vec3 tMax;
     vec3 tDelta;
+    float tEnter;
+    float tExit;
 };
 
 DDAState createDDA(EndlessRay ray, vec3 pos, ivec3 voxel) {
@@ -257,8 +259,8 @@ DDAState createDDA(EndlessRay ray, vec3 pos, ivec3 voxel) {
     nextPos.z = ray.dir.z > 0 ? float(voxel.z + 1) : float(voxel.z);
     dda.tMax = (nextPos - pos) * ray.invDir;
     dda.tDelta = abs(ray.invDir);
-    //dda.tEnter = 0;
-    //dda.tExit = min(dda.tMax.x, min(dda.tMax.y, dda.tMax.z));
+    dda.tEnter = 0;
+    dda.tExit = min(dda.tMax.x, min(dda.tMax.y, dda.tMax.z));
 
     return dda;
 }
@@ -302,8 +304,8 @@ void stepDDA(inout DDAState dda) {
         }
     }
 
-    //dda.tEnter = dda.tExit;
-    //dda.tExit = min(dda.tMax.x, min(dda.tMax.y, dda.tMax.z));
+    dda.tEnter = dda.tExit;
+    dda.tExit = min(dda.tMax.x, min(dda.tMax.y, dda.tMax.z));
 }
 
 void stepDDA(inout DDAState dda, inout uint gridIndex, ivec3 indexStep) {
@@ -329,6 +331,6 @@ void stepDDA(inout DDAState dda, inout uint gridIndex, ivec3 indexStep) {
         }
     }
 
-    //dda.tEnter = dda.tExit;
-    //dda.tExit = min(dda.tMax.x, min(dda.tMax.y, dda.tMax.z));
+    dda.tEnter = dda.tExit;
+    dda.tExit = min(dda.tMax.x, min(dda.tMax.y, dda.tMax.z));
 }

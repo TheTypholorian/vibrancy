@@ -35,8 +35,7 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
-import java.util.Optional;
-import java.util.OptionalDouble;
+import java.util.*;
 import java.util.function.BiConsumer;
 import java.util.function.Function;
 
@@ -164,6 +163,60 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
                     }
 
                     drawContext.endDraw();
+                    activeProgram = null;
+                }
+
+                @Override
+                public void keyedPass(@NotNull GpuObjectName name, @NotNull Function<ChunkRenderList, RenderType> passFunc, @NotNull Function<RenderPass, BiConsumer<ChunkRenderList, Runnable>> out) {
+                    Map<RenderType, List<ChunkRenderList>> types = new HashMap<>();
+
+                    renderLists.iterator(renderPass.isTranslucent()).forEachRemaining(renderList -> {
+                        types.computeIfAbsent(passFunc.apply(renderList), k -> new ArrayList<>()).add(renderList);
+                    });
+
+                    for (Map.Entry<RenderType, List<ChunkRenderList>> entry : types.entrySet()) {
+                        activeProgram = entry.getKey().pipeline();
+
+                        try (RenderPass pass = encoder.createRenderPass(
+                                name,
+                                renderPass.getTarget().getColorTextureView(),
+                                Optional.empty(),
+                                renderPass.getTarget().getDepthTextureView(),
+                                OptionalDouble.empty()
+                        )) {
+                            pass.setPipeline(activeProgram);
+                            drawContext.setContext(pass, activeProgram);
+
+                            if (!useIndexedTessellation && sharedIndexBuffer.getBufferObject() != null) {
+                                pass.setIndexBuffer(sharedIndexBuffer.getBufferObject(), IndexType.INT);
+                            }
+
+                            var out1 = out.apply(pass);
+
+                            for (ChunkRenderList renderList : entry.getValue()) {
+                                RenderRegion region = renderList.getRegion();
+                                SectionRenderDataStorage storage = region.getStorage(renderPass);
+
+                                if (storage != null) {
+                                    MultiDrawBatch batch = region.getCachedBatch(renderPass);
+
+                                    if (!batch.isEmpty()) {
+                                        if (useIndexedTessellation) {
+                                            pass.setIndexBuffer(region.getResources().getIndexBuffer(), IndexType.INT);
+                                        }
+
+                                        drawContext.updateData(region, camera);
+                                        pass.setVertexBuffer(0, region.getResources().getGeometryBuffer().slice());
+
+                                        out1.accept(renderList, () -> batch.draw(drawContext));
+                                    }
+                                }
+                            }
+                        }
+
+                        drawContext.endDraw();
+                    }
+
                     activeProgram = null;
                 }
             });
