@@ -45,7 +45,13 @@ vec3 testRaytracedPointLightRay(Ray ray, RaytracedPointLight light, sampler2D tr
         stepDDA(dda);
     }
 
+    uint steps = 0u;
+
     while (true) {
+        if (steps++ == 2000u) {
+            return vec3(1, 0, 0);
+        }
+
         if (dda.tExit - dda.tEnter > 1e-3) {
             uint cell = shadowGrid[light.cellRangeStart + getShadowGridIndex(light, dda.voxel)];
 
