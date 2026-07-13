@@ -45,14 +45,8 @@ vec3 testRaytracedPointLightRay(Ray ray, RaytracedPointLight light, sampler2D tr
         stepDDA(dda);
     }
 
-    uint steps = 0u;
-
-    while (true) {
-        if (steps++ == 2000u) {
-            return vec3(1, 0, 0);
-        }
-
-        if (dda.tExit - dda.tEnter > 1e-3) {
+    for (uint steps = 0; steps < 2000u; steps++) {
+        //if (dda.tExit - dda.tEnter > 1e-3) {
             uint cell = shadowGrid[light.cellRangeStart + getShadowGridIndex(light, dda.voxel)];
 
             switch (cell) {
@@ -73,16 +67,14 @@ vec3 testRaytracedPointLightRay(Ray ray, RaytracedPointLight light, sampler2D tr
                         }
                     }
             }
-        }
+        //}
 
         if (dda.voxel == endVoxel) {
-            break;
+            return vec3(1);
         }
 
         stepDDA(dda);
     }
-
-    return vec3(1);
 }
 
 vec3 specularRaytracedPointLight(RaytracedPointLight light, vec3 color, vec3 vertexPos, vec3 cameraPos, vec3 normal, sampler2D materialTex, vec2 texCoord0) {
@@ -150,7 +142,8 @@ void main() {
         vec3 delta = light.pos - v_Pos;
 
         if (dot(delta, delta) < light.radius * light.radius && dot(v_Normal, delta) > 0) {
-            calculateRaytracedPointLight(light, v_Pos, shadowPos, v_Normal, v_TexCoord, u_TransmissionTex, u_MaterialTex, totalLightColor);
+            totalLightColor += 0.01;
+            //calculateRaytracedPointLight(light, v_Pos, shadowPos, v_Normal, v_TexCoord, u_TransmissionTex, u_MaterialTex, totalLightColor);
         }
     }
 

@@ -2,11 +2,11 @@
 
 struct RaytracedPointLight {
     vec3 pos;
-    uint color;
     float radius;
+    uint color;
+    float brightness;
     uint shadowRadius;
     uint cellRangeStart;
-    float brightness;
 };
 
 layout(std430, binding = 0) readonly buffer u_Lights {

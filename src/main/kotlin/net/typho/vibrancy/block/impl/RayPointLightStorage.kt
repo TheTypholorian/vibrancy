@@ -289,6 +289,7 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
                                 output.writeFloat(light.light.absolutePos.x)
                                 output.writeFloat(light.light.absolutePos.y)
                                 output.writeFloat(light.light.absolutePos.z)
+                                output.writeFloat(light.light.radius)
 
                                 output.write4x1(
                                     0,
@@ -296,12 +297,10 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
                                     (light.light.color.y * 255).toInt(),
                                     (light.light.color.x * 255).toInt()
                                 )
+                                output.writeFloat(light.light.brightness)
 
-                                output.writeFloat(light.light.radius)
                                 output.writeInt(light.light.shadowRadius)
                                 output.writeInt(light.cellRangeStart)
-
-                                output.writeFloat(light.light.brightness)
                             }
                         }
                     }
