@@ -40,13 +40,17 @@ vec3 testRaytracedPointLightRay(Ray ray, RaytracedPointLight light, sampler2D tr
         ivec3(light.shadowRadius)
     );
     DDAState dda = createDDA(ray, ray.pos - lightVoxel, clamp(startVoxel, ivec3(-light.shadowRadius), ivec3(light.shadowRadius)));
+    uint lightShadowSize = light.shadowRadius * 2 + 1;
+    uint gridIndex = light.cellRangeStart + getShadowGridIndex(lightShadowSize, startVoxel + ivec3(light.shadowRadius));
+    ivec3 gridStep = getShadowGridIncrement(lightShadowSize, dda);
 
     if (dda.voxel == startVoxel) {
-        stepDDA(dda);
+        stepDDA(dda, gridIndex, gridStep);
     }
 
     for (uint steps = 0; steps < 200u; steps++) {
-        if (getShadowGridBit(light, dda.voxel)) {
+        //if (getShadowGridBit(light, dda.voxel)) {
+        if (uint(shadowGrid[gridIndex]) != 0u) {
             return vec3(0);
         }
 
@@ -54,7 +58,7 @@ vec3 testRaytracedPointLightRay(Ray ray, RaytracedPointLight light, sampler2D tr
             break;
         }
 
-        stepDDA(dda);
+        stepDDA(dda, gridIndex, gridStep);
     }
 
     for (uint i = light.shadowRangeStart; i < light.shadowRangeStart + light.shadowRangeLength; i++) {
