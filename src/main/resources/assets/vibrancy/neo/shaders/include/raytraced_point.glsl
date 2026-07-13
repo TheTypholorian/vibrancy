@@ -1,5 +1,7 @@
 #include "vibrancy:rays"
 
+#extension GL_EXT_shader_8bit_storage : require
+
 struct RaytracedPointLight {
     vec3 pos;
     float radius;
@@ -23,14 +25,12 @@ layout(std430, binding = 1) readonly buffer u_Shadows {
     ColoredQuad shadows[];
 };
 layout(std430, binding = 2) readonly buffer u_Grids {
-    uint shadowGrid[];
+    uint8_t shadowGrid[];
 };
 
 bool getShadowGridBit(RaytracedPointLight light, ivec3 voxel) {
     ivec3 voxel1 = voxel + ivec3(light.shadowRadius);
     uint size = light.shadowRadius * 2 + 1;
-    uint relativeBitIndex = (voxel1.x * size + voxel1.y) * size + voxel1.z;
-    uint byteIndex = light.cellRangeStart + (relativeBitIndex >> 5u);
-    uint bitIndex = relativeBitIndex & 31u;
-    return (shadowGrid[byteIndex] & (1 << bitIndex)) != 0u;
+    uint index = (voxel1.x * size + voxel1.y) * size + voxel1.z;
+    return uint(shadowGrid[light.cellRangeStart + index]) != 0u;
 }

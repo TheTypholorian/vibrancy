@@ -22,6 +22,7 @@ import net.typho.vibrancy.util.BlockFace
 import net.typho.vibrancy.util.GpuTask
 import net.typho.vibrancy.util.SectionMeshCache
 import net.typho.vibrancy.util.VibrancyThreadPool
+import kotlin.experimental.or
 
 class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPointLight>(RayPointLightType) {
     class RegionData(
@@ -147,7 +148,7 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
                 val blockShadows = mutableMapOf<IVec3<Int>, Int>()
                 val sectionGrid = Array(256) { mutableListOf<LightInstance>() }
                 val sectionMeshes = hashMapOf<SectionPos, SectionMeshCache?>()
-                val grids = mutableListOf<IntArray>()
+                val grids = mutableListOf<ByteArray>()
                 var numLightInstances = 0
                 var numLights = 0
 
@@ -181,13 +182,11 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
 
                     var added = false
                     val lightInstance by lazy {
-                        val grid = IntArray(Math.ceilDiv(light.shadowBox.areaInclusive, 32))
+                        val grid = ByteArray(light.shadowBox.areaInclusive)
 
                         fun setShadowGridBit(voxel: IVec3<Int>) {
-                            val relativeBitIndex = ((voxel.x - light.shadowBox.min.x) * (light.shadowBox.max.y - light.shadowBox.min.y + 1) + (voxel.y - light.shadowBox.min.y)) * (light.shadowBox.max.z - light.shadowBox.min.z + 1) + (voxel.z - light.shadowBox.min.z)
-                            val byteIndex = relativeBitIndex ushr 5
-                            val bitIndex = relativeBitIndex and 31
-                            grid[byteIndex] = grid[byteIndex] or (1 shl bitIndex)
+                            val index = ((voxel.x - light.shadowBox.min.x) * (light.shadowBox.max.y - light.shadowBox.min.y + 1) + (voxel.y - light.shadowBox.min.y)) * (light.shadowBox.max.z - light.shadowBox.min.z + 1) + (voxel.z - light.shadowBox.min.z)
+                            grid[index] = 1
                         }
 
                         SectionPos.betweenClosedStream(
@@ -332,12 +331,12 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
 
                     val gridBuffer = GpuObjects.buffer(
                         { "Vibrancy Shadow Grid Buffer $regionPos" },
-                        cellRangeIndex * 4L,
+                        cellRangeIndex.toLong(),
                         bufferUsage
                     ) { output ->
                         for (grid in grids) {
                             for (cell in grid) {
-                                output.writeInt(cell)
+                                output.writeByte(cell.toInt())
                             }
                         }
                     }
