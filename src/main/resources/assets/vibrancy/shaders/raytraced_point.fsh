@@ -118,11 +118,11 @@ void calculateRaytracedPointLight(RaytracedPointLight light, vec3 fragPos, vec3 
     vec3 lightColor = getRaytracedPointLightColor(light, fragPos) * testRaytracedPointLightRay(createRayTo(light.pos, shadowPos), light, transmissionTex, materialTex);
     vec3 specularColor = lightColor;//specularRaytracedPointLight(light, lightColor, shadowPos, CameraBlockPos - CameraOffset, normal, materialTex, texCoord0);
 
-    if (config.visuals.limitBrightness) {
-        totalLightColor = max(specularColor, totalLightColor);
-    } else {
+    //if (config.visuals.limitBrightness) {
+    //    totalLightColor = max(specularColor, totalLightColor);
+    //} else {
         totalLightColor += specularColor;
-    }
+    //}
 }
 
 void main() {
