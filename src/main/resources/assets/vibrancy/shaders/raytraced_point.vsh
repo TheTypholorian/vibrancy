@@ -5,7 +5,8 @@
 
 out vec3 v_Pos;
 out vec3 v_Normal;
-out flat uint v_SectionPos;
+out flat uint v_SectionRangeStart;
+out flat uint v_SectionRangeEnd;
 out vec4 v_Color;
 out vec2 v_TexCoord;
 
@@ -20,7 +21,9 @@ void main() {
     gl_Position = u_ProjectionMatrix * u_ModelViewMatrix * vec4(position, 1.0);
 
     v_Pos = _vert_position + lights.worldOffset + _get_draw_translation(_draw_id) + a_VibrancyNormal * 1e-3;
-    v_SectionPos = _draw_id;
+    uint sectionRange = lights.sectionRanges[_draw_id];
+    v_SectionRangeStart = sectionRange >> 16u;
+    v_SectionRangeEnd = v_SectionRangeStart + (sectionRange & 0xFFFFu);
 
     v_Normal = a_VibrancyNormal;
     v_Color = _vert_color;

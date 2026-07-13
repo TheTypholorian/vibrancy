@@ -7,7 +7,8 @@
 
 in vec3 v_Pos;
 in vec3 v_Normal;
-in flat uint v_SectionPos;
+in flat uint v_SectionRangeStart;
+in flat uint v_SectionRangeEnd;
 in vec4 v_Color;
 in vec2 v_TexCoord;
 
@@ -130,12 +131,8 @@ void main() {
     vec4 color = sampleTexture(u_BlockTex, v_TexCoord, u_TexelSize) * v_Color;
 
     vec3 totalLightColor = vec3(0);
-    uint sectionRange = lights.sectionRanges[v_SectionPos];
-    uint rangeStart = sectionRange >> 16u;
-    uint rangeEnd = rangeStart + (sectionRange & 0xFFFFu);
 
-    //for (uint i = sectionRange >> 16u; i < min((sectionRange & 0xFFFFu), (sectionRange >> 16u) + 1u); i++) {
-    for (uint i = rangeStart; i < rangeEnd; i++) {
+    for (uint i = v_SectionRangeStart; i < v_SectionRangeEnd; i++) {
         RaytracedPointLight light = lights.array[i];
         vec3 delta = light.pos - v_Pos;
 
