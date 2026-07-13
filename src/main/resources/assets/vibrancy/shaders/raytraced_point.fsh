@@ -142,8 +142,7 @@ void main() {
         vec3 delta = light.pos - v_Pos;
 
         if (dot(delta, delta) < light.radius * light.radius && dot(v_Normal, delta) > 0) {
-            totalLightColor += 0.01;
-            //calculateRaytracedPointLight(light, v_Pos, shadowPos, v_Normal, v_TexCoord, u_TransmissionTex, u_MaterialTex, totalLightColor);
+            calculateRaytracedPointLight(light, v_Pos, shadowPos, v_Normal, v_TexCoord, u_TransmissionTex, u_MaterialTex, totalLightColor);
         }
     }
 

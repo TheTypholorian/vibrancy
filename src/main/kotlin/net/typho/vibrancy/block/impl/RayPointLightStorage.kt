@@ -339,7 +339,7 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
                         }
                     }
 
-                    Vibrancy.LOGGER.info("Uploading $regionPos: ${lightBuffer.size} light buffer, ${shadowBuffer?.size} shadow buffer, ${gridBuffer.size} grid buffer, total of ${lightBuffer.size + (shadowBuffer?.size ?: 0) + gridBuffer.size} bytes. $numLights lights, $numLightInstances light instances, ${shadows.size} shadows, meaning ${shadows.size / numLights} shadows per light, ${shadows.size / numLightInstances} shadows per light instance, max grid cell index $cellRangeIndex, num non-solid blocks ${blockShadows.size}, num sections ${sectionMeshes.size}, ${sectionGrid.sumOf { it.size }.toFloat() / sectionGrid.size} section grid")
+                    Vibrancy.LOGGER.info("Uploading $regionPos: ${lightBuffer.size} light buffer, ${shadowBuffer?.size} shadow buffer, ${gridBuffer.size} grid buffer, total of ${lightBuffer.size + (shadowBuffer?.size ?: 0) + gridBuffer.size} bytes. $numLights lights, $numLightInstances light instances, ${shadows.size} shadows, meaning ${shadows.size / numLights} shadows per light, ${shadows.size / numLightInstances} shadows per light instance, max grid cell index $cellRangeIndex, num non-solid blocks ${blockShadows.size}, num sections ${sectionMeshes.size}, ${sectionGrid.sumOf { it.size }.toFloat() / sectionGrid.size} section grid, ${blockShadows.values.sumOf { it and 8191 }.toFloat() / blockShadows.values.sumOf { if (it == 0) 0 else 1 }} quads per non-solid non-air block")
 
                     RegionData(lightBuffer, shadowBuffer, gridBuffer)
                 }
