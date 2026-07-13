@@ -25,33 +25,35 @@ data class RayPointLightRenderTypeKey(
     @JvmField
     val limitBrightness: Boolean
 ) : NamedResource {
-    override val location: Identifier = Vibrancy.id(buildString {
-        append("raytraced_point")
+    override val location: Identifier by lazy {
+        Vibrancy.id(buildString {
+            append("raytraced_point")
 
-        if (alignPixels) {
-            append("-align-pixels")
-        }
+            if (alignPixels) {
+                append("-align-pixels")
+            }
 
-        if (testQuads) {
-            append("-test_quads")
-        }
+            if (testQuads) {
+                append("-test_quads")
+            }
 
-        append("-brightness_$brightness")
+            append("-brightness_$brightness")
 
-        if (raycastLightModel) {
-            append("-raycast_light_model")
-        }
+            if (raycastLightModel) {
+                append("-raycast_light_model")
+            }
 
-        if (reflectionsEnabled) {
-            append("-reflections_enabled")
-        }
+            if (reflectionsEnabled) {
+                append("-reflections_enabled")
+            }
 
-        append("-reflection_strength_$reflectionStrength")
+            append("-reflection_strength_$reflectionStrength")
 
-        if (limitBrightness) {
-            append("-limit_brightness")
-        }
-    })
+            if (limitBrightness) {
+                append("-limit_brightness")
+            }
+        })
+    }
 
     constructor(testQuads: Boolean) : this(
         VibrancyConfig.alignPixels,
