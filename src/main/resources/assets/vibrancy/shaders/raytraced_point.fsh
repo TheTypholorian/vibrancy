@@ -46,23 +46,26 @@ vec3 testRaytracedPointLightRay(Ray ray, RaytracedPointLight light, sampler2D tr
     }
 
     while (true) {
-        uint cell = shadowGrid[light.cellRangeStart + getShadowGridIndex(light, dda.voxel)];
-
         if (dda.tExit - dda.tEnter > 1e-3) {
-            if ((cell & 1u) == 1u) {
-                return vec3(0);
-            } else {
-                uint cellStart = cell >> 13u;
-                uint cellEnd = cellStart + ((cell >> 1u) & 4095u);
+            uint cell = shadowGrid[light.cellRangeStart + getShadowGridIndex(light, dda.voxel)];
 
-                for (uint j = cellStart; j < cellEnd; j++) {
-                    vec2 uv;
-                    ColoredQuad quad = shadows[j];
+            switch (cell) {
+                case 0u:
+                    break;
+                case 1u:
+                    return vec3(0);
+                default:
+                    uint cellStart = (cell - 2) >> 13u;
+                    uint cellEnd = cellStart + ((cell - 2) & 8191u);
 
-                    if (raycastQuad(ray, 1e-3, quad, uv)) {
-                        return vec3(0);
+                    for (uint j = cellStart; j < cellEnd; j++) {
+                        vec2 uv;
+                        ColoredQuad quad = shadows[j];
+
+                        if (raycastQuad(ray, 1e-3, quad, uv)) {
+                            return vec3(0);
+                        }
                     }
-                }
             }
         }
 

@@ -138,10 +138,10 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
                 var cellRangeIndex = 0
                 val shadows = mutableListOf<BlockFace>()
                 var hasShadows = false
-                val blockShadows = mutableMapOf<IVec3<Int>, Int?>()
+                val blockShadows = mutableMapOf<IVec3<Int>, Int>()
                 val sectionGrid = Array(256) { mutableListOf<LightInstance>() }
                 val sectionMeshes = hashMapOf<SectionPos, SectionMeshCache?>()
-                val grids = mutableListOf<Array<Int?>>()
+                val grids = mutableListOf<IntArray>()
                 var numLightInstances = 0
                 var numLights = 0
 
@@ -151,7 +151,7 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
                     return ((voxel.x - box.min.x) * (box.max.y - box.min.y + 1) + (voxel.y - box.min.y)) * (box.max.z - box.min.z + 1) + (voxel.z - box.min.z)
                 }
 
-                fun getBlockShadow(section: SectionMeshCache, pos: BlockPos): Int? {
+                fun getBlockShadow(section: SectionMeshCache, pos: BlockPos): Int {
                     return blockShadows.computeIfAbsent(pos.immutable()) {
                         section.get(pos.x, pos.y, pos.z)?.let { block ->
                             val start = shadows.size
@@ -163,12 +163,12 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
                                 throw IndexOutOfBoundsException(start)
                             }
 
-                            if (len and 4095.inv() != 0) {
+                            if (len and 8191.inv() != 0) {
                                 throw IndexOutOfBoundsException(len)
                             }
 
-                            (start shl 13) or (len shl 1)
-                        }
+                            (start shl 13) or len
+                        } ?: 0
                     }
                 }
 
@@ -179,7 +179,7 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
 
                     var added = false
                     val cellRangeStart by lazy {
-                        val grid = arrayOfNulls<Int>(light.shadowBox.areaInclusive)
+                        val grid = IntArray(light.shadowBox.areaInclusive)
 
                         SectionPos.betweenClosedStream(
                             SectionPos.blockToSectionCoord(light.shadowBox.min.x),
@@ -203,20 +203,22 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
                                     ).min(light.shadowBox.max)
                                 ).forEach { pos ->
                                     val cell = if (pos == light.pos) {
-                                        getBlockShadow(mesh, pos)
+                                        getBlockShadow(mesh, pos) + 2
                                     } else {
                                         val index = mesh.index(pos.x, pos.y, pos.z) shl 1
 
                                         if (mesh.stateFlags.get(index)) { // air
-                                            null
+                                            0
                                         } else if (mesh.stateFlags.get(index + 1)) { // solid
                                             1
                                         } else {
-                                            getBlockShadow(mesh, pos)
+                                            getBlockShadow(mesh, pos) + 2
                                         }
                                     }
-                                    cell?.let {
-                                        grid[getGridIndex(pos, light.shadowBox)] = it
+
+                                    grid[getGridIndex(pos, light.shadowBox)] = cell
+
+                                    if (cell != 0) {
                                         hasShadows = true
                                     }
                                 }
@@ -334,7 +336,7 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
                     ) { output ->
                         for (grid in grids) {
                             for (cell in grid) {
-                                output.writeInt(cell ?: 0) // must write 0, cannot skip bytes here
+                                output.writeInt(cell)
                             }
                         }
                     }
