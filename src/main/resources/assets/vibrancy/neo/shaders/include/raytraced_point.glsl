@@ -3,9 +3,14 @@
 struct RaytracedPointLight {
     vec3 pos;
     float radius;
+
     uint color;
     float brightness;
+
     uint shadowRadius;
+    uint shadowRangeStart;
+    uint shadowRangeLightLength;
+    uint shadowRangeLength;
     uint cellRangeStart;
 };
 
@@ -21,13 +26,11 @@ layout(std430, binding = 2) readonly buffer u_Grids {
     uint shadowGrid[];
 };
 
-ivec3 getShadowGridIncrement(RaytracedPointLight light, DDAState dda) {
-    uint size = light.shadowRadius * 2 + 1;
-    return dda.step * ivec3(size * size, size, 1);
-}
-
-uint getShadowGridIndex(RaytracedPointLight light, ivec3 voxel) {
+bool getShadowGridBit(RaytracedPointLight light, ivec3 voxel) {
     ivec3 voxel1 = voxel + ivec3(light.shadowRadius);
     uint size = light.shadowRadius * 2 + 1;
-    return uint((voxel1.x * size + voxel1.y) * size + voxel1.z);
+    uint relativeBitIndex = (voxel1.x * size + voxel1.y) * size + voxel1.z;
+    uint byteIndex = light.cellRangeStart + (relativeBitIndex >> 5u);
+    uint bitIndex = relativeBitIndex & 31u;
+    return (shadowGrid[byteIndex] & (1 << bitIndex)) != 0u;
 }

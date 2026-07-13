@@ -45,38 +45,31 @@ vec3 testRaytracedPointLightRay(Ray ray, RaytracedPointLight light, sampler2D tr
         stepDDA(dda);
     }
 
-    for (uint steps = 0; steps < 2000u; steps++) {
-        //if (dda.tExit - dda.tEnter > 1e-3) {
-            uint cell = shadowGrid[light.cellRangeStart + getShadowGridIndex(light, dda.voxel)];
-
-            switch (cell) {
-                case 0u:
-                    break;
-                case 1u:
-                    return vec3(0);
-                default:
-                    uint cellStart = (cell - 2) >> 13u;
-                    uint cellEnd = cellStart + ((cell - 2) & 8191u);
-
-                    for (uint j = cellStart; j < cellEnd; j++) {
-                        vec2 uv;
-                        ColoredQuad quad = shadows[j];
-
-                        if (raycastQuad(ray, 1e-3, quad, uv)) {
-                            return vec3(0);
-                        }
-                    }
-            }
-        //}
+    for (uint steps = 0; steps < 200u; steps++) {
+        if (getShadowGridBit(light, dda.voxel)) {
+            return vec3(0);
+        }
 
         if (dda.voxel == endVoxel) {
-            return vec3(1);
+            break;
         }
 
         stepDDA(dda);
     }
+
+    for (uint i = light.shadowRangeStart; i < light.shadowRangeStart + light.shadowRangeLength; i++) {
+        vec2 uv;
+        ColoredQuad quad = shadows[i];
+
+        if (raycastQuad(ray, 1e-3, quad, uv)) {
+            return vec3(0);
+        }
+    }
+
+    return vec3(1);
 }
 
+/*
 vec3 specularRaytracedPointLight(RaytracedPointLight light, vec3 color, vec3 vertexPos, vec3 cameraPos, vec3 normal, sampler2D materialTex, vec2 texCoord0) {
     vec3 lightDelta = light.pos - vertexPos;
     vec3 cameraDir = normalize(cameraPos - vertexPos);
@@ -115,10 +108,11 @@ vec3 specularRaytracedPointLight(RaytracedPointLight light, vec3 color, vec3 ver
     vec4 reflectionMaterial = sampleNearest(materialTex, texCoord0, u_TexelSize);
     return color + color * reflectionMaterial.r * reflectionMaterial.a * lightMaterial.g * lightMaterial.a * config.specular.strength;
 }
+*/
 
 void calculateRaytracedPointLight(RaytracedPointLight light, vec3 fragPos, vec3 shadowPos, vec3 normal, vec2 texCoord0, sampler2D transmissionTex, sampler2D materialTex, inout vec3 totalLightColor) {
     vec3 lightColor = getRaytracedPointLightColor(light, fragPos) * testRaytracedPointLightRay(createRayTo(light.pos, shadowPos), light, transmissionTex, materialTex);
-    vec3 specularColor = specularRaytracedPointLight(light, lightColor, shadowPos, CameraBlockPos - CameraOffset, normal, materialTex, texCoord0);
+    vec3 specularColor = lightColor;//specularRaytracedPointLight(light, lightColor, shadowPos, CameraBlockPos - CameraOffset, normal, materialTex, texCoord0);
 
     if (config.visuals.limitBrightness) {
         totalLightColor = max(specularColor, totalLightColor);

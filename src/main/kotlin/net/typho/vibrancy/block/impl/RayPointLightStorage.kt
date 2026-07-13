@@ -132,6 +132,12 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
                     @JvmField
                     val light: RayPointLight,
                     @JvmField
+                    val shadowRangeStart: Int,
+                    @JvmField
+                    val shadowRangeLightLength: Int,
+                    @JvmField
+                    val shadowRangeLength: Int,
+                    @JvmField
                     val cellRangeStart: Int
                 )
 
@@ -146,10 +152,6 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
                 var numLights = 0
 
                 fun getSectionMesh(sectionPos: SectionPos) = sectionMeshes.computeIfAbsent(sectionPos) { key -> synchronized(manager.sectionLock) { manager.sectionMeshCaches[key] } }
-
-                fun getGridIndex(voxel: IVec3<Int>, box: IRect3<Int>): Int {
-                    return ((voxel.x - box.min.x) * (box.max.y - box.min.y + 1) + (voxel.y - box.min.y)) * (box.max.z - box.min.z + 1) + (voxel.z - box.min.z)
-                }
 
                 fun getBlockShadow(section: SectionMeshCache, pos: BlockPos): Int {
                     return blockShadows.computeIfAbsent(pos.immutable()) {
@@ -178,8 +180,15 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
                     }
 
                     var added = false
-                    val cellRangeStart by lazy {
-                        val grid = IntArray(light.shadowBox.areaInclusive)
+                    val lightInstance by lazy {
+                        val grid = IntArray(Math.ceilDiv(light.shadowBox.areaInclusive, 32))
+
+                        fun setShadowGridBit(voxel: IVec3<Int>) {
+                            val relativeBitIndex = ((voxel.x - light.shadowBox.min.x) * (light.shadowBox.max.y - light.shadowBox.min.y + 1) + (voxel.y - light.shadowBox.min.y)) * (light.shadowBox.max.z - light.shadowBox.min.z + 1) + (voxel.z - light.shadowBox.min.z)
+                            val byteIndex = relativeBitIndex ushr 5
+                            val bitIndex = relativeBitIndex and 31
+                            grid[byteIndex] = grid[byteIndex] or (1 shl bitIndex)
+                        }
 
                         SectionPos.betweenClosedStream(
                             SectionPos.blockToSectionCoord(light.shadowBox.min.x),
@@ -202,40 +211,29 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
                                         sectionPos.maxBlockZ()
                                     ).min(light.shadowBox.max)
                                 ).forEach { pos ->
-                                    val cell = if (pos == light.pos) {
-                                        getBlockShadow(mesh, pos) + 2
-                                    } else {
+                                    if (pos != light.pos) {
                                         val index = mesh.index(pos.x, pos.y, pos.z) shl 1
 
-                                        if (mesh.stateFlags.get(index)) { // air
-                                            0
-                                        } else if (mesh.stateFlags.get(index + 1)) { // solid
-                                            1
-                                        } else {
-                                            getBlockShadow(mesh, pos) + 2
+                                        if (mesh.stateFlags.get(index + 1)) {
+                                            setShadowGridBit(pos)
+                                            hasShadows = true
                                         }
-                                    }
-
-                                    grid[getGridIndex(pos, light.shadowBox)] = cell
-
-                                    if (cell != 0) {
-                                        hasShadows = true
                                     }
                                 }
                             }
                         }
 
-                        val start = cellRangeIndex
+                        val cellRangeStart = cellRangeIndex
 
                         grids.add(grid)
                         cellRangeIndex += grid.size
 
-                        start
+                        LightInstance(light, 0, 0, 0, cellRangeStart)
                     }
 
                     for (pos in light.sections) {
                         if ((pos.x shr 3) == region.x && (pos.y shr 2) == region.y && (pos.z shr 3) == region.z) {
-                            sectionGrid[LocalSectionIndex.pack(pos.x, pos.y, pos.z)].add(LightInstance(light, cellRangeStart))
+                            sectionGrid[LocalSectionIndex.pack(pos.x, pos.y, pos.z)].add(lightInstance)
                             numLightInstances++
 
                             if (!added) {
@@ -268,7 +266,7 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
 
                     val lightBuffer = GpuObjects.buffer(
                         { "Vibrancy Light Buffer $regionPos" },
-                        16L + 1024L + numLightInstances * 32L,
+                        16L + 1024L + numLightInstances * 48L,
                         bufferUsage
                     ) { output ->
                         output.writeInt(region.originX)
@@ -300,7 +298,12 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
                                 output.writeFloat(light.light.brightness)
 
                                 output.writeInt(light.light.shadowRadius)
+                                output.writeInt(light.shadowRangeStart)
+                                output.writeInt(light.shadowRangeLightLength)
+                                output.writeInt(light.shadowRangeLength)
                                 output.writeInt(light.cellRangeStart)
+
+                                output.skip(4)
                             }
                         }
                     }
