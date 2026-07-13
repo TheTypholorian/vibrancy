@@ -128,7 +128,7 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
         if (dirty || manager.isRenderRegionOrNeighborsDirty(region) || (!regions.keys.contains(regionPos) && !tasks.keys.contains(regionPos))) {
             val lights = map.values.toList()
             val oldTask = tasks.put(regionPos, VibrancyThreadPool.submitClean(0.0) { isCancelled ->
-                class SectionData(
+                class LightInstance(
                     @JvmField
                     val light: RayPointLight,
                     @JvmField
@@ -139,7 +139,7 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
                 val shadows = mutableListOf<BlockFace>()
                 var hasShadows = false
                 val blockShadows = mutableMapOf<IVec3<Int>, Int?>()
-                val sectionGrid = Array(256) { mutableListOf<SectionData>() }
+                val sectionGrid = Array(256) { mutableListOf<LightInstance>() }
                 val sectionMeshes = hashMapOf<SectionPos, SectionMeshCache?>()
                 val grids = mutableListOf<Array<Int?>>()
                 var numLightInstances = 0
@@ -233,7 +233,7 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
 
                     for (pos in light.sections) {
                         if ((pos.x shr 3) == region.x && (pos.y shr 2) == region.y && (pos.z shr 3) == region.z) {
-                            sectionGrid[LocalSectionIndex.pack(pos.x, pos.y, pos.z)].add(SectionData(light, cellRangeStart))
+                            sectionGrid[LocalSectionIndex.pack(pos.x, pos.y, pos.z)].add(LightInstance(light, cellRangeStart))
                             numLightInstances++
 
                             if (!added) {
@@ -262,7 +262,6 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
                 }
 
                 {
-
                     val bufferUsage = GpuBufferUsage.SHADER_STORAGE
 
                     val lightBuffer = GpuObjects.buffer(
@@ -340,7 +339,7 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
                         }
                     }
 
-                    Vibrancy.LOGGER.info("Uploading $regionPos: ${lightBuffer.size} light buffer, ${shadowBuffer?.size} shadow buffer, ${gridBuffer.size} grid buffer, total of ${lightBuffer.size + (shadowBuffer?.size ?: 0) + gridBuffer.size} bytes. $numLights lights, $numLightInstances light instances, ${shadows.size} shadows, meaning ${shadows.size / numLights} shadows per light, ${shadows.size / numLightInstances} shadows per light instance, max grid cell index $cellRangeIndex, num non-solid blocks ${blockShadows.size}, num sections ${sectionMeshes.size}")
+                    Vibrancy.LOGGER.info("Uploading $regionPos: ${lightBuffer.size} light buffer, ${shadowBuffer?.size} shadow buffer, ${gridBuffer.size} grid buffer, total of ${lightBuffer.size + (shadowBuffer?.size ?: 0) + gridBuffer.size} bytes. $numLights lights, $numLightInstances light instances, ${shadows.size} shadows, meaning ${shadows.size / numLights} shadows per light, ${shadows.size / numLightInstances} shadows per light instance, max grid cell index $cellRangeIndex, num non-solid blocks ${blockShadows.size}, num sections ${sectionMeshes.size}, ${sectionGrid.sumOf { it.size }.toFloat() / sectionGrid.size} section grid")
 
                     RegionData(lightBuffer, shadowBuffer, gridBuffer)
                 }

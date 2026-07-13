@@ -54,23 +54,19 @@ object RayPointLightType : BlockLightType<RayPointLightInfo, RayPointLightStorag
                 pass.bindTexture("u_TransmissionTex", transmissionTex, context.terrainSampler)
 
                 BiConsumer { renderList, draw ->
-                    val storage = renderList.region.getStorage(context.terrainType)
+                    val regionData = lights.getOrPackRegion(renderList.region, manager)
 
-                    if (storage != null) {
-                        val regionData = lights.getOrPackRegion(renderList.region, manager)
+                    if (regionData != null) {
+                        pass.setUniform("u_Lights", regionData.lightBuffer)
 
-                        if (regionData != null) {
-                            pass.setUniform("u_Lights", regionData.lightBuffer)
-
-                            if (regionData.shadowBuffer == null) {
-                                pass.setUniform("u_Shadows", emptyShadowBuffer)
-                            } else {
-                                pass.setUniform("u_Shadows", regionData.shadowBuffer)
-                            }
-
-                            pass.setUniform("u_Grids", regionData.gridBuffer)
-                            draw.run()
+                        if (regionData.shadowBuffer == null) {
+                            pass.setUniform("u_Shadows", emptyShadowBuffer)
+                        } else {
+                            pass.setUniform("u_Shadows", regionData.shadowBuffer)
                         }
+
+                        pass.setUniform("u_Grids", regionData.gridBuffer)
+                        draw.run()
                     }
                 }
             }

@@ -74,6 +74,15 @@ open class RayPointLight(
         SectionPos.blockToSectionCoord(ceil(boundingBox.max.z).toInt())
     ).toList()
     @JvmField
+    val subSections: List<IVec3<Int>> = IRect3(
+        boundingBox.min.x.toInt() shr 3,
+        (boundingBox.min.y.toInt() shr 3).coerceAtLeast(level.minSectionY * 2).coerceAtMost(level.maxSectionY * 2),
+        boundingBox.min.z.toInt() shr 3,
+        ceil(boundingBox.max.x).toInt() shr 3,
+        (ceil(boundingBox.max.y).toInt() shr 3).coerceAtLeast(level.minSectionY * 2).coerceAtMost(level.maxSectionY * 2),
+        ceil(boundingBox.max.z).toInt() shr 3
+    ).iterator().asSequence().toList()
+    @JvmField
     val sectionPos = SectionPos.of(absolutePos.toBlockPos())
     val shadowRadius: Int
         get() = radius.toInt().coerceAtMost(VibrancyConfig.rayLightShadowRadius)
