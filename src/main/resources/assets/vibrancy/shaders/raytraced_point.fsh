@@ -135,9 +135,11 @@ void main() {
 
     vec3 totalLightColor = vec3(0);
     uint sectionRange = lights.sectionRanges[v_SectionPos];
+    uint rangeStart = sectionRange >> 16u;
+    uint rangeEnd = rangeStart + (sectionRange & 0xFFFFu);
 
     //for (uint i = sectionRange >> 16u; i < min((sectionRange & 0xFFFFu), (sectionRange >> 16u) + 1u); i++) {
-    for (uint i = sectionRange >> 16u; i < (sectionRange & 0xFFFFu); i++) {
+    for (uint i = rangeStart; i < rangeEnd; i++) {
         RaytracedPointLight light = lights.array[i];
         vec3 delta = light.pos - v_Pos;
 

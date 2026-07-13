@@ -278,9 +278,8 @@ class RayPointLightStorage : HashMapBlockLightStorage<RayPointLightInfo, RayPoin
                         var index = 0
 
                         for (cell in sectionGrid) {
-                            val index1 = index
+                            output.write2x2(index, cell.size)
                             index += cell.size
-                            output.write2x2(index1, index)
                         }
 
                         output.skip(4)
