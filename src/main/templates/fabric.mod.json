@@ -19,13 +19,18 @@
         "adapter": "kotlin",
         "value": "net.typho.vibrancy.VibrancyModMenuCompat"
       }
+    ],
+    "main": [
+      {
+        "adapter": "kotlin",
+        "value": "net.typho.vibrancy.Vibrancy"
+      }
     ]
   },
   "depends": {
     "fabric-api": "*",
     "minecraft": "${minecraft_version_range}",
     "fabric-language-kotlin": "*",
-    "big_shot_lib": ">=${big_shot_version}",
     "yet_another_config_lib_v3": ">=${yacl_version}"
   }
 }

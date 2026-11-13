@@ -7,7 +7,7 @@ plugins {
     id("dev.kikugie.postprocess.jsonlang") version "2.1-beta.4" apply false
 }
 
-stonecutter active "mc26_2_fabric"
+stonecutter active "mc26_1_2_fabric"
 stonecutter handlers {
     inherit("vsh", "glsl")
 }

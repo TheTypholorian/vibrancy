@@ -1,5 +1,6 @@
 package net.typho.vibrancy.util
 
+/*
 import net.caffeinemc.mods.sodium.client.render.texture.SpriteContentsExtension
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.texture.AbstractTexture
@@ -143,3 +144,4 @@ object TextureLayers : NamedResource, SingleStepNeoReloadListener {
         return getTransmission(key, resources) ?: throw NullPointerException("No Vibrancy transmission layer for texture $key")
     }
 }
+ */

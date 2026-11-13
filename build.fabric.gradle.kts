@@ -11,20 +11,6 @@ plugins {
     id("com.google.devtools.ksp") version "2.3.9"
 
     id("dev.isxander.modstitch.base") version "0.8.5"
-
-    id("net.typho.big_shot_lib.plugin") version "1.0.0"
-}
-
-bigShotLib {
-    version(sc.current.version)
-    loader("fabric")
-
-    transformInfo {
-        setupDefaults()
-
-        clientOnlyPackages.add("net/typho/vibrancy/client")
-        clientOnlyPackages.add("net/typho/vibrancy/mixin/client")
-    }
 }
 
 fletchingTable {
@@ -87,7 +73,6 @@ modstitch {
         replacementProperties.put("group", project.group as String)
         replacementProperties.put("minecraft_version_range", project.property("deps.minecraft_range") as String)
         replacementProperties.put("fabric_api_version", project.property("deps.fabric_api") as String)
-        replacementProperties.put("big_shot_version", project.property("deps.big_shot") as String)
         replacementProperties.put("yacl_version", project.property("deps.yacl") as String)
         replacementProperties.put("sodium_version", project.property("deps.sodium") as String)
         replacementProperties.put("java_version", "21")
@@ -192,14 +177,16 @@ dependencies {
     modstitchModImplementation("net.fabricmc.fabric-api:fabric-api:${property("deps.fabric_api")}")
     modstitchModImplementation("maven.modrinth:fabric-language-kotlin:1.13.12+kotlin.2.4.0")
 
-    modstitchModCompileOnly("net.typho:big_shot_lib:${property("deps.big_shot")}")
+    //modstitchModCompileOnly("net.typho:big_shot_lib:${property("deps.big_shot")}")
     modstitchModImplementation("maven.modrinth:sodium:${property("deps.sodium")}")
     modstitchModImplementation("maven.modrinth:yacl:${property("deps.yacl")}")
     modstitchModImplementation("maven.modrinth:modmenu:${property("deps.modmenu")}")
 
+    /*
     findProperty("deps.sable_companion")?.let {
         modstitchJiJ(modstitchModApi("dev.ryanhcode.sable-companion:sable-companion-fabric-${property("deps.minecraft")}:[${it},)")!!)
     }
+     */
 }
 
 val additionalVersions: List<String> = (findProperty("publish.additionalVersions") as? String)
