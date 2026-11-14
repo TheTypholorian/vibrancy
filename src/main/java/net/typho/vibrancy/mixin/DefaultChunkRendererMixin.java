@@ -8,6 +8,7 @@ import com.mojang.blaze3d.opengl.GlTexture;
 import com.mojang.blaze3d.pipeline.RenderTarget;
 import com.mojang.blaze3d.systems.RenderSystem;
 import com.mojang.blaze3d.textures.GpuSampler;
+import net.caffeinemc.mods.sodium.api.memory.MemoryIntrinsics;
 import net.caffeinemc.mods.sodium.client.gl.buffer.GlTexelBuffer;
 import net.caffeinemc.mods.sodium.client.gl.device.CommandList;
 import net.caffeinemc.mods.sodium.client.gl.device.MultiDrawBatch;
@@ -15,11 +16,10 @@ import net.caffeinemc.mods.sodium.client.gl.device.RenderDevice;
 import net.caffeinemc.mods.sodium.client.gl.tessellation.GlPrimitiveType;
 import net.caffeinemc.mods.sodium.client.gl.tessellation.GlTessellation;
 import net.caffeinemc.mods.sodium.client.gl.tessellation.TessellationBinding;
-import net.caffeinemc.mods.sodium.client.render.chunk.ChunkRenderMatrices;
-import net.caffeinemc.mods.sodium.client.render.chunk.DefaultChunkRenderer;
-import net.caffeinemc.mods.sodium.client.render.chunk.ShaderChunkRenderer;
-import net.caffeinemc.mods.sodium.client.render.chunk.SharedQuadIndexBuffer;
+import net.caffeinemc.mods.sodium.client.model.quad.properties.ModelQuadFacing;
+import net.caffeinemc.mods.sodium.client.render.chunk.*;
 import net.caffeinemc.mods.sodium.client.render.chunk.data.SectionRenderDataStorage;
+import net.caffeinemc.mods.sodium.client.render.chunk.data.SectionRenderDataUnsafe;
 import net.caffeinemc.mods.sodium.client.render.chunk.lists.ChunkRenderList;
 import net.caffeinemc.mods.sodium.client.render.chunk.lists.ChunkRenderListIterable;
 import net.caffeinemc.mods.sodium.client.render.chunk.region.RenderRegion;
@@ -30,14 +30,18 @@ import net.caffeinemc.mods.sodium.client.render.chunk.terrain.TerrainRenderPass;
 import net.caffeinemc.mods.sodium.client.render.chunk.vertex.format.ChunkVertexType;
 import net.caffeinemc.mods.sodium.client.render.viewport.CameraTransform;
 import net.caffeinemc.mods.sodium.client.util.FogParameters;
+import net.caffeinemc.mods.sodium.client.util.UInt32;
 import net.caffeinemc.mods.sodium.mixin.core.CommandEncoderAccessor;
 import net.caffeinemc.mods.sodium.mixin.core.GlCommandEncoderAccessor;
 import net.caffeinemc.mods.sodium.mixin.core.GpuDeviceAccessor;
 import net.typho.vibrancy.Vibrancy;
 import net.typho.vibrancy.ext.DeviceResourcesExt;
+import net.typho.vibrancy.ext.RenderRegionExt;
+import org.lwjgl.system.Pointer;
 import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -65,6 +69,11 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
     @Final
     private SharedQuadIndexBuffer sharedIndexBuffer;
 
+    @Shadow
+    public static int getVisibleFaces(int originX, int originY, int originZ, int chunkX, int chunkY, int chunkZ) {
+        throw new UnsupportedOperationException("Implemented via mixin");
+    }
+
     public DefaultChunkRendererMixin(RenderDevice device, ChunkVertexType vertexType) {
         super(device, vertexType);
     }
@@ -85,8 +94,8 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
             GpuBufferSlice uniformBuffer,
             GlTexelBuffer sectionTimeInfoTexture,
             CallbackInfo ci,
-            @Local(ordinal = 0) boolean useBlockFaceCulling,
-            @Local(ordinal = 1) boolean useIndexedTessellation
+            @Local(name = "indexedRenderingEnabled") boolean useBlockFaceCulling,
+            @Local(name = "useBlockFaceCulling") boolean useIndexedTessellation
     ) {
         RenderTarget target = renderPass.getTarget();
         GlStateManager._viewport(0, 0, target.getColorTexture().getWidth(0), target.getColorTexture().getHeight(0));
@@ -106,7 +115,7 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
             ChunkRenderList renderList = iterator.next();
 
             var region = renderList.getRegion();
-            var storage = region.getStorage(renderPass);
+            var storage = ((RenderRegionExt) region).vibrancy$getOverlayStorage(renderPass);
 
             if (storage == null) {
                 continue;
@@ -119,10 +128,10 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
                 continue;
             }
 
-            var batch = region.getCachedBatch(renderPass);
+            var batch = ((RenderRegionExt) region).vibrancy$getCachedOverlayBatch(renderPass);
 
             if (!batch.isFilled) {
-                fillCommandBuffer(batch, region, storage, renderList, camera, renderPass, useBlockFaceCulling, useIndexedTessellation);
+                fillCommandBuffer(batch, region, storage, renderList, camera, renderPass, useBlockFaceCulling, true);
             }
 
             if (batch.isEmpty()) {
@@ -134,7 +143,7 @@ public abstract class DefaultChunkRendererMixin extends ShaderChunkRenderer {
             if (tessellation == null) {
                 tessellation = commandList.createTessellation(GlPrimitiveType.TRIANGLES, new TessellationBinding[] {
                         TessellationBinding.forVertexBuffer(resources.getGeometryBuffer(), vertexFormat.getShaderBindings()),
-                        TessellationBinding.forElementBuffer(sharedIndexBuffer.getBufferObject()) // TODO
+                        TessellationBinding.forElementBuffer(resources.getIndexBuffer()) // TODO
                 });
                 ((DeviceResourcesExt) resources).vibrancy$updateOverlayTessellation(commandList, tessellation);
             }

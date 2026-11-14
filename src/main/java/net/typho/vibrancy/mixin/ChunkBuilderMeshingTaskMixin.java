@@ -28,14 +28,14 @@ public class ChunkBuilderMeshingTaskMixin {
             ChunkBuildContext buildContext,
             CancellationToken cancellationToken,
             CallbackInfoReturnable<ChunkBuildOutput> cir,
-            @Local ChunkBuildBuffers buffers,
-            @Local LevelSlice slice,
-            @Local(ordinal = 0) int minX,
-            @Local(ordinal = 1) int minY,
-            @Local(ordinal = 2) int minZ,
-            @Local(ordinal = 3) int maxX,
-            @Local(ordinal = 4) int maxY,
-            @Local(ordinal = 5) int maxZ
+            @Local(name = "buffers") ChunkBuildBuffers buffers,
+            @Local(name = "slice") LevelSlice slice,
+            @Local(name = "minX") int minX,
+            @Local(name = "minY") int minY,
+            @Local(name = "minZ") int minZ,
+            @Local(name = "maxX") int maxX,
+            @Local(name = "maxY") int maxY,
+            @Local(name = "maxZ") int maxZ
     ) {
         for (int x = minX - 8; x < maxX + 8; x++) {
             for (int y = minY - 8; y < maxY + 8; y++) {
