@@ -1,27 +1,32 @@
-#include "sodium:globals"
-#include "sodium:fog"
-#include "vibrancy:config"
+#version 330 core
 
-#ifdef USE_FOG
-in vec2 v_FragDistance;
-in float v_FadeFactor;
-#endif
+#import <sodium:include/fog.glsl>
+#import <sodium:include/globals.glsl>
+#import <sodium:include/chunk_material.glsl>
 
-vec3 sampleCubeLight(vec3 lightPos, vec3 fragPos, float startRadius, float endRadius, vec3 lightColor) {
-    float dist = max(abs(lightPos.x - fragPos.x), max(abs(lightPos.y - fragPos.y), abs(lightPos.z - fragPos.z)));
-    return clamp((endRadius - dist) / (endRadius - startRadius), 0, 1) * lightColor;
-}
+in vec4 v_Color; // The interpolated vertex color
+in vec2 v_TexCoord; // The interpolated block texture coordinates
+in vec2 v_FragDistance; // The fragment's distance from the camera (cylindrical and spherical)
+in float fadeFactor;
 
-vec4 sampleNearest(sampler2D source, vec2 uv, vec2 pixelSize, vec2 du, vec2 dv, vec2 texelScreenSize) {
+flat in uint v_Material;
+
+uniform sampler2D u_BlockTex; // The block texture
+
+out vec4 fragColor; // The output fragment for the color framebuffer
+
+vec4 sampleNearest(sampler2D sampler, vec2 uv, vec2 pixelSize, vec2 du, vec2 dv, vec2 texelScreenSize) {
+    // Convert our UV back up to texel coordinates and find out how far over we are from the center of each pixel
     vec2 uvTexelCoords = uv / pixelSize;
     vec2 texelCenter = round(uvTexelCoords) - 0.5f;
     vec2 texelOffset = uvTexelCoords - texelCenter;
 
+    // Move our offset closer to the texel center based on texel size on screen
     texelOffset = (texelOffset - 0.5f) * pixelSize / texelScreenSize + 0.5f;
     texelOffset = clamp(texelOffset, 0.0f, 1.0f);
 
     uv = (texelCenter + texelOffset) * pixelSize;
-    return textureGrad(source, uv, du, dv);
+    return textureGrad(sampler, uv, du, dv);
 }
 
 vec4 sampleNearest(sampler2D source, vec2 uv, vec2 pixelSize) {
@@ -31,6 +36,7 @@ vec4 sampleNearest(sampler2D source, vec2 uv, vec2 pixelSize) {
     return sampleNearest(source, uv, pixelSize, du, dv, texelScreenSize);
 }
 
+// Rotated Grid Super-Sampling
 vec4 sampleRGSS(sampler2D source, vec2 uv, vec2 pixelSize) {
     vec2 du = dFdx(uv);
     vec2 dv = dFdy(uv);
@@ -72,14 +78,15 @@ vec4 sampleRGSS(sampler2D source, vec2 uv, vec2 pixelSize) {
     return mix(nearestColor, rgssColor, blendFactor);
 }
 
-vec4 sampleTexture(sampler2D source, vec2 uv, vec2 pixelSize) {
-    return u_UseRGSS ? sampleRGSS(source, uv, pixelSize) : sampleNearest(source, uv, pixelSize);
-}
+void main() {
+    vec4 color = u_UseRGSS ? sampleRGSS(u_BlockTex, v_TexCoord, u_TexelSize) : sampleNearest(u_BlockTex, v_TexCoord, u_TexelSize);
+    color *= v_Color; // Apply per-vertex color modulator
 
-float getFogScale() {
-    #ifdef FOG
-    return v_FadeFactor * (1 - total_fog_value(v_FragDistance.y, v_FragDistance.x, u_EnvironmentFog.x, u_EnvironmentFog.y, u_RenderFog.x, u_RenderFog.y));
-    #else
-    return 1;
-    #endif
+#ifdef USE_FRAGMENT_DISCARD
+    if (color.a < _material_alpha_cutoff(v_Material)) {
+        discard;
+    }
+#endif
+
+    fragColor = _linearFog(color, v_FragDistance, u_FogColor, u_EnvironmentFog, u_RenderFog, fadeFactor) * vec4(1, 0.5, 0.25, 1);
 }

@@ -37,13 +37,13 @@ public class ChunkBuilderMeshingTaskMixin {
             @Local(ordinal = 4) int maxY,
             @Local(ordinal = 5) int maxZ
     ) {
-        for (int x = minX; x < maxX; x++) {
-            for (int y = minY; y < maxY; y++) {
-                for (int z = minZ; z < maxZ; z++) {
-                    var state = slice.getBlockState(x, y, z);
+        for (int x = minX - 8; x < maxX + 8; x++) {
+            for (int y = minY - 8; y < maxY + 8; y++) {
+                for (int z = minZ - 8; z < maxZ + 8; z++) {
+                    var state = slice.getBlockState(x, y, z); // TODO doesn't work because chunk borders
 
-                    if (state.is(Blocks.TORCH)) {
-                        ((ChunkBuildBuffersExt) buffers).vibrancy$getLightSources().add(new Vec3i(x & 15, y & 15, z & 15));
+                    if (state.getLightEmission() > 0) {
+                        ((ChunkBuildBuffersExt) buffers).vibrancy$getLightSources().add(new Vec3i(x - minX, y - minY, z - minZ));
                     }
                 }
             }

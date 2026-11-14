@@ -1,7 +1,0 @@
-{
-  "sources": {
-    "vertex": "vibrancy:light_blit",
-    "fragment": "vibrancy:block/raytraced/dynamic_blit"
-  },
-  "format": "vibrancy:light_mesh"
-}

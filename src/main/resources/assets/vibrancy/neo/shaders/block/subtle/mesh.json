@@ -1,7 +1,0 @@
-{
-  "sources": {
-    "vertex": "vibrancy:block/subtle/mesh",
-    "fragment": "vibrancy:block/subtle/mesh"
-  },
-  "format": "vibrancy:subtle_mesh"
-}

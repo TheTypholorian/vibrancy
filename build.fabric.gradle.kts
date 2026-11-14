@@ -161,6 +161,7 @@ repositories {
     maven("https://maven.ryanhcode.dev/releases")
     maven("https://maven.fabricmc.net")
     maven("https://maven.parchmentmc.org")
+    maven("https://maven.caffeinemc.net/releases")
 
     ivy {
         url = uri("https://github.com/TheTypholorian/big_shot_lib/releases/download")
@@ -178,7 +179,7 @@ dependencies {
     modstitchModImplementation("maven.modrinth:fabric-language-kotlin:1.13.12+kotlin.2.4.0")
 
     //modstitchModCompileOnly("net.typho:big_shot_lib:${property("deps.big_shot")}")
-    modstitchModImplementation("maven.modrinth:sodium:${property("deps.sodium")}")
+    modstitchModImplementation("net.caffeinemc:sodium-fabric:${property("deps.sodium")}")
     modstitchModImplementation("maven.modrinth:yacl:${property("deps.yacl")}")
     modstitchModImplementation("maven.modrinth:modmenu:${property("deps.modmenu")}")
 
