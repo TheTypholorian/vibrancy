@@ -6,11 +6,11 @@ import net.caffeinemc.mods.sodium.client.gl.device.CommandList;
 import net.caffeinemc.mods.sodium.client.gl.device.MultiDrawBatch;
 import net.caffeinemc.mods.sodium.client.model.quad.properties.ModelQuadFacing;
 import net.caffeinemc.mods.sodium.client.render.chunk.RenderSection;
-import net.caffeinemc.mods.sodium.client.render.chunk.data.SectionRenderDataStorage;
 import net.caffeinemc.mods.sodium.client.render.chunk.region.RenderRegion;
 import net.caffeinemc.mods.sodium.client.render.chunk.terrain.DefaultTerrainRenderPasses;
 import net.caffeinemc.mods.sodium.client.render.chunk.terrain.TerrainRenderPass;
 import net.typho.vibrancy.ext.RenderRegionExt;
+import net.typho.vibrancy.mirror.VibrancySectionRenderDataStorage;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -22,21 +22,21 @@ import java.util.Map;
 @Mixin(RenderRegion.class)
 public class RenderRegionMixin implements RenderRegionExt {
     @Unique
-    private final Map<TerrainRenderPass, SectionRenderDataStorage> vibrancy$sectionOverlayRenderData = new Reference2ReferenceOpenHashMap<>();
+    private final Map<TerrainRenderPass, VibrancySectionRenderDataStorage> vibrancy$sectionOverlayRenderData = new Reference2ReferenceOpenHashMap<>();
     @Unique
     private final Map<TerrainRenderPass, MultiDrawBatch> vibrancy$cachedOverlayBatches = new Reference2ReferenceOpenHashMap<>();
 
     @Override
-    public SectionRenderDataStorage vibrancy$getOverlayStorage(TerrainRenderPass pass) {
+    public VibrancySectionRenderDataStorage vibrancy$getOverlayStorage(TerrainRenderPass pass) {
         return vibrancy$sectionOverlayRenderData.get(pass);
     }
 
     @Override
-    public SectionRenderDataStorage vibrancy$getOrCreateOverlayStorage(TerrainRenderPass pass) {
+    public VibrancySectionRenderDataStorage vibrancy$getOrCreateOverlayStorage(TerrainRenderPass pass) {
         var storage = vibrancy$sectionOverlayRenderData.get(pass);
 
         if (storage == null) {
-            storage = new SectionRenderDataStorage(true);
+            storage = new VibrancySectionRenderDataStorage();
             vibrancy$sectionOverlayRenderData.put(pass, storage);
         }
 

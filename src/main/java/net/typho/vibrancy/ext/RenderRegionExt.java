@@ -1,13 +1,13 @@
 package net.typho.vibrancy.ext;
 
 import net.caffeinemc.mods.sodium.client.gl.device.MultiDrawBatch;
-import net.caffeinemc.mods.sodium.client.render.chunk.data.SectionRenderDataStorage;
 import net.caffeinemc.mods.sodium.client.render.chunk.terrain.TerrainRenderPass;
+import net.typho.vibrancy.mirror.VibrancySectionRenderDataStorage;
 
 public interface RenderRegionExt {
-    SectionRenderDataStorage vibrancy$getOverlayStorage(TerrainRenderPass pass);
+    VibrancySectionRenderDataStorage vibrancy$getOverlayStorage(TerrainRenderPass pass);
 
-    SectionRenderDataStorage vibrancy$getOrCreateOverlayStorage(TerrainRenderPass pass);
+    VibrancySectionRenderDataStorage vibrancy$getOrCreateOverlayStorage(TerrainRenderPass pass);
 
     MultiDrawBatch vibrancy$getCachedOverlayBatch(TerrainRenderPass pass);
 }
