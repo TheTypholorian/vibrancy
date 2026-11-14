@@ -1,7 +1,17 @@
 package net.typho.vibrancy
 
+import net.caffeinemc.mods.sodium.client.gl.shader.GlProgram
+import net.caffeinemc.mods.sodium.client.gl.shader.ShaderLoader
+import net.caffeinemc.mods.sodium.client.gl.shader.ShaderType
+import net.caffeinemc.mods.sodium.client.render.chunk.ShaderChunkRenderer
+import net.caffeinemc.mods.sodium.client.render.chunk.shader.ChunkShaderBindingPoints
+import net.caffeinemc.mods.sodium.client.render.chunk.shader.ChunkShaderInterface
+import net.caffeinemc.mods.sodium.client.render.chunk.shader.ChunkShaderOptions
+import net.caffeinemc.mods.sodium.client.render.chunk.shader.DefaultShaderInterface
+import net.caffeinemc.mods.sodium.client.render.chunk.terrain.TerrainRenderPass
 import net.fabricmc.api.ModInitializer
 import net.minecraft.resources.Identifier
+import net.typho.vibrancy.mixin.ShaderChunkRendererAccessor
 
 object Vibrancy : ModInitializer {
     const val MOD_ID = "vibrancy"
@@ -10,6 +20,32 @@ object Vibrancy : ModInitializer {
     fun id(path: String) = Identifier.fromNamespaceAndPath(MOD_ID, path)
 
     override fun onInitialize() {
+    }
+
+    @JvmField
+    val programs = mutableMapOf<ChunkShaderOptions, GlProgram<ChunkShaderInterface>>()
+
+    @JvmStatic
+    fun getOrCompileOverlayProgram(options: ChunkShaderOptions) = programs.computeIfAbsent(options) {
+        val constants = ShaderChunkRendererAccessor.`vibrancy$createShaderConstants`(options)
+
+        val vertex = ShaderLoader.loadShader(ShaderType.VERTEX, id("blocks/block_light_overlay.vsh"), constants)
+        val fragment = ShaderLoader.loadShader(ShaderType.FRAGMENT, id("blocks/block_light_overlay.fsh"), constants)
+
+        try {
+            return@computeIfAbsent GlProgram.builder(id("block_light_overlay_shader"))
+                .attachShader(vertex)
+                .attachShader(fragment)
+                .bindAttribute("a_Position", ChunkShaderBindingPoints.ATTRIBUTE_POSITION)
+                .bindAttribute("a_Color", ChunkShaderBindingPoints.ATTRIBUTE_COLOR)
+                .bindAttribute("a_TexCoord", ChunkShaderBindingPoints.ATTRIBUTE_TEXTURE)
+                .bindAttribute("a_LightAndData", ChunkShaderBindingPoints.ATTRIBUTE_LIGHT_MATERIAL_INDEX)
+                .bindFragmentData("fragColor", ChunkShaderBindingPoints.FRAG_COLOR)
+                .link { DefaultShaderInterface(it, options) }
+        } finally {
+            vertex.delete()
+            fragment.delete()
+        }
     }
 
     /*
