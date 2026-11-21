@@ -20,7 +20,7 @@
         "value": "net.typho.vibrancy.VibrancyModMenuCompat"
       }
     ],
-    "main": [
+    "client": [
       {
         "adapter": "kotlin",
         "value": "net.typho.vibrancy.Vibrancy"

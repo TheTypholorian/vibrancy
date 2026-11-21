@@ -1,59 +1,193 @@
 package net.typho.vibrancy
 
+import com.mojang.blaze3d.buffers.GpuBuffer
+import com.mojang.blaze3d.pipeline.DepthStencilState
+import com.mojang.blaze3d.pipeline.RenderPipeline
+import com.mojang.blaze3d.platform.TextureUtil
+import com.mojang.blaze3d.systems.RenderSystem
+import com.mojang.blaze3d.textures.AddressMode
+import com.mojang.blaze3d.textures.FilterMode
+import com.mojang.blaze3d.textures.GpuTexture
+import com.mojang.blaze3d.textures.TextureFormat
+import com.mojang.blaze3d.vertex.DefaultVertexFormat
+import com.mojang.blaze3d.vertex.VertexFormat
 import net.caffeinemc.mods.sodium.client.render.SodiumWorldRenderer
 import net.caffeinemc.mods.sodium.client.render.chunk.LocalSectionIndex
 import net.caffeinemc.mods.sodium.client.render.chunk.compile.ChunkBuildContext
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.SortBehavior
 import net.caffeinemc.mods.sodium.client.util.task.CancellationToken
 import net.caffeinemc.mods.sodium.client.world.LevelSlice
-import net.fabricmc.api.ModInitializer
+import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback
 import net.fabricmc.fabric.api.client.command.v2.ClientCommands.literal
+import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
+import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.minecraft.client.Minecraft
+import net.minecraft.client.renderer.RenderPipelines
+import net.minecraft.client.renderer.texture.TextureAtlas
 import net.minecraft.core.SectionPos
 import net.minecraft.resources.Identifier
 import net.typho.vibrancy.mixin.RenderRegionAccessor
 import net.typho.vibrancy.mixin.RenderSectionManagerAccessor
 import net.typho.vibrancy.mixin.SodiumWorldRendererAccessor
 import org.joml.Vector3d
+import java.nio.ByteBuffer
+import java.nio.file.Files
+import java.util.OptionalDouble
+import java.util.OptionalInt
+import kotlin.io.path.Path
+import kotlin.io.path.absolute
 
-object Vibrancy : ModInitializer {
+object Vibrancy : ClientModInitializer {
     const val MOD_ID = "vibrancy"
 
     @JvmStatic
     fun id(path: String) = Identifier.fromNamespaceAndPath(MOD_ID, path)
 
-    override fun onInitialize() {
+    @JvmField
+    val shadowMapPipeline = RenderPipelines.register(
+        RenderPipeline.builder()
+            .withLocation(id("point_light/shadow_map"))
+            .withVertexShader(id("point_light/shadow_map"))
+            .withFragmentShader(id("point_light/shadow_map"))
+            .withSampler("u_BlockTex")
+            .withCull(false)
+            .withDepthStencilState(DepthStencilState.DEFAULT)
+            .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR_NORMAL, VertexFormat.Mode.QUADS)
+            .build()
+    )
+
+    fun capture() {
+        val pos = Minecraft.getInstance().player!!.position()
+        val sectionManager = (SodiumWorldRenderer.instance() as SodiumWorldRendererAccessor).`vibrancy$renderSectionManager`()
+
+        val x = Math.floorDiv(pos.x.toInt(), 16)
+        val y = Math.floorDiv(pos.y.toInt(), 16)
+        val z = Math.floorDiv(pos.z.toInt(), 16)
+
+        val region = sectionManager.regions.getForChunk(x, y, z) ?: return
+        val section = (region as RenderRegionAccessor).`vibrancy$sections`()[LocalSectionIndex.pack(x, y, z)]
+        val task = VibrancyChunkMeshingTask(
+            section,
+            0,
+            Vector3d(pos.x, pos.y, pos.z),
+            LevelSlice.prepare(Minecraft.getInstance().level!!, SectionPos.of(x, y, z), (sectionManager as RenderSectionManagerAccessor).`vibrancy$sectionCache`()) ?: return,
+            SortBehavior.OFF,
+            forceSort = false,
+            blockingTask = true
+        )
+
+        val context = ChunkBuildContext(Minecraft.getInstance().level!!, VibrancyChunkVertexType)
+        val result = task.execute(
+            context,
+            CancellationToken.NEVER_CANCELLED
+        )
+
+        val size = result.meshes.values.sumOf { it.vertexData.length }
+
+        if (size == 0) {
+            result.meshes.values.forEach { it.vertexData.free() }
+            return
+        }
+
+        val vertexCount = size / VibrancyChunkVertexType.format.stride
+        val indexCount = vertexCount / 4 * 6
+        val vertexByteBuffer = ByteBuffer.allocateDirect(size)
+
+        for (parts in result.meshes.values) {
+            vertexByteBuffer.put(parts.vertexData.directBuffer)
+        }
+
+        val vertexBuffer = RenderSystem.getDevice().createBuffer(
+            null,
+            GpuBuffer.USAGE_VERTEX,
+            vertexByteBuffer.flip()
+        )
+        val indices = RenderSystem.getSequentialBuffer(VertexFormat.Mode.QUADS)
+        val indexBuffer = indices.getBuffer(indexCount)
+
+        val colorTexture = RenderSystem.getDevice().createTexture(
+            "Vibrancy test shadow map (color)",
+            GpuTexture.USAGE_COPY_SRC or GpuTexture.USAGE_COPY_DST or GpuTexture.USAGE_RENDER_ATTACHMENT or GpuTexture.USAGE_TEXTURE_BINDING,
+            TextureFormat.RGBA8,
+            256 * 6,
+            256,
+            1,
+            1
+        )
+        val depthTexture = RenderSystem.getDevice().createTexture(
+            "Vibrancy test shadow map (depth)",
+            GpuTexture.USAGE_COPY_SRC or GpuTexture.USAGE_COPY_DST or GpuTexture.USAGE_RENDER_ATTACHMENT or GpuTexture.USAGE_TEXTURE_BINDING,
+            TextureFormat.DEPTH32,
+            256 * 6,
+            256,
+            1,
+            1
+        )
+
+        RenderSystem.getDevice().createCommandEncoder().createRenderPass(
+            { "Vibrancy test shadow map pass" },
+            RenderSystem.getDevice().createTextureView(colorTexture),
+            OptionalInt.of(0),
+            RenderSystem.getDevice().createTextureView(depthTexture),
+            OptionalDouble.of(1.0)
+        ).use { pass ->
+            pass.setPipeline(shadowMapPipeline)
+            pass.bindTexture(
+                "u_BlockTex",
+                @Suppress("DEPRECATION")
+                Minecraft.getInstance().textureManager.getTexture(TextureAtlas.LOCATION_BLOCKS).textureView,
+                RenderSystem.getSamplerCache().getSampler(
+                    AddressMode.CLAMP_TO_EDGE,
+                    AddressMode.CLAMP_TO_EDGE,
+                    FilterMode.NEAREST,
+                    FilterMode.NEAREST,
+                    true
+                )
+            )
+            pass.setVertexBuffer(0, vertexBuffer)
+            pass.setIndexBuffer(indexBuffer, indices.type())
+            pass.drawIndexed(0, 0, indexCount, 6)
+        }
+
+        vertexBuffer.close()
+
+        val outDir = Minecraft.getInstance().gameDirectory.toPath().resolve("vibrancy")
+        Files.createDirectories(outDir)
+
+        TextureUtil.writeAsPNG(
+            outDir,
+            "shadow_map_color",
+            colorTexture,
+            0,
+            { it }
+        )
+        TextureUtil.writeAsPNG(
+            outDir,
+            "shadow_map_depth",
+            depthTexture,
+            0,
+            { it }
+        )
+
+        colorTexture.close()
+        depthTexture.close()
+
+        result.meshes.values.forEach { it.vertexData.free() }
+    }
+
+    override fun onInitializeClient() {
+        LevelRenderEvents.START_MAIN.register {
+            capture()
+        }
+        /*
         ClientCommandRegistrationCallback.EVENT.register { dispatcher, context ->
             dispatcher.register(literal("vibrancy").executes { source ->
-                val pos = Minecraft.getInstance().player!!.position()
-                val sectionManager = (SodiumWorldRenderer.instance() as SodiumWorldRendererAccessor).`vibrancy$renderSectionManager`()
-
-                val x = Math.floorDiv(pos.x.toInt(), 16)
-                val y = Math.floorDiv(pos.y.toInt(), 16)
-                val z = Math.floorDiv(pos.z.toInt(), 16)
-
-                val region = sectionManager.regions.getForChunk(x, y, z)
-                val section = (region as RenderRegionAccessor).`vibrancy$sections`()[LocalSectionIndex.pack(x, y, z)]
-                val task = VibrancyChunkMeshingTask(
-                    section,
-                    0,
-                    Vector3d(pos.x, pos.y, pos.z),
-                    LevelSlice.prepare(Minecraft.getInstance().level!!, SectionPos.of(x, y, z), (sectionManager as RenderSectionManagerAccessor).`vibrancy$sectionCache`()),
-                    SortBehavior.OFF,
-                    forceSort = false,
-                    blockingTask = true
-                )
-
-                val context = ChunkBuildContext(Minecraft.getInstance().level!!, VibrancyChunkVertexType)
-                val result = task.execute(
-                    context,
-                    CancellationToken.NEVER_CANCELLED
-                )
 
                 1
             })
         }
+         */
     }
 
     /*

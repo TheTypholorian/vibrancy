@@ -88,5 +88,5 @@ void main() {
     }
 #endif
 
-    fragColor = _linearFog(color, v_FragDistance, u_FogColor, u_EnvironmentFog, u_RenderFog, fadeFactor) * vec4(1, 0.5, 0.25, 1);
+    fragColor = _linearFog(color, v_FragDistance, u_FogColor, u_EnvironmentFog, u_RenderFog, fadeFactor);
 }

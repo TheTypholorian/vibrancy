@@ -103,6 +103,14 @@ modstitch {
     }
 }
 
+loom {
+    runs {
+        named("client") {
+            //programArgs("--renderDebugLabels")
+        }
+    }
+}
+
 val env = DotEnvBuilder.dotEnv {
     addFileIfExists("$rootDir/.env")
     addFileIfExists("$projectDir/.env")
