@@ -14,17 +14,16 @@ import com.mojang.blaze3d.vertex.VertexFormat
 import net.caffeinemc.mods.sodium.client.render.SodiumWorldRenderer
 import net.caffeinemc.mods.sodium.client.render.chunk.LocalSectionIndex
 import net.caffeinemc.mods.sodium.client.render.chunk.compile.ChunkBuildContext
+import net.caffeinemc.mods.sodium.client.render.chunk.compile.ChunkBuildOutput
 import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.SortBehavior
 import net.caffeinemc.mods.sodium.client.util.task.CancellationToken
 import net.caffeinemc.mods.sodium.client.world.LevelSlice
 import net.fabricmc.api.ClientModInitializer
-import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback
-import net.fabricmc.fabric.api.client.command.v2.ClientCommands.literal
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientTickEvents
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.RenderPipelines
 import net.minecraft.client.renderer.texture.TextureAtlas
+import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
 import net.minecraft.resources.Identifier
 import net.typho.vibrancy.mixin.RenderRegionAccessor
@@ -35,8 +34,6 @@ import java.nio.ByteBuffer
 import java.nio.file.Files
 import java.util.OptionalDouble
 import java.util.OptionalInt
-import kotlin.io.path.Path
-import kotlin.io.path.absolute
 
 object Vibrancy : ClientModInitializer {
     const val MOD_ID = "vibrancy"
@@ -51,42 +48,70 @@ object Vibrancy : ClientModInitializer {
             .withVertexShader(id("point_light/shadow_map"))
             .withFragmentShader(id("point_light/shadow_map"))
             .withSampler("u_BlockTex")
-            .withCull(false)
+            .withCull(true)
             .withDepthStencilState(DepthStencilState.DEFAULT)
             .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR_NORMAL, VertexFormat.Mode.QUADS)
             .build()
     )
+    private val colorTexture by lazy {
+        RenderSystem.getDevice().createTexture(
+            "Vibrancy test shadow map (color)",
+            GpuTexture.USAGE_COPY_SRC or GpuTexture.USAGE_COPY_DST or GpuTexture.USAGE_RENDER_ATTACHMENT or GpuTexture.USAGE_TEXTURE_BINDING,
+            TextureFormat.RGBA8,
+            256 * 6,
+            256,
+            1,
+            1
+        )
+    }
+    private val depthTexture by lazy {
+        RenderSystem.getDevice().createTexture(
+            "Vibrancy test shadow map (depth)",
+            GpuTexture.USAGE_COPY_SRC or GpuTexture.USAGE_COPY_DST or GpuTexture.USAGE_RENDER_ATTACHMENT or GpuTexture.USAGE_TEXTURE_BINDING,
+            TextureFormat.DEPTH32,
+            256 * 6,
+            256,
+            1,
+            1
+        )
+    }
+    private val lightPos = BlockPos(13, -60, 12)
+    private val context by lazy { // TODO
+        ChunkBuildContext(Minecraft.getInstance().level!!, VibrancyChunkVertexType(lightPos))
+    }
+    const val LIGHT_RADIUS = 6
 
     fun capture() {
-        val pos = Minecraft.getInstance().player!!.position()
+        val cameraPos = Minecraft.getInstance().player!!.position()
         val sectionManager = (SodiumWorldRenderer.instance() as SodiumWorldRendererAccessor).`vibrancy$renderSectionManager`()
+        val results = mutableListOf<ChunkBuildOutput>()
 
-        val x = Math.floorDiv(pos.x.toInt(), 16)
-        val y = Math.floorDiv(pos.y.toInt(), 16)
-        val z = Math.floorDiv(pos.z.toInt(), 16)
+        for (x in ((lightPos.x - LIGHT_RADIUS) / 16)..((lightPos.x + LIGHT_RADIUS) / 16)) {
+            for (y in ((lightPos.y - LIGHT_RADIUS) / 16)..((lightPos.y + LIGHT_RADIUS) / 16)) {
+                for (z in ((lightPos.z - LIGHT_RADIUS) / 16)..((lightPos.z + LIGHT_RADIUS) / 16)) {
+                    val sectionPos = SectionPos.of(x, y, z)
+                    val region = sectionManager.regions.getForChunk(sectionPos.x, sectionPos.y, sectionPos.z) ?: continue
+                    val section = (region as RenderRegionAccessor).`vibrancy$sections`()[LocalSectionIndex.pack(sectionPos.x, sectionPos.y, sectionPos.z)]
+                    val task = VibrancyChunkMeshingTask(
+                        section,
+                        0,
+                        Vector3d(cameraPos.x, cameraPos.y, cameraPos.z),
+                        LevelSlice.prepare(Minecraft.getInstance().level!!, sectionPos, (sectionManager as RenderSectionManagerAccessor).`vibrancy$sectionCache`()) ?: continue,
+                        SortBehavior.OFF,
+                        forceSort = false,
+                        blockingTask = true,
+                        lightPos
+                    )
 
-        val region = sectionManager.regions.getForChunk(x, y, z) ?: return
-        val section = (region as RenderRegionAccessor).`vibrancy$sections`()[LocalSectionIndex.pack(x, y, z)]
-        val task = VibrancyChunkMeshingTask(
-            section,
-            0,
-            Vector3d(pos.x, pos.y, pos.z),
-            LevelSlice.prepare(Minecraft.getInstance().level!!, SectionPos.of(x, y, z), (sectionManager as RenderSectionManagerAccessor).`vibrancy$sectionCache`()) ?: return,
-            SortBehavior.OFF,
-            forceSort = false,
-            blockingTask = true
-        )
+                    results.add(task.execute(context, CancellationToken.NEVER_CANCELLED))
+                }
+            }
+        }
 
-        val context = ChunkBuildContext(Minecraft.getInstance().level!!, VibrancyChunkVertexType)
-        val result = task.execute(
-            context,
-            CancellationToken.NEVER_CANCELLED
-        )
-
-        val size = result.meshes.values.sumOf { it.vertexData.length }
+        val size = results.sumOf { it.meshes.values.sumOf { it.vertexData.length } }
 
         if (size == 0) {
-            result.meshes.values.forEach { it.vertexData.free() }
+            results.forEach { it.meshes.values.forEach { it.vertexData.free() } }
             return
         }
 
@@ -94,8 +119,11 @@ object Vibrancy : ClientModInitializer {
         val indexCount = vertexCount / 4 * 6
         val vertexByteBuffer = ByteBuffer.allocateDirect(size)
 
-        for (parts in result.meshes.values) {
-            vertexByteBuffer.put(parts.vertexData.directBuffer)
+        // TODO
+        for (result in results) {
+            for (parts in result.meshes.values) {
+                vertexByteBuffer.put(parts.vertexData.directBuffer)
+            }
         }
 
         val vertexBuffer = RenderSystem.getDevice().createBuffer(
@@ -105,25 +133,6 @@ object Vibrancy : ClientModInitializer {
         )
         val indices = RenderSystem.getSequentialBuffer(VertexFormat.Mode.QUADS)
         val indexBuffer = indices.getBuffer(indexCount)
-
-        val colorTexture = RenderSystem.getDevice().createTexture(
-            "Vibrancy test shadow map (color)",
-            GpuTexture.USAGE_COPY_SRC or GpuTexture.USAGE_COPY_DST or GpuTexture.USAGE_RENDER_ATTACHMENT or GpuTexture.USAGE_TEXTURE_BINDING,
-            TextureFormat.RGBA8,
-            256 * 6,
-            256,
-            1,
-            1
-        )
-        val depthTexture = RenderSystem.getDevice().createTexture(
-            "Vibrancy test shadow map (depth)",
-            GpuTexture.USAGE_COPY_SRC or GpuTexture.USAGE_COPY_DST or GpuTexture.USAGE_RENDER_ATTACHMENT or GpuTexture.USAGE_TEXTURE_BINDING,
-            TextureFormat.DEPTH32,
-            256 * 6,
-            256,
-            1,
-            1
-        )
 
         RenderSystem.getDevice().createCommandEncoder().createRenderPass(
             { "Vibrancy test shadow map pass" },
@@ -170,10 +179,7 @@ object Vibrancy : ClientModInitializer {
             { it }
         )
 
-        colorTexture.close()
-        depthTexture.close()
-
-        result.meshes.values.forEach { it.vertexData.free() }
+        results.forEach { it.meshes.values.forEach { it.vertexData.free() } }
     }
 
     override fun onInitializeClient() {

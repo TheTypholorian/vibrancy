@@ -11,13 +11,16 @@ out vec2 v_TexCoord;
 out vec3 v_ShadowCoords;
 
 void main() {
+    float lightRadius = 6.0; // TODO
+    vec3 lightOffset = vec3(0.5, 1, 0.5); // TODO
+
     uint face = uint(gl_InstanceID);
-    vec3 dir = (Position - 8.0) / 8; // [-1, 1]
+    vec3 dir = (Position - (1 - lightOffset)) / lightRadius;
     float z = faceAndDirectionToDistance(dir, face);
     vec2 coords = faceAndDirectionToShadowCoords(dir, face);
 
     v_ShadowCoords = vec3(coords, z);
 
-    gl_Position = vec4((coords.x + 1.0 + 2.0 * float(face)) / 6.0 - 1.0, coords.y, z, 1);
+    gl_Position = vec4((coords.x + 1.0 + 2.0 * float(face)) / 6.0 - 1.0, coords.y, z * 2 - 1, 1);
     v_TexCoord = UV0;
 }
