@@ -1,9 +1,15 @@
 package net.typho.vibrancy
 
 import com.mojang.blaze3d.buffers.GpuBuffer
+import com.mojang.blaze3d.pipeline.BlendFunction
+import com.mojang.blaze3d.pipeline.ColorTargetState
 import com.mojang.blaze3d.pipeline.DepthStencilState
 import com.mojang.blaze3d.pipeline.RenderPipeline
+import com.mojang.blaze3d.platform.CompareOp
+import com.mojang.blaze3d.platform.DestFactor
+import com.mojang.blaze3d.platform.SourceFactor
 import com.mojang.blaze3d.platform.TextureUtil
+import com.mojang.blaze3d.shaders.UniformType
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.textures.AddressMode
 import com.mojang.blaze3d.textures.FilterMode
@@ -22,14 +28,19 @@ import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.RenderPipelines
+import net.minecraft.client.renderer.rendertype.LayeringTransform
 import net.minecraft.client.renderer.texture.TextureAtlas
 import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
 import net.minecraft.resources.Identifier
+import net.minecraft.world.phys.Vec3
 import net.typho.vibrancy.mixin.RenderRegionAccessor
 import net.typho.vibrancy.mixin.RenderSectionManagerAccessor
 import net.typho.vibrancy.mixin.SodiumWorldRendererAccessor
+import org.joml.Matrix4f
 import org.joml.Vector3d
+import org.joml.Vector3f
+import org.joml.Vector4f
 import java.nio.ByteBuffer
 import java.nio.file.Files
 import java.util.OptionalDouble
@@ -48,9 +59,23 @@ object Vibrancy : ClientModInitializer {
             .withVertexShader(id("point_light/shadow_map"))
             .withFragmentShader(id("point_light/shadow_map"))
             .withSampler("u_BlockTex")
-            .withCull(true)
+            .withCull(false) // TODO
             .withDepthStencilState(DepthStencilState.DEFAULT)
             .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR_NORMAL, VertexFormat.Mode.QUADS)
+            .build()
+    )
+    @JvmField
+    val pointLightPipeline = RenderPipelines.register(
+        RenderPipeline.builder(RenderPipelines.MATRICES_PROJECTION_SNIPPET)
+            .withLocation(id("point_light/render"))
+            .withVertexShader(id("point_light/render"))
+            .withFragmentShader(id("point_light/render"))
+            .withSampler("u_BlockTex")
+            .withSampler("u_ShadowTex")
+            .withCull(true)
+            .withDepthStencilState(DepthStencilState(DepthStencilState.DEFAULT.depthTest, false))
+            .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR_NORMAL, VertexFormat.Mode.QUADS)
+            .withColorTargetState(ColorTargetState(BlendFunction(SourceFactor.ONE, DestFactor.ONE)))
             .build()
     )
     private val colorTexture by lazy {
@@ -58,8 +83,8 @@ object Vibrancy : ClientModInitializer {
             "Vibrancy test shadow map (color)",
             GpuTexture.USAGE_COPY_SRC or GpuTexture.USAGE_COPY_DST or GpuTexture.USAGE_RENDER_ATTACHMENT or GpuTexture.USAGE_TEXTURE_BINDING,
             TextureFormat.RGBA8,
-            256 * 6,
-            256,
+            144 * 6,
+            144,
             1,
             1
         )
@@ -69,8 +94,8 @@ object Vibrancy : ClientModInitializer {
             "Vibrancy test shadow map (depth)",
             GpuTexture.USAGE_COPY_SRC or GpuTexture.USAGE_COPY_DST or GpuTexture.USAGE_RENDER_ATTACHMENT or GpuTexture.USAGE_TEXTURE_BINDING,
             TextureFormat.DEPTH32,
-            256 * 6,
-            256,
+            144 * 6,
+            144,
             1,
             1
         )
@@ -80,9 +105,11 @@ object Vibrancy : ClientModInitializer {
         ChunkBuildContext(Minecraft.getInstance().level!!, VibrancyChunkVertexType(lightPos))
     }
     const val LIGHT_RADIUS = 6
+    var vertexBuffer: GpuBuffer? = null
+    var vertexCount = 0
 
     fun capture() {
-        val cameraPos = Minecraft.getInstance().player!!.position()
+        val cameraPos = Minecraft.getInstance().gameRenderer.mainCamera.position()
         val sectionManager = (SodiumWorldRenderer.instance() as SodiumWorldRendererAccessor).`vibrancy$renderSectionManager`()
         val results = mutableListOf<ChunkBuildOutput>()
 
@@ -115,7 +142,7 @@ object Vibrancy : ClientModInitializer {
             return
         }
 
-        val vertexCount = size / VibrancyChunkVertexType.format.stride
+        vertexCount = size / VibrancyChunkVertexType.format.stride
         val indexCount = vertexCount / 4 * 6
         val vertexByteBuffer = ByteBuffer.allocateDirect(size)
 
@@ -126,11 +153,19 @@ object Vibrancy : ClientModInitializer {
             }
         }
 
-        val vertexBuffer = RenderSystem.getDevice().createBuffer(
+        val vertexBuffer = vertexBuffer?.let {
+            if (it.size() >= size) it else null
+        } ?: RenderSystem.getDevice().createBuffer(
             null,
-            GpuBuffer.USAGE_VERTEX,
-            vertexByteBuffer.flip()
-        )
+            GpuBuffer.USAGE_COPY_DST or GpuBuffer.USAGE_VERTEX,
+            size.toLong()
+        ).also {
+            vertexBuffer?.close()
+            vertexBuffer = it
+        }
+
+        RenderSystem.getDevice().createCommandEncoder().writeToBuffer(vertexBuffer.slice(), vertexByteBuffer.flip())
+
         val indices = RenderSystem.getSequentialBuffer(VertexFormat.Mode.QUADS)
         val indexBuffer = indices.getBuffer(indexCount)
 
@@ -159,8 +194,6 @@ object Vibrancy : ClientModInitializer {
             pass.drawIndexed(0, 0, indexCount, 6)
         }
 
-        vertexBuffer.close()
-
         val outDir = Minecraft.getInstance().gameDirectory.toPath().resolve("vibrancy")
         Files.createDirectories(outDir)
 
@@ -182,9 +215,74 @@ object Vibrancy : ClientModInitializer {
         results.forEach { it.meshes.values.forEach { it.vertexData.free() } }
     }
 
+    fun display() {
+        val cameraPos = Minecraft.getInstance().gameRenderer.mainCamera.position()
+
+        val vertexBuffer = vertexBuffer ?: return
+        val indexCount = vertexCount / 4 * 6
+        val indices = RenderSystem.getSequentialBuffer(VertexFormat.Mode.QUADS)
+        val indexBuffer = indices.getBuffer(indexCount)
+        val target = Minecraft.getInstance().mainRenderTarget
+
+        val stack = RenderSystem.getModelViewStack()
+        stack.pushMatrix()
+        LayeringTransform.VIEW_OFFSET_Z_LAYERING.modifier!!.accept(stack)
+        stack.translate(Vec3(lightPos).toVector3f().sub(cameraPos.toVector3f()))
+
+        val transforms = RenderSystem.getDynamicUniforms().writeTransform(
+            stack,
+            Vector4f(1f),
+            Vector3f(),
+            Matrix4f()
+        )
+
+        RenderSystem.getDevice().createCommandEncoder().createRenderPass(
+            { "Vibrancy test draw light" },
+            target.colorTextureView!!,
+            OptionalInt.empty(),
+            target.depthTextureView!!,
+            OptionalDouble.empty()
+        ).use { pass ->
+            pass.setPipeline(pointLightPipeline)
+            pass.bindTexture(
+                "u_BlockTex",
+                @Suppress("DEPRECATION")
+                Minecraft.getInstance().textureManager.getTexture(TextureAtlas.LOCATION_BLOCKS).textureView,
+                RenderSystem.getSamplerCache().getSampler(
+                    AddressMode.CLAMP_TO_EDGE,
+                    AddressMode.CLAMP_TO_EDGE,
+                    FilterMode.NEAREST,
+                    FilterMode.NEAREST,
+                    true
+                )
+            )
+            pass.bindTexture(
+                "u_ShadowTex",
+                RenderSystem.getDevice().createTextureView(depthTexture), // TODO
+                RenderSystem.getSamplerCache().getSampler(
+                    AddressMode.CLAMP_TO_EDGE,
+                    AddressMode.CLAMP_TO_EDGE,
+                    FilterMode.LINEAR, // TODO
+                    FilterMode.LINEAR,
+                    true
+                )
+            )
+            RenderSystem.bindDefaultUniforms(pass)
+            pass.setUniform("DynamicTransforms", transforms)
+            pass.setVertexBuffer(0, vertexBuffer)
+            pass.setIndexBuffer(indexBuffer, indices.type())
+            pass.drawIndexed(0, 0, indexCount, 1)
+        }
+
+        stack.popMatrix()
+    }
+
     override fun onInitializeClient() {
         LevelRenderEvents.START_MAIN.register {
             capture()
+        }
+        LevelRenderEvents.AFTER_OPAQUE_TERRAIN.register {
+            display()
         }
         /*
         ClientCommandRegistrationCallback.EVENT.register { dispatcher, context ->

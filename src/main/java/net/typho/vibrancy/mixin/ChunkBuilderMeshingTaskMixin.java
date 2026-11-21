@@ -35,11 +35,11 @@ public class ChunkBuilderMeshingTaskMixin {
             @Local(name = "z") int z
     ) {
         if ((Object) this instanceof VibrancyChunkMeshingTask vibrancy) {
-            if (vibrancy.light.distSqr(new Vec3i(x, y, z)) < (Vibrancy.LIGHT_RADIUS * Vibrancy.LIGHT_RADIUS)) {
-                return original.call(state);
+            if (vibrancy.light.distSqr(new Vec3i(x, y, z)) > (Vibrancy.LIGHT_RADIUS * Vibrancy.LIGHT_RADIUS)) {
+                return true;
+            } else if (vibrancy.light.getX() == x && vibrancy.light.getY() == y && vibrancy.light.getZ() == z) {
+                return true; // TODO
             }
-
-            return true;
         }
 
         return original.call(state);

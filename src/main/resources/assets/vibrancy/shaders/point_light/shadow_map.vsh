@@ -12,10 +12,10 @@ out vec3 v_ShadowCoords;
 
 void main() {
     float lightRadius = 6.0; // TODO
-    vec3 lightOffset = vec3(0.5, 1, 0.5); // TODO
+    vec3 lightOffset = vec3(0.0);//vec3(0.5, 0.5, 0.5); // TODO
 
     uint face = uint(gl_InstanceID);
-    vec3 dir = (Position - (1 - lightOffset)) / lightRadius;
+    vec3 dir = Position / lightRadius;
     float z = faceAndDirectionToDistance(dir, face);
     vec2 coords = faceAndDirectionToShadowCoords(dir, face);
 
