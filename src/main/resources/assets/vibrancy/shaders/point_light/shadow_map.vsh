@@ -11,7 +11,7 @@ out vec2 v_TexCoord;
 out vec3 v_ShadowCoords;
 
 void main() {
-    float lightRadius = 6.0; // TODO
+    float lightRadius = 16.0; // TODO
     vec3 lightOffset = vec3(0.0);//vec3(0.5, 0.5, 0.5); // TODO
 
     uint face = uint(gl_InstanceID);

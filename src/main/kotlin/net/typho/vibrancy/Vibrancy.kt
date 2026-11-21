@@ -79,7 +79,7 @@ object Vibrancy : ClientModInitializer {
             .build()
     )
     private val colorTexture by lazy {
-        RenderSystem.getDevice().createTexture(
+        RenderSystem.getDevice().createTextureView(RenderSystem.getDevice().createTexture(
             "Vibrancy test shadow map (color)",
             GpuTexture.USAGE_COPY_SRC or GpuTexture.USAGE_COPY_DST or GpuTexture.USAGE_RENDER_ATTACHMENT or GpuTexture.USAGE_TEXTURE_BINDING,
             TextureFormat.RGBA8,
@@ -87,10 +87,10 @@ object Vibrancy : ClientModInitializer {
             144,
             1,
             1
-        )
+        ))
     }
     private val depthTexture by lazy {
-        RenderSystem.getDevice().createTexture(
+        RenderSystem.getDevice().createTextureView(RenderSystem.getDevice().createTexture(
             "Vibrancy test shadow map (depth)",
             GpuTexture.USAGE_COPY_SRC or GpuTexture.USAGE_COPY_DST or GpuTexture.USAGE_RENDER_ATTACHMENT or GpuTexture.USAGE_TEXTURE_BINDING,
             TextureFormat.DEPTH32,
@@ -98,13 +98,13 @@ object Vibrancy : ClientModInitializer {
             144,
             1,
             1
-        )
+        ))
     }
     private val lightPos = BlockPos(13, -60, 12)
     private val context by lazy { // TODO
         ChunkBuildContext(Minecraft.getInstance().level!!, VibrancyChunkVertexType(lightPos))
     }
-    const val LIGHT_RADIUS = 6
+    const val LIGHT_RADIUS = 16
     var vertexBuffer: GpuBuffer? = null
     var vertexCount = 0
 
@@ -118,7 +118,7 @@ object Vibrancy : ClientModInitializer {
                 for (z in ((lightPos.z - LIGHT_RADIUS) / 16)..((lightPos.z + LIGHT_RADIUS) / 16)) {
                     val sectionPos = SectionPos.of(x, y, z)
                     val region = sectionManager.regions.getForChunk(sectionPos.x, sectionPos.y, sectionPos.z) ?: continue
-                    val section = (region as RenderRegionAccessor).`vibrancy$sections`()[LocalSectionIndex.pack(sectionPos.x, sectionPos.y, sectionPos.z)]
+                    val section = (region as RenderRegionAccessor).`vibrancy$sections`()[LocalSectionIndex.pack(sectionPos.x, sectionPos.y, sectionPos.z)] ?: continue
                     val task = VibrancyChunkMeshingTask(
                         section,
                         0,
@@ -171,9 +171,9 @@ object Vibrancy : ClientModInitializer {
 
         RenderSystem.getDevice().createCommandEncoder().createRenderPass(
             { "Vibrancy test shadow map pass" },
-            RenderSystem.getDevice().createTextureView(colorTexture),
+            colorTexture,
             OptionalInt.of(0),
-            RenderSystem.getDevice().createTextureView(depthTexture),
+            depthTexture,
             OptionalDouble.of(1.0)
         ).use { pass ->
             pass.setPipeline(shadowMapPipeline)
@@ -193,24 +193,6 @@ object Vibrancy : ClientModInitializer {
             pass.setIndexBuffer(indexBuffer, indices.type())
             pass.drawIndexed(0, 0, indexCount, 6)
         }
-
-        val outDir = Minecraft.getInstance().gameDirectory.toPath().resolve("vibrancy")
-        Files.createDirectories(outDir)
-
-        TextureUtil.writeAsPNG(
-            outDir,
-            "shadow_map_color",
-            colorTexture,
-            0,
-            { it }
-        )
-        TextureUtil.writeAsPNG(
-            outDir,
-            "shadow_map_depth",
-            depthTexture,
-            0,
-            { it }
-        )
 
         results.forEach { it.meshes.values.forEach { it.vertexData.free() } }
     }
@@ -258,7 +240,7 @@ object Vibrancy : ClientModInitializer {
             )
             pass.bindTexture(
                 "u_ShadowTex",
-                RenderSystem.getDevice().createTextureView(depthTexture), // TODO
+                depthTexture, // TODO
                 RenderSystem.getSamplerCache().getSampler(
                     AddressMode.CLAMP_TO_EDGE,
                     AddressMode.CLAMP_TO_EDGE,

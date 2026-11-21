@@ -5,7 +5,7 @@ import net.caffeinemc.mods.sodium.client.gl.attribute.GlVertexFormat
 import net.caffeinemc.mods.sodium.client.render.chunk.vertex.format.ChunkVertexEncoder
 import net.caffeinemc.mods.sodium.client.render.chunk.vertex.format.ChunkVertexType
 import net.minecraft.core.BlockPos
-import org.joml.Vector3d
+import net.typho.vibrancy.ext.ChunkVertexExt
 
 class VibrancyChunkVertexType(
     @JvmField
@@ -46,7 +46,7 @@ class VibrancyChunkVertexType(
             MemoryIntrinsics.putFloat(ptr + 12, vertex.u)
             MemoryIntrinsics.putFloat(ptr + 16, vertex.v)
             MemoryIntrinsics.putInt(ptr + 20, vertex.color)
-            MemoryIntrinsics.putInt(ptr + 24, 0x00FF0000) // TODO normals
+            MemoryIntrinsics.putInt(ptr + 24, (vertex as ChunkVertexExt).`vibrancy$getNormal`())
             ptr += format.stride
         }
 
