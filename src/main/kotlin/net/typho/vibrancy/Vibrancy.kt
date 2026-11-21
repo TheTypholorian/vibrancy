@@ -1,17 +1,21 @@
 package net.typho.vibrancy
 
-import net.caffeinemc.mods.sodium.client.gl.shader.GlProgram
-import net.caffeinemc.mods.sodium.client.gl.shader.ShaderLoader
-import net.caffeinemc.mods.sodium.client.gl.shader.ShaderType
-import net.caffeinemc.mods.sodium.client.render.chunk.ShaderChunkRenderer
-import net.caffeinemc.mods.sodium.client.render.chunk.shader.ChunkShaderBindingPoints
-import net.caffeinemc.mods.sodium.client.render.chunk.shader.ChunkShaderInterface
-import net.caffeinemc.mods.sodium.client.render.chunk.shader.ChunkShaderOptions
-import net.caffeinemc.mods.sodium.client.render.chunk.shader.DefaultShaderInterface
-import net.caffeinemc.mods.sodium.client.render.chunk.terrain.TerrainRenderPass
+import net.caffeinemc.mods.sodium.client.render.SodiumWorldRenderer
+import net.caffeinemc.mods.sodium.client.render.chunk.LocalSectionIndex
+import net.caffeinemc.mods.sodium.client.render.chunk.compile.ChunkBuildContext
+import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.SortBehavior
+import net.caffeinemc.mods.sodium.client.util.task.CancellationToken
+import net.caffeinemc.mods.sodium.client.world.LevelSlice
 import net.fabricmc.api.ModInitializer
+import net.fabricmc.fabric.api.client.command.v2.ClientCommandRegistrationCallback
+import net.fabricmc.fabric.api.client.command.v2.ClientCommands.literal
+import net.minecraft.client.Minecraft
+import net.minecraft.core.SectionPos
 import net.minecraft.resources.Identifier
-import net.typho.vibrancy.mixin.ShaderChunkRendererAccessor
+import net.typho.vibrancy.mixin.RenderRegionAccessor
+import net.typho.vibrancy.mixin.RenderSectionManagerAccessor
+import net.typho.vibrancy.mixin.SodiumWorldRendererAccessor
+import org.joml.Vector3d
 
 object Vibrancy : ModInitializer {
     const val MOD_ID = "vibrancy"
@@ -20,31 +24,35 @@ object Vibrancy : ModInitializer {
     fun id(path: String) = Identifier.fromNamespaceAndPath(MOD_ID, path)
 
     override fun onInitialize() {
-    }
+        ClientCommandRegistrationCallback.EVENT.register { dispatcher, context ->
+            dispatcher.register(literal("vibrancy").executes { source ->
+                val pos = Minecraft.getInstance().player!!.position()
+                val sectionManager = (SodiumWorldRenderer.instance() as SodiumWorldRendererAccessor).`vibrancy$renderSectionManager`()
 
-    @JvmField
-    val programs = mutableMapOf<ChunkShaderOptions, GlProgram<ChunkShaderInterface>>()
+                val x = Math.floorDiv(pos.x.toInt(), 16)
+                val y = Math.floorDiv(pos.y.toInt(), 16)
+                val z = Math.floorDiv(pos.z.toInt(), 16)
 
-    @JvmStatic
-    fun getOrCompileOverlayProgram(options: ChunkShaderOptions) = programs.computeIfAbsent(options) {
-        val constants = ShaderChunkRendererAccessor.`vibrancy$createShaderConstants`(options)
+                val region = sectionManager.regions.getForChunk(x, y, z)
+                val section = (region as RenderRegionAccessor).`vibrancy$sections`()[LocalSectionIndex.pack(x, y, z)]
+                val task = VibrancyChunkMeshingTask(
+                    section,
+                    0,
+                    Vector3d(pos.x, pos.y, pos.z),
+                    LevelSlice.prepare(Minecraft.getInstance().level!!, SectionPos.of(x, y, z), (sectionManager as RenderSectionManagerAccessor).`vibrancy$sectionCache`()),
+                    SortBehavior.OFF,
+                    forceSort = false,
+                    blockingTask = true
+                )
 
-        val vertex = ShaderLoader.loadShader(ShaderType.VERTEX, id("blocks/block_light_overlay.vsh"), constants)
-        val fragment = ShaderLoader.loadShader(ShaderType.FRAGMENT, id("blocks/block_light_overlay.fsh"), constants)
+                val context = ChunkBuildContext(Minecraft.getInstance().level!!, VibrancyChunkVertexType)
+                val result = task.execute(
+                    context,
+                    CancellationToken.NEVER_CANCELLED
+                )
 
-        try {
-            return@computeIfAbsent GlProgram.builder(id("block_light_overlay_shader"))
-                .attachShader(vertex)
-                .attachShader(fragment)
-                .bindAttribute("a_Position", ChunkShaderBindingPoints.ATTRIBUTE_POSITION)
-                .bindAttribute("a_Color", ChunkShaderBindingPoints.ATTRIBUTE_COLOR)
-                .bindAttribute("a_TexCoord", ChunkShaderBindingPoints.ATTRIBUTE_TEXTURE)
-                .bindAttribute("a_LightAndData", ChunkShaderBindingPoints.ATTRIBUTE_LIGHT_MATERIAL_INDEX)
-                .bindFragmentData("fragColor", ChunkShaderBindingPoints.FRAG_COLOR)
-                .link { DefaultShaderInterface(it, options) }
-        } finally {
-            vertex.delete()
-            fragment.delete()
+                1
+            })
         }
     }
 
