@@ -1,4 +1,4 @@
-package net.typho.vibrancy.mixin;
+package net.typho.vibrancy.mixin.collection;
 
 import net.caffeinemc.mods.sodium.client.render.chunk.RenderSectionManager;
 import net.caffeinemc.mods.sodium.client.world.cloned.ClonedChunkSectionCache;

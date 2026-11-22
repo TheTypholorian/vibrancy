@@ -3,6 +3,10 @@
 #moj_import <minecraft:projection.glsl>
 #moj_import <minecraft:dynamictransforms.glsl>
 
+layout(std140) uniform u_LightInfo {
+    ivec3 u_LightPos;
+};
+
 in vec3 Position;
 in vec2 UV0;
 in vec4 Color;
@@ -14,7 +18,9 @@ out vec4 v_Color;
 out vec3 v_Normal;
 
 void main() {
-    gl_Position = ProjMat * ModelViewMat * vec4(Position, 1.0);
+    vec3 lightOffset = vec3(0.5, 0.5, 0.5); // TODO
+
+    gl_Position = ProjMat * ModelViewMat * vec4(Position + u_LightPos /* TODO */, 1.0);
     v_Position = Position + Normal * 1e-3; // TODO
     v_TexCoord = UV0;
     v_Color = Color;

@@ -1,4 +1,4 @@
-package net.typho.vibrancy
+package net.typho.vibrancy.collection
 
 import net.caffeinemc.mods.sodium.api.memory.MemoryIntrinsics
 import net.caffeinemc.mods.sodium.client.gl.attribute.GlVertexFormat
@@ -7,18 +7,14 @@ import net.caffeinemc.mods.sodium.client.render.chunk.vertex.format.ChunkVertexT
 import net.minecraft.core.BlockPos
 import net.typho.vibrancy.ext.ChunkVertexExt
 
-class VibrancyChunkVertexType(
+object VibrancyChunkVertexType : ChunkVertexType, ChunkVertexEncoder {
+    // this object will only be used to get the stride, the only place that actually uses the format is ShaderChunkRenderer which we don't use
     @JvmField
-    val lightPos: BlockPos
-) : ChunkVertexType, ChunkVertexEncoder {
-    companion object {
-        // this format will only be used to get the stride, the only place that actually uses the format is ShaderChunkRenderer which we don't use
-        @JvmField
-        val format = GlVertexFormat(mapOf(), emptyArray(), 28)
-    }
-
+    val format = GlVertexFormat(mapOf(), emptyArray(), 28)
     @JvmField
-    var block: BlockPos? = null
+    var lightPos: BlockPos? = null // TODO
+    @JvmField
+    var blockPos: BlockPos? = null
 
     override fun write(
         ptr: Long,
@@ -34,10 +30,12 @@ class VibrancyChunkVertexType(
             var y = vertex.y
             var z = vertex.z
 
-            block?.let { block ->
-                x += (-(block.x and 15) + block.x - lightPos.x).toFloat()
-                y += (-(block.y and 15) + block.y - lightPos.y).toFloat()
-                z += (-(block.z and 15) + block.z - lightPos.z).toFloat()
+            blockPos?.let { blockPos ->
+                lightPos?.let { lightPos ->
+                    x += (-(blockPos.x and 15) + blockPos.x - lightPos.x).toFloat()
+                    y += (-(blockPos.y and 15) + blockPos.y - lightPos.y).toFloat()
+                    z += (-(blockPos.z and 15) + blockPos.z - lightPos.z).toFloat()
+                }
             }
 
             MemoryIntrinsics.putFloat(ptr, x)

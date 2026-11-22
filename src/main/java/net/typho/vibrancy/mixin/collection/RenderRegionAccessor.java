@@ -1,4 +1,4 @@
-package net.typho.vibrancy.mixin;
+package net.typho.vibrancy.mixin.collection;
 
 import net.caffeinemc.mods.sodium.client.render.chunk.RenderSection;
 import net.caffeinemc.mods.sodium.client.render.chunk.region.RenderRegion;

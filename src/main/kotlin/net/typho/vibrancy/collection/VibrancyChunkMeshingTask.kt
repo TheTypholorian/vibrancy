@@ -1,4 +1,4 @@
-package net.typho.vibrancy
+package net.typho.vibrancy.collection
 
 import net.caffeinemc.mods.sodium.client.render.chunk.RenderSection
 import net.caffeinemc.mods.sodium.client.render.chunk.compile.tasks.ChunkBuilderMeshingTask

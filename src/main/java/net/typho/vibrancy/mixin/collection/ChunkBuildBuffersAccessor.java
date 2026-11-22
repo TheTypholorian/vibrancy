@@ -1,4 +1,4 @@
-package net.typho.vibrancy.mixin;
+package net.typho.vibrancy.mixin.collection;
 
 import net.caffeinemc.mods.sodium.client.render.chunk.compile.ChunkBuildBuffers;
 import net.caffeinemc.mods.sodium.client.render.chunk.vertex.format.ChunkVertexType;
