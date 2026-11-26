@@ -106,7 +106,7 @@ modstitch {
 loom {
     runs {
         named("client") {
-            //programArgs("--renderDebugLabels")
+            programArgs("--renderDebugLabels")
         }
     }
 }

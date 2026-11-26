@@ -1,6 +1,8 @@
 package net.typho.vibrancy.storage
 
 import com.mojang.blaze3d.buffers.GpuBuffer
+import com.mojang.blaze3d.opengl.GlStateManager
+import com.mojang.blaze3d.opengl.GlRenderPass
 import com.mojang.blaze3d.systems.RenderPass
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.textures.AddressMode
@@ -8,23 +10,32 @@ import com.mojang.blaze3d.textures.FilterMode
 import com.mojang.blaze3d.textures.GpuTexture
 import com.mojang.blaze3d.textures.TextureFormat
 import com.mojang.blaze3d.vertex.VertexFormat
+import net.caffeinemc.mods.sodium.client.gl.device.MultiDrawBatch
+import net.caffeinemc.mods.sodium.client.gl.device.RenderDevice
+import net.caffeinemc.mods.sodium.client.gl.tessellation.GlIndexType
+import net.caffeinemc.mods.sodium.client.model.quad.properties.ModelQuadFacing
 import net.caffeinemc.mods.sodium.client.render.SodiumWorldRenderer
 import net.caffeinemc.mods.sodium.client.render.chunk.LocalSectionIndex
-import net.caffeinemc.mods.sodium.client.render.chunk.compile.ChunkBuildOutput
-import net.caffeinemc.mods.sodium.client.render.chunk.translucent_sorting.SortBehavior
-import net.caffeinemc.mods.sodium.client.util.task.CancellationToken
-import net.caffeinemc.mods.sodium.client.world.LevelSlice
+import net.caffeinemc.mods.sodium.client.render.chunk.RenderSection
+import net.caffeinemc.mods.sodium.client.render.chunk.SharedQuadIndexBuffer
+import net.caffeinemc.mods.sodium.client.render.chunk.terrain.DefaultTerrainRenderPasses
+import net.caffeinemc.mods.sodium.client.render.viewport.CameraTransform
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.texture.TextureAtlas
 import net.minecraft.core.BlockPos
-import net.minecraft.core.SectionPos
 import net.typho.vibrancy.Vibrancy
-import net.typho.vibrancy.collection.VibrancyChunkMeshingTask
-import net.typho.vibrancy.collection.VibrancyChunkVertexType
+import net.typho.vibrancy.mixin.collection.DefaultChunkRendererAccessor
 import net.typho.vibrancy.mixin.collection.RenderRegionAccessor
-import net.typho.vibrancy.mixin.collection.RenderSectionManagerAccessor
 import net.typho.vibrancy.mixin.collection.SodiumWorldRendererAccessor
-import org.joml.Vector3d
+import net.typho.vibrancy.mixin.render.GlCommandEncoderAccessor
+import net.typho.vibrancy.mixin.render.GlRenderPassAccessor
+import net.typho.vibrancy.mixin.render.GlVertexArrayTessellationAccessor
+import net.typho.vibrancy.mixin.render.RenderPassAccessor
+import org.lwjgl.opengl.GL20.glGetUniformLocation
+import org.lwjgl.opengl.GL20.glUniform3f
+import org.lwjgl.opengl.GL20.glUniform3i
+import org.lwjgl.opengl.GL30.glUniform1ui
+import org.lwjgl.opengl.GL32.nglMultiDrawElementsBaseVertex
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.util.OptionalDouble
@@ -65,99 +76,68 @@ open class BlockLight(
     )
     @JvmField
     val shadowMapView = RenderSystem.getDevice().createTextureView(shadowMap)
-    @JvmField
-    val infoBuffer = RenderSystem.getDevice().createBuffer(
-        { "Vibrancy light info buffer for light at pos $pos" },
-        GpuBuffer.USAGE_UNIFORM,
-        ByteBuffer.allocateDirect(4 * Int.SIZE_BYTES)
-            .order(ByteOrder.nativeOrder())
-            .putInt(pos.x)
-            .putInt(pos.y)
-            .putInt(pos.z)
-            .putInt(0)
-            .flip()
-    )
 
-    var vertexBuffer: GpuBuffer? = null
+    var drawBatch: MultiDrawBatch? = null
+        protected set(value) {
+            field?.delete()
+            field = value
+        }
+    var drawBatchCapacity = 0
         protected set
-    var vertexCount = 0
-        protected set
+
     @JvmField
     var collectDirty = true
     @JvmField
     var generateDirty = true
 
     fun collect() {
-        val cameraPos = Minecraft.getInstance().gameRenderer.mainCamera.position()
         val sectionManager = (SodiumWorldRenderer.instance() as SodiumWorldRendererAccessor).`vibrancy$renderSectionManager`()
-        val results = mutableListOf<ChunkBuildOutput>()
-        VibrancyChunkVertexType.lightPos = pos
+        val sections = mutableListOf<RenderSection>()
 
         for (x in ((pos.x - LIGHT_RADIUS) / 16)..((pos.x + LIGHT_RADIUS) / 16)) {
             for (y in ((pos.y - LIGHT_RADIUS) / 16)..((pos.y + LIGHT_RADIUS) / 16)) {
                 for (z in ((pos.z - LIGHT_RADIUS) / 16)..((pos.z + LIGHT_RADIUS) / 16)) {
-                    val sectionPos = SectionPos.of(x, y, z)
-                    val region = sectionManager.regions.getForChunk(sectionPos.x, sectionPos.y, sectionPos.z) ?: continue
-                    val section = (region as RenderRegionAccessor).`vibrancy$sections`()[LocalSectionIndex.pack(sectionPos.x, sectionPos.y, sectionPos.z)] ?: continue
-                    val task = VibrancyChunkMeshingTask(
-                        section,
-                        0,
-                        Vector3d(cameraPos.x, cameraPos.y, cameraPos.z),
-                        LevelSlice.prepare( // TODO
-                            Minecraft.getInstance().level!!,
-                            sectionPos,
-                            (sectionManager as RenderSectionManagerAccessor).`vibrancy$sectionCache`()
-                        ) ?: continue,
-                        SortBehavior.OFF,
-                        forceSort = false,
-                        blockingTask = true,
-                        pos
-                    )
-
-                    results.add(task.execute(Vibrancy.chunkBuildContext!!, CancellationToken.NEVER_CANCELLED))
+                    val region = sectionManager.regions.getForChunk(x, y, z) ?: continue
+                    val section = (region as RenderRegionAccessor).`vibrancy$sections`()[LocalSectionIndex.pack(x, y, z)] ?: continue
+                    sections.add(section)
                 }
             }
         }
 
-        val size = results.sumOf { it.meshes.values.sumOf { it.vertexData.length } }
+        val batch = drawBatch?.let {
+            if (drawBatchCapacity >= sections.size) {
+                it
+            } else {
+                null
+            }
+        } ?: MultiDrawBatch(sections.size).also {
+            drawBatch = it
+            drawBatchCapacity = sections.size
+        }
+        batch.clear()
 
-        if (size == 0) {
-            results.forEach { it.meshes.values.forEach { it.vertexData.free() } }
+        if (sections.isEmpty()) {
             return
         }
 
-        vertexCount = size / VibrancyChunkVertexType.format.stride
-        val vertexByteBuffer = ByteBuffer.allocateDirect(size)
+        val region = sections.first().region // TODO region borders
+        val storage = region.getStorage(DefaultTerrainRenderPasses.SOLID /* TODO */) ?: return
 
-        // TODO
-        for (result in results) {
-            for (parts in result.meshes.values) {
-                vertexByteBuffer.put(parts.vertexData.directBuffer)
+        for (section in sections) {
+            if (section.region !== region) {
+                continue // TODO
             }
+
+            val pMeshData = storage.getDataPointer(section.sectionIndex)
+            DefaultChunkRendererAccessor.`vibrancy$addSharedIndexedDrawCommands`(batch, pMeshData, ModelQuadFacing.ALL)
         }
-
-        val vertexBuffer = vertexBuffer?.let {
-            if (it.size() >= size) it else null
-        } ?: RenderSystem.getDevice().createBuffer(
-            null,
-            GpuBuffer.USAGE_COPY_DST or GpuBuffer.USAGE_VERTEX,
-            size.toLong()
-        ).also {
-            vertexBuffer?.close()
-            vertexBuffer = it
-        }
-
-        RenderSystem.getDevice().createCommandEncoder().writeToBuffer(vertexBuffer.slice(), vertexByteBuffer.flip())
-
-        results.forEach { it.meshes.values.forEach { it.vertexData.free() } }
     }
 
     fun generateShadowMap(): Boolean {
-        val vertexBuffer = vertexBuffer ?: return false
+        val batch = drawBatch ?: return false
 
-        val indexCount = vertexCount / 4 * 6
-        val indices = RenderSystem.getSequentialBuffer(VertexFormat.Mode.QUADS)
-        val indexBuffer = indices.getBuffer(indexCount)
+        val sectionManager = (SodiumWorldRenderer.instance() as SodiumWorldRendererAccessor).`vibrancy$renderSectionManager`()
+        val region = sectionManager.regions.getForChunk(pos.x shr 4, pos.y shr 4, pos.z shr 4) ?: return false
 
         RenderSystem.getDevice().createCommandEncoder().createRenderPass(
             { "Vibrancy generate shadow map for light at pos $pos" },
@@ -179,17 +159,55 @@ open class BlockLight(
                     false
                 )
             )
-            pass.setVertexBuffer(0, vertexBuffer)
-            pass.setIndexBuffer(indexBuffer, indices.type())
-            pass.drawIndexed(0, 0, indexCount, 6)
+            pass.setUniform(
+                "u_Globals",
+                (SodiumWorldRenderer.instance() as SodiumWorldRendererAccessor)
+                    .`vibrancy$uniformBufferManager`()
+                    .uniformBuffer
+            )
+
+            val tessellation = (region.resources ?: return false).tessellation ?: return false
+            tessellation as GlVertexArrayTessellationAccessor // TODO custom tessellation instances?
+
+            pass as RenderPassAccessor
+            val backend = pass.`vibrancy$backend`()
+            backend as GlRenderPass
+            backend as GlRenderPassAccessor
+            val encoder = backend.`vibrancy$encoder`()
+            encoder as GlCommandEncoderAccessor
+            encoder.`vibrancy$trySetup`(backend, listOf())
+
+            glUniform3i(
+                glGetUniformLocation(encoder.`vibrancy$lastProgram`().programId, "u_RelativeOffset"), // TODO
+                region.originX - pos.x,
+                region.originY - pos.y,
+                region.originZ - pos.z
+            )
+            GlStateManager._glBindVertexArray(tessellation.`vibrancy$array`().handle())
+
+            val faceLocation = glGetUniformLocation(encoder.`vibrancy$lastProgram`().programId, "u_Face") // TODO
+
+            repeat(6) { face ->
+                glUniform1ui(faceLocation, face)
+                nglMultiDrawElementsBaseVertex(
+                    tessellation.primitiveType.id,
+                    batch.pElementCount,
+                    GlIndexType.UNSIGNED_INT.formatId,
+                    batch.pElementPointer,
+                    batch.size,
+                    batch.pBaseVertex
+                )
+            }
         }
 
         return true
     }
 
-    fun render(pass: RenderPass): Boolean {
-        val vertexBuffer = vertexBuffer ?: return false
-        val indexCount = vertexCount / 4 * 6
+    fun render(pass: RenderPass, camera: CameraTransform): Boolean {
+        val batch = drawBatch ?: return false
+
+        val sectionManager = (SodiumWorldRenderer.instance() as SodiumWorldRendererAccessor).`vibrancy$renderSectionManager`()
+        val region = sectionManager.regions.getForChunk(pos.x shr 4, pos.y shr 4, pos.z shr 4) ?: return false
 
         pass.bindTexture(
             "u_ShadowTex",
@@ -202,9 +220,39 @@ open class BlockLight(
                 true
             )
         )
-        pass.setUniform("u_LightInfo", infoBuffer)
-        pass.setVertexBuffer(0, vertexBuffer)
-        pass.drawIndexed(0, 0, indexCount, 1)
+
+        val tessellation = (region.resources ?: return false).tessellation ?: return false
+        tessellation as GlVertexArrayTessellationAccessor // TODO custom tessellation instances?
+
+        pass as RenderPassAccessor
+        val backend = pass.`vibrancy$backend`()
+        backend as GlRenderPass
+        backend as GlRenderPassAccessor
+        val encoder = backend.`vibrancy$encoder`()
+        encoder as GlCommandEncoderAccessor
+        encoder.`vibrancy$trySetup`(backend, listOf())
+
+        glUniform3f(
+            glGetUniformLocation(encoder.`vibrancy$lastProgram`().programId, "u_WorldOffset"), // TODO
+            (region.originX - camera.intX) - camera.fracX,
+            (region.originY - camera.intY) - camera.fracY,
+            (region.originZ - camera.intZ) - camera.fracZ
+        )
+        glUniform3i(
+            glGetUniformLocation(encoder.`vibrancy$lastProgram`().programId, "u_RelativeOffset"), // TODO
+            region.originX - pos.x,
+            region.originY - pos.y,
+            region.originZ - pos.z
+        )
+        GlStateManager._glBindVertexArray(tessellation.`vibrancy$array`().handle())
+        nglMultiDrawElementsBaseVertex(
+            tessellation.primitiveType.id,
+            batch.pElementCount,
+            GlIndexType.UNSIGNED_INT.formatId,
+            batch.pElementPointer,
+            batch.size,
+            batch.pBaseVertex
+        )
 
         return true
     }
@@ -212,7 +260,6 @@ open class BlockLight(
     override fun close() {
         shadowMapView.close()
         shadowMap.close()
-        vertexBuffer?.close()
-        infoBuffer.close()
+        drawBatch?.delete()
     }
 }

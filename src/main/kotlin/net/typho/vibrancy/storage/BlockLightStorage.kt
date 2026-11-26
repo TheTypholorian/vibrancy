@@ -3,20 +3,18 @@ package net.typho.vibrancy.storage
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.textures.AddressMode
 import com.mojang.blaze3d.textures.FilterMode
-import com.mojang.blaze3d.vertex.VertexFormat
+import net.caffeinemc.mods.sodium.client.render.SodiumWorldRenderer
 import net.caffeinemc.mods.sodium.client.render.chunk.LocalSectionIndex
 import net.caffeinemc.mods.sodium.client.render.chunk.region.RenderRegion
+import net.caffeinemc.mods.sodium.client.render.viewport.CameraTransform
 import net.minecraft.client.Minecraft
-import net.minecraft.client.renderer.rendertype.LayeringTransform
 import net.minecraft.client.renderer.texture.TextureAtlas
 import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.typho.vibrancy.Vibrancy
-import org.joml.Matrix4f
-import org.joml.Vector3f
-import org.joml.Vector4f
+import net.typho.vibrancy.mixin.collection.SodiumWorldRendererAccessor
 import java.util.OptionalDouble
 import java.util.OptionalInt
 import kotlin.use
@@ -41,27 +39,26 @@ class BlockLightStorage(
             val section = getSection(pos)
 
             // might've added, removed, or not changed lights, so check them all
-            val added = mutableSetOf<BlockPos>()
+            val lights = mutableSetOf<BlockPos>()
 
             repeat(16) { x ->
                 repeat(16) { y ->
                     repeat(16) { z ->
                         if (chunkSection.getBlockState(x, y, z).isRaytracedLight()) {
-                            added.add(BlockPos(x + pos.minBlockX(), y + pos.minBlockY(), z + pos.minBlockZ()))
+                            lights.add(BlockPos(x + pos.minBlockX(), y + pos.minBlockY(), z + pos.minBlockZ()))
                         }
                     }
                 }
             }
 
-            section.lights.removeIf {
-                if (added.remove(it.pos)) {
-                    false
-                } else {
-                    it.close()
-                    true
-                }
+            val old = section.lights.toMutableMap()
+            section.lights.clear()
+
+            for (pos in lights) {
+                section.lights[pos] = old.remove(pos) ?: BlockLight(pos) // TODO check block state as well
             }
-            added.mapTo(section.lights) { BlockLight(it) }
+
+            old.forEach { (pos, light) -> light.close() }
         } else {
             getSection(pos).close()
         }
@@ -72,7 +69,7 @@ class BlockLightStorage(
                     val targetPos = SectionPos.of(x, y, z)
                     val section = getSection(targetPos)
 
-                    for (light in section.lights) {
+                    for (light in section.lights.values) {
                         light.collectDirty = true
                         light.generateDirty = true
                     }
@@ -89,7 +86,7 @@ class BlockLightStorage(
 
     fun render() {
         sections.forEach {
-            it.lights.forEach {
+            it.lights.values.forEach {
                 if (it.collectDirty) {
                     it.collect()
                     it.collectDirty = false
@@ -102,27 +99,16 @@ class BlockLightStorage(
             }
         }
 
-        val maxIndexCount = sections.maxOf { it.lights.maxOfOrNull { it.vertexCount } ?: 0 } / 4 * 6
+        val maxDrawBatchSize = sections.maxOf { it.lights.values.maxOfOrNull { it.drawBatch?.size ?: 0 } ?: 0 }
 
-        if (maxIndexCount == 0) {
+        if (maxDrawBatchSize == 0) {
             return
         }
 
         val cameraPos = Minecraft.getInstance().gameRenderer.mainCamera.position()
         val target = Minecraft.getInstance().mainRenderTarget
 
-        val stack = RenderSystem.getModelViewStack()
-        stack.pushMatrix()
-        stack.translate(cameraPos.toVector3f().negate()) // TODO
-
-        val transforms = RenderSystem.getDynamicUniforms().writeTransform(
-            stack,
-            Vector4f(1f),
-            Vector3f(),
-            Matrix4f()
-        )
-        val indices = RenderSystem.getSequentialBuffer(VertexFormat.Mode.QUADS)
-        val indexBuffer = indices.getBuffer(maxIndexCount)
+        val camera = CameraTransform(cameraPos.x, cameraPos.y, cameraPos.z)
 
         RenderSystem.getDevice().createCommandEncoder().createRenderPass(
             { "Vibrancy draw lights" },
@@ -144,22 +130,22 @@ class BlockLightStorage(
                     true
                 )
             )
-            RenderSystem.bindDefaultUniforms(pass)
-            pass.setUniform("DynamicTransforms", transforms)
-            pass.setIndexBuffer(indexBuffer, indices.type())
-
-            sections.forEach { it.lights.forEach { it.render(pass) } }
+            pass.setUniform(
+                "u_Globals",
+                (SodiumWorldRenderer.instance() as SodiumWorldRendererAccessor)
+                    .`vibrancy$uniformBufferManager`()
+                    .uniformBuffer
+            )
+            sections.forEach { it.lights.values.forEach { it.render(pass, camera) } }
         }
-
-        stack.popMatrix()
     }
 
     class Section : AutoCloseable {
         @JvmField
-        val lights = mutableListOf<BlockLight>()
+        val lights = mutableMapOf< BlockPos, BlockLight>()
 
         override fun close() {
-            lights.forEach { it.close() }
+            lights.values.forEach { it.close() }
             lights.clear()
         }
     }

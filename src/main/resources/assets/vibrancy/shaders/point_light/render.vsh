@@ -1,28 +1,36 @@
 #version 330 core
 
-#moj_import <minecraft:projection.glsl>
-#moj_import <minecraft:dynamictransforms.glsl>
+#moj_import <sodium:globals.glsl>
+#moj_import <sodium:chunk_vertex.glsl>
 
-layout(std140) uniform u_LightInfo {
-    ivec3 u_LightPos;
-};
-
-in vec3 Position;
-in vec2 UV0;
-in vec4 Color;
-in vec3 Normal;
+uniform vec3 u_WorldOffset;
+uniform ivec3 u_RelativeOffset;
 
 out vec3 v_Position;
 out vec2 v_TexCoord;
 out vec4 v_Color;
 out vec3 v_Normal;
 
-void main() {
-    vec3 lightOffset = vec3(0.5, 0.5, 0.5); // TODO
+uvec3 _get_relative_chunk_coord(uint pos) {
+    // Packing scheme is defined by LocalSectionIndex
+    return uvec3(pos) >> uvec3(5u, 0u, 2u) & uvec3(7u, 3u, 7u);
+}
 
-    gl_Position = ProjMat * ModelViewMat * vec4(Position + u_LightPos /* TODO */, 1.0);
-    v_Position = Position + Normal * 1e-3; // TODO
-    v_TexCoord = UV0;
-    v_Color = Color;
-    v_Normal = Normal;
+vec3 _get_draw_translation(uint pos) {
+    return _get_relative_chunk_coord(pos) * vec3(16.0);
+}
+
+void main() {
+    _vert_init();
+
+    vec3 lightOffset = vec3(0.5, 0.5, 0.5); // TODO
+    vec3 a_Normal = vec3(0, 1, 0); // TODO
+
+    vec3 translation = _get_draw_translation(_draw_id);
+
+    gl_Position = u_ProjectionMatrix * u_ModelViewMatrix * vec4(_vert_position + u_WorldOffset + translation, 1.0);
+    v_Position = _vert_position + u_RelativeOffset + translation + a_Normal * 1e-3; // TODO
+    v_TexCoord = (_vert_tex_diffuse_coord_bias * u_TexCoordShrink) + _vert_tex_diffuse_coord;
+    v_Color = _vert_color;
+    v_Normal = a_Normal;
 }
