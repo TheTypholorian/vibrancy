@@ -5,12 +5,14 @@ import com.mojang.blaze3d.textures.AddressMode
 import com.mojang.blaze3d.textures.FilterMode
 import net.caffeinemc.mods.sodium.client.render.SodiumWorldRenderer
 import net.caffeinemc.mods.sodium.client.render.chunk.LocalSectionIndex
+import net.caffeinemc.mods.sodium.client.render.chunk.RenderSection
 import net.caffeinemc.mods.sodium.client.render.chunk.region.RenderRegion
 import net.caffeinemc.mods.sodium.client.render.viewport.CameraTransform
 import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.texture.TextureAtlas
 import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
+import net.minecraft.world.entity.ai.behavior.SetWalkTargetAwayFrom.pos
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.typho.vibrancy.Vibrancy
@@ -31,12 +33,12 @@ class BlockLightStorage(
     @JvmField
     val sections = Array(RenderRegion.REGION_SIZE) { Section() }
 
-    fun onSectionChanged(pos: SectionPos) {
-        val chunk = Minecraft.getInstance().level!!.getChunk(pos.x, pos.z)
-        val chunkSection = chunk.getSection(chunk.getSectionIndexFromSectionY(pos.y))
+    fun onSectionChanged(section: RenderSection) {
+        val chunk = Minecraft.getInstance().level!!.getChunk(section.position.x, section.position.z)
+        val chunkSection = chunk.getSection(chunk.getSectionIndexFromSectionY(section.position.y))
 
         if (chunkSection.maybeHas { it.isRaytracedLight() }) {
-            val section = getSection(pos)
+            val lightSection = getSection(section.position)
 
             // might've added, removed, or not changed lights, so check them all
             val lights = mutableSetOf<BlockPos>()
@@ -45,27 +47,27 @@ class BlockLightStorage(
                 repeat(16) { y ->
                     repeat(16) { z ->
                         if (chunkSection.getBlockState(x, y, z).isRaytracedLight()) {
-                            lights.add(BlockPos(x + pos.minBlockX(), y + pos.minBlockY(), z + pos.minBlockZ()))
+                            lights.add(BlockPos(x + section.position.minBlockX(), y + section.position.minBlockY(), z + section.position.minBlockZ()))
                         }
                     }
                 }
             }
 
-            val old = section.lights.toMutableMap()
-            section.lights.clear()
+            val old = lightSection.lights.toMutableMap()
+            lightSection.lights.clear()
 
             for (pos in lights) {
-                section.lights[pos] = old.remove(pos) ?: BlockLight(pos) // TODO check block state as well
+                lightSection.lights[pos] = old.remove(pos) ?: BlockLight(pos) // TODO check block state as well
             }
 
             old.forEach { (pos, light) -> light.close() }
         } else {
-            getSection(pos).close()
+            getSection(section.position).close()
         }
 
-        for (x in (pos.x - 1).coerceAtLeast(region.chunkX)..(pos.x + 1).coerceAtMost(region.chunkX + RenderRegion.REGION_WIDTH - 1)) {
-            for (y in (pos.y - 1).coerceAtLeast(region.chunkY)..(pos.y + 1).coerceAtMost(region.chunkY + RenderRegion.REGION_HEIGHT - 1)) {
-                for (z in (pos.z - 1).coerceAtLeast(region.chunkZ)..(pos.z + 1).coerceAtMost(region.chunkZ + RenderRegion.REGION_LENGTH - 1)) {
+        for (x in (section.position.x - 1).coerceAtLeast(region.chunkX)..(section.position.x + 1).coerceAtMost(region.chunkX + RenderRegion.REGION_WIDTH - 1)) {
+            for (y in (section.position.y - 1).coerceAtLeast(region.chunkY)..(section.position.y + 1).coerceAtMost(region.chunkY + RenderRegion.REGION_HEIGHT - 1)) {
+                for (z in (section.position.z - 1).coerceAtLeast(region.chunkZ)..(section.position.z + 1).coerceAtMost(region.chunkZ + RenderRegion.REGION_LENGTH - 1)) {
                     val targetPos = SectionPos.of(x, y, z)
                     val section = getSection(targetPos)
 
@@ -89,13 +91,13 @@ class BlockLightStorage(
             it.lights.values.forEach {
                 if (it.collectDirty) {
                     if (it.collect()) {
-                        //it.collectDirty = false
+                        it.collectDirty = false
                     }
                 }
 
                 if (it.generateDirty) {
                     it.generateShadowMap()
-                    //it.generateDirty = false
+                    it.generateDirty = false
                 }
             }
         }
