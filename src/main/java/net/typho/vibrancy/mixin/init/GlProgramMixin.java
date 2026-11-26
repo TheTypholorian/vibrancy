@@ -35,6 +35,7 @@ public class GlProgramMixin {
             GlStateManager._glBindAttribLocation(programId, ChunkShaderBindingPoints.ATTRIBUTE_COLOR, "a_Color");
             GlStateManager._glBindAttribLocation(programId, ChunkShaderBindingPoints.ATTRIBUTE_TEXTURE, "a_TexCoord");
             GlStateManager._glBindAttribLocation(programId, ChunkShaderBindingPoints.ATTRIBUTE_LIGHT_MATERIAL_INDEX, "a_LightAndData");
+            GlStateManager._glBindAttribLocation(programId, 4, "a_Normal");
 
             return CollectionsKt.listOf();
         }

@@ -15,6 +15,6 @@ void main() {
     fragColor = texture(u_BlockTex, v_TexCoord);
 
     if (fragColor.a < 0.1) {
-        //discard;
+        discard;
     }
 }

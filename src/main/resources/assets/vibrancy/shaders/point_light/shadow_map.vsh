@@ -4,6 +4,8 @@
 #moj_import <sodium:globals.glsl>
 #moj_import <sodium:chunk_vertex.glsl>
 
+in vec3 a_Normal;
+
 uniform ivec3 u_RelativeOffset;
 uniform uint u_Face;
 
@@ -24,7 +26,6 @@ void main() {
 
     float lightRadius = 16.0; // TODO
     vec3 lightOffset = vec3(0.5, 0.5, 0.5); // TODO
-    vec3 a_Normal = vec3(0, 1, 0); // TODO
 
     vec3 dir = _vert_position + _get_draw_translation(_draw_id) + u_RelativeOffset;
     float z = faceAndDirectionToDistance(dir, u_Face) / lightRadius;

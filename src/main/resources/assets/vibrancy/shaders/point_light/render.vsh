@@ -3,6 +3,8 @@
 #moj_import <sodium:globals.glsl>
 #moj_import <sodium:chunk_vertex.glsl>
 
+in vec3 a_Normal;
+
 uniform vec3 u_WorldOffset;
 uniform ivec3 u_RelativeOffset;
 
@@ -24,7 +26,6 @@ void main() {
     _vert_init();
 
     vec3 lightOffset = vec3(0.5, 0.5, 0.5); // TODO
-    vec3 a_Normal = vec3(0, 1, 0); // TODO
 
     vec3 translation = _get_draw_translation(_draw_id);
 

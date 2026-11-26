@@ -10,21 +10,23 @@ import com.mojang.blaze3d.platform.SourceFactor
 import com.mojang.blaze3d.shaders.UniformType
 import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.mojang.blaze3d.vertex.VertexFormat
+import net.caffeinemc.mods.sodium.client.gl.attribute.GlVertexAttributeFormat
 import net.caffeinemc.mods.sodium.client.render.SodiumWorldRenderer
 import net.caffeinemc.mods.sodium.client.render.chunk.compile.ChunkBuildContext
+import net.caffeinemc.mods.sodium.client.render.vertex.VertexFormatAttribute
 import net.fabricmc.api.ClientModInitializer
 import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
 import net.minecraft.client.renderer.RenderPipelines
 import net.minecraft.resources.Identifier
-import net.typho.vibrancy.collection.VibrancyChunkVertexType
 import net.typho.vibrancy.ext.RenderRegionExt
 import net.typho.vibrancy.mixin.collection.SodiumWorldRendererAccessor
 
 object Vibrancy : ClientModInitializer {
     const val MOD_ID = "vibrancy"
-    var chunkBuildContext: ChunkBuildContext? = null // TODO multithreading (?)
-        private set
+
+    @JvmField
+    val normalVertexAttribute = VertexFormatAttribute("NORMAL", GlVertexAttributeFormat.UNSIGNED_BYTE, 3, true, false)
 
     @JvmStatic
     fun id(path: String) = Identifier.fromNamespaceAndPath(MOD_ID, path)
@@ -43,7 +45,7 @@ object Vibrancy : ClientModInitializer {
             .withShaderDefine("USE_VERTEX_COMPRESSION")
             .withSampler("u_BlockTex")
             .withUniform("u_Globals", UniformType.UNIFORM_BUFFER)
-            .withCull(false)
+            .withCull(true)
             .withDepthStencilState(DepthStencilState.DEFAULT)
             .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR_NORMAL, VertexFormat.Mode.QUADS)
             .build()
@@ -57,6 +59,8 @@ object Vibrancy : ClientModInitializer {
             .withShaderDefine("USE_VERTEX_COMPRESSION")
             .withSampler("u_BlockTex")
             .withSampler("u_ShadowTex")
+            .withSampler("u_TranslucentColorTex")
+            .withSampler("u_TranslucentDepthTex")
             .withUniform("u_Globals", UniformType.UNIFORM_BUFFER)
             .withCull(true)
             .withDepthStencilState(DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false, -1f, -1f))
@@ -66,10 +70,6 @@ object Vibrancy : ClientModInitializer {
     )
 
     override fun onInitializeClient() {
-        ClientLevelEvents.AFTER_CLIENT_LEVEL_CHANGE.register { minecraft, level ->
-            chunkBuildContext?.cleanup()
-            chunkBuildContext = ChunkBuildContext(level, VibrancyChunkVertexType)
-        }
         LevelRenderEvents.AFTER_OPAQUE_TERRAIN.register {
             (SodiumWorldRenderer.instance() as SodiumWorldRendererAccessor).`vibrancy$renderSectionManager`().regions.loadedRegions.forEach { (it as RenderRegionExt).`vibrancy$getBlockLightStorage`().render() }
         }

@@ -89,7 +89,7 @@ class BlockLightStorage(
             it.lights.values.forEach {
                 if (it.collectDirty) {
                     if (it.collect()) {
-                        it.collectDirty = false
+                        //it.collectDirty = false
                     }
                 }
 
@@ -98,12 +98,6 @@ class BlockLightStorage(
                     //it.generateDirty = false
                 }
             }
-        }
-
-        val maxDrawBatchSize = sections.maxOf { it.lights.values.maxOfOrNull { it.drawBatch?.size ?: 0 } ?: 0 }
-
-        if (maxDrawBatchSize == 0) {
-            return
         }
 
         val cameraPos = Minecraft.getInstance().gameRenderer.mainCamera.position()

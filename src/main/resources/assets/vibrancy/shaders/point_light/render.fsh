@@ -10,18 +10,20 @@ in vec3 v_Normal;
 
 uniform sampler2D u_BlockTex;
 uniform sampler2D u_ShadowTex;
+uniform uint u_UseTranslucency;
+uniform sampler2D u_TranslucentColorTex;
+uniform sampler2D u_TranslucentDepthTex;
 
 out vec4 fragColor;
 
 void main() {
     float lightRadius = 16.0; // TODO
-    vec3 lightColor = vec3(1, 0.86, 0.6); // TODO
+    vec3 lightColor = vec3(1, 0.86, 0.6) * 3; // TODO
 
     vec2 atlasSize = textureSize(u_BlockTex, 0);
     vec3 alignedPosition = alignPixel(ivec2(atlasSize), v_TexCoord, v_Position);
 
-    // max(0, dot(v_Normal, normalize(-v_Position)))
-    fragColor = vec4(clamp(1 - length(v_Position) / lightRadius, 0.0, 1.0) * lightColor, 1) * texture(u_BlockTex, v_TexCoord) * v_Color;
+    fragColor = vec4(clamp(1 - length(v_Position) / lightRadius, 0.0, 1.0) * max(0, dot(v_Normal, normalize(-v_Position))) * lightColor, 1) * texture(u_BlockTex, v_TexCoord) * v_Color;
 
     uint face;
     vec2 coords = directionToShadowCoords(alignedPosition, face);
@@ -33,11 +35,21 @@ void main() {
 
     coords.x = (coords.x + float(face)) / 6.0;
 
-    float shadow = texture(u_ShadowTex, coords).r * lightRadius;
     float self = faceAndDirectionToDistance(alignedPosition, face);
 
-    if (shadow < self) {
+    float solidShadow = texture(u_ShadowTex, coords).r * lightRadius;
+
+    if (solidShadow < self) {
         discard;
+    }
+
+    if (u_UseTranslucency == 1u) {
+        float translucentShadow = texture(u_TranslucentDepthTex, coords).r * lightRadius;
+
+        if (translucentShadow < self) {
+            vec4 tint = texture(u_TranslucentColorTex, coords);
+            fragColor.rgb *= tint.rgb * tint.a;
+        }
     }
 
     fragColor.rgb *= fragColor.a;
