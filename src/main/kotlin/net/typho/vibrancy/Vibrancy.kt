@@ -30,6 +30,11 @@ object Vibrancy : ClientModInitializer {
     fun id(path: String) = Identifier.fromNamespaceAndPath(MOD_ID, path)
 
     @JvmField
+    val chunkVertexShaders = setOf(
+        id("point_light/shadow_map"),
+        id("point_light/render")
+    )
+    @JvmField
     val shadowMapPipeline = RenderPipelines.register(
         RenderPipeline.builder()
             .withLocation(id("point_light/shadow_map"))
