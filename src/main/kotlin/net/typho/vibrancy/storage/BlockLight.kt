@@ -1,6 +1,5 @@
 package net.typho.vibrancy.storage
 
-import com.mojang.blaze3d.buffers.GpuBuffer
 import com.mojang.blaze3d.opengl.GlStateManager
 import com.mojang.blaze3d.opengl.GlRenderPass
 import com.mojang.blaze3d.systems.RenderPass
@@ -9,15 +8,12 @@ import com.mojang.blaze3d.textures.AddressMode
 import com.mojang.blaze3d.textures.FilterMode
 import com.mojang.blaze3d.textures.GpuTexture
 import com.mojang.blaze3d.textures.TextureFormat
-import com.mojang.blaze3d.vertex.VertexFormat
 import net.caffeinemc.mods.sodium.client.gl.device.MultiDrawBatch
-import net.caffeinemc.mods.sodium.client.gl.device.RenderDevice
 import net.caffeinemc.mods.sodium.client.gl.tessellation.GlIndexType
 import net.caffeinemc.mods.sodium.client.model.quad.properties.ModelQuadFacing
 import net.caffeinemc.mods.sodium.client.render.SodiumWorldRenderer
 import net.caffeinemc.mods.sodium.client.render.chunk.LocalSectionIndex
 import net.caffeinemc.mods.sodium.client.render.chunk.RenderSection
-import net.caffeinemc.mods.sodium.client.render.chunk.SharedQuadIndexBuffer
 import net.caffeinemc.mods.sodium.client.render.chunk.terrain.DefaultTerrainRenderPasses
 import net.caffeinemc.mods.sodium.client.render.viewport.CameraTransform
 import net.minecraft.client.Minecraft
@@ -36,8 +32,6 @@ import org.lwjgl.opengl.GL20.glUniform3f
 import org.lwjgl.opengl.GL20.glUniform3i
 import org.lwjgl.opengl.GL30.glUniform1ui
 import org.lwjgl.opengl.GL32.nglMultiDrawElementsBaseVertex
-import java.nio.ByteBuffer
-import java.nio.ByteOrder
 import java.util.OptionalDouble
 import java.util.OptionalInt
 
@@ -90,7 +84,7 @@ open class BlockLight(
     @JvmField
     var generateDirty = true
 
-    fun collect() {
+    fun collect(): Boolean {
         val sectionManager = (SodiumWorldRenderer.instance() as SodiumWorldRendererAccessor).`vibrancy$renderSectionManager`()
         val sections = mutableListOf<RenderSection>()
 
@@ -117,11 +111,11 @@ open class BlockLight(
         batch.clear()
 
         if (sections.isEmpty()) {
-            return
+            return true
         }
 
         val region = sections.first().region // TODO region borders
-        val storage = region.getStorage(DefaultTerrainRenderPasses.SOLID /* TODO */) ?: return
+        val storage = region.getStorage(DefaultTerrainRenderPasses.SOLID /* TODO */) ?: return false
 
         for (section in sections) {
             if (section.region !== region) {
@@ -131,6 +125,8 @@ open class BlockLight(
             val pMeshData = storage.getDataPointer(section.sectionIndex)
             DefaultChunkRendererAccessor.`vibrancy$addSharedIndexedDrawCommands`(batch, pMeshData, ModelQuadFacing.ALL)
         }
+
+        return true
     }
 
     fun generateShadowMap(): Boolean {
@@ -175,7 +171,10 @@ open class BlockLight(
             backend as GlRenderPassAccessor
             val encoder = backend.`vibrancy$encoder`()
             encoder as GlCommandEncoderAccessor
-            encoder.`vibrancy$trySetup`(backend, listOf())
+
+            if (!encoder.`vibrancy$trySetup`(backend, listOf())) {
+                return false
+            }
 
             glUniform3i(
                 glGetUniformLocation(encoder.`vibrancy$lastProgram`().programId, "u_RelativeOffset"), // TODO
@@ -230,7 +229,10 @@ open class BlockLight(
         backend as GlRenderPassAccessor
         val encoder = backend.`vibrancy$encoder`()
         encoder as GlCommandEncoderAccessor
-        encoder.`vibrancy$trySetup`(backend, listOf())
+
+        if (!encoder.`vibrancy$trySetup`(backend, listOf())) {
+            return false
+        }
 
         glUniform3f(
             glGetUniformLocation(encoder.`vibrancy$lastProgram`().programId, "u_WorldOffset"), // TODO

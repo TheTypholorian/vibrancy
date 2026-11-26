@@ -45,7 +45,7 @@ object Vibrancy : ClientModInitializer {
     )
     @JvmField
     val pointLightPipeline = RenderPipelines.register(
-        RenderPipeline.builder(RenderPipelines.MATRICES_PROJECTION_SNIPPET)
+        RenderPipeline.builder()
             .withLocation(id("point_light/render"))
             .withVertexShader(id("point_light/render"))
             .withFragmentShader(id("point_light/render"))

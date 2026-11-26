@@ -88,8 +88,9 @@ class BlockLightStorage(
         sections.forEach {
             it.lights.values.forEach {
                 if (it.collectDirty) {
-                    it.collect()
-                    it.collectDirty = false
+                    if (it.collect()) {
+                        it.collectDirty = false
+                    }
                 }
 
                 if (it.generateDirty) {

@@ -30,8 +30,7 @@ void main() {
     float z = faceAndDirectionToDistance(dir, u_Face) / lightRadius;
     vec2 coords = faceAndDirectionToShadowCoords(dir, u_Face);
 
-    v_ShadowCoords = vec3(coords, z);
-
     gl_Position = vec4((coords.x + 1.0 + 2.0 * float(u_Face)) / 6.0 - 1.0, coords.y, z * 2 - 1, 1);
     v_TexCoord = (_vert_tex_diffuse_coord_bias * u_TexCoordShrink) + _vert_tex_diffuse_coord;
+    v_ShadowCoords = vec3(coords, z);
 }
