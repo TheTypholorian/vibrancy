@@ -32,6 +32,10 @@ object Vibrancy : ClientModInitializer {
     fun id(path: String) = Identifier.fromNamespaceAndPath(MOD_ID, path)
 
     @JvmField
+    val transmissionAtlasLocation = id("textures/atlas/transmission.png")
+    @JvmField
+    val transmissionAtlasId = id("transmission")
+    @JvmField
     val chunkVertexShaders = setOf(
         id("point_light/shadow_map"),
         id("point_light/render")

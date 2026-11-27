@@ -23,7 +23,7 @@ void main() {
     vec2 atlasSize = textureSize(u_BlockTex, 0);
     vec3 alignedPosition = alignPixel(ivec2(atlasSize), v_TexCoord, v_Position);
 
-    vec4 color = vec4(clamp(1 - length(v_Position) / lightRadius, 0.0, 1.0) * max(0, dot(v_Normal, normalize(-v_Position))) * lightColor, 1) * texture(u_BlockTex, v_TexCoord) * v_Color;
+    vec4 color = vec4(/*clamp(1 - length(v_Position) / lightRadius, 0.0, 1.0) * */max(0, dot(v_Normal, normalize(-v_Position))) * lightColor, 1) * texture(u_BlockTex, v_TexCoord) * v_Color;
 
     uint face;
     vec2 coords = directionToShadowCoords(alignedPosition, face);
@@ -48,7 +48,9 @@ void main() {
 
         if (translucentShadow < self) {
             vec4 tint = texture(u_TranslucentColorTex, coords);
-            color.rgb *= tint.rgb; // TODO improve tinting formula
+
+            color.rgb = mix(color.rgb * tint.rgb, color.rgb, tint.a);
+            //color.rgb *= tint.rgb; // TODO improve tinting formula
         }
     }
 

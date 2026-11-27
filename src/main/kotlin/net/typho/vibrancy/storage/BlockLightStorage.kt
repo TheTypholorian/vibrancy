@@ -12,7 +12,6 @@ import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.texture.TextureAtlas
 import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
-import net.minecraft.world.entity.ai.behavior.SetWalkTargetAwayFrom.pos
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
 import net.typho.vibrancy.Vibrancy
@@ -95,7 +94,7 @@ class BlockLightStorage(
                     }
                 }
 
-                if (light.generateDirty || light.hasAnimatedTextures) {
+                if (light.generateDirty || light.animatedTextures.isNotEmpty()) {
                     light.generateShadowMap()
                     light.generateDirty = false
                 }

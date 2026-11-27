@@ -9,6 +9,7 @@ import com.mojang.blaze3d.textures.FilterMode
 import com.mojang.blaze3d.textures.GpuTexture
 import com.mojang.blaze3d.textures.GpuTextureView
 import com.mojang.blaze3d.textures.TextureFormat
+import net.caffeinemc.mods.sodium.api.texture.SpriteUtil
 import net.caffeinemc.mods.sodium.client.gl.device.MultiDrawBatch
 import net.caffeinemc.mods.sodium.client.gl.tessellation.GlIndexType
 import net.caffeinemc.mods.sodium.client.model.quad.properties.ModelQuadFacing
@@ -21,8 +22,9 @@ import net.caffeinemc.mods.sodium.client.render.chunk.terrain.DefaultTerrainRend
 import net.caffeinemc.mods.sodium.client.render.chunk.terrain.TerrainRenderPass
 import net.caffeinemc.mods.sodium.client.render.viewport.CameraTransform
 import net.minecraft.client.Minecraft
-import net.minecraft.client.renderer.texture.TextureAtlas
+import net.minecraft.client.renderer.texture.TextureAtlasSprite
 import net.minecraft.core.BlockPos
+import net.minecraft.resources.Identifier
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.mixin.collection.DefaultChunkRendererAccessor
 import net.typho.vibrancy.mixin.collection.RenderRegionAccessor
@@ -39,6 +41,7 @@ import org.lwjgl.opengl.GL20.glUniform3f
 import org.lwjgl.opengl.GL20.glUniform3i
 import org.lwjgl.opengl.GL30.glUniform1ui
 import org.lwjgl.opengl.GL32.nglMultiDrawElementsBaseVertex
+import java.util.IdentityHashMap
 import java.util.OptionalDouble
 import java.util.OptionalInt
 import kotlin.reflect.KMutableProperty0
@@ -51,7 +54,7 @@ open class BlockLight(
         const val TEXTURE_SIZE = 144
         const val LIGHT_RADIUS = 16 // TODO
 
-        // TODO make a better way to create a depth-only fbo
+        // TODO make a better way to create a depth-only fbo that doesn't cause memory leaks
         @JvmField
         val dummyColorShadowMap = RenderSystem.getDevice().createTexture(
             { "Vibrancy shadow map color" },
@@ -140,11 +143,12 @@ open class BlockLight(
     var collectDirty = true
     @JvmField
     var generateDirty = true
-    var hasAnimatedTextures = false
+    var animatedTextures: Collection<TextureAtlasSprite> = listOf()
         protected set
 
     fun collect(): Boolean {
-        hasAnimatedTextures = false
+        val textures = mutableMapOf<Identifier, TextureAtlasSprite>()
+        val transmissionAtlas = Minecraft.getInstance().atlasManager.getAtlasOrThrow(Vibrancy.transmissionAtlasId)
         val sectionManager = (SodiumWorldRenderer.instance() as SodiumWorldRendererAccessor).`vibrancy$renderSectionManager`()
         val sections = mutableListOf<RenderSection>()
 
@@ -155,14 +159,16 @@ open class BlockLight(
                     val section = (region as RenderRegionAccessor).`vibrancy$sections`()[LocalSectionIndex.pack(x, y, z)] ?: continue
                     sections.add(section)
 
-                    if (!hasAnimatedTextures) {
-                        if (!region.getAnimatedSprites(section.sectionIndex).isNullOrEmpty()) {
-                            hasAnimatedTextures = true
+                    region.getAnimatedSprites(section.sectionIndex)?.let { sprites ->
+                        sprites.forEach { sprite ->
+                            textures.computeIfAbsent(sprite.contents().name()) { transmissionAtlas.getSprite(it) }
                         }
                     }
                 }
             }
         }
+
+        animatedTextures = textures.values
 
         fun createLayer(property: KMutableProperty0<Layer?>, vararg passes: TerrainRenderPass) {
             property.set(null)
@@ -212,7 +218,7 @@ open class BlockLight(
             pass.bindTexture(
                 "u_BlockTex",
                 @Suppress("DEPRECATION")
-                Minecraft.getInstance().textureManager.getTexture(TextureAtlas.LOCATION_BLOCKS).textureView,
+                Minecraft.getInstance().textureManager.getTexture(Vibrancy.transmissionAtlasLocation).textureView,
                 RenderSystem.getSamplerCache().getSampler(
                     AddressMode.CLAMP_TO_EDGE,
                     AddressMode.CLAMP_TO_EDGE,
@@ -287,7 +293,10 @@ open class BlockLight(
         val solidLayer = this@BlockLight.solidLayer ?: return false
 
         val sectionManager = (SodiumWorldRenderer.instance() as SodiumWorldRendererAccessor).`vibrancy$renderSectionManager`()
-        val region = sectionManager.regions.getForChunk(pos.x shr 4, pos.y shr 4, pos.z shr 4) ?: return false
+        val region = sectionManager.regions.getForChunk(pos.x shr 4, pos.y shr 4, pos.z shr 4) ?: return false // TODO
+
+        @Suppress("UnstableApiUsage")
+        animatedTextures.forEach { SpriteUtil.INSTANCE.markSpriteActive(it) }
 
         val shadowSampler = RenderSystem.getSamplerCache().getSampler(
             AddressMode.CLAMP_TO_EDGE,
