@@ -43,7 +43,7 @@ object Vibrancy : ClientModInitializer {
         id("sky_light/render")
     )
     @JvmField
-    val normalVertexAttribute = VertexFormatAttribute("NORMAL", GlVertexAttributeFormat.UNSIGNED_BYTE, 3, true, false)
+    val normalVertexAttribute = VertexFormatAttribute("NORMAL", GlVertexAttributeFormat.BYTE, 3, true, false)
 
     @JvmField
     val pointLightShadowMapPipeline = RenderPipelines.register(
@@ -87,7 +87,7 @@ object Vibrancy : ClientModInitializer {
             .withShaderDefine("USE_VERTEX_COMPRESSION")
             .withSampler("u_BlockTex")
             .withUniform("u_Globals", UniformType.UNIFORM_BUFFER)
-            .withCull(true)
+            .withCull(false)
             .withDepthStencilState(DepthStencilState.DEFAULT)
             .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR_NORMAL, VertexFormat.Mode.QUADS)
             .build()
@@ -123,7 +123,7 @@ object Vibrancy : ClientModInitializer {
             val target = Minecraft.getInstance().mainRenderTarget
 
             (SodiumWorldRenderer.instance() as SodiumWorldRendererAccessor).`vibrancy$renderSectionManager`().regions.loadedRegions.forEach { (it as RenderRegionExt).`vibrancy$getBlockLightStorage`().render(camera, target) }
-            SkyLight.render(camera, target)
+            //SkyLight.render(camera, target)
         }
         /*
         ClientCommandRegistrationCallback.EVENT.register { dispatcher, context ->

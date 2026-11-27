@@ -25,7 +25,7 @@ vec3 _get_draw_translation(uint pos) {
 void main() {
     _vert_init();
 
-    vec3 lightOffset = vec3(0); // TODO
+    vec3 lightOffset = vec3(0.5); // TODO
 
     vec3 translation = _get_draw_translation(_draw_id);
 

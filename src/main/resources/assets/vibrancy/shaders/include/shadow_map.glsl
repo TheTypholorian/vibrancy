@@ -1,35 +1,25 @@
-// [-1, 1]
-vec2 directionToShadowCoords(vec3 dir, out uint face) {
+uint directionToFace(vec3 dir) {
     vec3 absDir = abs(dir);
-    vec2 coords;
 
     if (absDir.x >= absDir.y && absDir.x >= absDir.z) {
         if (dir.x > 0.0) {
-            face = 0u;
-            coords = vec2(-dir.z, dir.y) / dir.x;
+            return 0u;
         } else {
-            face = 1u;
-            coords = vec2(dir.z, dir.y) / -dir.x;
+            return 1u;
         }
     } else if (absDir.y >= absDir.x && absDir.y >= absDir.z) {
         if (dir.y > 0.0) {
-            face = 2u;
-            coords = vec2(dir.x, -dir.z) / dir.y;
+            return 2u;
         } else {
-            face = 3u;
-            coords = vec2(dir.x, dir.z) / -dir.y;
+            return 3u;
         }
     } else {
         if (dir.z > 0.0) {
-            face = 4u;
-            coords = vec2(dir.x, dir.y) / dir.z;
+            return 4u;
         } else {
-            face = 5u;
-            coords = vec2(-dir.x, dir.y) / -dir.z;
+            return 5u;
         }
     }
-
-    return coords;
 }
 
 float faceAndDirectionToDistance(vec3 dir, uint face) {
@@ -42,13 +32,13 @@ float faceAndDirectionToDistance(vec3 dir, uint face) {
 }
 
 // Returns [-1, 1]
-vec3 faceAndDirectionToShadowCoords(vec3 dir, uint face, float radius) {
-    if (face == 0u) return vec3(-dir.z / dir.x, dir.y / dir.x, dir.x / radius);
-    if (face == 1u) return vec3(dir.z / -dir.x, dir.y / -dir.x, -dir.x / radius);
-    if (face == 2u) return vec3(dir.x / dir.y, -dir.z / dir.y, dir.y / radius);
-    if (face == 3u) return vec3(dir.x / -dir.y, dir.z / -dir.y, -dir.y / radius);
-    if (face == 4u) return vec3(dir.x / dir.z, dir.y / dir.z, dir.z / radius);
-    return vec3(-dir.x / -dir.z, dir.y / -dir.z, -dir.z / radius);
+vec2 faceAndDirectionToShadowCoords(vec3 dir, uint face) {
+    if (face == 0u) return vec2(-dir.z / dir.x, dir.y / dir.x);
+    if (face == 1u) return vec2(dir.z / -dir.x, dir.y / -dir.x);
+    if (face == 2u) return vec2(dir.x / dir.y, -dir.z / dir.y);
+    if (face == 3u) return vec2(dir.x / -dir.y, dir.z / -dir.y);
+    if (face == 4u) return vec2(dir.x / dir.z, dir.y / dir.z);
+    return vec2(-dir.x / -dir.z, dir.y / -dir.z);
 }
 
 // Takes [-1, 1], returns [-1, 1]

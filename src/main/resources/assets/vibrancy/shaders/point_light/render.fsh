@@ -23,19 +23,14 @@ void main() {
     vec2 atlasSize = textureSize(u_BlockTex, 0);
     vec3 alignedPosition = alignPixel(ivec2(atlasSize), v_TexCoord, v_Position);
 
-    vec4 color = vec4(/*clamp(1 - length(v_Position) / lightRadius, 0.0, 1.0) * */max(0, dot(v_Normal, normalize(-v_Position))) * lightColor, 1) * texture(u_BlockTex, v_TexCoord) * v_Color;
+    vec4 color = vec4(clamp(1 - length(v_Position) / lightRadius, 0.0, 1.0) * max(0, dot(v_Normal, normalize(-v_Position))) * lightColor, 1) * texture(u_BlockTex, v_TexCoord) * v_Color;
 
-    uint face;
-    vec2 coords = directionToShadowCoords(alignedPosition, face);
-
-    vec2 shadowSize = textureSize(u_ShadowTex, 0);
-    coords *= (shadowSize.y - 1) / shadowSize.y;
+    uint face = directionToFace(alignedPosition);
+    vec2 coords = faceAndDirectionToShadowCoords(alignedPosition, face);
+    float self = faceAndDirectionToDistance(alignedPosition, face);
 
     coords = (coords + 1) * 0.5;
-
     coords.x = (coords.x + float(face)) / 6.0;
-
-    float self = faceAndDirectionToDistance(alignedPosition, face);
 
     float solidShadow = texture(u_ShadowTex, coords).r * lightRadius;
 

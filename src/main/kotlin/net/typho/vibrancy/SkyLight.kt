@@ -25,6 +25,8 @@ import net.typho.vibrancy.mixin.render.GlVertexArrayTessellationAccessor
 import net.typho.vibrancy.mixin.render.RenderPassAccessor
 import net.typho.vibrancy.util.ShadowMap
 import org.joml.Matrix4f
+import org.joml.Vector3f
+import org.joml.Vector4f
 import org.lwjgl.opengl.GL11.GL_BACK
 import org.lwjgl.opengl.GL11.GL_FRONT
 import org.lwjgl.opengl.GL11.glCullFace
@@ -54,7 +56,16 @@ object SkyLight {
     @JvmField
     val shadowMap = ShadowMap(TEXTURE_SIZE, TEXTURE_SIZE, "Sky light shadow map")
 
-    fun generateShadowMap(camera: CameraTransform, sectionManager: RenderSectionManager, skyMatrix: Matrix4f, colorTexture: GpuTextureView, depthTexture: GpuTextureView, indexedTessellation: Boolean, name: String, vararg passes: TerrainRenderPass) {
+    fun generateShadowMap(
+        camera: CameraTransform,
+        sectionManager: RenderSectionManager,
+        skyMatrix: Matrix4f,
+        colorTexture: GpuTextureView,
+        depthTexture: GpuTextureView,
+        indexedTessellation: Boolean,
+        name: String,
+        vararg passes: TerrainRenderPass
+    ) {
         RenderSystem.getDevice().createCommandEncoder().createRenderPass(
             { "Generate sky light $name shadow map" },
             colorTexture,
@@ -98,7 +109,6 @@ object SkyLight {
                 false,
                 skyMatrix.get(FloatArray(16))
             )
-            glCullFace(GL_FRONT) // face winding order is inverted here for some reason
 
             for (region in sectionManager.regions.loadedRegions) {
                 val resources = region.resources ?: continue
@@ -114,7 +124,7 @@ object SkyLight {
                 )
 
                 for (terrainRenderPass in passes) {
-                    val batch = region.getCachedBatch(terrainRenderPass) ?: continue
+                    val batch = region.getCachedBatch(terrainRenderPass) ?: continue // TODO custom batch without
 
                     if (!batch.isEmpty) {
                         nglMultiDrawElementsBaseVertex(
@@ -128,16 +138,16 @@ object SkyLight {
                     }
                 }
             }
-
-            glCullFace(GL_BACK)
         }
     }
 
     fun render(camera: CameraTransform, target: RenderTarget) {
-        val skyMatrix = Matrix4f() // TODO
-            .scale(0.01f)
+        val skyMatrix = Matrix4f()
             .rotateX(Math.toRadians(-45.0).toFloat())
-            .rotateZ(Math.toRadians(-15.0).toFloat())
+            .rotateY(Math.toRadians(-15.0).toFloat())
+        val lightDirection = Vector4f(0f, 0f, -1f, 0f).mul(skyMatrix.invert(Matrix4f())) // why do we have to invert the matrix? we'll never know
+        skyMatrix.scale(1f / 256) // TODO
+
         val sectionManager = (SodiumWorldRenderer.instance() as SodiumWorldRendererAccessor).`vibrancy$renderSectionManager`()
         generateShadowMap(camera, sectionManager, skyMatrix, dummyColorShadowMapView, shadowMap.solidDepthView, false, "solid", DefaultTerrainRenderPasses.SOLID, DefaultTerrainRenderPasses.CUTOUT)
         val translucentTexture = shadowMap.translucentLayerOrNew()
@@ -197,6 +207,12 @@ object SkyLight {
                 glGetUniformLocation(encoder.`vibrancy$lastProgram`().programId, "u_SkyMat"), // TODO
                 false,
                 skyMatrix.get(FloatArray(16))
+            )
+            glUniform3f(
+                glGetUniformLocation(encoder.`vibrancy$lastProgram`().programId, "u_LightDir"), // TODO
+                lightDirection.x,
+                lightDirection.y,
+                lightDirection.z
             )
 
             val passes = listOf(DefaultTerrainRenderPasses.SOLID, DefaultTerrainRenderPasses.CUTOUT)

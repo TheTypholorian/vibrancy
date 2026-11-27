@@ -18,6 +18,7 @@ import net.minecraft.world.level.block.state.BlockState
 import net.typho.vibrancy.SkyLight
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.mixin.collection.SodiumWorldRendererAccessor
+import org.joml.Vector3i
 import java.util.OptionalDouble
 import java.util.OptionalInt
 import kotlin.use
@@ -96,7 +97,7 @@ class BlockLightStorage(
                     }
                 }
 
-                if (light.generateDirty || light.animatedTextures.isNotEmpty()) {
+                if (light.generateDirty || (light.animatedTextures.isNotEmpty() && Vector3i.distanceSquared(camera.intX, camera.intY, camera.intZ, light.pos.x, light.pos.y, light.pos.z) < (32 * 32))) {
                     light.generateShadowMap()
                     light.generateDirty = false
                 }

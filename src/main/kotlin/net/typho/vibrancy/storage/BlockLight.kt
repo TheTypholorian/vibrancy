@@ -16,6 +16,7 @@ import net.caffeinemc.mods.sodium.client.model.quad.properties.ModelQuadFacing
 import net.caffeinemc.mods.sodium.client.render.SodiumWorldRenderer
 import net.caffeinemc.mods.sodium.client.render.chunk.LocalSectionIndex
 import net.caffeinemc.mods.sodium.client.render.chunk.RenderSection
+import net.caffeinemc.mods.sodium.client.render.chunk.RenderSectionManager
 import net.caffeinemc.mods.sodium.client.render.chunk.data.SectionRenderDataUnsafe
 import net.caffeinemc.mods.sodium.client.render.chunk.region.RenderRegion
 import net.caffeinemc.mods.sodium.client.render.chunk.terrain.DefaultTerrainRenderPasses
@@ -91,10 +92,7 @@ open class BlockLight(
     var animatedTextures: Collection<TextureAtlasSprite> = listOf()
         protected set
 
-    fun collect(): Boolean {
-        val textures = mutableMapOf<Identifier, TextureAtlasSprite>()
-        val transmissionAtlas = Minecraft.getInstance().atlasManager.getAtlasOrThrow(Vibrancy.transmissionAtlasId)
-        val sectionManager = (SodiumWorldRenderer.instance() as SodiumWorldRendererAccessor).`vibrancy$renderSectionManager`()
+    fun getAllSections(sectionManager: RenderSectionManager): List<RenderSection> {
         val sections = mutableListOf<RenderSection>()
 
         for (x in ((pos.x - LIGHT_RADIUS) / 16)..((pos.x + LIGHT_RADIUS) / 16)) {
@@ -103,12 +101,23 @@ open class BlockLight(
                     val region = sectionManager.regions.getForChunk(x, y, z) ?: continue
                     val section = (region as RenderRegionAccessor).`vibrancy$sections`()[LocalSectionIndex.pack(x, y, z)] ?: continue
                     sections.add(section)
+                }
+            }
+        }
 
-                    region.getAnimatedSprites(section.sectionIndex)?.let { sprites ->
-                        sprites.forEach { sprite ->
-                            textures.computeIfAbsent(sprite.contents().name()) { transmissionAtlas.getSprite(it) }
-                        }
-                    }
+        return sections
+    }
+
+    fun collect(): Boolean {
+        val textures = mutableMapOf<Identifier, TextureAtlasSprite>()
+        val transmissionAtlas = Minecraft.getInstance().atlasManager.getAtlasOrThrow(Vibrancy.transmissionAtlasId)
+        val sectionManager = (SodiumWorldRenderer.instance() as SodiumWorldRendererAccessor).`vibrancy$renderSectionManager`()
+        val sections = getAllSections(sectionManager)
+
+        sections.forEach { section ->
+            section.region.getAnimatedSprites(section.sectionIndex)?.let { sprites ->
+                sprites.forEach { sprite ->
+                    textures.computeIfAbsent(sprite.contents().name()) { transmissionAtlas.getSprite(it) }
                 }
             }
         }
@@ -152,6 +161,10 @@ open class BlockLight(
     }
 
     fun generateShadowMap(layer: MeshLayer, region: RenderRegion, colorTexture: GpuTextureView, depthTexture: GpuTextureView, indexedTessellation: Boolean, name: String): Boolean {
+        if (layer.batch.isEmpty) {
+            return true
+        }
+
         RenderSystem.getDevice().createCommandEncoder().createRenderPass(
             { "Generate $name shadow map at $pos" },
             colorTexture,
@@ -239,8 +252,16 @@ open class BlockLight(
     fun render(pass: RenderPass, camera: CameraTransform): Boolean {
         val solidLayer = this@BlockLight.solidLayer ?: return false
 
+        if (solidLayer.batch.isEmpty) {
+            return true
+        }
+
         val sectionManager = (SodiumWorldRenderer.instance() as SodiumWorldRendererAccessor).`vibrancy$renderSectionManager`()
         val region = sectionManager.regions.getForChunk(pos.x shr 4, pos.y shr 4, pos.z shr 4) ?: return false // TODO
+
+        if (getAllSections(sectionManager).all { it.isInvisible }) {
+            return true
+        }
 
         @Suppress("UnstableApiUsage")
         animatedTextures.forEach { SpriteUtil.INSTANCE.markSpriteActive(it) }

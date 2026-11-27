@@ -2,6 +2,7 @@
 
 #moj_import <sodium:globals.glsl>
 #moj_import <sodium:chunk_vertex.glsl>
+#moj_import <vibrancy:shadow_map.glsl>
 
 in vec3 a_Normal;
 
@@ -31,7 +32,7 @@ void main() {
     vec3 position = _vert_position + _get_draw_translation(_draw_id);
 
     gl_Position = u_ProjectionMatrix * u_ModelViewMatrix * vec4(position + u_WorldOffset, 1.0);
-    v_ShadowPosition = ((u_SkyMat * vec4(position + u_LightOffset + a_Normal * 1e-3, 1.0)).xyz + 1) * 0.5;
+    v_ShadowPosition = (skyLightFisheye((u_SkyMat * vec4(position + u_LightOffset + a_Normal * 1e-3, 1.0)).xyz) + 1) * 0.5;
     v_TexCoord = (_vert_tex_diffuse_coord_bias * u_TexCoordShrink) + _vert_tex_diffuse_coord;
     v_Color = _vert_color;
     v_Normal = a_Normal;
