@@ -1,5 +1,6 @@
 package net.typho.vibrancy.storage
 
+import com.mojang.blaze3d.pipeline.RenderTarget
 import com.mojang.blaze3d.systems.RenderSystem
 import com.mojang.blaze3d.textures.AddressMode
 import com.mojang.blaze3d.textures.FilterMode
@@ -14,6 +15,7 @@ import net.minecraft.core.BlockPos
 import net.minecraft.core.SectionPos
 import net.minecraft.world.level.block.Blocks
 import net.minecraft.world.level.block.state.BlockState
+import net.typho.vibrancy.SkyLight
 import net.typho.vibrancy.Vibrancy
 import net.typho.vibrancy.mixin.collection.SodiumWorldRendererAccessor
 import java.util.OptionalDouble
@@ -85,7 +87,7 @@ class BlockLightStorage(
         sections.forEach { it.close() }
     }
 
-    fun render() {
+    fun render(camera: CameraTransform, target: RenderTarget) {
         sections.forEach { section ->
             section.lights.values.forEach { light ->
                 if (light.collectDirty) {
@@ -101,19 +103,14 @@ class BlockLightStorage(
             }
         }
 
-        val cameraPos = Minecraft.getInstance().gameRenderer.mainCamera.position()
-        val target = Minecraft.getInstance().mainRenderTarget
-
-        val camera = CameraTransform(cameraPos.x, cameraPos.y, cameraPos.z)
-
         RenderSystem.getDevice().createCommandEncoder().createRenderPass(
-            { "Vibrancy draw lights" },
+            { "Render point lights" },
             target.colorTextureView!!,
             OptionalInt.empty(),
             target.depthTextureView!!,
             OptionalDouble.empty()
         ).use { pass ->
-            pass.setPipeline(Vibrancy.pointLightPipeline)
+            pass.setPipeline(Vibrancy.pointLightRenderPipeline)
             pass.bindTexture(
                 "u_BlockTex",
                 @Suppress("DEPRECATION")

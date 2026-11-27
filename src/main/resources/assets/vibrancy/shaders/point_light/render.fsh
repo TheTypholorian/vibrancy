@@ -50,7 +50,6 @@ void main() {
             vec4 tint = texture(u_TranslucentColorTex, coords);
 
             color.rgb = mix(color.rgb * tint.rgb, color.rgb, tint.a);
-            //color.rgb *= tint.rgb; // TODO improve tinting formula
         }
     }
 

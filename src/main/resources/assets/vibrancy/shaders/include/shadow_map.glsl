@@ -62,3 +62,10 @@ vec2 absoluteToFaceRelative(vec2 coords, out uint face) {
     face = uint(floor(x));
     return vec2(fract(x), coords.y);
 }
+
+// Takes [-1, 1], returns [-1, 1]
+vec3 skyLightFisheye(vec3 pos) {
+    float power = 4.0; // TODO
+    // TODO optimize this
+    return sign(pos) * atan(abs(pos) * power) / atan(power);
+}

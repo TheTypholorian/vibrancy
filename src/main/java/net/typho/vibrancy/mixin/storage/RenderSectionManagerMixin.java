@@ -6,6 +6,7 @@ import net.caffeinemc.mods.sodium.client.render.chunk.RenderSectionManager;
 import net.caffeinemc.mods.sodium.client.render.chunk.UniformBufferManager;
 import net.caffeinemc.mods.sodium.client.render.chunk.compile.BuilderTaskOutput;
 import net.caffeinemc.mods.sodium.client.render.viewport.Viewport;
+import net.typho.vibrancy.Vibrancy;
 import net.typho.vibrancy.ext.RenderRegionExt;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -28,6 +29,6 @@ public class RenderSectionManagerMixin {
             CallbackInfoReturnable<Integer> cir,
             @Local(name = "sectionsWithOutputs") List<RenderSection> sectionsWithOutputs
     ) {
-        sectionsWithOutputs.forEach(section -> ((RenderRegionExt) section.getRegion()).vibrancy$getBlockLightStorage().onSectionChanged(section));
+        sectionsWithOutputs.forEach(section -> Vibrancy.onSectionChanged(section));
     }
 }

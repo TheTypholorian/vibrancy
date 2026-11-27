@@ -12,11 +12,12 @@ import com.mojang.blaze3d.vertex.DefaultVertexFormat
 import com.mojang.blaze3d.vertex.VertexFormat
 import net.caffeinemc.mods.sodium.client.gl.attribute.GlVertexAttributeFormat
 import net.caffeinemc.mods.sodium.client.render.SodiumWorldRenderer
-import net.caffeinemc.mods.sodium.client.render.chunk.compile.ChunkBuildContext
+import net.caffeinemc.mods.sodium.client.render.chunk.RenderSection
 import net.caffeinemc.mods.sodium.client.render.vertex.VertexFormatAttribute
+import net.caffeinemc.mods.sodium.client.render.viewport.CameraTransform
 import net.fabricmc.api.ClientModInitializer
-import net.fabricmc.fabric.api.client.event.lifecycle.v1.ClientLevelEvents
 import net.fabricmc.fabric.api.client.rendering.v1.level.LevelRenderEvents
+import net.minecraft.client.Minecraft
 import net.minecraft.client.renderer.RenderPipelines
 import net.minecraft.resources.Identifier
 import net.typho.vibrancy.ext.RenderRegionExt
@@ -25,9 +26,6 @@ import net.typho.vibrancy.mixin.collection.SodiumWorldRendererAccessor
 object Vibrancy : ClientModInitializer {
     const val MOD_ID = "vibrancy"
 
-    @JvmField
-    val normalVertexAttribute = VertexFormatAttribute("NORMAL", GlVertexAttributeFormat.UNSIGNED_BYTE, 3, true, false)
-
     @JvmStatic
     fun id(path: String) = Identifier.fromNamespaceAndPath(MOD_ID, path)
 
@@ -35,13 +33,20 @@ object Vibrancy : ClientModInitializer {
     val transmissionAtlasLocation = id("textures/atlas/transmission.png")
     @JvmField
     val transmissionAtlasId = id("transmission")
+
+    // used to bind sodium vertex attributes rather than vanilla attributes (in mixin.init.GlProgramMixin)
     @JvmField
     val chunkVertexShaders = setOf(
         id("point_light/shadow_map"),
-        id("point_light/render")
+        id("point_light/render"),
+        id("sky_light/shadow_map"),
+        id("sky_light/render")
     )
     @JvmField
-    val shadowMapPipeline = RenderPipelines.register(
+    val normalVertexAttribute = VertexFormatAttribute("NORMAL", GlVertexAttributeFormat.UNSIGNED_BYTE, 3, true, false)
+
+    @JvmField
+    val pointLightShadowMapPipeline = RenderPipelines.register(
         RenderPipeline.builder()
             .withLocation(id("point_light/shadow_map"))
             .withVertexShader(id("point_light/shadow_map"))
@@ -55,7 +60,7 @@ object Vibrancy : ClientModInitializer {
             .build()
     )
     @JvmField
-    val pointLightPipeline = RenderPipelines.register(
+    val pointLightRenderPipeline = RenderPipelines.register(
         RenderPipeline.builder()
             .withLocation(id("point_light/render"))
             .withVertexShader(id("point_light/render"))
@@ -73,9 +78,52 @@ object Vibrancy : ClientModInitializer {
             .build()
     )
 
+    @JvmField
+    val skyLightShadowMapPipeline = RenderPipelines.register(
+        RenderPipeline.builder()
+            .withLocation(id("sky_light/shadow_map"))
+            .withVertexShader(id("sky_light/shadow_map"))
+            .withFragmentShader(id("sky_light/shadow_map"))
+            .withShaderDefine("USE_VERTEX_COMPRESSION")
+            .withSampler("u_BlockTex")
+            .withUniform("u_Globals", UniformType.UNIFORM_BUFFER)
+            .withCull(true)
+            .withDepthStencilState(DepthStencilState.DEFAULT)
+            .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR_NORMAL, VertexFormat.Mode.QUADS)
+            .build()
+    )
+    @JvmField
+    val skyLightRenderPipeline = RenderPipelines.register(
+        RenderPipeline.builder()
+            .withLocation(id("sky_light/render"))
+            .withVertexShader(id("sky_light/render"))
+            .withFragmentShader(id("sky_light/render"))
+            .withShaderDefine("USE_VERTEX_COMPRESSION")
+            .withSampler("u_BlockTex")
+            .withSampler("u_ShadowTex")
+            .withSampler("u_TranslucentColorTex")
+            .withSampler("u_TranslucentDepthTex")
+            .withUniform("u_Globals", UniformType.UNIFORM_BUFFER)
+            .withCull(true)
+            .withDepthStencilState(DepthStencilState(CompareOp.LESS_THAN_OR_EQUAL, false, -1f, -1f))
+            .withVertexFormat(DefaultVertexFormat.POSITION_TEX_COLOR_NORMAL, VertexFormat.Mode.QUADS)
+            .withColorTargetState(ColorTargetState(BlendFunction(SourceFactor.ONE, DestFactor.ONE)))
+            .build()
+    )
+
+    @JvmStatic
+    fun onSectionChanged(section: RenderSection) {
+        (section.region as RenderRegionExt).`vibrancy$getBlockLightStorage`().onSectionChanged(section)
+    }
+
     override fun onInitializeClient() {
         LevelRenderEvents.AFTER_OPAQUE_TERRAIN.register {
-            (SodiumWorldRenderer.instance() as SodiumWorldRendererAccessor).`vibrancy$renderSectionManager`().regions.loadedRegions.forEach { (it as RenderRegionExt).`vibrancy$getBlockLightStorage`().render() }
+            val cameraPos = Minecraft.getInstance().gameRenderer.mainCamera.position()
+            val camera = CameraTransform(cameraPos.x, cameraPos.y, cameraPos.z)
+            val target = Minecraft.getInstance().mainRenderTarget
+
+            (SodiumWorldRenderer.instance() as SodiumWorldRendererAccessor).`vibrancy$renderSectionManager`().regions.loadedRegions.forEach { (it as RenderRegionExt).`vibrancy$getBlockLightStorage`().render(camera, target) }
+            SkyLight.render(camera, target)
         }
         /*
         ClientCommandRegistrationCallback.EVENT.register { dispatcher, context ->
