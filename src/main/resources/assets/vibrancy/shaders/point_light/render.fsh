@@ -18,7 +18,7 @@ out vec4 fragColor;
 
 void main() {
     float lightRadius = 16.0; // TODO
-    vec3 lightColor = vec3(1, 0.86, 0.6) * 3; // TODO
+    vec3 lightColor = vec3(1, 0.86, 0.6); // TODO
 
     vec2 atlasSize = textureSize(u_BlockTex, 0);
     vec3 alignedPosition = alignPixel(ivec2(atlasSize), v_TexCoord, v_Position);
@@ -48,7 +48,7 @@ void main() {
 
         if (translucentShadow < self) {
             vec4 tint = texture(u_TranslucentColorTex, coords);
-            color.rgb = mix(color.rgb, tint.rgb, tint.a); // TODO improve tinting formula
+            color.rgb *= tint.rgb; // TODO improve tinting formula
         }
     }
 

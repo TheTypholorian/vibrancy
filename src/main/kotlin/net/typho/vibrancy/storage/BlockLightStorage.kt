@@ -87,17 +87,17 @@ class BlockLightStorage(
     }
 
     fun render() {
-        sections.forEach {
-            it.lights.values.forEach {
-                if (it.collectDirty) {
-                    if (it.collect()) {
-                        it.collectDirty = false
+        sections.forEach { section ->
+            section.lights.values.forEach { light ->
+                if (light.collectDirty) {
+                    if (light.collect()) {
+                        light.collectDirty = false
                     }
                 }
 
-                if (it.generateDirty) {
-                    it.generateShadowMap()
-                    it.generateDirty = false
+                if (light.generateDirty || light.hasAnimatedTextures) {
+                    light.generateShadowMap()
+                    light.generateDirty = false
                 }
             }
         }

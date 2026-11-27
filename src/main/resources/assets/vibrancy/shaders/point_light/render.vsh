@@ -25,12 +25,12 @@ vec3 _get_draw_translation(uint pos) {
 void main() {
     _vert_init();
 
-    vec3 lightOffset = vec3(0.5, 0.5, 0.5); // TODO
+    vec3 lightOffset = vec3(0); // TODO
 
     vec3 translation = _get_draw_translation(_draw_id);
 
     gl_Position = u_ProjectionMatrix * u_ModelViewMatrix * vec4(_vert_position + u_WorldOffset + translation, 1.0);
-    v_Position = _vert_position + u_RelativeOffset + translation + a_Normal * 1e-3; // TODO
+    v_Position = _vert_position + translation + u_RelativeOffset - lightOffset + a_Normal * 1e-3; // TODO
     v_TexCoord = (_vert_tex_diffuse_coord_bias * u_TexCoordShrink) + _vert_tex_diffuse_coord;
     v_Color = _vert_color;
     v_Normal = a_Normal;

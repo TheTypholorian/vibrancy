@@ -9,7 +9,6 @@ import com.mojang.blaze3d.textures.FilterMode
 import com.mojang.blaze3d.textures.GpuTexture
 import com.mojang.blaze3d.textures.GpuTextureView
 import com.mojang.blaze3d.textures.TextureFormat
-import io.netty.util.CharsetUtil.encoder
 import net.caffeinemc.mods.sodium.client.gl.device.MultiDrawBatch
 import net.caffeinemc.mods.sodium.client.gl.tessellation.GlIndexType
 import net.caffeinemc.mods.sodium.client.model.quad.properties.ModelQuadFacing
@@ -141,8 +140,11 @@ open class BlockLight(
     var collectDirty = true
     @JvmField
     var generateDirty = true
+    var hasAnimatedTextures = false
+        protected set
 
     fun collect(): Boolean {
+        hasAnimatedTextures = false
         val sectionManager = (SodiumWorldRenderer.instance() as SodiumWorldRendererAccessor).`vibrancy$renderSectionManager`()
         val sections = mutableListOf<RenderSection>()
 
@@ -152,6 +154,12 @@ open class BlockLight(
                     val region = sectionManager.regions.getForChunk(x, y, z) ?: continue
                     val section = (region as RenderRegionAccessor).`vibrancy$sections`()[LocalSectionIndex.pack(x, y, z)] ?: continue
                     sections.add(section)
+
+                    if (!hasAnimatedTextures) {
+                        if (!region.getAnimatedSprites(section.sectionIndex).isNullOrEmpty()) {
+                            hasAnimatedTextures = true
+                        }
+                    }
                 }
             }
         }
@@ -159,7 +167,7 @@ open class BlockLight(
         fun createLayer(property: KMutableProperty0<Layer?>, vararg passes: TerrainRenderPass) {
             property.set(null)
             val layer by lazy {
-                Layer(MultiDrawBatch(sections.size), sections.size).also { property.set(it) }
+                Layer(MultiDrawBatch(sections.size * passes.size), sections.size * passes.size).also { property.set(it) }
             }
 
             if (sections.isNotEmpty()) {
